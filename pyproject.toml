@@ -1,0 +1,53 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling", "hatch-vcs>=0.3", "setuptools-scm>=7.1"]
+
+[project]
+dependencies = [
+  "anaconda-cli-base >=0.4.0"
+]
+description = "The Anaconda CLI"
+dynamic = ["version"]
+license = {text = "BSD-3-Clause"}
+name = "anaconda-cli"
+readme = "README.md"
+requires-python = ">=3.8"
+urls = {repository = "https://github.com/anaconda/anaconda-cli"}
+
+[project.optional-dependencies]
+publish = [
+  "build",
+  "twine",
+  "wheel"
+]
+
+[tool.distutils.bdist_wheel]
+universal = true
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/anaconda_cli/_version.py"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+ignore = ["E501"]
+# see https://docs.astral.sh/ruff/rules/
+select = ["F", "E", "W", "I", "UP", "TID"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Disallow all relative imports.
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+force-single-line = true
+known-first-party = ["anaconda_*"]
+
+[tool.ruff.lint.per-file-ignores]
+# TID252 Prefer absolute imports over relative imports (allow tests to import from conftest)
+"**/tests/*.py" = ["TID252"]
