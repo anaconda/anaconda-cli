@@ -18,7 +18,7 @@ requirements:
     {% for dep in project['dependencies'] %}
     - {{ dep.lower() }}
     {% endfor %}
-    - anaconda=client >=1.13.0
+    - anaconda-client >=1.13.0
 
 test:
   imports:
