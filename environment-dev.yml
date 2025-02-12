@@ -1,0 +1,10 @@
+# Local dev conda dependencies
+channels:
+- defaults
+- conda-forge
+dependencies:
+- python=3.10
+- anaconda-cli-base >=0.4.0
+- pip
+- pip:
+    - "-e .[dev]"
