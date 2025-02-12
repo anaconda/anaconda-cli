@@ -18,10 +18,13 @@ requirements:
     {% for dep in project['dependencies'] %}
     - {{ dep.lower() }}
     {% endfor %}
+    - anaconda=client >=1.13.0
 
 test:
   imports:
     - anaconda_cli_base
+    - anaconda_auth
+    - binstar_client
 
 about:
   summary: {{ project['description'] }}
