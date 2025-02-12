@@ -14,6 +14,8 @@ setup:  ## Setup local dev conda environment
 build:  ## Build the conda package
 	VERSION=`hatch version` \
 	conda build \
+		-c anaconda-cloud/label/dev \
+		-c anaconda-cloud \
 		-c conda-forge \
 		-c defaults \
 		--override-channels \
