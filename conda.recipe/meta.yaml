@@ -1,0 +1,29 @@
+{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=True) %}
+{% set project = pyproject['project'] %}
+
+{% set name = project['name'] %}
+{% set version = VERSION %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+build:
+  number: 0
+  noarch: generic
+
+requirements:
+  run:
+    - python {{ project['requires-python'] }}
+    {% for dep in project['dependencies'] %}
+    - {{ dep.lower() }}
+    {% endfor %}
+
+test:
+  imports:
+    - anaconda_cli_base
+
+about:
+  summary: {{ project['description'] }}
+  license: {{ project['license']['text'] }}
+  license_file: ../LICENSE

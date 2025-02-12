@@ -11,6 +11,15 @@ help:  ## Display help on all Makefile targets
 setup:  ## Setup local dev conda environment
 	$(CONDA_EXE) env $(shell [ -d $(conda_env_dir) ] && echo update || echo create) -p $(conda_env_dir) --file environment-dev.yml
 
+build:  ## Build the conda package
+	VERSION=`hatch version` \
+	conda build \
+		-c conda-forge \
+		-c defaults \
+		--override-channels \
+		--output-folder ./conda-bld \
+		conda.recipe
+
 clean:  ## Clean up cache and temporary files
 	find . -name \*.py[cod] -delete
 	rm -rf .pytest_cache .mypy_cache .tox build dist
