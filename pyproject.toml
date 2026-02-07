@@ -5,7 +5,9 @@ requires = ["hatchling", "hatch-vcs>=0.3", "setuptools-scm>=7.1"]
 [project]
 dependencies = [
   "anaconda-cli-base >=0.4.0",
-  "anaconda-auth"
+  "anaconda-auth",
+  "anaconda-client >=1.14.0",
+  "anaconda-repo-cli >=2.0.0a0"
 ]
 description = "The Anaconda CLI"
 dynamic = ["version"]
