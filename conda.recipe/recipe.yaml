@@ -8,10 +8,6 @@ source:
 
 build:
   number: 0
-  script:
-    - cargo build --release
-    - mkdir -p $PREFIX/bin
-    - cp target/release/ana $PREFIX/bin/
 
 requirements:
   build:
@@ -19,16 +15,10 @@ requirements:
 
 tests:
   - script:
-      - ana
-      - |
-        expected="Hello, world!"
-        actual="$(ana)"
-        if [ "$actual" != "$expected" ]; then
-          echo "FAIL: Output mismatch"
-          echo "  Expected: $expected"
-          echo "  Actual:   $actual"
-          exit 1
-        fi
+      - if: unix
+        then: run_test.sh
+      - if: win
+        then: run_test.bat
 
 about:
   homepage: https://github.com/anaconda/ana-cli
