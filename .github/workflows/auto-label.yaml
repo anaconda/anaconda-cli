@@ -32,7 +32,7 @@ jobs:
             const type = match[1];
             console.log(`Found conventional commit type: ${type}`)
 
-            // Types to ignore (won't get a label)
+            // Types to ignore (will get a special label)
             const ignoredTypes = ['build'];
 
             // Construct the label based on whether type is ignored or not.
