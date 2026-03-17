@@ -8,3 +8,12 @@ pre-commit = "pre-commit run --verbose --show-diff-on-failure --color=always --a
 
 [dependencies]
 pre-commit = ">=4.5.1,<5"
+
+[environments]
+build = ["build"]
+
+[feature.build.dependencies]
+rattler-build = ">=0.60.0,<0.61"
+
+[feature.build.tasks]
+build = "rattler-build build --recipe conda.recipe"
