@@ -1,4 +1,5 @@
 [workspace]
+name = "ana-cli"
 channels = ["conda-forge"]
 platforms = ["osx-arm64", "linux-64"]
 
