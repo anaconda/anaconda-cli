@@ -4,9 +4,12 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      - id: check-json
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: end-of-file-fixer
+      - id: pretty-format-json
+        args: [--autofix]
       - id: trailing-whitespace
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.16.0
