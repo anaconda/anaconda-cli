@@ -11,9 +11,16 @@ pre-commit = ">=4.5.1,<5"
 
 [environments]
 build = ["build"]
+dev = ["dev"]
 
 [feature.build.dependencies]
 rattler-build = ">=0.60.0,<0.61"
 
 [feature.build.tasks]
 build = "rattler-build build --recipe conda.recipe"
+
+[feature.dev.dependencies]
+rust = "*"
+
+[feature.dev.tasks]
+dev-build = "cargo build"
