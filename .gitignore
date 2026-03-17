@@ -27,3 +27,6 @@ target
 # build output
 output/
 target/
+
+# local dev config
+.claude/
