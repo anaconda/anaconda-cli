@@ -1,0 +1,18 @@
+package:
+  name: ana-cli
+  # TODO: Automatically generate version number
+  version: 0.1.0
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script: echo TODO - Add build script
+
+requirements: {}
+
+about:
+  homepage: https://github.com/anaconda/ana-cli
+  license: Apache-2.0
+  summary: A Single Entry Point for Data Science, ML, & AI-powered Applications
