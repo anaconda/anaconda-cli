@@ -35,18 +35,10 @@ jobs:
             // Types to ignore (won't get a label)
             const ignoredTypes = ['build'];
 
-            if (ignoredTypes.includes(type)) {
-              console.log(`Type "${type}" is ignored`);
-              return;
-            }
-
-            // Map prefix to label (use same name if not specified)
-            const labelMap = {
-              'refac': 'refactor',
-              'feat': 'feature',
-            };
-
-            const label = labelMap[type] || type;
+            // Construct the label based on whether type is ignored or not.
+            // If not ignored, the type is used as the label.
+            const isIgnored = ignoredTypes.includes(type);
+            const label = isIgnored ? "ignore-for-release" : type;
 
             try {
               await github.rest.issues.addLabels({
