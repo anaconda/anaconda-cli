@@ -32,12 +32,6 @@ jobs:
             const type = match[1];
             console.log(`Found conventional commit type: ${type}`)
 
-            // Map prefix to label (use same name if not specified)
-            const labelMap = {
-              'refac': 'refactor',
-              'feat': 'feature',
-            };
-
             // Types to ignore (won't get a label)
             const ignoredTypes = ['build'];
 
@@ -45,6 +39,12 @@ jobs:
               console.log(`Type "${type}" is ignored`);
               return;
             }
+
+            // Map prefix to label (use same name if not specified)
+            const labelMap = {
+              'refac': 'refactor',
+              'feat': 'feature',
+            };
 
             const label = labelMap[type] || type;
 
