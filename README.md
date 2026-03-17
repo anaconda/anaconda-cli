@@ -13,12 +13,12 @@ curl -fsSL https://pixi.sh/install.sh | bash
 
 ### Available Tasks
 
-| Task | Description |
-|------|-------------|
-| `build-conda` | Build the conda package |
-| `build-debug` | Build the standalone Rust binary in debug mode |
+| Task            | Description                                      |
+|-----------------|--------------------------------------------------|
+| `build-conda`   | Build the conda package                          |
+| `build-debug`   | Build the standalone Rust binary in debug mode   |
 | `build-release` | Build the standalone Rust binary in release mode |
-| `pre-commit` | Run pre-commit hooks on all files |
+| `pre-commit`    | Run pre-commit hooks on all files                |
 
 Run a task with:
 
