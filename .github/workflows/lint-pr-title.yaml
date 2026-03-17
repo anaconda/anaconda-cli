@@ -36,7 +36,7 @@ jobs:
             deps
           requireScope: false
           # Ensure subject is not empty And starts with an uppercase letter
-          subjectPattern: ^[A-Z]+$
+          subjectPattern: ^[A-Z].*$
           subjectPatternError: |
             The subject "{subject}" found in the pull request title "{title}" does not match the configured pattern.
             Please ensure your PR title follows the conventional commit format, with the subject beginning with an uppercase
