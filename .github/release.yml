@@ -22,3 +22,6 @@ changelog:
     - title: Other Changes
       labels:
         - '*'
+  exclude:
+    labels:
+      - ignore-for-release
