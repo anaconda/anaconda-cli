@@ -23,7 +23,8 @@ jobs:
             const title = context.payload.pull_request.title;
 
             // Extract type from conventional commit format: type(scope): description
-            const match = title.match(/^([a-z]+)(\((.*)\))?:/);
+            // The scope part '(scope)' is optional, but the colon is not.
+            const match = title.match(/^([a-z]+)(\(.*\))?:/);
             if (!match) {
               console.log('No conventional commit type found in title');
               return;
