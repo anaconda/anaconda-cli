@@ -23,6 +23,10 @@ jobs:
         with:
           pixi-version: v0.66.0
 
+      - name: Build as standalone binary
+        run: |
+          pixi run build-release
+
       - name: Build as conda package
         run: |
           pixi run build-conda
