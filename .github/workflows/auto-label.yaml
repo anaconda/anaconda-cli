@@ -1,3 +1,5 @@
+# Automatically applies labels to PRs based on conventional commit prefixes in the title.
+# Labels are used by release.yml to categorize changes in auto-generated release notes.
 name: Auto-label PR
 
 on:
@@ -13,7 +15,46 @@ jobs:
   label:
     runs-on: ubuntu-latest
     steps:
-      - name: Apply conventional commit labels
-        uses: bcoe/conventional-release-labels@v1
+      - name: Apply conventional commit label
+        uses: actions/github-script@v7
         with:
-          ignored_types: '["build"]'
+          script: |
+            const title = context.payload.pull_request.title;
+
+            // Extract type from conventional commit format: type(scope): description
+            const match = title.match(/^([a-z]+)(\((.*)\))?:/);
+            if (!match) {
+              console.log('No conventional commit type found in title');
+              return;
+            }
+
+            const type = match[1];
+            console.log(`Found conventional commit type: ${type}`)
+
+            // Map prefix to label (use same name if not specified)
+            const labelMap = {
+              'refac': 'refactor',
+              'feat': 'feature',
+            };
+
+            // Types to ignore (won't get a label)
+            const ignoredTypes = ['build'];
+
+            if (ignoredTypes.includes(type)) {
+              console.log(`Type "${type}" is ignored`);
+              return;
+            }
+
+            const label = labelMap[type] || type;
+
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: [label]
+              });
+              console.log(`Applied label: ${label}`);
+            } catch (error) {
+              console.log(`Failed to apply label "${label}": ${error.message}`);
+            }
