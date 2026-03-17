@@ -25,7 +25,7 @@ jobs:
 
       - name: Build as conda package
         run: |
-          pixi run build --recipe conda.recipe
+          pixi run build-conda
 
   check:
     name: Check

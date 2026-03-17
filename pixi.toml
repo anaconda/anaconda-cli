@@ -17,7 +17,7 @@ dev = ["dev"]
 [feature.build.dependencies]
 rattler-build = ">=0.60.0,<0.61"
 
-[feature.build.tasks.build]
+[feature.build.tasks.build-conda]
 cmd = "rattler-build build --recipe conda.recipe"
 description = "Build the conda package"
 
