@@ -16,4 +16,4 @@ jobs:
       - name: Apply conventional commit labels
         uses: bcoe/conventional-release-labels@v1
         with:
-          ignored_types: "['build']"
+          ignored_types: '["build"]'
