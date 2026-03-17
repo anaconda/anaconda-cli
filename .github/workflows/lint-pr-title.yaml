@@ -3,7 +3,11 @@ name: Validate PR title
 on:
   workflow_dispatch:
   pull_request:
-    types: [opened, edited, reopened]
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
 
 # Allow each opened PRs to validate titles concurrently
 concurrency:

@@ -1,0 +1,10 @@
+[workspace]
+name = "ana-cli"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[tasks]
+pre-commit = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
+
+[dependencies]
+pre-commit = ">=4.5.1,<5"
