@@ -23,6 +23,10 @@ jobs:
         with:
           pixi-version: v0.66.0
 
+      - name: Run tests
+        run: |
+          pixi run test
+
       - name: Build as standalone binary
         run: |
           pixi run build-release

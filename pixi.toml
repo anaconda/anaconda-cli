@@ -31,3 +31,7 @@ description = "Build the standalone Rust binary in debug mode"
 [feature.dev.tasks.build-release]
 cmd = "cargo build --release"
 description = "Build the standalone Rust binary in release mode"
+
+[feature.dev.tasks.test]
+cmd = "cargo test"
+description = "Run the unit tests"
