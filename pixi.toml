@@ -17,6 +17,7 @@ dev = ["dev"]
 [feature.build.dependencies]
 python = ">=3.10"
 rattler-build = ">=0.60.0,<0.61"
+setuptools-scm = ">=8"
 
 [feature.build.tasks.build-conda]
 description = "Build the conda package"
@@ -25,6 +26,7 @@ cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
 [feature.dev.dependencies]
 python = ">=3.10"
 rust = "*"
+setuptools-scm = ">=8"
 
 [feature.dev.tasks.build-debug]
 cmd = "python scripts/with_version.py cargo build"
