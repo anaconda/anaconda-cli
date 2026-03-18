@@ -1,9 +1,11 @@
+const VERSION: &str = env!("PKG_VERSION");
+
 fn greeting() -> &'static str {
     "Hello, world!"
 }
 
 fn main() {
-    println!("{}", greeting());
+    println!("{} (v{})", greeting(), VERSION);
 }
 
 #[cfg(test)]

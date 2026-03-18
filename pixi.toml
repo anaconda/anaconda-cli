@@ -15,23 +15,25 @@ build = ["build"]
 dev = ["dev"]
 
 [feature.build.dependencies]
+python = ">=3.10"
 rattler-build = ">=0.60.0,<0.61"
 
 [feature.build.tasks.build-conda]
-cmd = "rattler-build build --recipe conda.recipe"
 description = "Build the conda package"
+cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
 
 [feature.dev.dependencies]
+python = ">=3.10"
 rust = "*"
 
 [feature.dev.tasks.build-debug]
-cmd = "cargo build"
+cmd = "python scripts/with_version.py cargo build"
 description = "Build the standalone Rust binary in debug mode"
 
 [feature.dev.tasks.build-release]
-cmd = "cargo build --release"
+cmd = "python scripts/with_version.py cargo build --release"
 description = "Build the standalone Rust binary in release mode"
 
 [feature.dev.tasks.test]
-cmd = "cargo test"
+cmd = "python scripts/with_version.py cargo test"
 description = "Run the unit tests"

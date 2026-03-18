@@ -1,7 +1,6 @@
 [package]
 name = "ana"
-# TODO: Align the version with the conda recipe
-version = "0.1.0"
+version = "0.0.0" # Placeholder - actual version derived from git tags via build.rs
 edition = "2024"
 
 [dependencies]
