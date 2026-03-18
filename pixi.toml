@@ -1,10 +1,37 @@
 [workspace]
 name = "ana-cli"
 channels = ["conda-forge"]
-platforms = ["osx-arm64", "linux-64"]
-
-[tasks]
-pre-commit = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
+platforms = ["osx-arm64", "linux-64", "win-64"]
 
 [dependencies]
 pre-commit = ">=4.5.1,<5"
+
+[tasks.pre-commit]
+cmd = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
+description = "Run pre-commit hooks on all files"
+
+[environments]
+build = ["build"]
+dev = ["dev"]
+
+[feature.build.dependencies]
+rattler-build = ">=0.60.0,<0.61"
+
+[feature.build.tasks.build-conda]
+cmd = "rattler-build build --recipe conda.recipe"
+description = "Build the conda package"
+
+[feature.dev.dependencies]
+rust = "*"
+
+[feature.dev.tasks.build-debug]
+cmd = "cargo build"
+description = "Build the standalone Rust binary in debug mode"
+
+[feature.dev.tasks.build-release]
+cmd = "cargo build --release"
+description = "Build the standalone Rust binary in release mode"
+
+[feature.dev.tasks.test]
+cmd = "cargo test"
+description = "Run the unit tests"
