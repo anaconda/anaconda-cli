@@ -3,11 +3,10 @@ set -euxo pipefail
 
 ana
 
-expected="Hello, world!"
 actual="$(ana)"
-if [ "$actual" != "$expected" ]; then
+if [[ "$actual" != Hello,\ world!\ \(v*\) ]]; then
   echo "FAIL: Output mismatch"
-  echo "  Expected: $expected"
+  echo "  Expected: Hello, world! (v*)"
   echo "  Actual:   $actual"
   exit 1
 fi

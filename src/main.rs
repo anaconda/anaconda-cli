@@ -16,4 +16,9 @@ mod tests {
     fn test_greeting() {
         assert_eq!(greeting(), "Hello, world!");
     }
+
+    #[test]
+    fn test_version_is_set() {
+        assert!(!VERSION.is_empty());
+    }
 }

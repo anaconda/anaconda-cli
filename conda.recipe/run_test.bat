@@ -3,11 +3,11 @@
 ana
 if errorlevel 1 exit /b 1
 
-set "expected=Hello, world!"
 for /f "delims=" %%i in ('ana') do set "actual=%%i"
-if not "%actual%"=="%expected%" (
+echo %actual% | findstr /C:"Hello, world! (v" >nul
+if errorlevel 1 (
   echo FAIL: Output mismatch
-  echo   Expected: %expected%
+  echo   Expected: Hello, world! ^(v*^)
   echo   Actual: %actual%
   exit /b 1
 )
