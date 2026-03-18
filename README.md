@@ -19,6 +19,7 @@ curl -fsSL https://pixi.sh/install.sh | bash
 | `build-debug`   | Build the standalone Rust binary in debug mode   |
 | `build-release` | Build the standalone Rust binary in release mode |
 | `pre-commit`    | Run pre-commit hooks on all files                |
+| `test`          | Run the unit tests                               |
 
 Run a task with:
 
