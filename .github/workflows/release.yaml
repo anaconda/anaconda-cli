@@ -45,11 +45,11 @@ jobs:
         env:
           TOKEN: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
         run: |
-          # Use dev label for main branch pushes and pre-releases
-          if [[ "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event.release.prerelease || 'false' }}" == "true" ]]; then
-            export LABEL="dev"
-          else
+          # Default to dev label, use main only for full releases (not prereleases)
+          if [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" != "true" ]]; then
             export LABEL="main"
+          else
+            export LABEL="dev"
           fi
 
           echo "Publishing to label: $LABEL"
