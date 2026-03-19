@@ -24,7 +24,21 @@ FALLBACK_VERSION = "0.0.0"
 
 def main() -> int:
     try:
-        version = get_version(local_scheme="no-local-version")
+        version = get_version(
+            local_scheme="no-local-version",
+            # Only match clean semver tags (v0.0.1), ignore prerelease tags (v0.0.2.dev1)
+            git_describe_command=[
+                "git",
+                "describe",
+                "--dirty",
+                "--tags",
+                "--long",
+                "--match",
+                "v[0-9]*.[0-9]*.[0-9]*",
+                "--exclude",
+                "v*.dev*",
+            ],
+        )
     except LookupError:
         version = FALLBACK_VERSION
 
