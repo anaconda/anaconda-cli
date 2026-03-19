@@ -64,7 +64,7 @@ jobs:
             packages/*/*.conda
 
   create-github-release:
-    name: Create GitHub Release
+    name: Create GitHub Pre-release
     # TODO: Uncomment guard
     # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
