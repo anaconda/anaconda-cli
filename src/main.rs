@@ -1,3 +1,5 @@
+mod update;
+
 use indoc::formatdoc;
 
 const APPLICATION: &str = env!("CARGO_PKG_NAME");
@@ -46,7 +48,34 @@ fn run_self_update() {
 }
 
 fn show_available_versions() {
-    print!("Available versions here!")
+    let releases = match update::fetch_releases() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Failed to fetch releases: {}", e);
+            return;
+        }
+    };
+
+    let mut releases: Vec<_> = releases
+        .into_iter()
+        .filter(|r| update::parse_version(&r.tag_name).is_ok())
+        .collect();
+
+    releases.sort_by(|a, b| {
+        let va = update::parse_version(&a.tag_name).unwrap();
+        let vb = update::parse_version(&b.tag_name).unwrap();
+        vb.cmp(&va)
+    });
+
+    let current_tag = format!("v{}", VERSION);
+    for release in releases {
+        let marker = if release.tag_name == current_tag {
+            " *"
+        } else {
+            ""
+        };
+        println!("{}{}", release.tag_name, marker);
+    }
 }
 
 #[derive(Debug)]
