@@ -1,10 +1,6 @@
 const APPLICATION: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("PKG_VERSION");
 
-fn greeting() -> &'static str {
-    "Hello, world!"
-}
-
 fn print_usage() {
     println!("{} {}", APPLICATION, VERSION);
     println!();
@@ -34,52 +30,46 @@ fn run_self_update() {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
+    // Display help
+    if args.len() <= 1 || args.iter().any(|a| a == "--help" || a == "-h") {
+        print_usage();
+        return;
+    }
+
+    // Display version
     if args.iter().any(|a| a == "--version" || a == "-V") {
         println!("{}", VERSION);
         return;
     }
 
-    if args.iter().any(|a| a == "--help" || a == "-h") {
-        print_usage();
-        return;
-    }
-
-    if args.len() > 1 {
-        match args[1].as_str() {
-            "self" => {
-                if args.len() < 3 {
-                    print_self_usage();
+    // Handle subcommands
+    match args[1].as_str() {
+        "self" => {
+            if args.len() < 3 {
+                print_self_usage();
+                return;
+            }
+            match args[2].as_str() {
+                "update" => {
+                    run_self_update();
                     return;
                 }
-                match args[2].as_str() {
-                    "update" => {
-                        run_self_update();
-                        return;
-                    }
-                    cmd => {
-                        eprintln!("Unknown self command: {}", cmd);
-                        std::process::exit(1);
-                    }
+                cmd => {
+                    eprintln!("Unknown self command: {}", cmd);
+                    std::process::exit(1);
                 }
             }
-            cmd => {
-                eprintln!("Unknown command: {}", cmd);
-                std::process::exit(1);
-            }
+        }
+        cmd => {
+            eprintln!("Unknown command: {}", cmd);
+            std::process::exit(1);
         }
     }
-
-    println!("{}", greeting());
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_greeting() {
-        assert_eq!(greeting(), "Hello, world!");
-    }
 
     #[test]
     fn test_version_is_set() {
