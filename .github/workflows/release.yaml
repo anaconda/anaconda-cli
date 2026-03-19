@@ -4,6 +4,8 @@ permissions:
   contents: read
 
 on:
+  # TODO: Remove before merge
+  pull_request:
   push:
     branches:
       - main
