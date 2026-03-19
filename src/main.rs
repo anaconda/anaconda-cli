@@ -5,7 +5,14 @@ fn greeting() -> &'static str {
 }
 
 fn main() {
-    println!("{} (v{})", greeting(), VERSION);
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.iter().any(|a| a == "--version" || a == "-V") {
+        println!("{}", VERSION);
+        return;
+    }
+
+    println!("{}", greeting());
 }
 
 #[cfg(test)]
