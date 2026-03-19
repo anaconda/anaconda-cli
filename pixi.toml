@@ -9,6 +9,7 @@ python = ">=3.10"
 rattler-build = ">=0.60.0,<0.61"
 rust = "*"
 setuptools-scm = ">=8"
+anaconda-client = ">=1.14.1,<2"
 
 [tasks.pre-commit]
 cmd = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
