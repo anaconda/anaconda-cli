@@ -45,12 +45,17 @@ fn run_self_update() {
     print!("Running the update!")
 }
 
+fn show_available_versions() {
+    print!("Available versions here!")
+}
+
 #[derive(Debug)]
 enum Command {
     Help,
     SelfHelp,
     Version,
     SelfUpdate,
+    SelfShowAvailable,
 }
 
 fn parse_args(args: &[String]) -> Result<Command, String> {
@@ -71,7 +76,13 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
                 return Ok(Command::SelfHelp);
             }
             match args[2].as_str() {
-                "update" => Ok(Command::SelfUpdate),
+                "update" => {
+                    if args.iter().any(|a| a == "--show-available") {
+                        Ok(Command::SelfShowAvailable)
+                    } else {
+                        Ok(Command::SelfUpdate)
+                    }
+                }
                 cmd => Err(format!("Unknown self command: {}", cmd)),
             }
         }
@@ -85,6 +96,7 @@ fn run(args: &[String]) -> Result<(), String> {
         Command::SelfHelp => print_self_usage(),
         Command::Version => print_version(),
         Command::SelfUpdate => run_self_update(),
+        Command::SelfShowAvailable => show_available_versions(),
     }
     Ok(())
 }
@@ -169,5 +181,13 @@ mod tests {
         let result = parse_args(&args(&["ana", "foo"]));
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Unknown command: foo"));
+    }
+
+    #[test]
+    fn test_self_update_show_available() {
+        assert!(matches!(
+            parse_args(&args(&["ana", "self", "update", "--show-available"])),
+            Ok(Command::SelfShowAvailable)
+        ));
     }
 }
