@@ -109,7 +109,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
           prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
-          generate_release_notes: true
+          generate_release_notes: ${{ github.event_name == 'push' }}
           files: release-assets/*
           append_body: ${{ github.event_name == 'push' }}
           body: |
