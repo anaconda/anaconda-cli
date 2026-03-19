@@ -35,6 +35,13 @@ jobs:
         run: |
           pixi run build-conda
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-package-${{ matrix.os }}
+          path: output/
+          retention-days: 7
+
   check:
     name: Check
     if: always()
