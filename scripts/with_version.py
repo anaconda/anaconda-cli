@@ -24,7 +24,7 @@ FALLBACK_VERSION = "0.0.0"
 
 def main() -> int:
     try:
-        version = get_version()
+        version = get_version(local_scheme="no-local-version")
     except LookupError:
         version = FALLBACK_VERSION
 
