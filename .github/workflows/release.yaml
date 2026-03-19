@@ -1,0 +1,62 @@
+name: Release
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types:
+      - published
+
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  publish-to-anaconda-dot-org:
+    name: Publish to Anaconda.org
+    runs-on: ubuntu-latest
+    needs: [ci]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+          pattern: conda-*
+          merge-multiple: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
+        with:
+          pixi-version: v0.66.0
+
+      - name: Publish
+        env:
+          TOKEN: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
+        run: |
+          # Use dev label for main branch pushes and pre-releases
+          if [[ "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event.release.prerelease || 'false' }}" == "true" ]]; then
+            export LABEL="dev"
+          else
+            export LABEL="main"
+          fi
+
+          echo "Publishing to label: $LABEL"
+
+          pixi run anaconda --verbose \
+            --token $TOKEN \
+            upload \
+            --user anaconda-cloud \
+            --label $LABEL \
+            --private \
+            --force \
+            packages/*/*.conda
