@@ -1,4 +1,7 @@
 fn main() {
+    // Re-run build.rs if PKG_VERSION changes
+    println!("cargo:rerun-if-env-changed=PKG_VERSION");
+
     // Version is passed via PKG_VERSION environment variable.
     // This should be set by CI or locally via: PKG_VERSION=$(python scripts/get_version.py)
     // Falls back to CARGO_PKG_VERSION if not set.
