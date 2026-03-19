@@ -5,33 +5,27 @@ platforms = ["osx-arm64", "linux-64", "win-64"]
 
 [dependencies]
 pre-commit = ">=4.5.1,<5"
+python = ">=3.10"
+rattler-build = ">=0.60.0,<0.61"
+rust = "*"
+setuptools-scm = ">=8"
 
 [tasks.pre-commit]
 cmd = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
 description = "Run pre-commit hooks on all files"
 
-[environments]
-build = ["build"]
-dev = ["dev"]
-
-[feature.build.dependencies]
-rattler-build = ">=0.60.0,<0.61"
-
-[feature.build.tasks.build-conda]
-cmd = "rattler-build build --recipe conda.recipe"
+[tasks.build-conda]
+cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
 description = "Build the conda package"
 
-[feature.dev.dependencies]
-rust = "*"
-
-[feature.dev.tasks.build-debug]
-cmd = "cargo build"
+[tasks.build-debug]
+cmd = "python scripts/with_version.py cargo build"
 description = "Build the standalone Rust binary in debug mode"
 
-[feature.dev.tasks.build-release]
-cmd = "cargo build --release"
+[tasks.build-release]
+cmd = "python scripts/with_version.py cargo build --release"
 description = "Build the standalone Rust binary in release mode"
 
-[feature.dev.tasks.test]
-cmd = "cargo test"
+[tasks.test]
+cmd = "python scripts/with_version.py cargo test"
 description = "Run the unit tests"

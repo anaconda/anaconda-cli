@@ -1,7 +1,6 @@
 package:
   name: ana-cli
-  # TODO: Automatically generate version number
-  version: 0.1.0
+  version: ${{ env.get("PKG_VERSION") | default("0.0.0") }}
 
 source:
   path: ..

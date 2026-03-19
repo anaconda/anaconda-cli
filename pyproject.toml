@@ -1,0 +1,10 @@
+[project]
+name = "ana-cli"
+dynamic = ["version"]
+
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+# Version derived from git tags (e.g., v0.1.0 -> 0.1.0)

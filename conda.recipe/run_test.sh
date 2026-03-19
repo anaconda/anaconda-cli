@@ -3,11 +3,10 @@ set -euxo pipefail
 
 ana
 
-expected="Hello, world!"
-actual="$(ana)"
-if [ "$actual" != "$expected" ]; then
-  echo "FAIL: Output mismatch"
-  echo "  Expected: $expected"
+actual=$(ana --version)
+if [ "$actual" != "$PKG_VERSION" ]; then
+  echo "FAIL: Version mismatch"
+  echo "  Expected: $PKG_VERSION"
   echo "  Actual:   $actual"
   exit 1
 fi

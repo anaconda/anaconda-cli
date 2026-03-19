@@ -3,11 +3,10 @@
 ana
 if errorlevel 1 exit /b 1
 
-set "expected=Hello, world!"
-for /f "delims=" %%i in ('ana') do set "actual=%%i"
-if not "%actual%"=="%expected%" (
-  echo FAIL: Output mismatch
-  echo   Expected: %expected%
-  echo   Actual: %actual%
+for /f "delims=" %%i in ('ana --version') do set "actual=%%i"
+if not "%actual%"=="%PKG_VERSION%" (
+  echo FAIL: Version mismatch
+  echo   Expected: %PKG_VERSION%
+  echo   Actual:   %actual%
   exit /b 1
 )
