@@ -37,14 +37,14 @@ jobs:
           pixi run build-conda
 
       - name: Upload conda package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: conda-package-${{ matrix.os }}
           path: output/
           retention-days: 7
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: binary-${{ matrix.os }}
           path: target/release/ana${{ matrix.os == 'windows-latest' && '.exe' || '' }}
