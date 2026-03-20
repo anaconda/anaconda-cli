@@ -16,6 +16,8 @@ pub enum Error {
     Http(String),
     VersionParse(String),
     MissingToken,
+    AssetNotFound(String),
+    UnsupportedPlatform(String),
 }
 
 impl std::fmt::Display for Error {
@@ -30,6 +32,12 @@ impl std::fmt::Display for Error {
                 )?;
                 writeln!(f, "  Run: export GITHUB_TOKEN=$(gh auth token)")
             }
+            Error::AssetNotFound(platform) => {
+                write!(f, "No release asset found for platform: {}", platform)
+            }
+            Error::UnsupportedPlatform(info) => {
+                write!(f, "Unsupported platform: {}", info)
+            }
         }
     }
 }
@@ -41,9 +49,17 @@ impl From<reqwest::Error> for Error {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Asset {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Release {
     pub tag_name: String,
     pub prerelease: bool,
+    #[serde(default)]
+    pub assets: Vec<Asset>,
 }
 
 const DEFAULT_INCLUDE_PRERELEASES: bool = true;
@@ -52,6 +68,29 @@ pub fn include_prereleases() -> bool {
     env::var("ANA_PRERELEASES")
         .map(|v| v.to_lowercase() != "false")
         .unwrap_or(DEFAULT_INCLUDE_PRERELEASES)
+}
+
+fn get_asset_name() -> Result<String, Error> {
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+
+    match (os, arch) {
+        ("macos", "aarch64") => Ok("ana-darwin-arm64".to_string()),
+        ("linux", "x86_64") => Ok("ana-linux-x86_64".to_string()),
+        ("windows", "x86_64") => Ok("ana-windows-x86_64.exe".to_string()),
+        _ => Err(Error::UnsupportedPlatform(format!("{}-{}", os, arch))),
+    }
+}
+
+pub fn get_download_url(release: &Release) -> Result<String, Error> {
+    let asset_name = get_asset_name()?;
+
+    release
+        .assets
+        .iter()
+        .find(|a| a.name == asset_name)
+        .map(|a| a.url.clone())
+        .ok_or(Error::AssetNotFound(asset_name))
 }
 
 pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
@@ -199,6 +238,7 @@ mod tests {
         Release {
             tag_name: tag.to_string(),
             prerelease,
+            assets: vec![],
         }
     }
 

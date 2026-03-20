@@ -44,7 +44,53 @@ fn print_version() {
 }
 
 fn run_self_update() {
-    print!("Running the update!")
+    let releases = match update::fetch_available_releases() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Failed to fetch releases: {}", e);
+            return;
+        }
+    };
+
+    let latest = match releases.first() {
+        Some(r) => r,
+        None => {
+            println!("No releases available.");
+            return;
+        }
+    };
+
+    let current = match update::parse_version(VERSION) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Failed to parse current version: {}", e);
+            return;
+        }
+    };
+
+    let latest_version = match update::parse_version(&latest.tag_name) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Failed to parse latest version: {}", e);
+            return;
+        }
+    };
+
+    if latest_version <= current {
+        println!("Already up to date ({})", VERSION);
+        return;
+    }
+
+    let download_url = match update::get_download_url(latest) {
+        Ok(url) => url,
+        Err(e) => {
+            eprintln!("Failed to get download URL: {}", e);
+            return;
+        }
+    };
+
+    println!("Update available: {} -> {}", VERSION, latest.tag_name);
+    println!("Download URL: {}", download_url);
 }
 
 fn show_available_versions() {
