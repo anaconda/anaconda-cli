@@ -197,6 +197,38 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateSt
     }
 }
 
+pub enum UpdateResult {
+    Updated { from: String, to: String },
+    AlreadyUpToDate(String),
+    NoReleases,
+}
+
+pub fn perform_update(current_version_str: &str) -> Result<UpdateResult, Error> {
+    let releases = fetch_available_releases()?;
+
+    // TODO: Add feature for `ana self update <explcit-version>`
+    let latest_release = match releases.first() {
+        Some(r) => r,
+        None => return Ok(UpdateResult::NoReleases),
+    };
+
+    let current_version = parse_version(current_version_str)?;
+    let latest_version = parse_version(&latest_release.tag_name)?;
+
+    if latest_version <= current_version {
+        return Ok(UpdateResult::AlreadyUpToDate(current_version.to_string()));
+    }
+
+    let asset = get_asset_for_platform(latest_release)?;
+    println!("Downloading {}...", asset.name);
+    download_and_replace(asset)?;
+
+    Ok(UpdateResult::Updated {
+        from: current_version.to_string(),
+        to: latest_release.tag_name.clone(),
+    })
+}
+
 pub fn check_for_update(current_version: &str) {
     let releases = match fetch_available_releases() {
         Ok(r) => r,

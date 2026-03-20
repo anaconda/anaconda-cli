@@ -44,57 +44,19 @@ fn print_version() {
 }
 
 fn run_self_update() {
-    let releases = match update::fetch_available_releases() {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("Failed to fetch releases: {}", e);
-            return;
+    match update::perform_update(VERSION) {
+        Ok(update::UpdateResult::Updated { from, to }) => {
+            println!("Updated successfully: {} -> {}", from, to);
         }
-    };
-
-    let latest = match releases.first() {
-        Some(r) => r,
-        None => {
+        Ok(update::UpdateResult::AlreadyUpToDate(v)) => {
+            println!("Already up to date ({})", v);
+        }
+        Ok(update::UpdateResult::NoReleases) => {
             println!("No releases available.");
-            return;
         }
-    };
-
-    let current = match update::parse_version(VERSION) {
-        Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to parse current version: {}", e);
-            return;
+            eprintln!("Failed to update: {}", e);
         }
-    };
-
-    let latest_version = match update::parse_version(&latest.tag_name) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Failed to parse latest version: {}", e);
-            return;
-        }
-    };
-
-    if latest_version <= current {
-        println!("Already up to date ({})", VERSION);
-        return;
-    }
-
-    let asset = match update::get_asset_for_platform(latest) {
-        Ok(a) => a,
-        Err(e) => {
-            eprintln!("Failed to find asset: {}", e);
-            return;
-        }
-    };
-
-    println!("Update available: {} -> {}", VERSION, latest.tag_name);
-    println!("Downloading {}...", asset.name);
-
-    match update::download_and_replace(asset) {
-        Ok(()) => println!("Updated successfully!"),
-        Err(e) => eprintln!("Failed to update: {}", e),
     }
 }
 
