@@ -11,6 +11,22 @@ fn get_github_token() -> Result<String, Error> {
     }
 }
 
+fn github_client() -> Result<reqwest::blocking::Client, Error> {
+    let token = get_github_token()?;
+    reqwest::blocking::Client::builder()
+        .user_agent("ana-cli")
+        .default_headers({
+            let mut headers = reqwest::header::HeaderMap::new();
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", token).parse().unwrap(),
+            );
+            headers
+        })
+        .build()
+        .map_err(|e| Error::Http(e.to_string()))
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Error {
     Http(String),
@@ -95,14 +111,10 @@ pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
 }
 
 pub fn download_and_replace(asset: &Asset) -> Result<(), Error> {
-    let token = get_github_token()?;
-
-    let client = reqwest::blocking::Client::new();
+    let client = github_client()?;
     let response = client
         .get(&asset.url)
-        .header("User-Agent", "ana-cli")
         .header("Accept", "application/octet-stream")
-        .header("Authorization", format!("Bearer {}", token))
         .send()?
         .error_for_status()?;
 
@@ -131,14 +143,11 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
 }
 
 fn fetch_releases() -> Result<Vec<Release>, Error> {
-    let token = get_github_token()?;
-    let client = reqwest::blocking::Client::new();
+    let client = github_client()?;
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
     let releases: Vec<Release> = client
         .get(&url)
-        .header("User-Agent", "ana-cli")
         .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {}", token))
         .send()?
         .error_for_status()?
         .json()?;
