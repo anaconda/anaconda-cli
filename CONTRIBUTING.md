@@ -1,10 +1,10 @@
 # Contributing to ana
 
-Thank you for your interest in contributing to ana-cli. This document covers the basics of how to submit changes.
+Thank you for your interest in contributing to ana. This document covers the basics of how to submit changes.
 
 ## Getting Started
 
-ana-cli is written in Rust. To build from source, you need a recent stable Rust toolchain. Clone the repo, then:
+ana is written in Rust. To build from source, you need a recent stable Rust toolchain. Clone the repo, then:
 
 ```bash
 cargo build
@@ -24,6 +24,30 @@ Open a GitHub Issue for bug reports and feature requests. Include enough detail 
 5. Include tests for new functionality or bug fixes.
 6. Ensure `cargo test` passes before opening the PR.
 7. Write a clear PR description that explains *what* changed and *why*.
+
+## PR Title Format
+
+PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/) format. This is enforced by CI and will block merge if incorrect.
+
+```
+type: Subject starting with uppercase
+type(scope): Subject starting with uppercase
+```
+
+Allowed types: `feat`, `fix`, `chore`, `refac`, `docs`, `test`, `build`, `ci`
+
+Scopes are optional. The `deps` scope is available for dependency updates.
+
+Examples:
+
+```
+feat: Add support for pixi installation
+fix(deps): Update tokio to 1.38
+docs: Clarify channel configuration behavior
+chore: Remove unused build artifacts
+```
+
+The subject must start with an uppercase letter. The CI check runs on PR open, edit, and reopen, so you can fix the title without pushing new commits.
 
 ## Developer Certificate of Origin
 
