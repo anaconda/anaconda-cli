@@ -276,4 +276,11 @@ mod tests {
             Ok(Command::SelfUpdateCheck)
         ));
     }
+
+    #[test]
+    fn test_unknown_self_command() {
+        let result = parse_args(&args(&["ana", "self", "unknown"]));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Unknown self command: unknown"));
+    }
 }

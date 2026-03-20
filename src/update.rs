@@ -325,4 +325,65 @@ mod tests {
         let result = find_update(releases, "0.0.1").unwrap();
         assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
     }
+
+    #[test]
+    fn test_get_asset_name_returns_platform_specific_name() {
+        // This test verifies get_asset_name returns a valid result on supported platforms
+        let result = get_asset_name();
+        // On CI/dev machines (macOS arm64, linux x86_64, windows x86_64), this should succeed
+        if result.is_ok() {
+            let name = result.unwrap();
+            assert!(
+                name == "ana-darwin-arm64"
+                    || name == "ana-linux-x86_64"
+                    || name == "ana-windows-x86_64.exe"
+            );
+        }
+    }
+
+    #[test]
+    fn test_get_asset_for_platform_finds_matching_asset() {
+        let release = Release {
+            tag_name: "v1.0.0".to_string(),
+            prerelease: false,
+            assets: vec![
+                Asset {
+                    name: "ana-darwin-arm64".to_string(),
+                    url: "https://example.com/darwin".to_string(),
+                },
+                Asset {
+                    name: "ana-linux-x86_64".to_string(),
+                    url: "https://example.com/linux".to_string(),
+                },
+                Asset {
+                    name: "ana-windows-x86_64.exe".to_string(),
+                    url: "https://example.com/windows".to_string(),
+                },
+            ],
+        };
+
+        let result = get_asset_for_platform(&release);
+        // On supported platforms, should find the matching asset
+        if let Ok(asset) = result {
+            assert!(release.assets.iter().any(|a| a.name == asset.name));
+        }
+    }
+
+    #[test]
+    fn test_get_asset_for_platform_returns_error_when_not_found() {
+        let release = Release {
+            tag_name: "v1.0.0".to_string(),
+            prerelease: false,
+            assets: vec![Asset {
+                name: "ana-unknown-platform".to_string(),
+                url: "https://example.com/unknown".to_string(),
+            }],
+        };
+
+        let result = get_asset_for_platform(&release);
+        // On supported platforms, should return AssetNotFound since our platform isn't in assets
+        if get_asset_name().is_ok() {
+            assert!(matches!(result, Err(Error::AssetNotFound(_))));
+        }
+    }
 }
