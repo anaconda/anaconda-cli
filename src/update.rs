@@ -81,6 +81,68 @@ pub fn fetch_releases() -> Result<Vec<Release>, Error> {
     Ok(releases)
 }
 
+enum UpdateStatus {
+    UpdateAvailable(String),
+    UpToDate,
+    NoReleases,
+}
+
+fn find_update(
+    releases: Vec<Release>,
+    current_version: &str,
+    include_prereleases: bool,
+) -> Result<UpdateStatus, Error> {
+    let current = parse_version(current_version)?;
+
+    let latest = releases
+        .into_iter()
+        .filter(|r| parse_version(&r.tag_name).is_ok())
+        .filter(|r| include_prereleases || !r.prerelease)
+        .max_by(|a, b| {
+            let va = parse_version(&a.tag_name).unwrap();
+            let vb = parse_version(&b.tag_name).unwrap();
+            va.cmp(&vb)
+        });
+
+    let latest = match latest {
+        Some(r) => r,
+        None => return Ok(UpdateStatus::NoReleases),
+    };
+
+    let latest_version = parse_version(&latest.tag_name).unwrap();
+
+    if latest_version > current {
+        Ok(UpdateStatus::UpdateAvailable(latest.tag_name))
+    } else {
+        Ok(UpdateStatus::UpToDate)
+    }
+}
+
+pub fn check_for_update(current_version: &str) {
+    let releases = match fetch_releases() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Failed to fetch releases: {}", e);
+            return;
+        }
+    };
+
+    match find_update(releases, current_version, include_prereleases()) {
+        Ok(UpdateStatus::UpdateAvailable(tag)) => {
+            println!("Update available: {} -> {}", current_version, tag);
+        }
+        Ok(UpdateStatus::UpToDate) => {
+            println!("Already up to date ({})", current_version);
+        }
+        Ok(UpdateStatus::NoReleases) => {
+            println!("No releases available.");
+        }
+        Err(e) => {
+            eprintln!("Failed to check for update: {}", e);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,5 +183,73 @@ mod tests {
     fn test_parse_version_invalid() {
         let result = parse_version("not-a-version");
         assert!(matches!(result, Err(Error::VersionParse(_))));
+    }
+
+    fn make_release(tag: &str, prerelease: bool) -> Release {
+        Release {
+            tag_name: tag.to_string(),
+            prerelease,
+        }
+    }
+
+    #[test]
+    fn test_find_update_available() {
+        let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
+        let result = find_update(releases, "0.0.1", true).unwrap();
+        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
+    }
+
+    #[test]
+    fn test_find_update_already_up_to_date() {
+        let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
+        let result = find_update(releases, "0.0.2", true).unwrap();
+        assert!(matches!(result, UpdateStatus::UpToDate));
+    }
+
+    #[test]
+    fn test_find_update_no_releases() {
+        let releases = vec![];
+        let result = find_update(releases, "0.0.1", true).unwrap();
+        assert!(matches!(result, UpdateStatus::NoReleases));
+    }
+
+    #[test]
+    fn test_find_update_excludes_prereleases() {
+        let releases = vec![
+            make_release("v0.0.1", false),
+            make_release("v0.0.2.dev1", true),
+        ];
+        // With prereleases excluded, should be up to date
+        let result = find_update(releases, "0.0.1", false).unwrap();
+        assert!(matches!(result, UpdateStatus::UpToDate));
+    }
+
+    #[test]
+    fn test_find_update_includes_prereleases() {
+        let releases = vec![
+            make_release("v0.0.1", false),
+            make_release("v0.0.2.dev1", true),
+        ];
+        // With prereleases included, should find update
+        let result = find_update(releases, "0.0.1", true).unwrap();
+        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2.dev1"));
+    }
+
+    #[test]
+    fn test_find_update_invalid_current_version() {
+        let releases = vec![make_release("v0.0.1", false)];
+        let result = find_update(releases, "invalid", true);
+        assert!(matches!(result, Err(Error::VersionParse(_))));
+    }
+
+    #[test]
+    fn test_find_update_skips_invalid_release_tags() {
+        let releases = vec![
+            make_release("v0.0.1", false),
+            make_release("not-a-version", false),
+            make_release("v0.0.2", false),
+        ];
+        let result = find_update(releases, "0.0.1", true).unwrap();
+        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
     }
 }

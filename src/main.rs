@@ -91,6 +91,7 @@ enum Command {
     SelfHelp,
     Version,
     SelfUpdate,
+    SelfUpdateCheck,
     SelfShowAvailable,
 }
 
@@ -115,6 +116,8 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
                 "update" => {
                     if args.iter().any(|a| a == "--show-available") {
                         Ok(Command::SelfShowAvailable)
+                    } else if args.iter().any(|a| a == "--check") {
+                        Ok(Command::SelfUpdateCheck)
                     } else {
                         Ok(Command::SelfUpdate)
                     }
@@ -132,6 +135,7 @@ fn run(args: &[String]) -> Result<(), String> {
         Command::SelfHelp => print_self_usage(),
         Command::Version => print_version(),
         Command::SelfUpdate => run_self_update(),
+        Command::SelfUpdateCheck => update::check_for_update(VERSION),
         Command::SelfShowAvailable => show_available_versions(),
     }
     Ok(())
@@ -224,6 +228,14 @@ mod tests {
         assert!(matches!(
             parse_args(&args(&["ana", "self", "update", "--show-available"])),
             Ok(Command::SelfShowAvailable)
+        ));
+    }
+
+    #[test]
+    fn test_self_update_check() {
+        assert!(matches!(
+            parse_args(&args(&["ana", "self", "update", "--check"])),
+            Ok(Command::SelfUpdateCheck)
         ));
     }
 }
