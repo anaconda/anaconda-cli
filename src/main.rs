@@ -81,16 +81,21 @@ fn run_self_update() {
         return;
     }
 
-    let download_url = match update::get_download_url(latest) {
-        Ok(url) => url,
+    let asset = match update::get_asset_for_platform(latest) {
+        Ok(a) => a,
         Err(e) => {
-            eprintln!("Failed to get download URL: {}", e);
+            eprintln!("Failed to find asset: {}", e);
             return;
         }
     };
 
     println!("Update available: {} -> {}", VERSION, latest.tag_name);
-    println!("Download URL: {}", download_url);
+    println!("Downloading {}...", asset.name);
+
+    match update::download_asset(asset) {
+        Ok(path) => println!("Downloaded to: {}", path.display()),
+        Err(e) => eprintln!("Failed to download: {}", e),
+    }
 }
 
 fn show_available_versions() {

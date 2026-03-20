@@ -82,15 +82,33 @@ fn get_asset_name() -> Result<String, Error> {
     }
 }
 
-pub fn get_download_url(release: &Release) -> Result<String, Error> {
+pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
     let asset_name = get_asset_name()?;
 
     release
         .assets
         .iter()
         .find(|a| a.name == asset_name)
-        .map(|a| a.url.clone())
         .ok_or(Error::AssetNotFound(asset_name))
+}
+
+pub fn download_asset(asset: &Asset) -> Result<std::path::PathBuf, Error> {
+    let token = get_github_token()?;
+
+    let client = reqwest::blocking::Client::new();
+    let response = client
+        .get(&asset.url)
+        .header("User-Agent", "ana-cli")
+        .header("Accept", "application/octet-stream")
+        .header("Authorization", format!("Bearer {}", token))
+        .send()?
+        .error_for_status()?;
+
+    let bytes = response.bytes()?;
+    let path = std::path::PathBuf::from(&asset.name);
+    std::fs::write(&path, &bytes).map_err(|e| Error::Http(e.to_string()))?;
+
+    Ok(path)
 }
 
 pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
