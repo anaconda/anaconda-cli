@@ -48,7 +48,7 @@ fn run_self_update() {
 }
 
 fn show_available_versions() {
-    let releases = match update::fetch_releases() {
+    let releases = match update::fetch_available_releases() {
         Ok(r) => r,
         Err(e) => {
             eprintln!("Failed to fetch releases: {}", e);
@@ -56,23 +56,10 @@ fn show_available_versions() {
         }
     };
 
-    let include_prereleases = update::include_prereleases();
-    let mut releases: Vec<_> = releases
-        .into_iter()
-        .filter(|r| update::parse_version(&r.tag_name).is_ok())
-        .filter(|r| include_prereleases || !r.prerelease)
-        .collect();
-
     if releases.is_empty() {
         println!("No releases available.");
         return;
     }
-
-    releases.sort_by(|a, b| {
-        let va = update::parse_version(&a.tag_name).unwrap();
-        let vb = update::parse_version(&b.tag_name).unwrap();
-        vb.cmp(&va)
-    });
 
     let current_tag = format!("v{}", VERSION);
     for release in releases {

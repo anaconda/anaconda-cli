@@ -66,7 +66,7 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
     semver::Version::parse(&normalized).map_err(|_| Error::VersionParse(tag.to_string()))
 }
 
-pub fn fetch_releases() -> Result<Vec<Release>, Error> {
+fn fetch_releases() -> Result<Vec<Release>, Error> {
     let token = get_github_token()?;
     let client = reqwest::blocking::Client::new();
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
@@ -81,23 +81,33 @@ pub fn fetch_releases() -> Result<Vec<Release>, Error> {
     Ok(releases)
 }
 
+pub fn fetch_available_releases() -> Result<Vec<Release>, Error> {
+    let include_pre = include_prereleases();
+    let mut releases: Vec<_> = fetch_releases()?
+        .into_iter()
+        .filter(|r| parse_version(&r.tag_name).is_ok())
+        .filter(|r| include_pre || !r.prerelease)
+        .collect();
+    releases.sort_by(|a, b| {
+        let va = parse_version(&a.tag_name).unwrap();
+        let vb = parse_version(&b.tag_name).unwrap();
+        vb.cmp(&va) // Descending order (newest first)
+    });
+    Ok(releases)
+}
+
 enum UpdateStatus {
     UpdateAvailable(String),
     UpToDate,
     NoReleases,
 }
 
-fn find_update(
-    releases: Vec<Release>,
-    current_version: &str,
-    include_prereleases: bool,
-) -> Result<UpdateStatus, Error> {
+fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateStatus, Error> {
     let current = parse_version(current_version)?;
 
     let latest = releases
         .into_iter()
         .filter(|r| parse_version(&r.tag_name).is_ok())
-        .filter(|r| include_prereleases || !r.prerelease)
         .max_by(|a, b| {
             let va = parse_version(&a.tag_name).unwrap();
             let vb = parse_version(&b.tag_name).unwrap();
@@ -119,7 +129,7 @@ fn find_update(
 }
 
 pub fn check_for_update(current_version: &str) {
-    let releases = match fetch_releases() {
+    let releases = match fetch_available_releases() {
         Ok(r) => r,
         Err(e) => {
             eprintln!("Failed to fetch releases: {}", e);
@@ -127,7 +137,7 @@ pub fn check_for_update(current_version: &str) {
         }
     };
 
-    match find_update(releases, current_version, include_prereleases()) {
+    match find_update(releases, current_version) {
         Ok(UpdateStatus::UpdateAvailable(tag)) => {
             println!("Update available: {} -> {}", current_version, tag);
         }
@@ -195,50 +205,48 @@ mod tests {
     #[test]
     fn test_find_update_available() {
         let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
-        let result = find_update(releases, "0.0.1", true).unwrap();
+        let result = find_update(releases, "0.0.1").unwrap();
         assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
     }
 
     #[test]
     fn test_find_update_already_up_to_date() {
         let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
-        let result = find_update(releases, "0.0.2", true).unwrap();
+        let result = find_update(releases, "0.0.2").unwrap();
         assert!(matches!(result, UpdateStatus::UpToDate));
     }
 
     #[test]
     fn test_find_update_no_releases() {
         let releases = vec![];
-        let result = find_update(releases, "0.0.1", true).unwrap();
+        let result = find_update(releases, "0.0.1").unwrap();
         assert!(matches!(result, UpdateStatus::NoReleases));
     }
 
     #[test]
-    fn test_find_update_excludes_prereleases() {
+    fn test_find_update_with_prereleases() {
+        // When prereleases are in the list, find_update finds the latest
+        // (filtering happens in fetch_available_releases, not find_update)
         let releases = vec![
             make_release("v0.0.1", false),
             make_release("v0.0.2.dev1", true),
         ];
-        // With prereleases excluded, should be up to date
-        let result = find_update(releases, "0.0.1", false).unwrap();
-        assert!(matches!(result, UpdateStatus::UpToDate));
+        let result = find_update(releases, "0.0.1").unwrap();
+        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2.dev1"));
     }
 
     #[test]
-    fn test_find_update_includes_prereleases() {
-        let releases = vec![
-            make_release("v0.0.1", false),
-            make_release("v0.0.2.dev1", true),
-        ];
-        // With prereleases included, should find update
-        let result = find_update(releases, "0.0.1", true).unwrap();
-        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2.dev1"));
+    fn test_find_update_without_prereleases() {
+        // When prereleases are filtered out before calling find_update
+        let releases = vec![make_release("v0.0.1", false)];
+        let result = find_update(releases, "0.0.1").unwrap();
+        assert!(matches!(result, UpdateStatus::UpToDate));
     }
 
     #[test]
     fn test_find_update_invalid_current_version() {
         let releases = vec![make_release("v0.0.1", false)];
-        let result = find_update(releases, "invalid", true);
+        let result = find_update(releases, "invalid");
         assert!(matches!(result, Err(Error::VersionParse(_))));
     }
 
@@ -249,7 +257,7 @@ mod tests {
             make_release("not-a-version", false),
             make_release("v0.0.2", false),
         ];
-        let result = find_update(releases, "0.0.1", true).unwrap();
+        let result = find_update(releases, "0.0.1").unwrap();
         assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
     }
 }
