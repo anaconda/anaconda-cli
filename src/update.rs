@@ -1,5 +1,7 @@
+use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use std::env;
+use std::io::{Read, Write};
 
 // We track the repo for releases
 const GITHUB_REPO: &str = "anaconda/ana-cli";
@@ -108,17 +110,40 @@ pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
 
 pub fn download_and_replace(asset: &Asset) -> Result<(), Error> {
     let client = github_client()?;
-    let response = client
+    let mut response = client
         .get(&asset.url)
         .header("Accept", "application/octet-stream")
         .send()?
         .error_for_status()?;
 
-    let bytes = response.bytes()?;
+    let total_size = response.content_length().unwrap_or(0);
+
+    let pb = ProgressBar::new(total_size);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{bar:40.cyan/blue} {bytes}/{total_bytes} ({eta})")
+            .unwrap()
+            .progress_chars("=> "),
+    );
 
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(&asset.name);
-    std::fs::write(&temp_path, &bytes).map_err(|e| Error::Io(e.to_string()))?;
+    let mut file = std::fs::File::create(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
+
+    let mut buffer = [0u8; 8192];
+    loop {
+        let n = response
+            .read(&mut buffer)
+            .map_err(|e| Error::Io(e.to_string()))?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buffer[..n])
+            .map_err(|e| Error::Io(e.to_string()))?;
+        pb.inc(n as u64);
+    }
+
+    pb.finish_and_clear();
 
     // Replace the running binary in-place
     self_replace::self_replace(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
@@ -220,7 +245,7 @@ pub fn perform_update(current_version_str: &str) -> Result<UpdateResult, Error> 
     }
 
     let asset = get_asset_for_platform(latest_release)?;
-    println!("Downloading {}...", asset.name);
+    println!("Downloading {} ({})", asset.name, asset.url);
     download_and_replace(asset)?;
 
     Ok(UpdateResult::Updated {
