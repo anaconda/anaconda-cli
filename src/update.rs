@@ -46,6 +46,14 @@ pub struct Release {
     pub prerelease: bool,
 }
 
+const DEFAULT_INCLUDE_PRERELEASES: bool = true;
+
+pub fn include_prereleases() -> bool {
+    env::var("ANA_PRERELEASES")
+        .map(|v| v.to_lowercase() != "false")
+        .unwrap_or(DEFAULT_INCLUDE_PRERELEASES)
+}
+
 pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
     // Convert a tag associated with a GitHub release into a semantic version
     let version_str = tag.strip_prefix('v').unwrap_or(tag);

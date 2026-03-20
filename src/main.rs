@@ -56,10 +56,17 @@ fn show_available_versions() {
         }
     };
 
+    let include_prereleases = update::include_prereleases();
     let mut releases: Vec<_> = releases
         .into_iter()
         .filter(|r| update::parse_version(&r.tag_name).is_ok())
+        .filter(|r| include_prereleases || !r.prerelease)
         .collect();
+
+    if releases.is_empty() {
+        println!("No releases available.");
+        return;
+    }
 
     releases.sort_by(|a, b| {
         let va = update::parse_version(&a.tag_name).unwrap();
