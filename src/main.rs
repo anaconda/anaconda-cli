@@ -142,7 +142,7 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
             }
             match args[2].as_str() {
                 "update" => {
-                    if args.iter().any(|a| a == "--show-available") {
+                    if args.iter().any(|a| a == "--list") {
                         Ok(Command::SelfShowAvailable)
                     } else if args.iter().any(|a| a == "--check") {
                         Ok(Command::SelfUpdateCheck)
@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn test_self_update_show_available() {
         assert!(matches!(
-            parse_args(&args(&["ana", "self", "update", "--show-available"])),
+            parse_args(&args(&["ana", "self", "update", "--list"])),
             Ok(Command::SelfShowAvailable)
         ));
     }
