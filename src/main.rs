@@ -66,21 +66,21 @@ fn run_self_update(force: bool) {
     };
 
     match check {
-        update::UpdateCheck::Available { from, release } => {
+        update::UpdateCheck::Available(release) => {
             if !force {
-                let message = format!("Update {} -> {}?", from, release.tag_name);
+                let message = format!("Update {} -> {}?", VERSION, release.tag_name);
                 if !prompt_yes_no(&message) {
                     println!("Update cancelled.");
                     return;
                 }
             }
             match update::apply_update(&release) {
-                Ok(()) => println!("Updated successfully: {} -> {}", from, release.tag_name),
+                Ok(()) => println!("Updated successfully: {} -> {}", VERSION, release.tag_name),
                 Err(e) => eprintln!("Failed to update: {}", e),
             }
         }
-        update::UpdateCheck::AlreadyUpToDate(v) => {
-            println!("Already up to date ({})", v);
+        update::UpdateCheck::AlreadyUpToDate => {
+            println!("Already up to date ({})", VERSION);
         }
         update::UpdateCheck::NoReleases => {
             println!("No releases available.");

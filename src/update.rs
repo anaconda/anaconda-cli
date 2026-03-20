@@ -191,8 +191,8 @@ pub fn fetch_available_releases() -> Result<Vec<Release>, Error> {
 }
 
 pub enum UpdateCheck {
-    Available { from: String, release: Release },
-    AlreadyUpToDate(String),
+    Available(Release),
+    AlreadyUpToDate,
     NoReleases,
 }
 
@@ -216,12 +216,9 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCh
     let latest_version = parse_version(&latest.tag_name).unwrap();
 
     if latest_version > current {
-        Ok(UpdateCheck::Available {
-            from: current_version.to_string(),
-            release: latest,
-        })
+        Ok(UpdateCheck::Available(latest))
     } else {
-        Ok(UpdateCheck::AlreadyUpToDate(current_version.to_string()))
+        Ok(UpdateCheck::AlreadyUpToDate)
     }
 }
 
@@ -239,11 +236,11 @@ pub fn apply_update(release: &Release) -> Result<(), Error> {
 
 pub fn check_for_update(current_version: &str) {
     match check_update(current_version) {
-        Ok(UpdateCheck::Available { from, release }) => {
-            println!("Update available: {} -> {}", from, release.tag_name);
+        Ok(UpdateCheck::Available(release)) => {
+            println!("Update available: {} -> {}", current_version, release.tag_name);
         }
-        Ok(UpdateCheck::AlreadyUpToDate(v)) => {
-            println!("Already up to date ({})", v);
+        Ok(UpdateCheck::AlreadyUpToDate) => {
+            println!("Already up to date ({})", current_version);
         }
         Ok(UpdateCheck::NoReleases) => {
             println!("No releases available.");
@@ -308,14 +305,14 @@ mod tests {
     fn test_find_update_available() {
         let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateCheck::Available { release, .. } if release.tag_name == "v0.0.2"));
+        assert!(matches!(result, UpdateCheck::Available(release) if release.tag_name == "v0.0.2"));
     }
 
     #[test]
     fn test_find_update_already_up_to_date() {
         let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
         let result = find_update(releases, "0.0.2").unwrap();
-        assert!(matches!(result, UpdateCheck::AlreadyUpToDate(_)));
+        assert!(matches!(result, UpdateCheck::AlreadyUpToDate));
     }
 
     #[test]
@@ -334,7 +331,7 @@ mod tests {
             make_release("v0.0.2.dev1", true),
         ];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateCheck::Available { release, .. } if release.tag_name == "v0.0.2.dev1"));
+        assert!(matches!(result, UpdateCheck::Available(release) if release.tag_name == "v0.0.2.dev1"));
     }
 
     #[test]
@@ -342,7 +339,7 @@ mod tests {
         // When prereleases are filtered out before calling find_update
         let releases = vec![make_release("v0.0.1", false)];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateCheck::AlreadyUpToDate(_)));
+        assert!(matches!(result, UpdateCheck::AlreadyUpToDate));
     }
 
     #[test]
@@ -360,7 +357,7 @@ mod tests {
             make_release("v0.0.2", false),
         ];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateCheck::Available { release, .. } if release.tag_name == "v0.0.2"));
+        assert!(matches!(result, UpdateCheck::Available(release) if release.tag_name == "v0.0.2"));
     }
 
     #[test]
