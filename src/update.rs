@@ -14,6 +14,7 @@ fn get_github_token() -> Result<String, Error> {
 #[derive(Debug, PartialEq)]
 pub enum Error {
     Http(String),
+    Io(String),
     VersionParse(String),
     MissingToken,
     AssetNotFound(String),
@@ -24,6 +25,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Http(msg) => write!(f, "HTTP error: {}", msg),
+            Error::Io(msg) => write!(f, "IO error: {}", msg),
             Error::VersionParse(v) => write!(f, "Failed to parse version: {}", v),
             Error::MissingToken => {
                 writeln!(
@@ -92,7 +94,7 @@ pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
         .ok_or(Error::AssetNotFound(asset_name))
 }
 
-pub fn download_asset(asset: &Asset) -> Result<std::path::PathBuf, Error> {
+pub fn download_and_replace(asset: &Asset) -> Result<(), Error> {
     let token = get_github_token()?;
 
     let client = reqwest::blocking::Client::new();
@@ -105,10 +107,15 @@ pub fn download_asset(asset: &Asset) -> Result<std::path::PathBuf, Error> {
         .error_for_status()?;
 
     let bytes = response.bytes()?;
-    let path = std::path::PathBuf::from(&asset.name);
-    std::fs::write(&path, &bytes).map_err(|e| Error::Http(e.to_string()))?;
 
-    Ok(path)
+    let temp_dir = std::env::temp_dir();
+    let temp_path = temp_dir.join(&asset.name);
+    std::fs::write(&temp_path, &bytes).map_err(|e| Error::Io(e.to_string()))?;
+
+    // Replace the running binary in-place
+    self_replace::self_replace(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
+
+    Ok(())
 }
 
 pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {

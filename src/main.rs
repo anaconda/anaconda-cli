@@ -92,9 +92,9 @@ fn run_self_update() {
     println!("Update available: {} -> {}", VERSION, latest.tag_name);
     println!("Downloading {}...", asset.name);
 
-    match update::download_asset(asset) {
-        Ok(path) => println!("Downloaded to: {}", path.display()),
-        Err(e) => eprintln!("Failed to download: {}", e),
+    match update::download_and_replace(asset) {
+        Ok(()) => println!("Updated successfully!"),
+        Err(e) => eprintln!("Failed to update: {}", e),
     }
 }
 
