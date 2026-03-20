@@ -64,13 +64,13 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Asset {
     pub name: String,
     pub url: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Release {
     pub tag_name: String,
     pub prerelease: bool,
@@ -190,13 +190,13 @@ pub fn fetch_available_releases() -> Result<Vec<Release>, Error> {
     Ok(releases)
 }
 
-enum UpdateStatus {
-    UpdateAvailable(String),
-    UpToDate,
+pub enum UpdateCheck {
+    Available { from: String, release: Release },
+    AlreadyUpToDate(String),
     NoReleases,
 }
 
-fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateStatus, Error> {
+fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCheck, Error> {
     let current = parse_version(current_version)?;
 
     let latest = releases
@@ -210,67 +210,42 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateSt
 
     let latest = match latest {
         Some(r) => r,
-        None => return Ok(UpdateStatus::NoReleases),
+        None => return Ok(UpdateCheck::NoReleases),
     };
 
     let latest_version = parse_version(&latest.tag_name).unwrap();
 
     if latest_version > current {
-        Ok(UpdateStatus::UpdateAvailable(latest.tag_name))
+        Ok(UpdateCheck::Available {
+            from: current_version.to_string(),
+            release: latest,
+        })
     } else {
-        Ok(UpdateStatus::UpToDate)
+        Ok(UpdateCheck::AlreadyUpToDate(current_version.to_string()))
     }
 }
 
-pub enum UpdateResult {
-    Updated { from: String, to: String },
-    AlreadyUpToDate(String),
-    NoReleases,
-}
-
-pub fn perform_update(current_version_str: &str) -> Result<UpdateResult, Error> {
+pub fn check_update(current_version: &str) -> Result<UpdateCheck, Error> {
     let releases = fetch_available_releases()?;
+    find_update(releases, current_version)
+}
 
-    // TODO: Add feature for `ana self update <explcit-version>`
-    let latest_release = match releases.first() {
-        Some(r) => r,
-        None => return Ok(UpdateResult::NoReleases),
-    };
-
-    let current_version = parse_version(current_version_str)?;
-    let latest_version = parse_version(&latest_release.tag_name)?;
-
-    if latest_version <= current_version {
-        return Ok(UpdateResult::AlreadyUpToDate(current_version.to_string()));
-    }
-
-    let asset = get_asset_for_platform(latest_release)?;
+pub fn apply_update(release: &Release) -> Result<(), Error> {
+    let asset = get_asset_for_platform(release)?;
     println!("Downloading {} ({})", asset.name, asset.url);
     download_and_replace(asset)?;
-
-    Ok(UpdateResult::Updated {
-        from: current_version.to_string(),
-        to: latest_release.tag_name.clone(),
-    })
+    Ok(())
 }
 
 pub fn check_for_update(current_version: &str) {
-    let releases = match fetch_available_releases() {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("Failed to fetch releases: {}", e);
-            return;
+    match check_update(current_version) {
+        Ok(UpdateCheck::Available { from, release }) => {
+            println!("Update available: {} -> {}", from, release.tag_name);
         }
-    };
-
-    match find_update(releases, current_version) {
-        Ok(UpdateStatus::UpdateAvailable(tag)) => {
-            println!("Update available: {} -> {}", current_version, tag);
+        Ok(UpdateCheck::AlreadyUpToDate(v)) => {
+            println!("Already up to date ({})", v);
         }
-        Ok(UpdateStatus::UpToDate) => {
-            println!("Already up to date ({})", current_version);
-        }
-        Ok(UpdateStatus::NoReleases) => {
+        Ok(UpdateCheck::NoReleases) => {
             println!("No releases available.");
         }
         Err(e) => {
@@ -333,21 +308,21 @@ mod tests {
     fn test_find_update_available() {
         let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
+        assert!(matches!(result, UpdateCheck::Available { release, .. } if release.tag_name == "v0.0.2"));
     }
 
     #[test]
     fn test_find_update_already_up_to_date() {
         let releases = vec![make_release("v0.0.1", false), make_release("v0.0.2", false)];
         let result = find_update(releases, "0.0.2").unwrap();
-        assert!(matches!(result, UpdateStatus::UpToDate));
+        assert!(matches!(result, UpdateCheck::AlreadyUpToDate(_)));
     }
 
     #[test]
     fn test_find_update_no_releases() {
         let releases = vec![];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateStatus::NoReleases));
+        assert!(matches!(result, UpdateCheck::NoReleases));
     }
 
     #[test]
@@ -359,7 +334,7 @@ mod tests {
             make_release("v0.0.2.dev1", true),
         ];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2.dev1"));
+        assert!(matches!(result, UpdateCheck::Available { release, .. } if release.tag_name == "v0.0.2.dev1"));
     }
 
     #[test]
@@ -367,7 +342,7 @@ mod tests {
         // When prereleases are filtered out before calling find_update
         let releases = vec![make_release("v0.0.1", false)];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateStatus::UpToDate));
+        assert!(matches!(result, UpdateCheck::AlreadyUpToDate(_)));
     }
 
     #[test]
@@ -385,7 +360,7 @@ mod tests {
             make_release("v0.0.2", false),
         ];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateStatus::UpdateAvailable(tag) if tag == "v0.0.2"));
+        assert!(matches!(result, UpdateCheck::Available { release, .. } if release.tag_name == "v0.0.2"));
     }
 
     #[test]

@@ -1,6 +1,7 @@
 mod update;
 
 use indoc::formatdoc;
+use std::io::{self, Write};
 
 const APPLICATION: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("PKG_VERSION");
@@ -43,19 +44,46 @@ fn print_version() {
     println!("{}", VERSION);
 }
 
-fn run_self_update() {
-    match update::perform_update(VERSION) {
-        Ok(update::UpdateResult::Updated { from, to }) => {
-            println!("Updated successfully: {} -> {}", from, to);
+fn prompt_yes_no(message: &str) -> bool {
+    print!("{} [y/N] ", message);
+    io::stdout().flush().unwrap();
+
+    let mut input = String::new();
+    if io::stdin().read_line(&mut input).is_err() {
+        return false;
+    }
+
+    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
+}
+
+fn run_self_update(force: bool) {
+    let check = match update::check_update(VERSION) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to check for updates: {}", e);
+            return;
         }
-        Ok(update::UpdateResult::AlreadyUpToDate(v)) => {
+    };
+
+    match check {
+        update::UpdateCheck::Available { from, release } => {
+            if !force {
+                let message = format!("Update {} -> {}?", from, release.tag_name);
+                if !prompt_yes_no(&message) {
+                    println!("Update cancelled.");
+                    return;
+                }
+            }
+            match update::apply_update(&release) {
+                Ok(()) => println!("Updated successfully: {} -> {}", from, release.tag_name),
+                Err(e) => eprintln!("Failed to update: {}", e),
+            }
+        }
+        update::UpdateCheck::AlreadyUpToDate(v) => {
             println!("Already up to date ({})", v);
         }
-        Ok(update::UpdateResult::NoReleases) => {
+        update::UpdateCheck::NoReleases => {
             println!("No releases available.");
-        }
-        Err(e) => {
-            eprintln!("Failed to update: {}", e);
         }
     }
 }
@@ -90,7 +118,7 @@ enum Command {
     Help,
     SelfHelp,
     Version,
-    SelfUpdate,
+    SelfUpdate { force: bool },
     SelfUpdateCheck,
     SelfShowAvailable,
 }
@@ -119,7 +147,8 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
                     } else if args.iter().any(|a| a == "--check") {
                         Ok(Command::SelfUpdateCheck)
                     } else {
-                        Ok(Command::SelfUpdate)
+                        let force = args.iter().any(|a| a == "--yes" || a == "-y");
+                        Ok(Command::SelfUpdate { force })
                     }
                 }
                 cmd => Err(format!("Unknown self command: {}", cmd)),
@@ -134,7 +163,7 @@ fn run(args: &[String]) -> Result<(), String> {
         Command::Help => print_usage(),
         Command::SelfHelp => print_self_usage(),
         Command::Version => print_version(),
-        Command::SelfUpdate => run_self_update(),
+        Command::SelfUpdate { force } => run_self_update(force),
         Command::SelfUpdateCheck => update::check_for_update(VERSION),
         Command::SelfShowAvailable => show_available_versions(),
     }
@@ -212,7 +241,23 @@ mod tests {
     fn test_self_update() {
         assert!(matches!(
             parse_args(&args(&["ana", "self", "update"])),
-            Ok(Command::SelfUpdate)
+            Ok(Command::SelfUpdate { force: false })
+        ));
+    }
+
+    #[test]
+    fn test_self_update_yes() {
+        assert!(matches!(
+            parse_args(&args(&["ana", "self", "update", "--yes"])),
+            Ok(Command::SelfUpdate { force: true })
+        ));
+    }
+
+    #[test]
+    fn test_self_update_yes_short() {
+        assert!(matches!(
+            parse_args(&args(&["ana", "self", "update", "-y"])),
+            Ok(Command::SelfUpdate { force: true })
         ));
     }
 
@@ -243,6 +288,10 @@ mod tests {
     fn test_unknown_self_command() {
         let result = parse_args(&args(&["ana", "self", "unknown"]));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Unknown self command: unknown"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Unknown self command: unknown")
+        );
     }
 }
