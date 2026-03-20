@@ -4,15 +4,11 @@ use std::env;
 // We track the repo for releases
 const GITHUB_REPO: &str = "anaconda/ana-cli";
 
-fn get_github_token() -> Result<String, Error> {
-    match env::var("GITHUB_TOKEN") {
-        Ok(token) if !token.is_empty() => Ok(token),
-        _ => Err(Error::MissingToken),
-    }
-}
-
 fn github_client() -> Result<reqwest::blocking::Client, Error> {
-    let token = get_github_token()?;
+    let token = match env::var("GITHUB_TOKEN") {
+        Ok(token) if !token.is_empty() => token,
+        _ => return Err(Error::MissingToken),
+    };
     reqwest::blocking::Client::builder()
         .user_agent("ana-cli")
         .default_headers({
