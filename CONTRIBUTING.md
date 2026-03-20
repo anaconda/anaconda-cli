@@ -4,11 +4,27 @@ Thank you for your interest in contributing to ana. This document covers the bas
 
 ## Getting Started
 
-ana is written in Rust. To build from source, you need a recent stable Rust toolchain. Clone the repo, then:
+ana is written in Rust. Development tasks are managed through [pixi](https://pixi.sh). Install pixi first:
 
 ```bash
-cargo build
-cargo test
+curl -fsSL https://pixi.sh/install.sh | bash
+```
+
+Clone the repo, then use `pixi run <task>` for development:
+
+| Task | Description |
+| :--- | :--- |
+| `build-debug` | Build the binary in debug mode |
+| `build-release` | Build the binary in release mode |
+| `build-conda` | Build the conda package |
+| `test` | Run unit tests |
+| `pre-commit` | Run pre-commit hooks on all files |
+
+For example:
+
+```bash
+pixi run build-debug
+pixi run test
 ```
 
 ## Reporting Issues
@@ -22,12 +38,12 @@ Open a GitHub Issue for bug reports and feature requests. Include enough detail 
 3. Reference the issue in your PR description (e.g., `Closes #123`).
 4. Keep pull requests focused. One logical change per PR.
 5. Include tests for new functionality or bug fixes.
-6. Ensure `cargo test` passes before opening the PR.
+6. Ensure `pixi run test` and `pixi run pre-commit` pass before opening the PR.
 7. Write a clear PR description that explains *what* changed and *why*.
 
 ## PR Title Format
 
-PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/) format. This is enforced by CI and will block merge if incorrect.
+PR titles must follow the following format. This is enforced by CI and will block merge if incorrect.
 
 ```
 type: Subject starting with uppercase
