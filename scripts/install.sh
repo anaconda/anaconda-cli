@@ -24,22 +24,21 @@ main() {
     need_cmd chmod
     need_cmd mkdir
 
-    setup_auth_headers
-
-    local _os _arch _target _version _install_dir _url _tmp
+    local _os _arch _target _version _install_dir _url _tmp _auth_header
 
     _os="$(detect_os)"
     _arch="$(detect_arch)"
     _target="$(map_target "$_os" "$_arch")"
     _version="${ANA_VERSION:-latest}"
     _install_dir="${ANA_INSTALL_DIR:-$HOME/.local/bin}"
+    _auth_header="$(get_auth_header)"
 
     local _asset_name="ana-${_target}"
 
     # Private repo: use GitHub API to resolve asset URL
     # Public repo: use direct download URL
-    if [ -n "${ANA_REQUEST_HEADERS:-}" ]; then
-        _url="$(resolve_github_asset_url "$_version" "$_asset_name")"
+    if [ -n "$_auth_header" ]; then
+        _url="$(resolve_github_asset_url "$_version" "$_asset_name" "$_auth_header")"
     elif [ "$_version" = "latest" ]; then
         _url="https://github.com/${REPO}/releases/latest/download/${_asset_name}"
     else
@@ -53,14 +52,14 @@ main() {
     info "Installing ana for %s %s" "$_os" "$_arch"
     info "Downloading %s" "$_url"
 
-    download "$_url" "$_tmp"
+    download "$_url" "$_tmp" "$_auth_header"
 
     if [ ! -s "$_tmp" ]; then
         err "Downloaded file is empty. Check the URL or try again."
     fi
 
     info "Verifying checksum"
-    verify_checksum "$_url" "$_tmp"
+    verify_checksum "$_url" "$_tmp" "$_auth_header"
 
     chmod +x "$_tmp"
     mkdir -p "$_install_dir"
@@ -116,7 +115,7 @@ map_target() {
     esac
 }
 
-setup_auth_headers() {
+get_auth_header() {
     local _token
 
     # Use ANA_REQUEST_TOKEN if provided, otherwise try gh auth token
@@ -127,8 +126,7 @@ setup_auth_headers() {
     fi
 
     if [ -n "${_token:-}" ]; then
-        ANA_REQUEST_HEADERS="Authorization: token ${_token}"
-        export ANA_REQUEST_HEADERS
+        printf 'Authorization: token %s' "$_token"
     fi
 }
 
@@ -137,7 +135,7 @@ setup_auth_headers() {
 # We must use the API to get the asset URL instead.
 
 resolve_github_asset_url() {
-    local _version="$1" _asset_name="$2" _api_url _response _asset_url
+    local _version="$1" _asset_name="$2" _auth_header="$3" _api_url _response _asset_url
 
     if [ "$_version" = "latest" ]; then
         _api_url="https://api.github.com/repos/${REPO}/releases/latest"
@@ -145,7 +143,7 @@ resolve_github_asset_url() {
         _api_url="https://api.github.com/repos/${REPO}/releases/tags/v${_version#v}"
     fi
 
-    _response="$(curl -fsSL -H "$ANA_REQUEST_HEADERS" "$_api_url")" || {
+    _response="$(curl -fsSL -H "$_auth_header" "$_api_url")" || {
         err "Failed to fetch release info from GitHub API"
     }
 
@@ -163,7 +161,7 @@ resolve_github_asset_url() {
 # --- End private repo support ---
 
 download() {
-    local _url="$1" _dest="$2"
+    local _url="$1" _dest="$2" _auth_header="${3:-}"
 
     if [ ! -t 1 ]; then
         CURL_OPTS="--silent"
@@ -176,8 +174,8 @@ download() {
     if check_cmd curl; then
         local _http_code
         _http_code="$(curl -fSL $CURL_OPTS \
-            ${ANA_REQUEST_HEADERS:+-H "$ANA_REQUEST_HEADERS"} \
-            ${ANA_REQUEST_HEADERS:+-H "Accept: application/octet-stream"} \
+            ${_auth_header:+-H "$_auth_header"} \
+            ${_auth_header:+-H "Accept: application/octet-stream"} \
             "$_url" --output "$_dest" --write-out "%{http_code}")" || {
             err "Download failed. Is curl working? URL: %s" "$_url"
         }
@@ -186,8 +184,8 @@ download() {
         fi
     elif check_cmd wget; then
         wget $WGET_OPTS \
-            ${ANA_REQUEST_HEADERS:+--header="$ANA_REQUEST_HEADERS"} \
-            ${ANA_REQUEST_HEADERS:+--header="Accept: application/octet-stream"} \
+            ${_auth_header:+--header="$_auth_header"} \
+            ${_auth_header:+--header="Accept: application/octet-stream"} \
             --output-document="$_dest" "$_url" || {
             err "Download failed. Is wget working? URL: %s" "$_url"
         }
@@ -197,10 +195,10 @@ download() {
 }
 
 verify_checksum() {
-    local _url="$1" _file="$2" _expected _actual _tmp_sha
+    local _url="$1" _file="$2" _auth_header="${3:-}" _expected _actual _tmp_sha
 
     _tmp_sha="$(mktemp "${TMPDIR:-/tmp}/.ana_sha.XXXXXXXX")"
-    if ! download "${_url}.sha256" "$_tmp_sha" 2>/dev/null; then
+    if ! download "${_url}.sha256" "$_tmp_sha" "$_auth_header" 2>/dev/null; then
         warn "Checksum file not available, skipping verification"
         rm -f "$_tmp_sha"
         return 0
