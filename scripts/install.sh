@@ -9,7 +9,6 @@
 #   ANA_INSTALL_DIR       — where to place the binary (default: ~/.local/bin)
 #   ANA_VERSION           — version to install, without "v" prefix (default: latest)
 #   ANA_NO_PATH_UPDATE    — set to non-empty to skip shell profile modification
-#   ANA_NO_BOOTSTRAP      — set to non-empty to skip running `ana bootstrap`
 #   ANA_REQUEST_TOKEN     — GitHub token for authenticated requests (default: tries `gh auth token`)
 
 set -eu
@@ -70,12 +69,6 @@ main() {
 
     if [ -z "${ANA_NO_PATH_UPDATE:-}" ]; then
         update_shell_profile "$_install_dir"
-    fi
-
-    if [ -z "${ANA_NO_BOOTSTRAP:-}" ]; then
-        printf "\n"
-        info "Running ana bootstrap..."
-        "${_install_dir}/${BINARY_NAME}" bootstrap
     fi
 
     printf "\n"
