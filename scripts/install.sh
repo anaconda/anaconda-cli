@@ -9,6 +9,7 @@
 #   ANA_INSTALL_DIR       — where to place the binary (default: ~/.local/bin)
 #   ANA_VERSION           — version to install, without "v" prefix (default: latest)
 #   ANA_NO_PATH_UPDATE    — set to non-empty to skip shell profile modification
+#   ANA_VERIFY_CHECKSUM   — set to "true" to verify checksum (default: false)
 #   ANA_REQUEST_TOKEN     — GitHub token for authenticated requests (default: tries `gh auth token`)
 
 set -eu
@@ -57,8 +58,13 @@ main() {
         err "Downloaded file is empty. Check the URL or try again."
     fi
 
-    info "Verifying checksum"
-    verify_checksum "$_url" "$_tmp" "$_auth_header"
+    # TODO: Enable checksum verification by default once .sha256 files are published
+    if [ "${ANA_VERIFY_CHECKSUM:-false}" = "true" ]; then
+        info "Verifying checksum"
+        verify_checksum "$_url" "$_tmp" "$_auth_header"
+    else
+        warn "Checksum verification disabled"
+    fi
 
     chmod +x "$_tmp"
     mkdir -p "$_install_dir"
