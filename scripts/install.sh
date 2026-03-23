@@ -280,19 +280,19 @@ ensure_cmd() {
 info() {
     local _fmt="$1"; shift
     # shellcheck disable=SC2059
-    printf "  \033[1;32m>\033[0m $_fmt\n" "$@"
+    printf "\033[1;32m>\033[0m $_fmt\n" "$@"
 }
 
 warn() {
     local _fmt="$1"; shift
     # shellcheck disable=SC2059
-    printf "  \033[1;33m!\033[0m $_fmt\n" "$@" >&2
+    printf "\033[1;33m!\033[0m $_fmt\n" "$@" >&2
 }
 
 err() {
     local _fmt="$1"; shift
     # shellcheck disable=SC2059
-    printf "  \033[1;31mx\033[0m $_fmt\n" "$@" >&2
+    printf "\033[1;31mx\033[0m $_fmt\n" "$@" >&2
     exit 1
 }
 
