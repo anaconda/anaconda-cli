@@ -170,7 +170,7 @@ download() {
         CURL_OPTS="--silent"
         WGET_OPTS="--no-verbose"
     else
-        CURL_OPTS=""
+        CURL_OPTS="--progress-bar"
         WGET_OPTS="--show-progress"
     fi
 
