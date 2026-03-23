@@ -14,6 +14,10 @@
 
 set -eu
 
+# The __wrap__ function ensures that we download the entire function definition before
+# execution. This is important when piping a downloaded script into sh, to avoid partial
+# script execution if download of the script fails. We download the entire function
+# definition and then initially call it.
 __wrap__() {
 
 REPO="anaconda/ana-cli"
