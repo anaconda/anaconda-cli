@@ -52,7 +52,6 @@ main() {
     _tmp="$(mktemp "${TMPDIR:-/tmp}/.ana_install.XXXXXXXX")"
     trap 'rm -f "$_tmp"' EXIT
 
-    printf "\n"
     info "Installing ana for %s %s" "$_os" "$_arch"
     info "Downloading %s" "$_url"
 
@@ -81,9 +80,7 @@ main() {
         update_shell_profile "$_install_dir"
     fi
 
-    printf "\n"
     info "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started."
-    printf "\n"
 }
 
 detect_os() {
@@ -252,6 +249,7 @@ update_shell_profile() {
             return 0
             ;;
     esac
+    printf "\n"
 }
 
 append_line_if_missing() {
