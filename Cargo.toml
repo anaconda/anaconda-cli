@@ -4,7 +4,7 @@ version = "0.0.0" # Placeholder - actual version derived from git tags via build
 edition = "2024"
 
 [dependencies]
-indicatif = "0.17"
+indicatif = "0.18"
 indoc = "2"
 reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
 self-replace = "1.5"
