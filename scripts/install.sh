@@ -24,9 +24,9 @@ REPO="anaconda/ana-cli"
 BINARY_NAME="ana"
 
 main() {
-    need_cmd uname
-    need_cmd chmod
-    need_cmd mkdir
+    ensure_cmd uname
+    ensure_cmd chmod
+    ensure_cmd mkdir
 
     local _os _arch _target _version _install_dir _url _tmp _auth_header
 
@@ -271,7 +271,7 @@ check_cmd() {
     command -v "$1" >/dev/null 2>&1
 }
 
-need_cmd() {
+ensure_cmd() {
     if ! check_cmd "$1"; then
         err "Required command not found: %s" "$1"
     fi
