@@ -82,7 +82,7 @@ main() {
     fi
 
     printf "\n"
-    info "Done! Run 'ana --help' to get started."
+    info "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started."
     printf "\n"
 }
 
