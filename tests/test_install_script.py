@@ -126,3 +126,17 @@ class TestArgumentParsing:
         # Just verify -h works as a smoke test for short flags
         result = run_script("-h")
         assert result.returncode == 0
+
+
+# TODO(mattkram): Remove this test class once we don't need GitHub tokens
+class TestGithubTokenEnvVar:
+    """Tests for environment variable handling."""
+
+    def test_github_token_env_var(self, env_isolated: dict[str, str]) -> None:
+        """Test that GITHUB_TOKEN is recognized."""
+        env_isolated["GITHUB_TOKEN"] = "test_token_12345"
+        # This will fail because the token is fake, but we can check it tried to use it
+        result = run_script(env=env_isolated)
+        # Should try to use the token (will fail at API call)
+        assert result.returncode == 1
+        assert "GitHub API" in result.stderr or "Download failed" in result.stderr
