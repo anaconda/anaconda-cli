@@ -344,9 +344,6 @@ install_binary() {
     local _src="$1" _install_dir="$2"
     local _dest="${_install_dir}/${BINARY_NAME}"
 
-    chmod +x "$_src"
-    mkdir -p "$_install_dir"
-
     if [ -f "$_dest" ] && [ -z "${ANA_FORCE_INSTALL:-}" ]; then
         if [ -t 0 ]; then
             printf "  %s already exists. Overwrite? [y/N] " "$_dest"
@@ -360,6 +357,8 @@ install_binary() {
         fi
     fi
 
+    chmod +x "$_src"
+    mkdir -p "$_install_dir"
     mv -f "$_src" "$_dest"
     trap - EXIT
 
