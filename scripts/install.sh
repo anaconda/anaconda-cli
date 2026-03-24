@@ -46,6 +46,7 @@ Options:
       --verify-checksum   Verify checksum after download (default: ${DEFAULT_VERIFY_CHECKSUM})
       --no-path-update    Skip shell profile modification
   -t, --token TOKEN       GitHub token for private repo access
+  -f, --force             Overwrite existing installation without prompting
   -h, --help              Show this help message
 
 Environment variables:
@@ -53,6 +54,7 @@ Environment variables:
   ANA_VERSION             Same as --version
   ANA_VERIFY_CHECKSUM     Set to "true" to verify checksum
   ANA_NO_PATH_UPDATE      Set to non-empty to skip PATH update
+  ANA_FORCE_INSTALL       Set to non-empty to overwrite without prompting
   GITHUB_TOKEN            Same as --token
 
 Examples:
@@ -95,6 +97,10 @@ parse_args() {
                 ;;
             --no-path-update)
                 ANA_NO_PATH_UPDATE="1"
+                shift
+                ;;
+            -f|--force)
+                ANA_FORCE_INSTALL="1"
                 shift
                 ;;
             -*)
@@ -156,7 +162,22 @@ main() {
 
     chmod +x "$_tmp"
     mkdir -p "$_install_dir"
-    mv -f "$_tmp" "${_install_dir}/${BINARY_NAME}"
+
+    local _dest="${_install_dir}/${BINARY_NAME}"
+    if [ -f "$_dest" ] && [ -z "${ANA_FORCE_INSTALL:-}" ]; then
+        if [ -t 0 ]; then
+            printf "  %s already exists. Overwrite? [y/N] " "$_dest"
+            read -r _reply
+            case "$_reply" in
+                [Yy]|[Yy][Ee][Ss]) ;;
+                *) err "Installation cancelled." ;;
+            esac
+        else
+            err "%s already exists. Use --force to overwrite." "$_dest"
+        fi
+    fi
+
+    mv -f "$_tmp" "$_dest"
     trap - EXIT
 
     info "Installed ana to %s/%s" "$_install_dir" "$BINARY_NAME"
