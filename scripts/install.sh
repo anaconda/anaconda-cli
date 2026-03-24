@@ -122,29 +122,31 @@ main() {
     ensure_cmd chmod
     ensure_cmd mkdir
 
-    local _os _arch _target _version _install_dir _url _checksum_url _tmp _auth_header
-
+    # Detect platform
+    local _os _arch _target
     _os="$(detect_os)"
     _arch="$(detect_arch)"
     _target="$(map_target "$_os" "$_arch")"
-    _version="${ANA_VERSION:-$DEFAULT_VERSION}"
-    _install_dir="${ANA_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 
+    # Configuration
+    local _version="${ANA_VERSION:-$DEFAULT_VERSION}"
+    local _install_dir="${ANA_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
     local _asset_name="ana-${_target}"
 
-    # ANA_BASE_URL can override the download URL (useful for testing)
+    # Resolve download URLs
+    local _url _checksum_url _auth_header=""
     if [ -n "${ANA_BASE_URL:-}" ]; then
+        # ANA_BASE_URL can override the download URL (useful for testing)
         _url="${ANA_BASE_URL}/${_asset_name}"
         _checksum_url="${_url}.sha256"
-        _auth_header=""
     else
         _auth_header="$(get_auth_header)"
-        # Private repo: use GitHub API to resolve asset URL
         if [ -n "$_auth_header" ]; then
+            # Private repo: use GitHub API to resolve asset URL
             _url="$(resolve_github_asset_url "$_version" "$_asset_name" "$_auth_header")"
             _checksum_url="$(resolve_github_asset_url "$_version" "${_asset_name}.sha256" "$_auth_header" 2>/dev/null)" || _checksum_url=""
-        # Public repo: use direct download URL
         elif [ "$_version" = "latest" ]; then
+            # Public repo: use direct download URL
             _url="https://github.com/${REPO}/releases/latest/download/${_asset_name}"
             _checksum_url="${_url}.sha256"
         else
@@ -153,11 +155,12 @@ main() {
         fi
     fi
 
-    _tmp="$(mktemp "${TMPDIR:-/tmp}/.ana_install.XXXXXXXX")"
-    trap 'rm -f "$_tmp"' EXIT
-
     info "Installing ana for %s %s" "$_os" "$_arch"
     info "Downloading %s" "$_url"
+
+    local _tmp
+    _tmp="$(mktemp "${TMPDIR:-/tmp}/.ana_install.XXXXXXXX")"
+    trap 'rm -f "$_tmp"' EXIT
 
     download "$_url" "$_tmp" "$_auth_header"
 
