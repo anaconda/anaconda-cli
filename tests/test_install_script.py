@@ -348,3 +348,84 @@ class TestForceInstall:
         # Second install (should succeed due to env var)
         result = run_script(env=env_with_mock_server)
         assert result.returncode == 0
+
+
+class TestShellProfileUpdate:
+    """Tests for shell profile modification."""
+
+    def test_no_path_update_flag(
+        self,
+        env_with_mock_server: dict[str, str],
+        fake_home: Path,
+    ) -> None:
+        """Test --no-path-update prevents shell profile modification."""
+        del env_with_mock_server["ANA_NO_PATH_UPDATE"]
+
+        zshrc_before = (fake_home / ".zshrc").read_text()
+
+        result = run_script("--no-path-update", env=env_with_mock_server)
+        assert result.returncode == 0
+
+        zshrc_after = (fake_home / ".zshrc").read_text()
+        assert zshrc_before == zshrc_after
+
+    def test_no_path_update_env_var(
+        self,
+        env_with_mock_server: dict[str, str],
+        fake_home: Path,
+    ) -> None:
+        """Test ANA_NO_PATH_UPDATE prevents shell profile modification."""
+        env_with_mock_server["ANA_NO_PATH_UPDATE"] = "1"
+
+        zshrc_before = (fake_home / ".zshrc").read_text()
+
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        zshrc_after = (fake_home / ".zshrc").read_text()
+        assert zshrc_before == zshrc_after
+
+    def test_path_update_modifies_profile(
+        self,
+        env_with_mock_server: dict[str, str],
+        fake_home: Path,
+        install_dir: Path,
+    ) -> None:
+        """Test that path update modifies the shell profile."""
+        del env_with_mock_server["ANA_NO_PATH_UPDATE"]
+        # Set SHELL to zsh for predictable behavior
+        env_with_mock_server["SHELL"] = "/bin/zsh"
+
+        zshrc = fake_home / ".zshrc"
+        zshrc_before = zshrc.read_text()
+
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        zshrc_after = zshrc.read_text()
+        assert zshrc_before != zshrc_after
+        assert str(install_dir) in zshrc_after
+        assert "export PATH=" in zshrc_after
+
+    def test_path_update_idempotent(
+        self,
+        env_with_mock_server: dict[str, str],
+        fake_home: Path,
+        install_dir: Path,
+    ) -> None:
+        """Test that running install twice doesn't duplicate PATH entry."""
+        del env_with_mock_server["ANA_NO_PATH_UPDATE"]
+        env_with_mock_server["SHELL"] = "/bin/zsh"
+
+        # First install
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+        zshrc_after_first = (fake_home / ".zshrc").read_text()
+
+        # Second install
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+        zshrc_after_second = (fake_home / ".zshrc").read_text()
+
+        # Should be the same (no duplicate entries)
+        assert zshrc_after_first == zshrc_after_second
