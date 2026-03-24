@@ -291,3 +291,53 @@ class TestInstallation:
             "Checksum verification disabled" in result.stderr
             or "Checksum verification disabled" in result.stdout
         )
+
+
+class TestForceInstall:
+    """Tests for --force flag behavior."""
+
+    def test_overwrite_without_force_fails_non_tty(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test that overwriting without --force fails in non-TTY mode."""
+        # First install
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        # Try to install again without --force
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 1
+        assert "already exists" in result.stderr
+        assert "--force" in result.stderr
+
+    def test_overwrite_with_force_succeeds(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test that overwriting with --force succeeds."""
+        # First install
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        # Second install with --force
+        result = run_script("--force", env=env_with_mock_server)
+        assert result.returncode == 0
+
+    def test_force_via_env_var(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test ANA_FORCE_INSTALL environment variable."""
+        env_with_mock_server["ANA_FORCE_INSTALL"] = "1"
+
+        # First install
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        # Second install (should succeed due to env var)
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
