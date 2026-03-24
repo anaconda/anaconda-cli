@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC3043  # 'local' is widely supported even if not strictly POSIX
 # Installer script for ana.
 #
 # Usage:
