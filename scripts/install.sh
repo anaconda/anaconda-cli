@@ -41,21 +41,21 @@ Usage: install.sh [OPTIONS]
 Install the ana CLI tool.
 
 Options:
-  -d, --install-dir DIR   Install directory (default: ${_display_dir})
-  -v, --version VERSION   Version to install (default: ${DEFAULT_VERSION})
-      --verify-checksum   Verify checksum after download (default: ${DEFAULT_VERIFY_CHECKSUM})
-      --no-path-update    Skip shell profile modification
-  -t, --token TOKEN       GitHub token for private repo access
-  -f, --force             Overwrite existing installation without prompting
-  -h, --help              Show this help message
+  -d, --install-dir DIR    Install directory (default: ${_display_dir})
+  -v, --version VERSION    Version to install (default: ${DEFAULT_VERSION})
+      --no-verify-checksum Disable checksum validation after download (default: false)
+      --no-path-update     Skip shell profile modification
+  -t, --token TOKEN        GitHub token for private repo access
+  -f, --force              Overwrite existing installation without prompting
+  -h, --help               Show this help message
 
 Environment variables:
-  ANA_INSTALL_DIR         Same as --install-dir
-  ANA_VERSION             Same as --version
-  ANA_VERIFY_CHECKSUM     Set to "true" to verify checksum
-  ANA_NO_PATH_UPDATE      Set to non-empty to skip PATH update
-  ANA_FORCE_INSTALL       Set to non-empty to overwrite without prompting
-  GITHUB_TOKEN            Same as --token
+  ANA_INSTALL_DIR          Same as --install-dir
+  ANA_VERSION              Same as --version
+  ANA_VERIFY_CHECKSUM      Set to "true" to verify checksum
+  ANA_NO_PATH_UPDATE       Set to non-empty to skip PATH update
+  ANA_FORCE_INSTALL        Set to non-empty to overwrite without prompting
+  GITHUB_TOKEN             Same as --token
 
 Examples:
   # Direct download via pipe:
@@ -91,8 +91,8 @@ parse_args() {
                 GITHUB_TOKEN="$2"
                 shift 2
                 ;;
-            --verify-checksum)
-                ANA_VERIFY_CHECKSUM="true"
+            --no-verify-checksum)
+                ANA_VERIFY_CHECKSUM="false"
                 shift
                 ;;
             --no-path-update)

@@ -151,7 +151,7 @@ class TestHelp:
         result = run_script("--help")
         assert "--install-dir" in result.stdout
         assert "--version" in result.stdout
-        assert "--verify-checksum" in result.stdout
+        assert "--no-verify-checksum" in result.stdout
         assert "--no-path-update" in result.stdout
         assert "--token" in result.stdout
         assert "--force" in result.stdout
@@ -278,3 +278,16 @@ class TestInstallation:
 
         assert result.returncode == 0
         assert (install_dir / "ana").exists()
+
+    def test_checksum_verification_disabled_warning(
+        self,
+        env_with_mock_server: dict[str, str],
+    ) -> None:
+        """Test that checksum verification disabled warning is shown."""
+        result = run_script("--no-verify-checksum", env=env_with_mock_server)
+
+        assert result.returncode == 0
+        assert (
+            "Checksum verification disabled" in result.stderr
+            or "Checksum verification disabled" in result.stdout
+        )
