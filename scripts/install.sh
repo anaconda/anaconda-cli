@@ -2,6 +2,9 @@
 # Installer script for ana.
 #
 # Usage:
+#
+#   TODO: The URLs below will be updated once the final URLs are determined.
+#
 #   Direct download:
 #   > curl -fsSL https://anaconda.com/ana/install.sh | sh
 #   or:
