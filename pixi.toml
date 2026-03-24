@@ -5,6 +5,7 @@ platforms = ["osx-arm64", "linux-64", "win-64"]
 
 [dependencies]
 pre-commit = ">=4.5.1,<5"
+pytest = ">=8"
 python = ">=3.10"
 rattler-build = ">=0.61.1,<0.62"
 rust = "*"
@@ -30,3 +31,7 @@ description = "Build the standalone Rust binary in release mode"
 [tasks.test]
 cmd = "python scripts/with_version.py cargo test"
 description = "Run the unit tests"
+
+[tasks.test-install-script]
+cmd = "pytest tests -v"
+description = "Run integration tests"
