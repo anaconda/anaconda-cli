@@ -28,6 +28,10 @@ jobs:
         run: |
           pixi run test
 
+      - name: Run tests for install script
+        run: |
+          pixi run test-install-script
+
       - name: Build as standalone binary
         run: |
           pixi run build-release
