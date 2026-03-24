@@ -368,6 +368,7 @@ install_binary() {
 update_shell_profile() {
     local _dir="$1" _line
 
+    # Already in $PATH
     if echo "$PATH" | tr ':' '\n' | grep -qx "$_dir" 2>/dev/null; then
         return 0
     fi
