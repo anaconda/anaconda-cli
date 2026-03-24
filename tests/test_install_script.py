@@ -91,3 +91,38 @@ class TestHelp:
     def test_help_shows_defaults(self, expected: str) -> None:
         result = run_script("--help")
         assert f"default: {expected})" in result.stdout
+
+
+class TestArgumentParsing:
+    """Tests for CLI argument parsing."""
+
+    def test_unknown_option_errors(self) -> None:
+        result = run_script("--unknown-option")
+        assert result.returncode == 1
+        assert "Unknown option: --unknown-option" in result.stderr
+
+    def test_unexpected_argument_errors(self) -> None:
+        result = run_script("unexpected_arg")
+        assert result.returncode == 1
+        assert "Unexpected argument: unexpected_arg" in result.stderr
+
+    def test_missing_install_dir_argument(self) -> None:
+        result = run_script("--install-dir")
+        assert result.returncode == 1
+        assert "Missing argument" in result.stderr
+
+    def test_missing_version_argument(self) -> None:
+        result = run_script("--version")
+        assert result.returncode == 1
+        assert "Missing argument" in result.stderr
+
+    def test_missing_token_argument(self) -> None:
+        result = run_script("--token")
+        assert result.returncode == 1
+        assert "Missing argument" in result.stderr
+
+    def test_short_flags_work(self) -> None:
+        # -h is tested above, test -d and -v require more setup
+        # Just verify -h works as a smoke test for short flags
+        result = run_script("-h")
+        assert result.returncode == 0
