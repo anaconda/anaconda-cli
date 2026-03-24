@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -19,6 +20,41 @@ def _find_repo_root() -> Path:
 
 REPO_ROOT = _find_repo_root()
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.sh"
+
+
+@pytest.fixture
+def install_dir(tmp_path: Path) -> Path:
+    """Provide a temporary installation directory."""
+    d = tmp_path / "bin"
+    d.mkdir()
+    return d
+
+
+@pytest.fixture
+def fake_home(tmp_path: Path) -> Path:
+    """Provide a fake HOME directory to isolate shell profile modifications."""
+    home = tmp_path / "home"
+    home.mkdir()
+    # Create shell config files
+    (home / ".bashrc").touch()
+    (home / ".zshrc").touch()
+    fish_config = home / ".config" / "fish"
+    fish_config.mkdir(parents=True)
+    (fish_config / "config.fish").touch()
+    return home
+
+
+@pytest.fixture
+def env_isolated(fake_home: Path, install_dir: Path) -> dict[str, str]:
+    """Provide an isolated environment that won't modify real shell configs."""
+    env = {
+        key: val for key, val in os.environ.copy().items() if not key.startswith("ANA_")
+    }
+
+    env["HOME"] = str(fake_home)
+    env["ANA_INSTALL_DIR"] = str(install_dir)
+    env["ANA_NO_PATH_UPDATE"] = "1"  # Extra safety
+    return env
 
 
 def run_script(
