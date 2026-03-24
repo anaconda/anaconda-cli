@@ -165,12 +165,19 @@ main() {
         err "Downloaded file is empty. Check the URL or try again."
     fi
 
-    if [ "${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}" = "true" ]; then
-        info "Verifying checksum"
-        verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
-    else
-        warn "Checksum verification disabled"
-    fi
+    local _verify_checksum="${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}"
+    case "$_verify_checksum" in
+        true|1)
+            info "Verifying checksum"
+            verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
+            ;;
+        false|0)
+            warn "Checksum verification disabled"
+            ;;
+        *)
+            err "Invalid ANA_VERIFY_CHECKSUM value '%s'. Must be 'true', 'false', '1', or '0'." "$_verify_checksum"
+            ;;
+    esac
 
     chmod +x "$_tmp"
     mkdir -p "$_install_dir"

@@ -316,6 +316,17 @@ class TestInstallation:
             or "Checksum verification disabled" in result.stdout
         )
 
+    def test_checksum_verification_invalid_value_errors(
+        self,
+        env_with_mock_server: dict[str, str],
+    ) -> None:
+        """Test that invalid ANA_VERIFY_CHECKSUM values raise an error."""
+        env_with_mock_server["ANA_VERIFY_CHECKSUM"] = "blargh"
+        result = run_script(env=env_with_mock_server)
+
+        assert result.returncode == 1
+        assert "Invalid ANA_VERIFY_CHECKSUM" in result.stderr
+
 
 class TestForceInstall:
     """Tests for --force flag behavior."""
