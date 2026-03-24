@@ -433,8 +433,8 @@ class TestShellProfileUpdate:
         assert result.returncode == 0
         zshrc_after_first = (fake_home / ".zshrc").read_text()
 
-        # Second install
-        result = run_script(env=env_with_mock_server)
+        # Second install (--force to overwrite existing binary)
+        result = run_script("--force", env=env_with_mock_server)
         assert result.returncode == 0
         zshrc_after_second = (fake_home / ".zshrc").read_text()
 
