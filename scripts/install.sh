@@ -165,19 +165,7 @@ main() {
         err "Downloaded file is empty. Check the URL or try again."
     fi
 
-    local _verify_checksum="${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}"
-    case "$_verify_checksum" in
-        true|1)
-            info "Verifying checksum"
-            verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
-            ;;
-        false|0)
-            warn "Checksum verification disabled"
-            ;;
-        *)
-            err "Invalid ANA_VERIFY_CHECKSUM value '%s'. Must be 'true', 'false', '1', or '0'." "$_verify_checksum"
-            ;;
-    esac
+    verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
 
     install_binary "$_tmp" "$_install_dir"
 
@@ -301,13 +289,28 @@ download() {
 }
 
 verify_checksum() {
-    local _checksum_url="$1" _file="$2" _auth_header="${3:-}" _expected _actual _tmp_sha
+    local _checksum_url="$1" _file="$2" _auth_header="${3:-}"
+    local _verify="${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}"
+
+    case "$_verify" in
+        false|0)
+            warn "Checksum verification disabled"
+            return 0
+            ;;
+        true|1) ;;
+        *)
+            err "Invalid ANA_VERIFY_CHECKSUM value '%s'. Must be 'true', 'false', '1', or '0'." "$_verify"
+            ;;
+    esac
+
+    info "Verifying checksum"
 
     if [ -z "$_checksum_url" ]; then
         warn "Checksum file not available, skipping verification"
         return 0
     fi
 
+    local _expected _actual _tmp_sha
     _tmp_sha="$(mktemp "${TMPDIR:-/tmp}/.ana_sha.XXXXXXXX")"
     if ! download "$_checksum_url" "$_tmp_sha" "$_auth_header" 2>/dev/null; then
         warn "Checksum file not available, skipping verification"
