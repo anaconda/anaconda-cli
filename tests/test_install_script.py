@@ -440,3 +440,44 @@ class TestShellProfileUpdate:
 
         # Should be the same (no duplicate entries)
         assert zshrc_after_first == zshrc_after_second
+
+
+class TestBinaryVerification:
+    """Tests to verify the installed mock binary works."""
+
+    def test_installed_binary_runs(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test that the installed binary actually runs."""
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        # Run the installed binary
+        binary = install_dir / "ana"
+        result = subprocess.run(
+            [str(binary), "--version"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert "0.0.0-mock" in result.stdout
+
+    def test_installed_binary_help(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test that the installed binary shows help."""
+        result = run_script(env=env_with_mock_server)
+        assert result.returncode == 0
+
+        binary = install_dir / "ana"
+        result = subprocess.run(
+            [str(binary), "--help"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert "Mock ana CLI for testing" in result.stdout
