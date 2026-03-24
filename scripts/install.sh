@@ -1,16 +1,16 @@
 #!/bin/sh
-# Installer script for ana
+# Installer script for ana.
 #
 # Usage:
-#   curl -fsSL https://anaconda.com/ana/install.sh | sh
-#   wget -qO- https://anaconda.com/ana/install.sh | sh
+#   Direct download:
+#   > curl -fsSL https://anaconda.com/ana/install.sh | sh
+#   or:
+#   > wget -qO- https://anaconda.com/ana/install.sh | sh
 #
-# Options (via environment variables):
-#   ANA_INSTALL_DIR       — where to place the binary (default: ~/.local/bin)
-#   ANA_VERSION           — version to install, without "v" prefix (default: latest)
-#   ANA_NO_PATH_UPDATE    — set to non-empty to skip shell profile modification
-#   ANA_VERIFY_CHECKSUM   — set to "true" to verify checksum (default: false)
-#   ANA_REQUEST_TOKEN     — GitHub token for authenticated requests (default: tries `gh auth token`)
+#   Direct script invocation:
+#   > ./install.sh [OPTIONS]
+#
+# Run with --help for full usage information.
 
 set -eu
 
@@ -23,13 +23,92 @@ __wrap__() {
 REPO="anaconda/ana-cli"
 BINARY_NAME="ana"
 
-# Defaults (can be overridden via environment variables)
+# Defaults (can be overridden via environment variables or CLI options)
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
 DEFAULT_VERSION="latest"
 # TODO: Enable checksum verification by default once .sha256 files are published
 DEFAULT_VERIFY_CHECKSUM="false"
 
+usage() {
+    # Replace $HOME with ~ for display
+    local _display_dir
+    _display_dir="$(echo "$DEFAULT_INSTALL_DIR" | sed "s|^$HOME|~|")"
+
+    cat <<EOF
+Usage: install.sh [OPTIONS]
+
+Install the ana CLI tool.
+
+Options:
+  -d, --install-dir DIR   Install directory (default: ${_display_dir})
+  -v, --version VERSION   Version to install (default: ${DEFAULT_VERSION})
+  -t, --token TOKEN       GitHub token for private repo access
+      --verify-checksum   Verify checksum after download (default: ${DEFAULT_VERIFY_CHECKSUM})
+      --no-path-update    Skip shell profile modification
+  -h, --help              Show this help message
+
+Environment variables:
+  ANA_INSTALL_DIR         Same as --install-dir
+  ANA_VERSION             Same as --version
+  ANA_REQUEST_TOKEN       Same as --token
+  ANA_VERIFY_CHECKSUM     Set to "true" to verify checksum
+  ANA_NO_PATH_UPDATE      Set to non-empty to skip PATH update
+
+Examples:
+  # Direct download via pipe:
+  > curl -fsSL https://anaconda.com/ana/install.sh | sh
+
+  # Script invocation with options:
+  > ./install.sh --version 1.0.0 --install-dir /usr/local/bin
+
+  # Script invocation with environment variables:
+  > ANA_VERSION=1.0.0 ./install.sh
+EOF
+}
+
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -d|--install-dir)
+                [ $# -ge 2 ] || err "Missing argument for $1"
+                ANA_INSTALL_DIR="$2"
+                shift 2
+                ;;
+            -v|--version)
+                [ $# -ge 2 ] || err "Missing argument for $1"
+                ANA_VERSION="$2"
+                shift 2
+                ;;
+            -t|--token)
+                [ $# -ge 2 ] || err "Missing argument for $1"
+                ANA_REQUEST_TOKEN="$2"
+                shift 2
+                ;;
+            --verify-checksum)
+                ANA_VERIFY_CHECKSUM="true"
+                shift
+                ;;
+            --no-path-update)
+                ANA_NO_PATH_UPDATE="1"
+                shift
+                ;;
+            -*)
+                err "Unknown option: %s\nRun 'install.sh --help' for usage." "$1"
+                ;;
+            *)
+                err "Unexpected argument: %s\nRun 'install.sh --help' for usage." "$1"
+                ;;
+        esac
+    done
+}
+
 main() {
+    parse_args "$@"
+
     ensure_cmd uname
     ensure_cmd chmod
     ensure_cmd mkdir
@@ -300,4 +379,4 @@ err() {
 }
 
 main "$@"
-} && __wrap__
+} && __wrap__ "$@"
