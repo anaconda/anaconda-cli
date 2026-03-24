@@ -179,27 +179,7 @@ main() {
             ;;
     esac
 
-    chmod +x "$_tmp"
-    mkdir -p "$_install_dir"
-
-    local _dest="${_install_dir}/${BINARY_NAME}"
-    if [ -f "$_dest" ] && [ -z "${ANA_FORCE_INSTALL:-}" ]; then
-        if [ -t 0 ]; then
-            printf "  %s already exists. Overwrite? [y/N] " "$_dest"
-            read -r _reply
-            case "$_reply" in
-                [Yy]|[Yy][Ee][Ss]) ;;
-                *) err "Installation cancelled." ;;
-            esac
-        else
-            err "%s already exists. Use --force to overwrite." "$_dest"
-        fi
-    fi
-
-    mv -f "$_tmp" "$_dest"
-    trap - EXIT
-
-    info "Installed ana to %s/%s" "$_install_dir" "$BINARY_NAME"
+    install_binary "$_tmp" "$_install_dir"
 
     if [ -z "${ANA_NO_PATH_UPDATE:-}" ]; then
         update_shell_profile "$_install_dir"
@@ -352,6 +332,32 @@ verify_checksum() {
     fi
 
     info "Checksum OK"
+}
+
+install_binary() {
+    local _src="$1" _install_dir="$2"
+    local _dest="${_install_dir}/${BINARY_NAME}"
+
+    chmod +x "$_src"
+    mkdir -p "$_install_dir"
+
+    if [ -f "$_dest" ] && [ -z "${ANA_FORCE_INSTALL:-}" ]; then
+        if [ -t 0 ]; then
+            printf "  %s already exists. Overwrite? [y/N] " "$_dest"
+            read -r _reply
+            case "$_reply" in
+                [Yy]|[Yy][Ee][Ss]) ;;
+                *) err "Installation cancelled." ;;
+            esac
+        else
+            err "%s already exists. Use --force to overwrite." "$_dest"
+        fi
+    fi
+
+    mv -f "$_src" "$_dest"
+    trap - EXIT
+
+    info "Installed ana to %s" "$_dest"
 }
 
 update_shell_profile() {
