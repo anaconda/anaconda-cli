@@ -1,5 +1,4 @@
 #!/bin/sh
-# shellcheck disable=SC3043  # 'local' is widely supported even if not strictly POSIX
 # Installer script for ana.
 #
 # Usage:
@@ -13,6 +12,7 @@
 #
 # Run with --help for full usage information.
 
+# shellcheck disable=SC3043  # 'local' is widely supported even if not strictly POSIX
 set -eu
 
 # The __wrap__ function ensures that we download the entire function definition before
