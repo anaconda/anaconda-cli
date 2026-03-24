@@ -254,7 +254,7 @@ resolve_github_asset_url() {
     local _version="$1" _asset_name="$2" _auth_header="$3" _api_url _response _asset_url
 
     if [ "$_version" = "latest" ]; then
-        _api_url="https://api.github.com/repos/${REPO}/releases/latest"
+        _api_url="https://api.github.com/repos/${REPO}/releases/tags/latest"
     else
         _api_url="https://api.github.com/repos/${REPO}/releases/tags/v${_version#v}"
     fi
