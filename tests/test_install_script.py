@@ -245,6 +245,17 @@ class TestGithubTokenEnvVar:
         assert result.returncode == 1
         assert "GitHub API" in result.stderr or "Download failed" in result.stderr
 
+    def test_github_token_missing_errors(self, env_isolated: dict[str, str]) -> None:
+        """Test that missing GitHub token produces an error."""
+        # Ensure no token is available
+        env_isolated.pop("GITHUB_TOKEN", None)
+        # Set PATH to only include essential system paths (no gh CLI)
+        env_isolated["PATH"] = "/usr/bin:/bin"
+
+        result = run_script(env=env_isolated)
+        assert result.returncode == 1
+        assert "GitHub token" in result.stderr or "token" in result.stderr.lower()
+
 
 class TestInstallation:
     """Tests for installation using mock server."""
