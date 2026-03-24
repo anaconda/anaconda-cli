@@ -23,6 +23,12 @@ __wrap__() {
 REPO="anaconda/ana-cli"
 BINARY_NAME="ana"
 
+# Defaults (can be overridden via environment variables)
+DEFAULT_INSTALL_DIR="$HOME/.local/bin"
+DEFAULT_VERSION="latest"
+# TODO: Enable checksum verification by default once .sha256 files are published
+DEFAULT_VERIFY_CHECKSUM="false"
+
 main() {
     ensure_cmd uname
     ensure_cmd chmod
@@ -33,8 +39,8 @@ main() {
     _os="$(detect_os)"
     _arch="$(detect_arch)"
     _target="$(map_target "$_os" "$_arch")"
-    _version="${ANA_VERSION:-latest}"
-    _install_dir="${ANA_INSTALL_DIR:-$HOME/.local/bin}"
+    _version="${ANA_VERSION:-$DEFAULT_VERSION}"
+    _install_dir="${ANA_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
     _auth_header="$(get_auth_header)"
 
     local _asset_name="ana-${_target}"
@@ -61,8 +67,7 @@ main() {
         err "Downloaded file is empty. Check the URL or try again."
     fi
 
-    # TODO: Enable checksum verification by default once .sha256 files are published
-    if [ "${ANA_VERIFY_CHECKSUM:-false}" = "true" ]; then
+    if [ "${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}" = "true" ]; then
         info "Verifying checksum"
         verify_checksum "$_url" "$_tmp" "$_auth_header"
     else
