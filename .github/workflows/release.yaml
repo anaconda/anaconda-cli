@@ -103,6 +103,13 @@ jobs:
           mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
           mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
 
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          for file in *; do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
       - name: Create or update release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
