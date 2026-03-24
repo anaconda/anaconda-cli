@@ -43,17 +43,17 @@ Install the ana CLI tool.
 Options:
   -d, --install-dir DIR   Install directory (default: ${_display_dir})
   -v, --version VERSION   Version to install (default: ${DEFAULT_VERSION})
-  -t, --token TOKEN       GitHub token for private repo access
       --verify-checksum   Verify checksum after download (default: ${DEFAULT_VERIFY_CHECKSUM})
       --no-path-update    Skip shell profile modification
+  -t, --token TOKEN       GitHub token for private repo access
   -h, --help              Show this help message
 
 Environment variables:
   ANA_INSTALL_DIR         Same as --install-dir
   ANA_VERSION             Same as --version
-  ANA_REQUEST_TOKEN       Same as --token
   ANA_VERIFY_CHECKSUM     Set to "true" to verify checksum
   ANA_NO_PATH_UPDATE      Set to non-empty to skip PATH update
+  GITHUB_TOKEN            Same as --token
 
 Examples:
   # Direct download via pipe:
@@ -86,7 +86,7 @@ parse_args() {
                 ;;
             -t|--token)
                 [ $# -ge 2 ] || err "Missing argument for $1"
-                ANA_REQUEST_TOKEN="$2"
+                GITHUB_TOKEN="$2"
                 shift 2
                 ;;
             --verify-checksum)
@@ -203,15 +203,17 @@ map_target() {
 get_auth_header() {
     local _token
 
-    # Use ANA_REQUEST_TOKEN if provided, otherwise try gh auth token
-    if [ -n "${ANA_REQUEST_TOKEN:-}" ]; then
-        _token="$ANA_REQUEST_TOKEN"
+    # Use GITHUB_TOKEN if provided, otherwise try gh auth token
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        _token="$GITHUB_TOKEN"
     elif check_cmd gh; then
         _token="$(gh auth token 2>/dev/null)" || true
     fi
 
     if [ -n "${_token:-}" ]; then
         printf 'Authorization: token %s' "$_token"
+    else
+        err "Must provide GitHub token to access private repo."
     fi
 }
 
