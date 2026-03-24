@@ -127,18 +127,24 @@ main() {
     _target="$(map_target "$_os" "$_arch")"
     _version="${ANA_VERSION:-$DEFAULT_VERSION}"
     _install_dir="${ANA_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
-    _auth_header="$(get_auth_header)"
 
     local _asset_name="ana-${_target}"
 
-    # Private repo: use GitHub API to resolve asset URL
-    # Public repo: use direct download URL
-    if [ -n "$_auth_header" ]; then
-        _url="$(resolve_github_asset_url "$_version" "$_asset_name" "$_auth_header")"
-    elif [ "$_version" = "latest" ]; then
-        _url="https://github.com/${REPO}/releases/latest/download/${_asset_name}"
+    # ANA_BASE_URL can override the download URL (useful for testing)
+    if [ -n "${ANA_BASE_URL:-}" ]; then
+        _url="${ANA_BASE_URL}/${_asset_name}"
+        _auth_header=""
     else
-        _url="https://github.com/${REPO}/releases/download/v${_version#v}/${_asset_name}"
+        _auth_header="$(get_auth_header)"
+        # Private repo: use GitHub API to resolve asset URL
+        if [ -n "$_auth_header" ]; then
+            _url="$(resolve_github_asset_url "$_version" "$_asset_name" "$_auth_header")"
+        # Public repo: use direct download URL
+        elif [ "$_version" = "latest" ]; then
+            _url="https://github.com/${REPO}/releases/latest/download/${_asset_name}"
+        else
+            _url="https://github.com/${REPO}/releases/download/v${_version#v}/${_asset_name}"
+        fi
     fi
 
     _tmp="$(mktemp "${TMPDIR:-/tmp}/.ana_install.XXXXXXXX")"

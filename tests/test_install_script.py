@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+import http.server
 import os
+import socketserver
 import subprocess
+import stat
+import threading
+from functools import partial
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 def _find_repo_root() -> Path:
@@ -20,6 +29,18 @@ def _find_repo_root() -> Path:
 
 REPO_ROOT = _find_repo_root()
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.sh"
+
+# Create a simple mock binary script that responds to --version and --help
+MOCK_BINARY_SCRIPT = """\
+#!/bin/sh
+case "$1" in
+    --version) echo "0.0.0-mock" ;;
+    --help) echo "Mock ana CLI for testing" ;;
+    *) echo "mock ana" ;;
+esac
+"""
+EXECUTABLE_MODE = 0o755  # rwxr-xr-x
+SUPPORTED_PLATFORMS = ["darwin-arm64", "darwin-x86_64", "linux-x86_64", "linux-aarch64"]
 
 
 @pytest.fixture
@@ -55,6 +76,46 @@ def env_isolated(fake_home: Path, install_dir: Path) -> dict[str, str]:
     env["ANA_INSTALL_DIR"] = str(install_dir)
     env["ANA_NO_PATH_UPDATE"] = "1"  # Extra safety
     return env
+
+
+@pytest.fixture(scope="session")
+def mock_server(tmp_path_factory: pytest.TempPathFactory) -> Generator[str, None, None]:
+    """Start a local HTTP server to host mock binaries."""
+    # Create mock binaries for different platforms
+    root = tmp_path_factory.mktemp("mock_server")
+    for platform in SUPPORTED_PLATFORMS:
+        binary = root / f"ana-{platform}"
+        binary.write_text(MOCK_BINARY_SCRIPT)
+        binary.chmod(EXECUTABLE_MODE)
+
+    class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+        """HTTP request handler that suppresses logging."""
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass  # Suppress logging
+
+    handler = partial(QuietHTTPRequestHandler, directory=str(root))
+
+    # Use port 0 to let the OS pick an available port
+    with socketserver.TCPServer(("127.0.0.1", 0), handler) as server:
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever)
+        thread.daemon = True
+        thread.start()
+
+        yield f"http://127.0.0.1:{port}"
+
+        server.shutdown()
+
+
+@pytest.fixture
+def env_with_mock_server(
+    env_isolated: dict[str, str],
+    mock_server: str,
+) -> dict[str, str]:
+    """Provide isolated environment with mock server URL."""
+    env_isolated["ANA_BASE_URL"] = mock_server
+    return env_isolated
 
 
 def run_script(
@@ -176,3 +237,44 @@ class TestGithubTokenEnvVar:
         # Should try to use the token (will fail at API call)
         assert result.returncode == 1
         assert "GitHub API" in result.stderr or "Download failed" in result.stderr
+
+
+class TestInstallation:
+    """Tests for installation using mock server."""
+
+    def test_successful_install(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test successful installation of a specific version."""
+        result = run_script(env=env_with_mock_server)
+
+        expected_binary = install_dir / "ana"
+
+        assert result.returncode == 0
+        assert "Installing ana for" in result.stdout
+        assert f"Installed ana to {expected_binary}" in result.stdout
+        assert "Done!" in result.stdout
+
+        # Verify binary exists and is executable
+        assert expected_binary.exists()
+        assert expected_binary.stat().st_mode & stat.S_IXUSR
+
+    def test_install_with_cli_options(
+        self,
+        env_with_mock_server: dict[str, str],
+        install_dir: Path,
+    ) -> None:
+        """Test installation using CLI options."""
+        # Remove env vars to test CLI takes precedence
+        del env_with_mock_server["ANA_INSTALL_DIR"]
+
+        result = run_script(
+            "--install-dir",
+            str(install_dir),
+            env=env_with_mock_server,
+        )
+
+        assert result.returncode == 0
+        assert (install_dir / "ana").exists()
