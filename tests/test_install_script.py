@@ -88,12 +88,18 @@ def env_isolated(fake_home: Path, install_dir: Path) -> dict[str, str]:
 @pytest.fixture(scope="session")
 def mock_server(tmp_path_factory: pytest.TempPathFactory) -> Generator[str, None, None]:
     """Start a local HTTP server to host mock binaries."""
+    import hashlib
+
     # Create mock binaries for different platforms
     root = tmp_path_factory.mktemp("mock_server")
     for platform in SUPPORTED_PLATFORMS:
         binary = root / f"ana-{platform}"
         binary.write_text(MOCK_BINARY_SCRIPT)
         binary.chmod(EXECUTABLE_MODE)
+        # Create corresponding checksum file
+        checksum = hashlib.sha256(MOCK_BINARY_SCRIPT.encode()).hexdigest()
+        checksum_file = root / f"ana-{platform}.sha256"
+        checksum_file.write_text(f"{checksum}  ana-{platform}\n")
 
     class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         """HTTP request handler that suppresses logging."""

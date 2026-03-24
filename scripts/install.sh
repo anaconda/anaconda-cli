@@ -30,8 +30,7 @@ BINARY_NAME="ana"
 # Defaults (can be overridden via environment variables or CLI options)
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
 DEFAULT_VERSION="latest"
-# TODO: Enable checksum verification by default once .sha256 files are published
-DEFAULT_VERIFY_CHECKSUM="false"
+DEFAULT_VERIFY_CHECKSUM="true"
 
 usage() {
     # Replace $HOME with ~ for display
@@ -55,7 +54,7 @@ Options:
 Environment variables:
   ANA_INSTALL_DIR          Same as --install-dir
   ANA_VERSION              Same as --version
-  ANA_VERIFY_CHECKSUM      Set to "true" to verify checksum
+  ANA_VERIFY_CHECKSUM      Set to "false" to skip checksum verification
   ANA_NO_PATH_UPDATE       Set to non-empty to skip PATH update
   ANA_FORCE_INSTALL        Set to non-empty to overwrite without prompting
   GITHUB_TOKEN             Same as --token
@@ -123,7 +122,7 @@ main() {
     ensure_cmd chmod
     ensure_cmd mkdir
 
-    local _os _arch _target _version _install_dir _url _tmp _auth_header
+    local _os _arch _target _version _install_dir _url _checksum_url _tmp _auth_header
 
     _os="$(detect_os)"
     _arch="$(detect_arch)"
@@ -136,17 +135,21 @@ main() {
     # ANA_BASE_URL can override the download URL (useful for testing)
     if [ -n "${ANA_BASE_URL:-}" ]; then
         _url="${ANA_BASE_URL}/${_asset_name}"
+        _checksum_url="${_url}.sha256"
         _auth_header=""
     else
         _auth_header="$(get_auth_header)"
         # Private repo: use GitHub API to resolve asset URL
         if [ -n "$_auth_header" ]; then
             _url="$(resolve_github_asset_url "$_version" "$_asset_name" "$_auth_header")"
+            _checksum_url="$(resolve_github_asset_url "$_version" "${_asset_name}.sha256" "$_auth_header" 2>/dev/null)" || _checksum_url=""
         # Public repo: use direct download URL
         elif [ "$_version" = "latest" ]; then
             _url="https://github.com/${REPO}/releases/latest/download/${_asset_name}"
+            _checksum_url="${_url}.sha256"
         else
             _url="https://github.com/${REPO}/releases/download/v${_version#v}/${_asset_name}"
+            _checksum_url="${_url}.sha256"
         fi
     fi
 
@@ -164,7 +167,7 @@ main() {
 
     if [ "${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}" = "true" ]; then
         info "Verifying checksum"
-        verify_checksum "$_url" "$_tmp" "$_auth_header"
+        verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
     else
         warn "Checksum verification disabled"
     fi
@@ -311,10 +314,15 @@ download() {
 }
 
 verify_checksum() {
-    local _url="$1" _file="$2" _auth_header="${3:-}" _expected _actual _tmp_sha
+    local _checksum_url="$1" _file="$2" _auth_header="${3:-}" _expected _actual _tmp_sha
+
+    if [ -z "$_checksum_url" ]; then
+        warn "Checksum file not available, skipping verification"
+        return 0
+    fi
 
     _tmp_sha="$(mktemp "${TMPDIR:-/tmp}/.ana_sha.XXXXXXXX")"
-    if ! download "${_url}.sha256" "$_tmp_sha" "$_auth_header" 2>/dev/null; then
+    if ! download "$_checksum_url" "$_tmp_sha" "$_auth_header" 2>/dev/null; then
         warn "Checksum file not available, skipping verification"
         rm -f "$_tmp_sha"
         return 0
