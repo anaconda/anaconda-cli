@@ -231,7 +231,7 @@ resolve_github_asset_url() {
     fi
 
     _response="$(curl -fsSL -H "$_auth_header" "$_api_url")" || {
-        err "Failed to fetch release info from GitHub API"
+        err "Failed to fetch release info from GitHub API for version: (%s)" "$_version"
     }
 
     # Parse asset URL from JSON without jq
