@@ -218,10 +218,9 @@ detect_arch() {
 map_target() {
     local _os="$1" _arch="$2"
     case "${_os}-${_arch}" in
-        # FIX(mattkram): Fix the mappings and document to ensure consistency
-        # linux-x86_64)   echo "x86_64-unknown-linux-gnu" ;;
-        # linux-aarch64)  echo "aarch64-unknown-linux-gnu" ;;
-        # macos-x86_64)   echo "x86_64-apple-darwin" ;;
+        linux-x86_64)   echo "linux-x86_64" ;;
+        linux-aarch64)  echo "linux-aarch64" ;;
+        macos-x86_64)   echo "darwin-x86_64" ;;
         macos-aarch64)  echo "darwin-arm64" ;;
         *)              err "No prebuilt binary for %s %s" "$_os" "$_arch" ;;
     esac
