@@ -7,6 +7,7 @@ import os
 import socketserver
 import subprocess
 import stat
+import sys
 import threading
 from functools import partial
 from pathlib import Path
@@ -16,6 +17,12 @@ import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+# Skip all tests in this module on Windows
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="install.sh is a shell script that only runs on Linux/macOS",
+)
 
 
 def _find_repo_root() -> Path:
