@@ -19,7 +19,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     },
     HelpSection {
         name: "TOOLCHAIN",
-        commands: &["bootstrap", "config", "self"],
+        commands: &["tool", "bootstrap", "config", "self"],
     },
 ];
 
