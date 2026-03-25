@@ -6,7 +6,7 @@ platforms = ["osx-arm64", "linux-64", "win-64"]
 [dependencies]
 pre-commit = ">=4.5.1,<5"
 python = ">=3.10"
-rattler-build = ">=0.60.0,<0.61"
+rattler-build = ">=0.61.1,<0.62"
 rust = "*"
 setuptools-scm = ">=8"
 anaconda-client = ">=1.14.1,<2"
