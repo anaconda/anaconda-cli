@@ -398,6 +398,15 @@ run_bootstrap() {
 }
 
 update_shell_profile() {
+    local _dir="$1"
+    local _ana_bin_dir="$HOME/.ana/bin"
+
+    # Add both the install directory and ~/.ana/bin (for tool symlinks)
+    add_to_path "$_dir"
+    add_to_path "$_ana_bin_dir"
+}
+
+add_to_path() {
     local _dir="$1" _line
 
     # Already in $PATH
@@ -424,7 +433,6 @@ update_shell_profile() {
             return 0
             ;;
     esac
-    printf "\n"
 }
 
 append_line_if_missing() {
