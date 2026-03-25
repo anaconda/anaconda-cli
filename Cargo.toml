@@ -14,22 +14,27 @@ comfy-table = "7"
 console = "0.16"
 indicatif = "0.18"
 indoc = "2"
-reqwest = { version = "0.13.2", features = ["blocking", "json", "native-tls", "form"], default-features = false }
+miette = { version = "7.6", features = ["fancy"] }
+rattler = { version = "0.39", default-features = false, features = ["indicatif"] }
+rattler_cache = { version = "0.6", default-features = false }
+rattler_conda_types = { version = "0.43", default-features = false }
+rattler_lock = { version = "0.26", default-features = false }
+rattler_networking = { version = "0.26", default-features = false }
+rattler_repodata_gateway = { version = "0.26", default-features = false, features = ["gateway"] }
+rattler_solve = { version = "4.2", default-features = false, features = ["resolvo"] }
+rattler_virtual_packages = { version = "2.3", default-features = false }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "stream", "multipart", "native-tls"] }
+reqwest-middleware = "0.4"
 self-replace = "1.5"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anaconda-otel-rs = { git = "https://github.com/anaconda/anaconda-otel-rs" }
 thiserror = "2"
+tokio = { version = "1.45", features = ["rt-multi-thread", "macros"] }
 webbrowser = "1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [dev-dependencies]
 temp-env = "0.3"
 tempfile = "3"
-
-# Force reqwest 0.12 (used by opentelemetry-otlp) to include TLS support
-[dependencies.reqwest012]
-package = "reqwest"
-version = "0.12"
-features = ["blocking", "native-tls"]
