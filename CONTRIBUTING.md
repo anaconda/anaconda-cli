@@ -12,13 +12,13 @@ curl -fsSL https://pixi.sh/install.sh | bash
 
 Clone the repo, then use `pixi run <task>` for development:
 
-| Task | Description |
-| :--- | :--- |
-| `build-debug` | Build the binary in debug mode |
-| `build-release` | Build the binary in release mode |
-| `build-conda` | Build the conda package |
-| `test` | Run unit tests |
-| `pre-commit` | Run pre-commit hooks on all files |
+| Task            | Description                                      |
+| :-------------- | :----------------------------------------------- |
+| `build-conda`   | Build the conda package                          |
+| `build-debug`   | Build the standalone Rust binary in debug mode   |
+| `build-release` | Build the standalone Rust binary in release mode |
+| `pre-commit`    | Run pre-commit hooks on all files                |
+| `test`          | Run the unit tests                               |
 
 For example:
 
