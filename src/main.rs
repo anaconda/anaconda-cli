@@ -1,3 +1,4 @@
+mod anaconda_cli;
 mod auth;
 mod cli;
 mod config;

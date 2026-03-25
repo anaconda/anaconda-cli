@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
 use crate::VERSION;
+use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
@@ -42,6 +43,7 @@ pub enum Action {
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
+    Bootstrap,
 }
 
 impl Action {
@@ -59,6 +61,7 @@ impl Action {
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
+            Action::Bootstrap => "bootstrap",
         }
     }
 
@@ -109,6 +112,7 @@ impl Action {
                 Config::load().print_table();
                 Ok(())
             }
+            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap()?),
             Action::Login => Ok(auth::login()?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
@@ -135,6 +139,7 @@ pub fn parse() -> Action {
     match Cli::try_parse() {
         Ok(cli) => match cli.command {
             None => Action::ShowHelp,
+            Some(Commands::Bootstrap) => Action::Bootstrap,
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
             Some(Commands::Logout) => Action::Logout,
@@ -199,6 +204,7 @@ pub fn print_main_help() {
 
         Commands:
           auth           Authentication commands
+          bootstrap      Install the Anaconda CLI
           config         Show current configuration
           login          Log in to Anaconda
           logout         Log out from Anaconda
@@ -271,6 +277,9 @@ enum Commands {
         #[command(subcommand)]
         command: Option<AuthCommands>,
     },
+
+    /// Install the Anaconda CLI
+    Bootstrap,
 
     /// Show current configuration
     Config,
