@@ -32,6 +32,11 @@ fn tools_dir() -> PathBuf {
     ana_home().join("tools")
 }
 
+/// Returns the bin directory for shims (~/.ana/bin).
+pub fn bin_dir() -> PathBuf {
+    ana_home().join("bin")
+}
+
 /// Returns the prefix for a specific tool (~/.ana/tools/<name>).
 pub fn tool_prefix(name: &str) -> PathBuf {
     tools_dir().join(name)
@@ -75,6 +80,13 @@ mod tests {
     fn test_tools_dir() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(tools_dir(), PathBuf::from("/test/ana/tools"));
+        });
+    }
+
+    #[test]
+    fn test_bin_dir() {
+        temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
+            assert_eq!(bin_dir(), PathBuf::from("/test/ana/bin"));
         });
     }
 

@@ -33,6 +33,9 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
     install_from_lockfile(&prefix, &lock_content).await?;
 
+    // Create symlink in bin directory
+    create_bin_symlink(name, &prefix)?;
+
     Ok(())
 }
 
@@ -106,6 +109,58 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
             start.elapsed().as_secs_f64()
         );
     }
+
+    Ok(())
+}
+
+/// Create a symlink for the tool's binary in ~/.ana/bin/
+fn create_bin_symlink(name: &str, prefix: &Path) -> miette::Result<()> {
+    let bin_dir = paths::bin_dir();
+    std::fs::create_dir_all(&bin_dir)
+        .into_diagnostic()
+        .context("failed to create bin directory")?;
+
+    // TODO(mattkram): The binary or binaries is not always the name. We need to either
+    // inspect the top level package, or expose via our own custom configuration.
+    let tool_bin = prefix.join("bin").join(name);
+    let symlink_path = bin_dir.join(name);
+
+    // Check if the tool binary exists
+    if !tool_bin.exists() {
+        eprintln!(
+            "   Warning: binary '{}' not found in {}/bin/",
+            name,
+            prefix.display()
+        );
+        return Ok(());
+    }
+
+    // Remove existing symlink if present
+    if symlink_path.exists() || symlink_path.is_symlink() {
+        std::fs::remove_file(&symlink_path)
+            .into_diagnostic()
+            .context("failed to remove existing symlink")?;
+    }
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&tool_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_file(&tool_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    eprintln!(
+        "   Linked {} -> {}",
+        symlink_path.display(),
+        tool_bin.display()
+    );
 
     Ok(())
 }
