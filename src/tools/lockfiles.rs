@@ -6,13 +6,16 @@ use std::path::PathBuf;
 struct Tool {
     name: &'static str,
     lockfile: &'static str,
+    binaries: &'static [&'static str],
 }
 
 /// Embedded tool configurations.
 const TOOLS: &[Tool] = &[Tool {
     name: "anaconda-cli",
     lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
-}];
+        binaries: &["anaconda"],
+    },
+];
 
 fn find_tool(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|t| t.name == name)
@@ -29,6 +32,11 @@ pub fn content(name: &str) -> Option<String> {
     } else {
         find_tool(name).map(|t| t.lockfile.to_string())
     }
+}
+
+/// Returns the binaries to symlink for a tool.
+pub fn binaries(name: &str) -> Option<&'static [&'static str]> {
+    find_tool(name).map(|t| t.binaries)
 }
 
 #[cfg(test)]

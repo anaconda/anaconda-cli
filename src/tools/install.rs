@@ -29,12 +29,14 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
     let lock_content = lockfiles::content(name)
         .ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
+    let binaries = lockfiles::binaries(name).unwrap_or(&[]);
+
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(&prefix, &lock_content).await?;
 
-    // Create symlink in bin directory
-    create_bin_symlink(name, &prefix)?;
+    // Create symlinks in bin directory
+    create_bin_symlinks(&prefix, binaries)?;
 
     Ok(())
 }
@@ -113,23 +115,30 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
     Ok(())
 }
 
-/// Create a symlink for the tool's binary in ~/.ana/bin/
-fn create_bin_symlink(name: &str, prefix: &Path) -> miette::Result<()> {
+/// Create symlinks for the tool's binaries in ~/.ana/bin/
+fn create_bin_symlinks(prefix: &Path, binaries: &[&str]) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
-    // TODO(mattkram): The binary or binaries is not always the name. We need to either
-    // inspect the top level package, or expose via our own custom configuration.
-    let tool_bin = prefix.join("bin").join(name);
-    let symlink_path = bin_dir.join(name);
+    for binary in binaries {
+        create_bin_symlink(&bin_dir, prefix, binary)?;
+    }
+
+    Ok(())
+}
+
+/// Create a single symlink for a binary.
+fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Result<()> {
+    let tool_bin = prefix.join("bin").join(binary);
+    let symlink_path = bin_dir.join(binary);
 
     // Check if the tool binary exists
     if !tool_bin.exists() {
         eprintln!(
             "   Warning: binary '{}' not found in {}/bin/",
-            name,
+            binary,
             prefix.display()
         );
         return Ok(());
