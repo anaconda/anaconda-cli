@@ -176,7 +176,7 @@ main() {
         update_shell_profile "$_install_dir"
     fi
 
-    printf "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started."
+    printf "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started.\n"
 }
 
 detect_os() {
