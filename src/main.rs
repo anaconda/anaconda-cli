@@ -1,10 +1,59 @@
 mod update;
 
+use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 use std::io::{self, Write};
 
 const APPLICATION: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("PKG_VERSION");
+
+#[derive(Parser)]
+#[command(
+    name = APPLICATION,
+    version = VERSION,
+    about = "",
+    long_about = None,
+    subcommand_required = false,
+    arg_required_else_help = false,
+    disable_help_subcommand = true,
+    override_usage = "ana [command] [options]",
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Manage the ana installation
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana self <command> [options]"
+    )]
+    Self_ {
+        #[command(subcommand)]
+        command: Option<SelfCommands>,
+    },
+}
+
+#[derive(Subcommand)]
+enum SelfCommands {
+    /// Update ana to the latest version
+    Update {
+        /// Skip confirmation prompt
+        #[arg(short = 'y', long = "yes")]
+        yes: bool,
+
+        /// Check if an update is available
+        #[arg(long, conflicts_with_all = ["yes", "list"])]
+        check: bool,
+
+        /// List available versions
+        #[arg(long, conflicts_with_all = ["yes", "check"])]
+        list: bool,
+    },
+}
 
 fn usage() -> String {
     formatdoc! {"
