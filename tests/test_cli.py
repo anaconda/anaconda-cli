@@ -85,3 +85,17 @@ class TestSelfUpdateNoToken:
     def test_update_without_token(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "update")
         assert "GITHUB_TOKEN" in result.stderr or result.returncode != 0
+
+
+class TestArgumentErrors:
+    """Tests for CLI argument parsing and error handling."""
+
+    def test_unknown_command(self, run_ana: AnaRunner) -> None:
+        result = run_ana("foobar")
+        assert result.returncode == 1
+        assert "Unknown command: foobar" in result.stderr
+
+    def test_unknown_self_command(self, run_ana: AnaRunner) -> None:
+        result = run_ana("self", "foobar")
+        assert result.returncode == 1
+        assert "Unknown self command: foobar" in result.stderr
