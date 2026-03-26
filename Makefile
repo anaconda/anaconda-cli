@@ -1,7 +1,10 @@
-.PHONY: help test test-integration
+.PHONY: help debug test test-integration
 
 help:  ## Display help on all Makefile targets
 	@@grep -h '^[a-zA-Z]' $(MAKEFILE_LIST) | awk -F ':.*?## ' 'NF==2 {printf "   %-20s%s\n", $$1, $$2}' | sort
+
+debug:  ## Build the debug binary
+	pixi run build-debug
 
 test:  ## Run all the unit tests
 	pixi run test
