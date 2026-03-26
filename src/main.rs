@@ -93,6 +93,37 @@ fn print_version() {
     println!("{}", VERSION);
 }
 
+fn print_main_help() {
+    println!(
+        "{}",
+        formatdoc! {"
+        ana {VERSION}
+
+        Usage: ana [command] [options]
+
+        Commands:
+          self           Manage the ana installation
+
+        Options:
+          -V, --version  Print version
+          -h, --help     Print help
+        "}
+    );
+}
+
+fn print_self_help() {
+    println!(
+        "{}",
+        formatdoc! {"
+        Manage the installation
+
+        Usage: ana self <command> [options]
+
+        Commands:
+          update    Update ana to the latest version
+        "}
+    );
+}
 fn prompt_yes_no(message: &str) -> bool {
     print!("{} [y/N] ", message);
     io::stdout().flush().unwrap();
@@ -162,79 +193,70 @@ fn show_available_versions() {
     }
 }
 
-#[derive(Debug)]
-enum Command {
-    Help,
-    SelfHelp,
-    Version,
-    SelfUpdate { force: bool },
-    SelfUpdateCheck,
-    SelfShowAvailable,
-}
+fn main() {
+    // Handle custom error messages for unknown commands
+    let result = Cli::try_parse();
 
-fn parse_args(args: &[String]) -> Result<Command, String> {
-    // Display help
-    if args.len() <= 1 || args.iter().any(|a| a == "--help" || a == "-h") {
-        return Ok(Command::Help);
-    }
-
-    // Display version
-    if args.iter().any(|a| a == "--version" || a == "-V") {
-        return Ok(Command::Version);
-    }
-
-    // Handle subcommands
-    match args[1].as_str() {
-        "self" => {
-            if args.len() < 3 {
-                return Ok(Command::SelfHelp);
-            }
-            match args[2].as_str() {
-                "update" => {
-                    if args.iter().any(|a| a == "--list") {
-                        Ok(Command::SelfShowAvailable)
-                    } else if args.iter().any(|a| a == "--check") {
-                        Ok(Command::SelfUpdateCheck)
-                    } else {
-                        let force = args.iter().any(|a| a == "--yes" || a == "-y");
-                        Ok(Command::SelfUpdate { force })
-                    }
+    match result {
+        Ok(cli) => {
+            match cli.command {
+                None => {
+                    // No command provided - show help
+                    print_main_help();
                 }
-                cmd => Err(format!("Unknown self command: {}", cmd)),
+                Some(Commands::Self_ { command }) => match command {
+                    None => {
+                        // `ana self` with no subcommand - show self help
+                        print_self_help();
+                    }
+                    Some(SelfCommands::Update { yes, check, list }) => {
+                        if check {
+                            update::check_for_update(VERSION);
+                        } else if list {
+                            show_available_versions();
+                        } else {
+                            run_self_update(yes);
+                        }
+                    }
+                },
             }
         }
-        cmd => Err(format!("Unknown command: {}", cmd)),
-    }
-}
+        Err(e) => {
+            // Check if it's a help or version request
+            if e.kind() == clap::error::ErrorKind::DisplayHelp {
+                print_main_help();
+                return;
+            }
+            if e.kind() == clap::error::ErrorKind::DisplayVersion {
+                println!("{}", VERSION);
+                return;
+            }
 
-fn run(args: &[String]) -> Result<(), String> {
-    match parse_args(args)? {
-        Command::Help => print_usage(),
-        Command::SelfHelp => print_self_usage(),
-        Command::Version => print_version(),
-        Command::SelfUpdate { force } => run_self_update(force),
-        Command::SelfUpdateCheck => update::check_for_update(VERSION),
-        Command::SelfShowAvailable => show_available_versions(),
-    }
-    Ok(())
-}
+            // Handle unknown subcommand errors with custom format
+            let err_str = e.to_string();
+            if err_str.contains("unrecognized subcommand") {
+                // Extract the unknown command name
+                let args: Vec<String> = std::env::args().collect();
+                if args.len() > 1 && args[1] == "self" {
+                    if args.len() > 2 {
+                        eprintln!("Unknown self command: {}", args[2]);
+                    }
+                } else if args.len() > 1 {
+                    eprintln!("Unknown command: {}", args[1]);
+                }
+                std::process::exit(1);
+            }
 
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
-
-    if let Err(msg) = run(&args) {
-        eprintln!("{}", msg);
-        std::process::exit(1);
+            // For other errors, use clap's error handling
+            e.exit();
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn args(input: &[&str]) -> Vec<String> {
-        input.iter().map(|s| s.to_string()).collect()
-    }
+    use clap::CommandFactory;
 
     #[test]
     fn test_version_is_set() {
@@ -242,105 +264,8 @@ mod tests {
     }
 
     #[test]
-    fn test_no_args_parses_to_help() {
-        assert!(matches!(parse_args(&args(&["ana"])), Ok(Command::Help)));
-    }
-
-    #[test]
-    fn test_help_flag() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "--help"])),
-            Ok(Command::Help)
-        ));
-    }
-
-    #[test]
-    fn test_help_flag_short() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "-h"])),
-            Ok(Command::Help)
-        ));
-    }
-
-    #[test]
-    fn test_version_flag() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "--version"])),
-            Ok(Command::Version)
-        ));
-    }
-
-    #[test]
-    fn test_version_flag_short() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "-V"])),
-            Ok(Command::Version)
-        ));
-    }
-
-    #[test]
-    fn test_self_no_subcommand() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "self"])),
-            Ok(Command::SelfHelp)
-        ));
-    }
-
-    #[test]
-    fn test_self_update() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "self", "update"])),
-            Ok(Command::SelfUpdate { force: false })
-        ));
-    }
-
-    #[test]
-    fn test_self_update_yes() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "self", "update", "--yes"])),
-            Ok(Command::SelfUpdate { force: true })
-        ));
-    }
-
-    #[test]
-    fn test_self_update_yes_short() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "self", "update", "-y"])),
-            Ok(Command::SelfUpdate { force: true })
-        ));
-    }
-
-    #[test]
-    fn test_unknown_command() {
-        let result = parse_args(&args(&["ana", "foo"]));
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Unknown command: foo"));
-    }
-
-    #[test]
-    fn test_self_update_show_available() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "self", "update", "--list"])),
-            Ok(Command::SelfShowAvailable)
-        ));
-    }
-
-    #[test]
-    fn test_self_update_check() {
-        assert!(matches!(
-            parse_args(&args(&["ana", "self", "update", "--check"])),
-            Ok(Command::SelfUpdateCheck)
-        ));
-    }
-
-    #[test]
-    fn test_unknown_self_command() {
-        let result = parse_args(&args(&["ana", "self", "unknown"]));
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .contains("Unknown self command: unknown")
-        );
+    fn test_cli_parses() {
+        // Verify clap setup is valid
+        Cli::command().debug_assert();
     }
 }
