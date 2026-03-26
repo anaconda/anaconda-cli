@@ -39,6 +39,18 @@ def fake_home(tmp_path: Path) -> Path:
     return home
 
 
+@pytest.fixture
+def env_isolated(fake_home: Path) -> dict[str, str]:
+    """Provide an isolated environment without ANA_* or GITHUB_TOKEN vars."""
+    env = {
+        key: val
+        for key, val in os.environ.copy().items()
+        if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
+    }
+    env["HOME"] = str(fake_home)
+    return env
+
+
 @pytest.fixture(scope="session")
 def ana_binary() -> Path | None:
     """Find the ana binary in standard locations.
@@ -64,9 +76,9 @@ def ana_binary() -> Path | None:
 AnaRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
-@pytest.fixture(scope="session")
-def run_ana(ana_binary: Path | None) -> AnaRunner:
-    """Provide a function to run the ana binary."""
+@pytest.fixture
+def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
+    """Provide a function to run the ana binary with isolated environment."""
     if ana_binary is None:
         pytest.skip(
             "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
@@ -77,6 +89,8 @@ def run_ana(ana_binary: Path | None) -> AnaRunner:
         env: dict[str, str] | None = None,
         input: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
+        # Start with isolated environment and update with argument if available
+        env = {**env_isolated, **(env or {})}
         return subprocess.run(
             [str(ana_binary), *args],
             capture_output=True,
