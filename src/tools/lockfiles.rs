@@ -7,6 +7,8 @@ struct Tool {
     name: &'static str,
     lockfile: &'static str,
     binaries: &'static [&'static str],
+    /// Command prefix for running tasks (e.g., "run" for `pixi run` or `uv run`)
+    task_prefix: &'static [&'static str],
 }
 
 /// Embedded tool configurations.
@@ -15,11 +17,13 @@ const TOOLS: &[Tool] = &[
         name: "anaconda-cli",
         lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
         binaries: &["anaconda"],
+        task_prefix: &[],
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../lockfiles/pixi/pixi.lock"),
         binaries: &["pixi"],
+        task_prefix: &["run"],
     },
 ];
 
@@ -43,6 +47,11 @@ pub fn content(name: &str) -> Option<String> {
 /// Returns the binaries to symlink for a tool.
 pub fn binaries(name: &str) -> Option<&'static [&'static str]> {
     find_tool(name).map(|t| t.binaries)
+}
+
+/// Returns the task prefix for a tool (e.g., &["run"] for pixi/uv).
+pub fn task_prefix(name: &str) -> &'static [&'static str] {
+    find_tool(name).map(|t| t.task_prefix).unwrap_or(&[])
 }
 
 #[cfg(test)]
