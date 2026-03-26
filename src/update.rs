@@ -251,6 +251,76 @@ pub fn check_for_update(current_version: &str) {
     }
 }
 
+fn prompt_yes_no(message: &str) -> bool {
+    use std::io::Write;
+    print!("{} [y/N] ", message);
+    std::io::stdout().flush().unwrap();
+
+    let mut input = String::new();
+    if std::io::stdin().read_line(&mut input).is_err() {
+        return false;
+    }
+
+    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
+}
+
+pub fn run_update(current_version: &str, force: bool) {
+    let check = match check_update(current_version) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to check for updates: {}", e);
+            return;
+        }
+    };
+
+    match check {
+        UpdateCheck::Available(release) => {
+            if !force {
+                let message = format!("Update {} -> {}?", current_version, release.tag_name);
+                if !prompt_yes_no(&message) {
+                    println!("Update cancelled.");
+                    return;
+                }
+            }
+            match apply_update(&release) {
+                Ok(()) => println!("Updated successfully: {} -> {}", current_version, release.tag_name),
+                Err(e) => eprintln!("Failed to update: {}", e),
+            }
+        }
+        UpdateCheck::AlreadyUpToDate => {
+            println!("Already up to date ({})", current_version);
+        }
+        UpdateCheck::NoReleases => {
+            println!("No releases available.");
+        }
+    }
+}
+
+pub fn show_available_versions(current_version: &str) {
+    let releases = match fetch_available_releases() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Failed to fetch releases: {}", e);
+            return;
+        }
+    };
+
+    if releases.is_empty() {
+        println!("No releases available.");
+        return;
+    }
+
+    let current_tag = format!("v{}", current_version);
+    for release in releases {
+        let marker = if release.tag_name == current_tag {
+            " *"
+        } else {
+            ""
+        };
+        println!("{}{}", release.tag_name, marker);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

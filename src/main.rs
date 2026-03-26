@@ -2,7 +2,6 @@ mod update;
 
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
-use std::io::{self, Write};
 
 const APPLICATION: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("PKG_VERSION");
@@ -86,74 +85,6 @@ fn print_self_help() {
         "}
     );
 }
-fn prompt_yes_no(message: &str) -> bool {
-    print!("{} [y/N] ", message);
-    io::stdout().flush().unwrap();
-
-    let mut input = String::new();
-    if io::stdin().read_line(&mut input).is_err() {
-        return false;
-    }
-
-    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
-}
-
-fn run_self_update(force: bool) {
-    let check = match update::check_update(VERSION) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to check for updates: {}", e);
-            return;
-        }
-    };
-
-    match check {
-        update::UpdateCheck::Available(release) => {
-            if !force {
-                let message = format!("Update {} -> {}?", VERSION, release.tag_name);
-                if !prompt_yes_no(&message) {
-                    println!("Update cancelled.");
-                    return;
-                }
-            }
-            match update::apply_update(&release) {
-                Ok(()) => println!("Updated successfully: {} -> {}", VERSION, release.tag_name),
-                Err(e) => eprintln!("Failed to update: {}", e),
-            }
-        }
-        update::UpdateCheck::AlreadyUpToDate => {
-            println!("Already up to date ({})", VERSION);
-        }
-        update::UpdateCheck::NoReleases => {
-            println!("No releases available.");
-        }
-    }
-}
-
-fn show_available_versions() {
-    let releases = match update::fetch_available_releases() {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("Failed to fetch releases: {}", e);
-            return;
-        }
-    };
-
-    if releases.is_empty() {
-        println!("No releases available.");
-        return;
-    }
-
-    let current_tag = format!("v{}", VERSION);
-    for release in releases {
-        let marker = if release.tag_name == current_tag {
-            " *"
-        } else {
-            ""
-        };
-        println!("{}{}", release.tag_name, marker);
-    }
-}
 
 fn main() {
     // Handle custom error messages for unknown commands
@@ -175,9 +106,9 @@ fn main() {
                         if check {
                             update::check_for_update(VERSION);
                         } else if list {
-                            show_available_versions();
+                            update::show_available_versions(VERSION);
                         } else {
-                            run_self_update(yes);
+                            update::run_update(VERSION, yes);
                         }
                     }
                 },
