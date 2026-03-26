@@ -32,6 +32,7 @@ description = "Build the standalone Rust binary in release mode"
 cmd = "python scripts/with_version.py cargo test"
 description = "Run the unit tests"
 
-[tasks.test-install-script]
+[tasks.test-integration]
 cmd = "pytest tests -v"
+depends-on = ["build-release"]
 description = "Run integration tests"

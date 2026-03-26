@@ -28,13 +28,13 @@ jobs:
         run: |
           pixi run test
 
-      - name: Run tests for install script
-        run: |
-          pixi run test-install-script
-
       - name: Build as standalone binary
         run: |
           pixi run build-release
+
+      - name: Run integration tests
+        run: |
+          pixi run test-integration
 
       - name: Build as conda package
         run: |
