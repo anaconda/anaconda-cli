@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from conftest import AnaRunner
 
 
@@ -32,3 +34,24 @@ class TestHelp:
         result = run_ana("--help")
         assert "--version" in result.stdout
         assert "--help" in result.stdout
+
+
+class TestVersion:
+    """Tests for --version output."""
+
+    def test_version_flag(self, run_ana: AnaRunner) -> None:
+        result = run_ana("--version")
+        assert result.returncode == 0
+        assert result.stdout.strip()  # Not empty
+
+    def test_version_short_flag(self, run_ana: AnaRunner) -> None:
+        result = run_ana("-V")
+        assert result.returncode == 0
+        assert result.stdout.strip()  # Not empty
+
+    def test_version_format(self, run_ana: AnaRunner) -> None:
+        result = run_ana("--version")
+        assert result.returncode == 0
+        version = result.stdout.strip()
+        # Should match semver pattern (possibly with dev suffix like .dev0)
+        assert re.match(r"\d+\.\d+\.\d+", version)
