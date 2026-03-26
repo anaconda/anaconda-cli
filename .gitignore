@@ -30,6 +30,7 @@ target
 # build output
 output/
 target/
+bin/
 
 # local dev config
 .claude/
