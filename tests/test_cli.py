@@ -25,6 +25,13 @@ class TestHelp:
         assert result.returncode == 0
         assert "Usage: ana [command] [options]" in result.stdout
 
+    def test_help_shows_version_in_header(self, run_ana: AnaRunner) -> None:
+        result = run_ana("--help")
+        # Header should be "ana {version}" on first line
+        first_line = result.stdout.split("\n")[0]
+        assert first_line.startswith("ana ")
+        assert re.match(r"ana \d+\.\d+\.\d+", first_line)
+
     def test_help_shows_self_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
         assert "self" in result.stdout
@@ -32,8 +39,8 @@ class TestHelp:
 
     def test_help_shows_options(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
-        assert "--version" in result.stdout
-        assert "--help" in result.stdout
+        assert "-V, --version" in result.stdout
+        assert "-h, --help" in result.stdout
 
 
 class TestVersion:
