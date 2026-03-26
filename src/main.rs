@@ -55,44 +55,6 @@ enum SelfCommands {
     },
 }
 
-fn usage() -> String {
-    formatdoc! {"
-        {APPLICATION} {VERSION}
-
-        Usage: {APPLICATION} [command] [options]
-
-        Commands:
-          self           Manage the {APPLICATION} installation
-
-        Options:
-          -V, --version  Print version
-          -h, --help     Print help"
-    }
-}
-
-fn self_usage() -> String {
-    formatdoc! {"
-        Manage the installation
-
-        Usage: {APPLICATION} self <command> [options]
-
-        Commands:
-          update    Update {APPLICATION} to the latest version"
-    }
-}
-
-fn print_usage() {
-    println!("{}", usage());
-}
-
-fn print_self_usage() {
-    println!("{}", self_usage());
-}
-
-fn print_version() {
-    println!("{}", VERSION);
-}
-
 fn print_main_help() {
     println!(
         "{}",
