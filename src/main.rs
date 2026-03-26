@@ -1,94 +1,13 @@
+mod cli;
 mod update;
 
-use clap::{Parser, Subcommand};
-use indoc::formatdoc;
+use cli::{print_main_help, print_self_help, Commands, SelfCommands};
 
-const APPLICATION: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("PKG_VERSION");
-
-#[derive(Parser)]
-#[command(
-    name = APPLICATION,
-    version = VERSION,
-    about = "",
-    long_about = None,
-    subcommand_required = false,
-    arg_required_else_help = false,
-    disable_help_subcommand = true,
-    override_usage = "ana [command] [options]",
-)]
-struct Cli {
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Manage the ana installation
-    #[command(
-        subcommand_required = false,
-        arg_required_else_help = false,
-        override_usage = "ana self <command> [options]"
-    )]
-    Self_ {
-        #[command(subcommand)]
-        command: Option<SelfCommands>,
-    },
-}
-
-#[derive(Subcommand)]
-enum SelfCommands {
-    /// Update ana to the latest version
-    Update {
-        /// Skip confirmation prompt
-        #[arg(short = 'y', long = "yes")]
-        yes: bool,
-
-        /// Check if an update is available
-        #[arg(long, conflicts_with_all = ["yes", "list"])]
-        check: bool,
-
-        /// List available versions
-        #[arg(long, conflicts_with_all = ["yes", "check"])]
-        list: bool,
-    },
-}
-
-fn print_main_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        ana {VERSION}
-
-        Usage: ana [command] [options]
-
-        Commands:
-          self           Manage the ana installation
-
-        Options:
-          -V, --version  Print version
-          -h, --help     Print help
-        "}
-    );
-}
-
-fn print_self_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        Manage the installation
-
-        Usage: ana self <command> [options]
-
-        Commands:
-          update    Update ana to the latest version
-        "}
-    );
-}
+pub const VERSION: &str = env!("PKG_VERSION");
 
 fn main() {
     // Handle custom error messages for unknown commands
-    let result = Cli::try_parse();
+    let result = cli::parse();
 
     match result {
         Ok(cli) => {
@@ -149,16 +68,9 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::CommandFactory;
 
     #[test]
     fn test_version_is_set() {
         assert!(!VERSION.is_empty());
-    }
-
-    #[test]
-    fn test_cli_parses() {
-        // Verify clap setup is valid
-        Cli::command().debug_assert();
     }
 }
