@@ -9,6 +9,7 @@ mod help;
 mod http;
 mod input;
 mod paths;
+mod projects;
 mod qr;
 mod tools;
 mod ua;
