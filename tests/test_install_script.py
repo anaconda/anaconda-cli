@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conftest import REPO_ROOT
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -24,17 +26,6 @@ pytestmark = pytest.mark.skipif(
     reason="install.sh is a shell script that only runs on Linux/macOS",
 )
 
-
-def _find_repo_root() -> Path:
-    """Find the repository root by looking for .git directory."""
-    path = Path(__file__).resolve()
-    for parent in path.parents:
-        if (parent / ".git").exists():
-            return parent
-    raise RuntimeError("Could not find repository root")
-
-
-REPO_ROOT = _find_repo_root()
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.sh"
 
 # Create a simple mock binary script that responds to --version and --help
@@ -56,20 +47,6 @@ def install_dir(tmp_path: Path) -> Path:
     d = tmp_path / "bin"
     d.mkdir()
     return d
-
-
-@pytest.fixture
-def fake_home(tmp_path: Path) -> Path:
-    """Provide a fake HOME directory to isolate shell profile modifications."""
-    home = tmp_path / "home"
-    home.mkdir()
-    # Create shell config files
-    (home / ".bashrc").touch()
-    (home / ".zshrc").touch()
-    fish_config = home / ".config" / "fish"
-    fish_config.mkdir(parents=True)
-    (fish_config / "config.fish").touch()
-    return home
 
 
 @pytest.fixture
