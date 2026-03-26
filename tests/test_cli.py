@@ -72,9 +72,10 @@ class TestSelfCommand:
         assert result.returncode == 0
         assert "Usage: ana self <command>" in result.stdout
 
-    def test_self_update_listed(self, run_ana: AnaRunner) -> None:
+    def test_self_shows_update_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("self")
         assert "update" in result.stdout
+        assert "Update ana to the latest version" in result.stdout
 
 
 class TestSelfUpdateNoToken:
@@ -91,6 +92,16 @@ class TestSelfUpdateNoToken:
 
     def test_update_without_token(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "update")
+        assert "GITHUB_TOKEN" in result.stderr or result.returncode != 0
+
+    def test_update_with_yes_flag_without_token(self, run_ana: AnaRunner) -> None:
+        result = run_ana("self", "update", "--yes")
+        # --yes flag should be recognized, still fails due to missing token
+        assert "GITHUB_TOKEN" in result.stderr or result.returncode != 0
+
+    def test_update_with_y_flag_without_token(self, run_ana: AnaRunner) -> None:
+        result = run_ana("self", "update", "-y")
+        # -y flag should be recognized, still fails due to missing token
         assert "GITHUB_TOKEN" in result.stderr or result.returncode != 0
 
 
