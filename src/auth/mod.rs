@@ -1,8 +1,8 @@
 //! Authentication module.
 
+mod actions;
 mod api_keys;
 mod errors;
 mod keyring;
-mod login;
 
-pub use login::{login, logout};
+pub use actions::{login, logout};
