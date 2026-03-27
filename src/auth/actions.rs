@@ -1,4 +1,4 @@
-//! Authentication actions (login, logout).
+//! Authentication actions (login, logout, whoami).
 
 use std::thread;
 use std::time::Duration;
@@ -12,11 +12,60 @@ use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// Build an HTTP client with standard settings.
-fn build_client() -> Result<reqwest::blocking::Client, AuthError> {
-    Ok(reqwest::blocking::Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()?)
+/// HTTP client with configuration and optional authentication.
+pub struct ApiClient {
+    client: reqwest::blocking::Client,
+    config: Config,
+    api_key: Option<String>,
+}
+
+impl ApiClient {
+    /// Create a new API client, loading credentials from the keyring if available.
+    pub fn new() -> Result<Self, AuthError> {
+        let config = Config::load();
+        let api_key = get_api_key(&config)?;
+        let client = reqwest::blocking::Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .build()?;
+
+        Ok(Self {
+            client,
+            config,
+            api_key,
+        })
+    }
+
+    /// Check if the client has valid credentials.
+    pub fn is_authenticated(&self) -> bool {
+        self.api_key.is_some()
+    }
+
+    /// Get the configured domain.
+    pub fn domain(&self) -> &str {
+        &self.config.domain
+    }
+
+    /// Make an authenticated GET request to an API endpoint.
+    pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
+        let url = format!("https://{}{}", self.config.domain, path);
+        let mut request = self.client.get(&url);
+
+        if let Some(ref api_key) = self.api_key {
+            request = request.bearer_auth(api_key);
+        }
+
+        Ok(request.send()?)
+    }
+
+    /// Get the underlying HTTP client for custom requests.
+    pub fn raw_client(&self) -> &reqwest::blocking::Client {
+        &self.client
+    }
+
+    /// Get the configuration.
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
 }
 
 /// OpenID Connect discovery document.
@@ -52,8 +101,9 @@ struct TokenErrorResponse {
 
 /// Perform the device authorization flow.
 pub fn login() -> Result<(), AuthError> {
-    let config = Config::load();
-    let client = build_client()?;
+    let api_client = ApiClient::new()?;
+    let client = api_client.raw_client();
+    let config = api_client.config();
 
     // TODO(mattkram): Better handling for common exceptions like SSL cert, etc.
     // Fetch OpenID configuration
@@ -184,18 +234,15 @@ pub fn show_api_key() -> Result<(), AuthError> {
 
 /// Display information about the logged-in user.
 pub fn whoami() -> Result<(), AuthError> {
-    let config = Config::load();
+    let client = ApiClient::new()?;
 
-    let Some(api_key) = get_api_key(&config)? else {
-        println!("Not logged in to {}", config.domain);
+    if !client.is_authenticated() {
+        println!("Not logged in to {}", client.domain());
         println!("Run `ana login` to authenticate.");
         return Ok(());
-    };
+    }
 
-    let client = build_client()?;
-
-    let url = format!("https://{}/api/account", config.domain);
-    let response = client.get(&url).bearer_auth(&api_key).send()?;
+    let response = client.get("/api/account")?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -209,7 +256,7 @@ pub fn whoami() -> Result<(), AuthError> {
     let data: serde_json::Value = response.json()?;
     let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
 
-    println!("Your info ({}):", config.domain);
+    println!("Your info ({}):", client.domain());
     println!("{}", pretty);
 
     Ok(())
