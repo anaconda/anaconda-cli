@@ -12,6 +12,13 @@ use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Build an HTTP client with standard settings.
+fn build_client() -> Result<reqwest::blocking::Client, AuthError> {
+    Ok(reqwest::blocking::Client::builder()
+        .timeout(REQUEST_TIMEOUT)
+        .build()?)
+}
+
 /// OpenID Connect discovery document.
 #[derive(Debug, Deserialize)]
 struct OpenIdConfig {
@@ -46,9 +53,7 @@ struct TokenErrorResponse {
 /// Perform the device authorization flow.
 pub fn login() -> Result<(), AuthError> {
     let config = Config::load();
-    let client = reqwest::blocking::Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()?;
+    let client = build_client()?;
 
     // TODO(mattkram): Better handling for common exceptions like SSL cert, etc.
     // Fetch OpenID configuration
@@ -172,9 +177,7 @@ pub fn whoami() -> Result<(), AuthError> {
         return Ok(());
     };
 
-    let client = reqwest::blocking::Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()?;
+    let client = build_client()?;
 
     let url = format!("https://{}/api/account", config.domain);
     let response = client.get(&url).bearer_auth(&api_key).send()?;
