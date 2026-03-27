@@ -9,6 +9,7 @@ fn main() {
     match cli::parse() {
         cli::Action::ShowHelp => cli::print_main_help(),
         cli::Action::ShowSelfHelp => cli::print_self_help(),
+        cli::Action::ShowAuthHelp => cli::print_auth_help(),
         cli::Action::ShowVersion => println!("{}", VERSION),
         cli::Action::ShowConfig => config::Config::load().print_table(),
         cli::Action::Login => {

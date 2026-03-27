@@ -7,6 +7,7 @@ use crate::VERSION;
 pub enum Action {
     ShowHelp,
     ShowSelfHelp,
+    ShowAuthHelp,
     ShowVersion,
     ShowConfig,
     Login,
@@ -25,6 +26,11 @@ pub fn parse() -> Action {
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
             Some(Commands::Logout) => Action::Logout,
+            Some(Commands::Auth { command }) => match command {
+                None => Action::ShowAuthHelp,
+                Some(AuthCommands::Login) => Action::Login,
+                Some(AuthCommands::Logout) => Action::Logout,
+            },
             Some(Commands::Self_ { command }) => match command {
                 None => Action::ShowSelfHelp,
                 Some(SelfCommands::Update { yes, check, list }) => {
@@ -77,6 +83,7 @@ pub fn print_main_help() {
         Usage: ana [command] [options]
 
         Commands:
+          auth           Authentication commands
           config         Show current configuration
           login          Log in to Anaconda
           logout         Log out from Anaconda
@@ -103,6 +110,21 @@ pub fn print_self_help() {
     );
 }
 
+pub fn print_auth_help() {
+    println!(
+        "{}",
+        formatdoc! {"
+        Authentication commands
+
+        Usage: ana auth <command> [options]
+
+        Commands:
+          login     Log in to Anaconda
+          logout    Log out from Anaconda
+        "}
+    );
+}
+
 #[derive(Parser)]
 #[command(
     name = "ana",
@@ -121,6 +143,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Authentication commands
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana auth <command> [options]"
+    )]
+    Auth {
+        #[command(subcommand)]
+        command: Option<AuthCommands>,
+    },
+
     /// Show current configuration
     Config,
 
@@ -140,6 +173,15 @@ enum Commands {
         #[command(subcommand)]
         command: Option<SelfCommands>,
     },
+}
+
+#[derive(Subcommand)]
+enum AuthCommands {
+    /// Log in to Anaconda
+    Login,
+
+    /// Log out from Anaconda
+    Logout,
 }
 
 #[derive(Subcommand)]
