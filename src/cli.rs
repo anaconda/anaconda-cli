@@ -13,6 +13,7 @@ pub enum Action {
     Login,
     Logout,
     ShowApiKey,
+    Whoami,
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
@@ -27,11 +28,13 @@ pub fn parse() -> Action {
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
             Some(Commands::Logout) => Action::Logout,
+            Some(Commands::Whoami) => Action::Whoami,
             Some(Commands::Auth { command }) => match command {
                 None => Action::ShowAuthHelp,
                 Some(AuthCommands::ApiKey) => Action::ShowApiKey,
                 Some(AuthCommands::Login) => Action::Login,
                 Some(AuthCommands::Logout) => Action::Logout,
+                Some(AuthCommands::Whoami) => Action::Whoami,
             },
             Some(Commands::Self_ { command }) => match command {
                 None => Action::ShowSelfHelp,
@@ -89,6 +92,7 @@ pub fn print_main_help() {
           config         Show current configuration
           login          Log in to Anaconda
           logout         Log out from Anaconda
+          whoami         Display information about the logged-in user
           self           Manage the ana installation
 
         Options:
@@ -124,6 +128,7 @@ pub fn print_auth_help() {
           api-key   Display the API key for the logged-in user
           login     Log in to Anaconda
           logout    Log out from Anaconda
+          whoami    Display information about the logged-in user
         "}
     );
 }
@@ -166,6 +171,9 @@ enum Commands {
     /// Log out from Anaconda
     Logout,
 
+    /// Display information about the logged-in user
+    Whoami,
+
     /// Manage the ana installation
     #[command(
         subcommand_required = false,
@@ -188,6 +196,9 @@ enum AuthCommands {
 
     /// Log out from Anaconda
     Logout,
+
+    /// Display information about the logged-in user
+    Whoami,
 }
 
 #[derive(Subcommand)]

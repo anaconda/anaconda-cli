@@ -177,6 +177,41 @@ pub fn show_api_key() -> Result<(), AuthError> {
     Ok(())
 }
 
+/// Display information about the logged-in user.
+pub fn whoami() -> Result<(), AuthError> {
+    let config = Config::load();
+
+    let Some(api_key) = get_api_key(&config)? else {
+        println!("Not logged in to {}", config.domain);
+        println!("Run `ana login` to authenticate.");
+        return Ok(());
+    };
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(REQUEST_TIMEOUT)
+        .build()?;
+
+    let url = format!("https://{}/api/account", config.domain);
+    let response = client.get(&url).bearer_auth(&api_key).send()?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().unwrap_or_default();
+        return Err(AuthError::Authorization(format!(
+            "Failed to get account info: {} - {}",
+            status, body
+        )));
+    }
+
+    let data: serde_json::Value = response.json()?;
+    let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
+
+    println!("Your info ({}):", config.domain);
+    println!("{}", pretty);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
