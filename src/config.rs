@@ -5,18 +5,20 @@
 //!
 //! # Environment Variables
 //!
-//! | Variable             | Default         | Description                    |
-//! |----------------------|-----------------|--------------------------------|
-//! | `ANA_AUTH_DOMAIN`    | `anaconda.com`  | Authentication domain          |
-//! | `ANA_AUTH_CLIENT_ID` | (Anaconda's ID) | OAuth client ID                |
-//! | `ANA_SSL_VERIFY`     | `true`          | SSL certificate verification   |
-//! | `ANA_OPEN_BROWSER`   | `true`          | Auto-open browser during login |
+//! | Variable             | Default           | Description                    |
+//! |----------------------|-------------------|--------------------------------|
+//! | `ANA_AUTH_DOMAIN`    | `anaconda.com`    | Authentication domain          |
+//! | `ANA_AUTH_CLIENT_ID` | (Anaconda's ID)   | OAuth client ID                |
+//! | `ANA_SSL_VERIFY`     | `true`            | SSL certificate verification   |
+//! | `ANA_OPEN_BROWSER`   | `true`            | Auto-open browser during login |
+//! | `ANA_KEYRING_PATH`   | `~/.ana/keyring`  | Path to keyring file           |
 //!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
 use std::env;
 use std::fmt;
+use std::path::PathBuf;
 
 const DEFAULT_DOMAIN: &str = "anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
@@ -37,6 +39,9 @@ pub struct Config {
 
     /// Whether to automatically open browser during login
     pub open_browser: bool,
+
+    /// Path to the keyring file for storing API keys
+    pub keyring_path: PathBuf,
 }
 
 impl Default for Config {
@@ -53,12 +58,16 @@ impl Config {
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
         let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
+        let keyring_path = env::var("ANA_KEYRING_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| default_keyring_path());
 
         Self {
             domain,
             client_id,
             ssl_verify,
             open_browser,
+            keyring_path,
         }
     }
 
@@ -71,11 +80,13 @@ impl Config {
 impl fmt::Display for Config {
     /// Format the configuration as a table.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let keyring_path_str = self.keyring_path.display().to_string();
         let rows = [
             ("domain", self.domain.as_str()),
             ("client_id", self.client_id.as_str()),
             ("ssl_verify", bool_to_str(self.ssl_verify)),
             ("open_browser", bool_to_str(self.open_browser)),
+            ("keyring_path", keyring_path_str.as_str()),
         ];
         write!(
             f,
@@ -83,6 +94,14 @@ impl fmt::Display for Config {
             crate::console::format_table(("Setting", "Value"), &rows)
         )
     }
+}
+
+/// Get the default keyring path (~/.ana/keyring).
+fn default_keyring_path() -> PathBuf {
+    dirs::home_dir()
+        .expect("Could not determine home directory")
+        .join(".ana")
+        .join("keyring")
 }
 
 /// Convert a boolean to a string.
@@ -121,6 +140,7 @@ mod tests {
             client_id: DEFAULT_CLIENT_ID.to_string(),
             ssl_verify,
             open_browser,
+            keyring_path: default_keyring_path(),
         }
     }
 
@@ -262,5 +282,20 @@ mod tests {
             let config = Config::load();
             assert!(!config.open_browser);
         });
+    }
+
+    #[test]
+    fn test_config_load_keyring_path_from_env() {
+        temp_env::with_var("ANA_KEYRING_PATH", Some("/custom/path/keyring"), || {
+            let config = Config::load();
+            assert_eq!(config.keyring_path, PathBuf::from("/custom/path/keyring"));
+        });
+    }
+
+    #[test]
+    fn test_config_default_keyring_path() {
+        let config = Config::load();
+        // Should end with .ana/keyring
+        assert!(config.keyring_path.ends_with(".ana/keyring"));
     }
 }
