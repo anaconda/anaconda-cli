@@ -18,7 +18,8 @@
 use std::env;
 use std::fmt;
 
-const DEFAULT_DOMAIN: &str = "anaconda.com";
+// TODO(mattkram): Update default to anaconda.com before public release
+const DEFAULT_DOMAIN: &str = "stage.anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
 const DEFAULT_OPEN_BROWSER: bool = true;
