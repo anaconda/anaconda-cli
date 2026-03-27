@@ -15,6 +15,9 @@ pub enum AuthError {
 
     #[error("Missing endpoint in OpenID configuration: {0}")]
     MissingEndpoint(String),
+
+    #[error("Keyring error: {0}")]
+    Keyring(String),
 }
 
 #[cfg(test)]
@@ -34,5 +37,8 @@ mod tests {
             err.to_string(),
             "Missing endpoint in OpenID configuration: device_authorization_endpoint"
         );
+
+        let err = AuthError::Keyring("file not found".to_string());
+        assert_eq!(err.to_string(), "Keyring error: file not found");
     }
 }
