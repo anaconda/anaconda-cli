@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
+use super::keyring::save_api_key;
 use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -122,9 +123,10 @@ pub fn login() -> Result<(), AuthError> {
             // Create API key
             println!("Creating API key...");
             let api_key = create_api_key(&client, &config, &token.access_token)?;
-            println!();
-            println!("API Key: {}", api_key);
-            // TODO: Store API key securely
+
+            // Save to keyring
+            save_api_key(&config, &api_key)?;
+            println!("API key saved to {}", config.keyring_path.display());
             return Ok(());
         }
 

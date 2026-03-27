@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from conftest import AnaRunner
 from mock_auth_server import MOCK_API_KEY
 
@@ -36,12 +39,24 @@ class TestLogin:
         run_ana: AnaRunner,
         auth_env: dict[str, str],
     ) -> None:
-        """Login should retrieve and display API key."""
+        """Login should store API key in keyring."""
+        import base64
+
         result = run_ana("login", env=auth_env)
 
         assert result.returncode == 0
-        # TODO: Replace this check with keyring verification once keyring storage is implemented
-        assert MOCK_API_KEY in result.stdout
+        # Verify API key is stored in keyring file
+        keyring_path = Path(auth_env["HOME"]) / ".ana" / "keyring"
+        assert keyring_path.exists(), "Keyring file should be created"
+        keyring_data = json.loads(keyring_path.read_text())
+        domain = auth_env["ANA_DOMAIN"]
+        # Keyring format: {"Anaconda Cloud": {"domain": "base64-encoded-credential"}}
+        assert "Anaconda Cloud" in keyring_data
+        assert domain in keyring_data["Anaconda Cloud"]
+        credential = json.loads(
+            base64.b64decode(keyring_data["Anaconda Cloud"][domain])
+        )
+        assert credential["api_key"] == MOCK_API_KEY
 
     def test_login_shows_creating_api_key_message(
         self,
