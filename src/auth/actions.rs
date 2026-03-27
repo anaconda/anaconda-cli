@@ -1,4 +1,4 @@
-//! OAuth 2.0 Device Authorization Grant (RFC 8628) implementation.
+//! Authentication actions (login, logout).
 
 use std::thread;
 use std::time::Duration;
