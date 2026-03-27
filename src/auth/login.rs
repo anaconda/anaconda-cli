@@ -6,6 +6,7 @@ use std::time::Duration;
 use serde::Deserialize;
 use thiserror::Error;
 
+use super::api_keys::create_api_key;
 use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -46,12 +47,7 @@ struct DeviceAuthResponse {
 /// Response from the token endpoint.
 #[derive(Debug, Deserialize)]
 struct TokenResponse {
-    #[allow(dead_code)]
     access_token: String,
-    token_type: String,
-    expires_in: Option<u64>,
-    #[allow(dead_code)]
-    refresh_token: Option<String>,
 }
 
 /// Error response from the token endpoint during polling.
@@ -137,11 +133,13 @@ pub fn login() -> Result<(), AuthError> {
             let token: TokenResponse = response.json()?;
             println!();
             println!("Successfully authenticated!");
-            println!("Token type: {}", token.token_type);
-            if let Some(expires_in) = token.expires_in {
-                println!("Expires in: {} seconds", expires_in);
-            }
-            // TODO: Store token securely
+
+            // Create API key
+            println!("Creating API key...");
+            let api_key = create_api_key(&client, &config, &token.access_token)?;
+            println!();
+            println!("API Key: {}", api_key);
+            // TODO: Store API key securely
             return Ok(());
         }
 
