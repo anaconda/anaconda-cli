@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::login::AuthError;
+use super::errors::AuthError;
 use crate::VERSION;
 use crate::config::Config;
 

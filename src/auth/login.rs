@@ -4,27 +4,12 @@ use std::thread;
 use std::time::Duration;
 
 use serde::Deserialize;
-use thiserror::Error;
 
 use super::api_keys::create_api_key;
+use super::errors::AuthError;
 use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
-
-#[derive(Error, Debug)]
-pub enum AuthError {
-    #[error("HTTP request failed: {0}")]
-    Request(#[from] reqwest::Error),
-
-    #[error("Authorization failed: {0}")]
-    Authorization(String),
-
-    #[error("Authorization timed out")]
-    Timeout,
-
-    #[error("Missing endpoint in OpenID configuration: {0}")]
-    MissingEndpoint(String),
-}
 
 /// OpenID Connect discovery document.
 #[derive(Debug, Deserialize)]
@@ -247,21 +232,6 @@ mod tests {
         assert_eq!(
             response.error_description,
             Some("User denied access".to_string())
-        );
-    }
-
-    #[test]
-    fn test_auth_error_display() {
-        let err = AuthError::Timeout;
-        assert_eq!(err.to_string(), "Authorization timed out");
-
-        let err = AuthError::Authorization("test error".to_string());
-        assert_eq!(err.to_string(), "Authorization failed: test error");
-
-        let err = AuthError::MissingEndpoint("device_authorization_endpoint".to_string());
-        assert_eq!(
-            err.to_string(),
-            "Missing endpoint in OpenID configuration: device_authorization_endpoint"
         );
     }
 }
