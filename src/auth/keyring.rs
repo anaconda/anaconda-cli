@@ -241,6 +241,30 @@ mod tests {
     }
 
     #[test]
+    fn test_get_api_key_returns_correct_domain() {
+        let dir = tempfile::tempdir().unwrap();
+        let keyring_path = dir.path().join("keyring");
+
+        // Save keys for multiple domains
+        let config_a = test_config_with_keyring(keyring_path.clone(), "a.com");
+        let config_b = test_config_with_keyring(keyring_path.clone(), "b.com");
+        let config_c = test_config_with_keyring(keyring_path.clone(), "c.com");
+
+        save_api_key(&config_a, "key-for-a").unwrap();
+        save_api_key(&config_b, "key-for-b").unwrap();
+        save_api_key(&config_c, "key-for-c").unwrap();
+
+        // Each config should only return its own key
+        assert_eq!(get_api_key(&config_a).unwrap(), Some("key-for-a".to_string()));
+        assert_eq!(get_api_key(&config_b).unwrap(), Some("key-for-b".to_string()));
+        assert_eq!(get_api_key(&config_c).unwrap(), Some("key-for-c".to_string()));
+
+        // A domain with no key should return None
+        let config_unknown = test_config_with_keyring(keyring_path.clone(), "unknown.com");
+        assert_eq!(get_api_key(&config_unknown).unwrap(), None);
+    }
+
+    #[test]
     fn test_keyring_json_format() {
         let dir = tempfile::tempdir().unwrap();
         let keyring_path = dir.path().join("keyring");
