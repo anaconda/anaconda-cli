@@ -62,6 +62,11 @@ impl Config {
             open_browser,
         }
     }
+
+    /// Get the OpenID Connect well-known configuration URL.
+    pub fn well_known_url(&self) -> String {
+        format!("https://{}/.well-known/openid-configuration", self.domain)
+    }
 }
 
 impl Config {
