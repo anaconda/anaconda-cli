@@ -45,6 +45,11 @@ impl ApiClient {
         &self.config.domain
     }
 
+    /// Get the API key if authenticated.
+    pub fn api_key(&self) -> Option<&str> {
+        self.api_key.as_deref()
+    }
+
     /// Make an authenticated GET request to an API endpoint.
     pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
         let url = format!("https://{}{}", self.config.domain, path);
@@ -243,6 +248,21 @@ pub fn whoami() -> Result<(), AuthError> {
 
     println!("Your info ({}):", client.domain());
     println!("{}", pretty);
+
+    Ok(())
+}
+
+/// Display the API key for the logged-in user.
+pub fn show_api_key() -> Result<(), AuthError> {
+    let client = ApiClient::new()?;
+
+    match client.api_key() {
+        Some(key) => println!("{}", key),
+        None => {
+            println!("Not logged in to {}", client.domain());
+            println!("Run `ana login` to authenticate.");
+        }
+    }
 
     Ok(())
 }

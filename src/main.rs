@@ -31,6 +31,12 @@ fn main() {
                 std::process::exit(1);
             }
         }
+        cli::Action::ShowApiKey => {
+            if let Err(e) = auth::show_api_key() {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
         cli::Action::Update { force } => update::run_update(VERSION, force),
         cli::Action::CheckForUpdate => update::check_for_update(VERSION),
         cli::Action::ShowAvailableVersions => update::show_available_versions(VERSION),

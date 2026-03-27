@@ -13,6 +13,7 @@ pub enum Action {
     Login,
     Logout,
     Whoami,
+    ShowApiKey,
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
@@ -33,6 +34,7 @@ pub fn parse() -> Action {
                 Some(AuthCommands::Login) => Action::Login,
                 Some(AuthCommands::Logout) => Action::Logout,
                 Some(AuthCommands::Whoami) => Action::Whoami,
+                Some(AuthCommands::ApiKey) => Action::ShowApiKey,
             },
             Some(Commands::Self_ { command }) => match command {
                 None => Action::ShowSelfHelp,
@@ -123,6 +125,7 @@ pub fn print_auth_help() {
         Usage: ana auth <command> [options]
 
         Commands:
+          api-key   Display the API key for the logged-in user
           login     Log in to Anaconda
           logout    Log out from Anaconda
           whoami    Display information about the logged-in user
@@ -185,6 +188,9 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum AuthCommands {
+    /// Display the API key for the logged-in user
+    ApiKey,
+
     /// Log in to Anaconda
     Login,
 
