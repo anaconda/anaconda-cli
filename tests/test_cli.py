@@ -141,6 +141,21 @@ class TestConfig:
         assert "custom.example.com" in result.stdout
 
 
+class TestLogin:
+    """Tests for 'ana login' subcommand."""
+
+    def test_help_shows_login_command(self, run_ana: AnaRunner) -> None:
+        result = run_ana("--help")
+        assert result.returncode == 0
+        assert "login" in result.stdout
+        assert "Log in to Anaconda" in result.stdout
+
+    def test_login_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("login", "--help")
+        assert result.returncode == 0
+        assert "Log in to Anaconda" in result.stdout
+
+
 class TestArgumentErrors:
     """Tests for CLI argument parsing and error handling."""
 
