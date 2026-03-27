@@ -105,6 +105,42 @@ class TestSelfUpdateNoToken:
         assert "GITHUB_TOKEN" in result.stderr or result.returncode != 0
 
 
+class TestConfig:
+    """Tests for 'ana config' subcommand."""
+
+    def test_config_shows_table(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config")
+        assert result.returncode == 0
+        # Should be a unicode table
+        assert "┌" in result.stdout
+        assert "└" in result.stdout
+
+    def test_config_shows_headers(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config")
+        assert result.returncode == 0
+        assert "Setting" in result.stdout
+        assert "Value" in result.stdout
+
+    def test_config_shows_all_settings(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config")
+        assert result.returncode == 0
+        assert "domain" in result.stdout
+        assert "client_id" in result.stdout
+        assert "ssl_verify" in result.stdout
+        assert "open_browser" in result.stdout
+
+    def test_config_shows_default_values(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config")
+        assert result.returncode == 0
+        assert "anaconda.com" in result.stdout
+        assert "true" in result.stdout  # ssl_verify and open_browser defaults
+
+    def test_config_respects_env_override(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config", env={"ANA_AUTH_DOMAIN": "custom.example.com"})
+        assert result.returncode == 0
+        assert "custom.example.com" in result.stdout
+
+
 class TestArgumentErrors:
     """Tests for CLI argument parsing and error handling."""
 
