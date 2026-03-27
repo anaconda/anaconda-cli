@@ -5,4 +5,4 @@ mod errors;
 mod keyring;
 mod login;
 
-pub use login::login;
+pub use login::{login, logout};

@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
-use super::keyring::save_api_key;
+use super::keyring::{delete_api_key, save_api_key};
 use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -152,6 +152,14 @@ pub fn login() -> Result<(), AuthError> {
             }
         }
     }
+}
+
+/// Log out by removing the API key for the current domain.
+pub fn logout() -> Result<(), AuthError> {
+    let config = Config::load();
+    delete_api_key(&config)?;
+    println!("Logged out from {}", config.domain);
+    Ok(())
 }
 
 #[cfg(test)]
