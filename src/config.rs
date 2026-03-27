@@ -18,6 +18,7 @@
 
 use comfy_table::{modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL, Attribute, Cell, Table};
 use std::env;
+use std::path::PathBuf;
 
 // TODO(mattkram): Update default to anaconda.com before public release
 const DEFAULT_DOMAIN: &str = "stage.anaconda.com";
@@ -41,6 +42,9 @@ pub struct Config {
     /// Whether to automatically open browser during login
     pub open_browser: bool,
 
+    /// Path to the keyring file for storing API keys
+    pub keyring_path: PathBuf,
+
     /// Whether to use HTTPS (set false for HTTP, e.g. testing)
     pub use_https: bool,
 }
@@ -59,6 +63,9 @@ impl Config {
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
         let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
+        let keyring_path = env::var("ANA_KEYRING_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
 
         Self {
@@ -66,6 +73,7 @@ impl Config {
             client_id,
             ssl_verify,
             open_browser,
+            keyring_path,
             use_https,
         }
     }
@@ -104,6 +112,14 @@ impl Config {
     }
 }
 
+/// Get the default keyring path (~/.ana/keyring).
+fn default_keyring_path() -> PathBuf {
+    dirs::home_dir()
+        .expect("Could not determine home directory")
+        .join(".ana")
+        .join("keyring")
+}
+
 /// Convert a boolean to a string.
 fn bool_to_str(val: bool) -> &'static str {
     if val { "true" } else { "false" }
@@ -140,6 +156,7 @@ mod tests {
             client_id: DEFAULT_CLIENT_ID.to_string(),
             ssl_verify,
             open_browser,
+            keyring_path: default_keyring_path(),
             use_https: true,
         }
     }
@@ -261,6 +278,21 @@ mod tests {
             let config = Config::load();
             assert!(!config.open_browser);
         });
+    }
+
+    #[test]
+    fn test_config_load_keyring_path_from_env() {
+        temp_env::with_var("ANA_KEYRING_PATH", Some("/custom/path/keyring"), || {
+            let config = Config::load();
+            assert_eq!(config.keyring_path, PathBuf::from("/custom/path/keyring"));
+        });
+    }
+
+    #[test]
+    fn test_config_default_keyring_path() {
+        let config = Config::load();
+        // Should end with .ana/keyring
+        assert!(config.keyring_path.ends_with(".ana/keyring"));
     }
 
     #[test]
