@@ -11,6 +11,7 @@ pub enum Action {
     ShowConfig,
     Login,
     Logout,
+    Whoami,
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
@@ -25,6 +26,7 @@ pub fn parse() -> Action {
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
             Some(Commands::Logout) => Action::Logout,
+            Some(Commands::Whoami) => Action::Whoami,
             Some(Commands::Self_ { command }) => match command {
                 None => Action::ShowSelfHelp,
                 Some(SelfCommands::Update { yes, check, list }) => {
@@ -80,6 +82,7 @@ pub fn print_main_help() {
           config         Show current configuration
           login          Log in to Anaconda
           logout         Log out from Anaconda
+          whoami         Display information about the logged-in user
           self           Manage the ana installation
 
         Options:
@@ -129,6 +132,9 @@ enum Commands {
 
     /// Log out from Anaconda
     Logout,
+
+    /// Display information about the logged-in user
+    Whoami,
 
     /// Manage the ana installation
     #[command(
