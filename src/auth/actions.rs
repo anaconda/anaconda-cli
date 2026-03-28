@@ -52,7 +52,7 @@ impl ApiClient {
 
     /// Make an authenticated GET request to an API endpoint.
     pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
-        let url = format!("https://{}{}", self.config.domain, path);
+        let url = format!("{}{}", self.config.base_url(), path);
         let mut request = self.client.get(&url);
 
         if let Some(ref api_key) = self.api_key {

@@ -154,6 +154,7 @@ mod tests {
             ssl_verify: true,
             open_browser: false,
             keyring_path: path,
+            use_https: true,
         }
     }
 
