@@ -1,6 +1,7 @@
 mod auth;
 mod cli;
 mod config;
+mod qr;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
