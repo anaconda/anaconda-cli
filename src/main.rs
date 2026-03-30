@@ -5,6 +5,7 @@ mod config;
 mod input;
 mod paths;
 mod qr;
+mod tools;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");

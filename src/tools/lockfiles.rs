@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn test_content_embedded() {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
-            let lockfile = content("uv");
+            let lockfile = content("anaconda-cli");
             assert!(lockfile.is_some());
             assert!(lockfile.unwrap().contains("version: 6"));
         });

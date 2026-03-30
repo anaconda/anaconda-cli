@@ -1,17 +1,20 @@
-use std::process::Command;
+use crate::paths;
+use crate::tools;
 
 pub fn run_bootstrap() -> Result<(), String> {
-    let status = Command::new("echo")
-        .arg("Hello from the bootstrapper!")
-        .status()
-        .map_err(|e| format!("Failed to run bootstrap: {}", e))?;
+    let anaconda_bin = paths::bin_dir().join("anaconda");
 
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!(
-            "Bootstrap failed with exit code {}",
-            status.code().unwrap_or(1)
-        ))
+    if anaconda_bin.exists() {
+        eprintln!("anaconda-cli is already installed");
+        return Ok(());
     }
+
+    eprintln!("Installing anaconda-cli...");
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Failed to create async runtime: {}", e))?;
+    rt.block_on(tools::install::install_tool("anaconda-cli"))
+        .map_err(|e| format!("{:?}", e))?;
+
+    eprintln!("anaconda-cli installed successfully");
+    Ok(())
 }
