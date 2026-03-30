@@ -5,9 +5,11 @@ from __future__ import annotations
 import os
 import subprocess
 from collections.abc import Callable
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from mock_auth_server import MockAuthServer
 
 
 def _find_repo_root() -> Path:
@@ -100,3 +102,32 @@ def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
         )
 
     return _run
+
+
+@pytest.fixture
+def mock_auth_server() -> Generator[MockAuthServer, None, None]:
+    """Run a mock authentication server for testing."""
+    with MockAuthServer() as server:
+        yield server
+
+
+@pytest.fixture
+def keyring_path(tmp_path: Path) -> Path:
+    """Provide a temporary keyring file path."""
+    return tmp_path / "keyring"
+
+
+@pytest.fixture
+def auth_env(
+    env_isolated: dict[str, str],
+    mock_auth_server: MockAuthServer,
+    keyring_path: Path,
+) -> dict[str, str]:
+    """Environment configured to use mock auth server."""
+    return {
+        **env_isolated,
+        "ANA_AUTH_DOMAIN": mock_auth_server.domain,
+        "ANA_KEYRING_PATH": str(keyring_path),
+        "ANA_OPEN_BROWSER": "false",  # Don't try to open browser in tests
+        "ANA_USE_HTTPS": "false",  # Use HTTP for mock server
+    }
