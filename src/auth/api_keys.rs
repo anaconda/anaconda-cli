@@ -25,8 +25,7 @@ pub fn create_api_key(
     config: &Config,
     access_token: &str,
 ) -> Result<String, AuthError> {
-    // TODO: domain and protocol should get handled outside this function
-    let url = format!("https://{}/api/auth/api-keys", config.domain);
+    let url = format!("{}/api/auth/api-keys", config.base_url());
     let payload = CreateApiKeyRequest {
         scopes: vec![
             "cloud:read".to_string(),
