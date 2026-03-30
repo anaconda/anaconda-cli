@@ -3,6 +3,7 @@ mod auth;
 mod cli;
 mod config;
 mod input;
+mod paths;
 mod qr;
 mod update;
 
