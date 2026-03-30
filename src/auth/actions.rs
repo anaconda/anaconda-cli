@@ -1,6 +1,5 @@
 //! Authentication actions (login, logout, whoami).
 
-use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
@@ -145,9 +144,22 @@ pub fn login() -> Result<(), AuthError> {
     // Pre-generate the QR code string
     let qr_output = crate::qr::qr_to_terminal(display_uri, 1, true).ok();
 
-    // Set up a background thread to listen for 'q' keypress (for on-demand QR)
-    let qr_key_rx = if browser_opened && qr_output.is_some() {
-        let (tx, rx) = mpsc::channel();
+    // Listen for 'q' keypress in a background thread (for on-demand QR).
+    //
+    // The console crate's read_key() puts stdin into raw mode and blocks.
+    // If the process exits while blocked (e.g. successful auth, timeout),
+    // the crate's termios restore never runs, corrupting the terminal.
+    //
+    // We save terminal state before spawning and use a RAII guard to
+    // guarantee restoration when login() returns, regardless of path.
+    let listen_for_q = browser_opened && qr_output.is_some();
+    let _term_guard = if listen_for_q {
+        TerminalGuard::new()
+    } else {
+        None
+    };
+    let qr_key_rx = if listen_for_q {
+        let (tx, rx) = std::sync::mpsc::channel();
         thread::spawn(move || {
             let term = Term::stdout();
             loop {
@@ -156,12 +168,6 @@ pub fn login() -> Result<(), AuthError> {
                         Key::Char('q') | Key::Char('Q') => {
                             let _ = tx.send(());
                             break;
-                        }
-                        // Raw mode intercepts Ctrl+C — handle it explicitly
-                        Key::Char('\x03') => {
-                            // Restore terminal before exiting
-                            drop(term);
-                            std::process::exit(130);
                         }
                         _ => {}
                     }
@@ -337,6 +343,58 @@ pub fn whoami() -> Result<(), AuthError> {
     println!("{}", pretty);
 
     Ok(())
+}
+
+/// RAII guard for terminal state restoration.
+///
+/// The console crate's read_key() puts stdin into raw mode. If the
+/// spawned keyboard-listener thread is still blocked in read_key() when
+/// the process exits normally (successful auth, timeout, Ctrl-C), the
+/// crate never restores termios, leaving the user's shell corrupted.
+///
+/// This guard captures termios before the read thread starts and restores
+/// it on drop, regardless of how login() exits.
+#[cfg(unix)]
+struct TerminalGuard {
+    saved: libc::termios,
+    fd: std::os::unix::io::RawFd,
+}
+
+#[cfg(unix)]
+impl TerminalGuard {
+    fn new() -> Option<Self> {
+        use std::os::unix::io::AsRawFd;
+        let fd = std::io::stdin().as_raw_fd();
+        let mut termios = std::mem::MaybeUninit::uninit();
+        let rc = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
+        if rc == 0 {
+            Some(Self {
+                saved: unsafe { termios.assume_init() },
+                fd,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for TerminalGuard {
+    fn drop(&mut self) {
+        unsafe {
+            libc::tcsetattr(self.fd, libc::TCSADRAIN, &self.saved);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+struct TerminalGuard;
+
+#[cfg(not(unix))]
+impl TerminalGuard {
+    fn new() -> Option<Self> {
+        Some(Self)
+    }
 }
 
 #[cfg(test)]

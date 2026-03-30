@@ -3,6 +3,9 @@ name = "ana"
 version = "0.0.0" # Placeholder - actual version derived from git tags via build.rs
 edition = "2024"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dependencies]
 base64 = "0.22"
 dirs = "6"

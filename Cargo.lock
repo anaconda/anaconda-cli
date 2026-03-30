@@ -13,6 +13,7 @@ dependencies = [
  "dirs",
  "indicatif",
  "indoc",
+ "libc",
  "reqwest",
  "self-replace",
  "semver",
