@@ -152,9 +152,18 @@ pub fn login() -> Result<(), AuthError> {
             let term = Term::stdout();
             loop {
                 if let Ok(key) = term.read_key() {
-                    if matches!(key, Key::Char('q') | Key::Char('Q')) {
-                        let _ = tx.send(());
-                        break;
+                    match key {
+                        Key::Char('q') | Key::Char('Q') => {
+                            let _ = tx.send(());
+                            break;
+                        }
+                        // Raw mode intercepts Ctrl+C — handle it explicitly
+                        Key::Char('\x03') => {
+                            // Restore terminal before exiting
+                            drop(term);
+                            std::process::exit(130);
+                        }
+                        _ => {}
                     }
                 }
             }
