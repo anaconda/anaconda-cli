@@ -163,6 +163,52 @@ class TestAuthHelp:
         assert "api-key" in result.stdout
         assert "login" in result.stdout
         assert "logout" in result.stdout
+        assert "whoami" in result.stdout
+
+
+class TestWhoami:
+    """Tests for 'ana whoami' command."""
+
+    def test_whoami_when_logged_in(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """Whoami should display user info when logged in."""
+        run_ana("login", env=auth_env)
+        result = run_ana("whoami", env=auth_env)
+
+        assert result.returncode == 0
+        assert f"Your info ({mock_auth_server.domain}):" in result.stdout
+        assert "testuser" in result.stdout
+        assert "test@example.com" in result.stdout
+
+    def test_whoami_when_not_logged_in(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """Whoami should show helpful message when not logged in."""
+        result = run_ana("whoami", env=auth_env)
+
+        assert result.returncode == 0
+        assert f"Not logged in to {mock_auth_server.domain}" in result.stdout
+        assert "Run `ana login` to authenticate." in result.stdout
+
+    def test_whoami_via_auth_subcommand(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """'ana auth whoami' should work the same as 'ana whoami'."""
+        run_ana("login", env=auth_env)
+        result = run_ana("auth", "whoami", env=auth_env)
+
+        assert result.returncode == 0
+        assert f"Your info ({mock_auth_server.domain}):" in result.stdout
 
 
 class TestMultipleDomains:
