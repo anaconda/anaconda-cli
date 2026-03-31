@@ -14,6 +14,9 @@ ana config
 | `ANA_AUTH_CLIENT_ID` | *(Anaconda's ID)* | OAuth client ID |
 | `ANA_SSL_VERIFY` | `true` | Verify SSL certificates |
 | `ANA_OPEN_BROWSER` | `true` | Auto-open browser during login |
+| `ANA_USE_HTTPS` | `true` | Use HTTPS (set `false` for HTTP) |
+| `ANA_KEYRING_PATH` | `~/.ana/keyring` | Path to keyring file for API keys |
+| `ANA_PRERELEASES` | `false` | Include prereleases in update checks |
 
 ## Precedence
 

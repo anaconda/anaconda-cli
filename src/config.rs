@@ -12,6 +12,7 @@
 //! | `ANA_SSL_VERIFY`     | `true`          | SSL certificate verification   |
 //! | `ANA_OPEN_BROWSER`   | `true`          | Auto-open browser during login |
 //! | `ANA_USE_HTTPS`      | `true`          | Use HTTPS (set false for HTTP) |
+//! | `ANA_PRERELEASES`    | `false`         | Include prereleases in updates |
 //!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
@@ -26,6 +27,7 @@ const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
 const DEFAULT_OPEN_BROWSER: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
+const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 
 /// Global configuration for ana.
 #[derive(Debug, Clone, PartialEq)]
@@ -47,6 +49,9 @@ pub struct Config {
 
     /// Whether to use HTTPS (set false for HTTP, e.g. testing)
     pub use_https: bool,
+
+    /// Whether to include prereleases when checking for updates
+    pub include_prereleases: bool,
 }
 
 impl Default for Config {
@@ -67,6 +72,8 @@ impl Config {
             .map(PathBuf::from)
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
+        let include_prereleases =
+            parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
 
         Self {
             domain,
@@ -75,6 +82,7 @@ impl Config {
             open_browser,
             keyring_path,
             use_https,
+            include_prereleases,
         }
     }
 
@@ -158,6 +166,7 @@ mod tests {
             open_browser,
             keyring_path: default_keyring_path(),
             use_https: true,
+            include_prereleases: false,
         }
     }
 
@@ -322,5 +331,29 @@ mod tests {
         let mut config = test_config("example.com", true, true);
         config.use_https = false;
         assert_eq!(config.base_url(), "http://example.com");
+    }
+
+    #[test]
+    fn test_config_load_include_prereleases_false_from_env() {
+        temp_env::with_var("ANA_PRERELEASES", Some("false"), || {
+            let config = Config::load();
+            assert!(!config.include_prereleases);
+        });
+    }
+
+    #[test]
+    fn test_config_default_include_prereleases_is_false() {
+        temp_env::with_var("ANA_PRERELEASES", None::<&str>, || {
+            let config = Config::load();
+            assert!(!config.include_prereleases);
+        });
+    }
+
+    #[test]
+    fn test_config_load_include_prereleases_true_from_env() {
+        temp_env::with_var("ANA_PRERELEASES", Some("true"), || {
+            let config = Config::load();
+            assert!(config.include_prereleases);
+        });
     }
 }

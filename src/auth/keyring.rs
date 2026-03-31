@@ -155,6 +155,7 @@ mod tests {
             open_browser: false,
             keyring_path: path,
             use_https: true,
+            include_prereleases: false,
         }
     }
 
