@@ -80,7 +80,7 @@ pub struct Release {
     pub assets: Vec<Asset>,
 }
 
-const DEFAULT_INCLUDE_PRERELEASES: bool = true;
+const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 
 pub fn include_prereleases() -> bool {
     env::var("ANA_PRERELEASES")
