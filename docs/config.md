@@ -10,7 +10,7 @@ ana config
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANA_AUTH_DOMAIN` | `stage.anaconda.com` | Authentication domain |
+| `ANA_DOMAIN` | `stage.anaconda.com` | Authentication domain |
 | `ANA_AUTH_CLIENT_ID` | *(Anaconda's ID)* | OAuth client ID |
 | `ANA_SSL_VERIFY` | `true` | Verify SSL certificates |
 | `ANA_OPEN_BROWSER` | `true` | Auto-open browser during login |

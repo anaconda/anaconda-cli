@@ -7,7 +7,7 @@
 //!
 //! | Variable             | Default         | Description                    |
 //! |----------------------|-----------------|--------------------------------|
-//! | `ANA_AUTH_DOMAIN`    | `anaconda.com`  | Authentication domain          |
+//! | `ANA_DOMAIN`         | `anaconda.com`  | Authentication domain          |
 //! | `ANA_AUTH_CLIENT_ID` | (Anaconda's ID) | OAuth client ID                |
 //! | `ANA_SSL_VERIFY`     | `true`          | SSL certificate verification   |
 //! | `ANA_OPEN_BROWSER`   | `true`          | Auto-open browser during login |
@@ -49,7 +49,7 @@ impl Default for Config {
 impl Config {
     /// Load configuration from environment variables.
     pub fn load() -> Self {
-        let domain = env::var("ANA_AUTH_DOMAIN").unwrap_or_else(|_| DEFAULT_DOMAIN.to_string());
+        let domain = env::var("ANA_DOMAIN").unwrap_or_else(|_| DEFAULT_DOMAIN.to_string());
         let client_id =
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn test_config_load_domain_from_env() {
-        temp_env::with_var("ANA_AUTH_DOMAIN", Some("custom.example.com"), || {
+        temp_env::with_var("ANA_DOMAIN", Some("custom.example.com"), || {
             let config = Config::load();
             assert_eq!(config.domain, "custom.example.com");
         });

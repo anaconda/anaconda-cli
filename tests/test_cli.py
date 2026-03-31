@@ -136,7 +136,7 @@ class TestConfig:
         assert "true" in result.stdout  # ssl_verify and open_browser defaults
 
     def test_config_respects_env_override(self, run_ana: AnaRunner) -> None:
-        result = run_ana("config", env={"ANA_AUTH_DOMAIN": "custom.example.com"})
+        result = run_ana("config", env={"ANA_DOMAIN": "custom.example.com"})
         assert result.returncode == 0
         assert "custom.example.com" in result.stdout
 
