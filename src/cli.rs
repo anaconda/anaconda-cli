@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
 use crate::VERSION;
+use crate::config::Config;
 use crate::update;
 
 /// Action to be performed, returned by parse()
@@ -12,6 +13,7 @@ pub enum Action {
     ShowHelp,
     ShowSelfHelp,
     ShowVersion,
+    ShowConfig,
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
@@ -23,6 +25,7 @@ impl Action {
             Action::ShowHelp => "help",
             Action::ShowSelfHelp => "self.help",
             Action::ShowVersion => "version",
+            Action::ShowConfig => "config",
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
@@ -76,6 +79,10 @@ impl Action {
                 update::show_available_versions(VERSION);
                 Ok(())
             }
+            Action::ShowConfig => {
+                Config::load().print_table();
+                Ok(())
+            }
         }
     }
 }
@@ -86,6 +93,7 @@ pub fn parse() -> Action {
     match Cli::try_parse() {
         Ok(cli) => match cli.command {
             None => Action::ShowHelp,
+            Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Self_ { command }) => match command {
                 None => Action::ShowSelfHelp,
                 Some(SelfCommands::Update { yes, check, list }) => {
@@ -138,6 +146,7 @@ pub fn print_main_help() {
         Usage: ana [command] [options]
 
         Commands:
+          config         Show current configuration
           self           Manage the ana installation
 
         Options:
@@ -179,6 +188,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Show current configuration
+    Config,
+
     /// Manage the ana installation
     #[command(
         subcommand_required = false,

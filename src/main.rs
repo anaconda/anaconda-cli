@@ -5,6 +5,7 @@ use anaconda_otel_rs::{
 };
 
 mod cli;
+mod config;
 pub(crate) mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
