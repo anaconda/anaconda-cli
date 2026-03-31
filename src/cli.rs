@@ -511,11 +511,11 @@ fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String
             FeedbackType::Bug => "Bug",
             FeedbackType::Feature => "Feature / Enhancement request",
         };
-        params.push(("entry.4106043", type_value.to_string()));
+        params.push(("entry.1875536722", type_value.to_string()));
     }
 
     if let Some(desc) = description {
-        params.push(("entry.1043077041", desc));
+        params.push(("entry.949440629", desc));
     }
 
     let query_string: String = params
