@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
 use crate::VERSION;
+use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
 
@@ -38,8 +39,13 @@ impl Action {
         match self {
             Action::ShowHelp => "help",
             Action::ShowSelfHelp => "self.help",
+            Action::ShowAuthHelp => "auth.help",
             Action::ShowVersion => "version",
             Action::ShowConfig => "config",
+            Action::Login => "login",
+            Action::Logout => "logout",
+            Action::ShowApiKey => "auth.api-key",
+            Action::Whoami => "whoami",
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
@@ -77,10 +83,22 @@ impl Action {
                 print_self_help();
                 Ok(())
             }
+            Action::ShowAuthHelp => {
+                print_auth_help();
+                Ok(())
+            }
             Action::ShowVersion => {
                 println!("{}", VERSION);
                 Ok(())
             }
+            Action::ShowConfig => {
+                Config::load().print_table();
+                Ok(())
+            }
+            Action::Login => Ok(auth::login()?),
+            Action::Logout => Ok(auth::logout()?),
+            Action::ShowApiKey => Ok(auth::show_api_key()?),
+            Action::Whoami => Ok(auth::whoami()?),
             Action::Update { force } => {
                 update::run_update(VERSION, force);
                 Ok(())
@@ -91,10 +109,6 @@ impl Action {
             }
             Action::ShowAvailableVersions => {
                 update::show_available_versions(VERSION);
-                Ok(())
-            }
-            Action::ShowConfig => {
-                Config::load().print_table();
                 Ok(())
             }
         }
