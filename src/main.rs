@@ -11,7 +11,7 @@ mod ua;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
-pub const FEEDBACK_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSeGd9p7pQSHvjIc6RNShjTQCGmM-5_3xkPNpNfYk102-HZB8Q/viewform?usp=publish-editor";
+pub const FEEDBACK_BASE_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSeGd9p7pQSHvjIc6RNShjTQCGmM-5_3xkPNpNfYk102-HZB8Q/viewform";
 
 #[tokio::main]
 async fn main() {

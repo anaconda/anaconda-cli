@@ -7,7 +7,7 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 use opentelemetry::Value;
 
-use crate::FEEDBACK_URL;
+use crate::FEEDBACK_BASE_URL;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
@@ -90,6 +90,13 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
     tracing_subscriber::EnvFilter::new(level.as_filter_str())
 }
 
+/// Feedback type for the feedback form
+#[derive(Clone, Copy)]
+pub enum FeedbackType {
+    Bug,
+    Feature,
+}
+
 /// Action to be performed, returned by parse()
 pub enum Action {
     ShowHelp,
@@ -106,7 +113,10 @@ pub enum Action {
     ShowAvailableVersions,
     Bootstrap,
     OrgProxy { args: Vec<String> },
-    OpenFeedback,
+    OpenFeedback {
+        feedback_type: Option<FeedbackType>,
+        description: Option<String>,
+    },
 }
 
 impl Action {
@@ -126,7 +136,7 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
-            Action::OpenFeedback => "feedback",
+            Action::OpenFeedback { .. } => "feedback",
         }
     }
 
@@ -195,8 +205,11 @@ impl Action {
                 update::show_available_versions(VERSION).await;
                 Ok(())
             }
-            Action::OpenFeedback => {
-                open_feedback();
+            Action::OpenFeedback {
+                feedback_type,
+                description,
+            } => {
+                open_feedback(feedback_type, description);
                 Ok(())
             }
         }
@@ -213,7 +226,14 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
                 Some(Commands::Config) => Action::ShowConfig,
-                Some(Commands::Feedback) => Action::OpenFeedback,
+                Some(Commands::Feedback {
+                    bug,
+                    feature,
+                    description,
+                }) => Action::OpenFeedback {
+                    feedback_type: parse_feedback_type(bug, feature),
+                    description,
+                },
                 Some(Commands::Login) => Action::Login,
                 Some(Commands::Logout) => Action::Logout,
                 Some(Commands::Whoami) => Action::Whoami,
@@ -226,7 +246,14 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSelfHelp,
-                    Some(SelfCommands::Feedback) => Action::OpenFeedback,
+                    Some(SelfCommands::Feedback {
+                        bug,
+                        feature,
+                        description,
+                    }) => Action::OpenFeedback {
+                        feedback_type: parse_feedback_type(bug, feature),
+                        description,
+                    },
                     Some(SelfCommands::Update { yes, check, list }) => {
                         if check {
                             Action::CheckForUpdate
@@ -242,6 +269,16 @@ pub fn parse() -> (Action, LogLevel) {
             (action, level)
         }
         Err(e) => handle_parse_error(e),
+    }
+}
+
+fn parse_feedback_type(bug: bool, feature: bool) -> Option<FeedbackType> {
+    if bug {
+        Some(FeedbackType::Bug)
+    } else if feature {
+        Some(FeedbackType::Feature)
+    } else {
+        None
     }
 }
 
@@ -372,7 +409,19 @@ enum Commands {
     Config,
 
     /// Open the feedback form
-    Feedback,
+    Feedback {
+        /// Report a bug
+        #[arg(long, conflicts_with = "feature")]
+        bug: bool,
+
+        /// Request a feature
+        #[arg(long, conflicts_with = "bug")]
+        feature: bool,
+
+        /// Pre-fill the description
+        #[arg(short, long)]
+        description: Option<String>,
+    },
 
     /// Log in to Anaconda
     Login,
@@ -424,7 +473,19 @@ enum AuthCommands {
 #[derive(Subcommand)]
 enum SelfCommands {
     /// Open the feedback form
-    Feedback,
+    Feedback {
+        /// Report a bug
+        #[arg(long, conflicts_with = "feature")]
+        bug: bool,
+
+        /// Request a feature
+        #[arg(long, conflicts_with = "bug")]
+        feature: bool,
+
+        /// Pre-fill the description
+        #[arg(short, long)]
+        description: Option<String>,
+    },
 
     /// Update ana to the latest version
     Update {
@@ -442,11 +503,33 @@ enum SelfCommands {
     },
 }
 
-fn open_feedback() {
+fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String>) {
+    let mut params = vec![("usp", "pp_url".to_string())];
+
+    if let Some(ft) = feedback_type {
+        let type_value = match ft {
+            FeedbackType::Bug => "Bug",
+            FeedbackType::Feature => "Feature / Enhancement request",
+        };
+        params.push(("entry.4106043", type_value.to_string()));
+    }
+
+    if let Some(desc) = description {
+        params.push(("entry.1043077041", desc));
+    }
+
+    let query_string: String = params
+        .iter()
+        .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
+        .collect::<Vec<_>>()
+        .join("&");
+
+    let url = format!("{}?{}", FEEDBACK_BASE_URL, query_string);
+
     println!("Opening feedback form...");
-    if let Err(e) = webbrowser::open(FEEDBACK_URL) {
+    if let Err(e) = webbrowser::open(&url) {
         eprintln!("Failed to open browser: {}", e);
-        println!("Please visit: {}", FEEDBACK_URL);
+        println!("Please visit: {}", url);
     }
 }
 
