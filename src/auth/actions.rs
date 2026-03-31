@@ -14,6 +14,15 @@ use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Print a QR code to the terminal with indentation.
+fn print_qr(qr: &str) {
+    println!();
+    for line in qr.lines() {
+        println!("    {}", line);
+    }
+    println!();
+}
+
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
     client: reqwest::blocking::Client,
@@ -179,14 +188,9 @@ pub fn login() -> Result<(), AuthError> {
         }
         println!("Waiting for authentication...");
 
-        // No browser — show QR code immediately with compact layout
+        // No browser — show QR code immediately
         if let Some(ref qr) = qr_output {
-            println!();
-            let indent = "    ";
-            for line in qr.lines() {
-                println!("{}{}", indent, line);
-            }
-            println!();
+            print_qr(qr);
             qr_shown = true;
         }
     }
@@ -208,12 +212,7 @@ pub fn login() -> Result<(), AuthError> {
                 if let Some(ref listener) = key_listener {
                     if listener.try_recv().is_some() {
                         if let Some(ref qr) = qr_output {
-                            println!();
-                            let indent = "    ";
-                            for line in qr.lines() {
-                                println!("{}{}", indent, line);
-                            }
-                            println!();
+                            print_qr(qr);
                             qr_shown = true;
                         }
                     }
