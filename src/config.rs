@@ -5,16 +5,17 @@
 //!
 //! # Environment Variables
 //!
-//! | Variable                        | Default                    | Description                    |
-//! |---------------------------------|----------------------------|--------------------------------|
-//! | `ANA_DOMAIN`                    | `anaconda.com`             | Authentication domain          |
-//! | `ANA_AUTH_CLIENT_ID`            | (Anaconda's ID)            | OAuth client ID                |
-//! | `ANA_SSL_VERIFY`                | `true`                     | SSL certificate verification   |
-//! | `ANA_OPEN_BROWSER`              | `true`                     | Auto-open browser during login |
-//! | `ANA_METRICS_ENDPOINT`          | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint |
-//! | `ANA_METRICS_EXPORT_INTERVAL_MS`| `1000`                     | Metrics export interval in ms  |
-//! | `ANA_METRICS_CONSOLE_EXPORTER`  | `false`                    | Enable console metrics exporter|
-//! | `ANA_METRICS_SKIP_INTERNET_CHECK`| `true`                    | Skip internet connectivity check|
+//! | Variable                         | Default                    | Description                    |
+//! |--------------------------------- |----------------------------|--------------------------------|
+//! | `ANA_DOMAIN`                     | `anaconda.com`             | Authentication domain          |
+//! | `ANA_AUTH_CLIENT_ID`             | (Anaconda's ID)            | OAuth client ID                |
+//! | `ANA_SSL_VERIFY`                 | `true`                     | SSL certificate verification   |
+//! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser during login |
+//! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint |
+//! | `ANA_METRICS_EXPORT_INTERVAL_MS` | `1000`                     | Metrics export interval in ms  |
+//! | `ANA_METRICS_CONSOLE_EXPORTER`   | `false`                    | Enable console metrics exporter|
+//! | `ANA_METRICS_SKIP_INTERNET_CHECK`| `true`                     | Skip internet connectivity check|
+//! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP) |
 //!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
@@ -24,6 +25,7 @@ use anaconda_otel_rs::{
 };
 use comfy_table::{modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL, Attribute, Cell, Table};
 use std::env;
+use std::path::PathBuf;
 
 use crate::VERSION;
 
@@ -59,6 +61,7 @@ const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.auth.anacondaconnect.com
 const DEFAULT_METRICS_EXPORT_INTERVAL_MS: i64 = 1000;
 const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
+const DEFAULT_USE_HTTPS: bool = true;
 
 /// Global configuration for ana.
 #[derive(Debug, Clone, PartialEq)]
@@ -86,6 +89,11 @@ pub struct Config {
 
     /// Skip internet connectivity check
     pub metrics_skip_internet_check: bool,
+    /// Path to the keyring file for storing API keys
+    pub keyring_path: PathBuf,
+
+    /// Whether to use HTTPS (set false for HTTP, e.g. testing)
+    pub use_https: bool,
 }
 
 impl Default for Config {
@@ -112,6 +120,10 @@ impl Config {
             parse_bool_env("ANA_METRICS_CONSOLE_EXPORTER", DEFAULT_METRICS_CONSOLE_EXPORTER);
         let metrics_skip_internet_check =
             parse_bool_env("ANA_METRICS_SKIP_INTERNET_CHECK", DEFAULT_METRICS_SKIP_INTERNET_CHECK);
+        let keyring_path = env::var("ANA_KEYRING_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| default_keyring_path());
+        let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
 
         Self {
             domain,
@@ -122,7 +134,24 @@ impl Config {
             metrics_export_interval_ms,
             metrics_console_exporter,
             metrics_skip_internet_check,
+            keyring_path,
+            use_https,
         }
+    }
+
+    /// Get the protocol (http or https) based on configuration.
+    fn protocol(&self) -> &'static str {
+        if self.use_https { "https" } else { "http" }
+    }
+
+    /// Get the base URL for API requests.
+    pub fn base_url(&self) -> String {
+        format!("{}://{}", self.protocol(), self.domain)
+    }
+
+    /// Get the OpenID Connect well-known configuration URL.
+    pub fn well_known_url(&self) -> String {
+        format!("{}/.well-known/openid-configuration", self.base_url())
     }
 }
 
@@ -142,6 +171,14 @@ impl Config {
         table.add_row(["open_browser", bool_to_str(self.open_browser)]);
         println!("{table}");
     }
+}
+
+/// Get the default keyring path (~/.ana/keyring).
+fn default_keyring_path() -> PathBuf {
+    dirs::home_dir()
+        .expect("Could not determine home directory")
+        .join(".ana")
+        .join("keyring")
 }
 
 /// Convert a boolean to a string.
@@ -184,6 +221,8 @@ mod tests {
             metrics_export_interval_ms: DEFAULT_METRICS_EXPORT_INTERVAL_MS,
             metrics_console_exporter: DEFAULT_METRICS_CONSOLE_EXPORTER,
             metrics_skip_internet_check: DEFAULT_METRICS_SKIP_INTERNET_CHECK,
+            keyring_path: default_keyring_path(),
+            use_https: true,
         }
     }
 
@@ -304,5 +343,49 @@ mod tests {
             let config = Config::load();
             assert!(!config.open_browser);
         });
+    }
+
+    #[test]
+    fn test_config_load_keyring_path_from_env() {
+        temp_env::with_var("ANA_KEYRING_PATH", Some("/custom/path/keyring"), || {
+            let config = Config::load();
+            assert_eq!(config.keyring_path, PathBuf::from("/custom/path/keyring"));
+        });
+    }
+
+    #[test]
+    fn test_config_default_keyring_path() {
+        let config = Config::load();
+        // Should end with .ana/keyring
+        assert!(config.keyring_path.ends_with(".ana/keyring"));
+    }
+
+    #[test]
+    fn test_config_load_use_https_false_from_env() {
+        temp_env::with_var("ANA_USE_HTTPS", Some("false"), || {
+            let config = Config::load();
+            assert!(!config.use_https);
+        });
+    }
+
+    #[test]
+    fn test_config_default_use_https_is_true() {
+        temp_env::with_var("ANA_USE_HTTPS", None::<&str>, || {
+            let config = Config::load();
+            assert!(config.use_https);
+        });
+    }
+
+    #[test]
+    fn test_config_base_url_https() {
+        let config = test_config("example.com", true, true);
+        assert_eq!(config.base_url(), "https://example.com");
+    }
+
+    #[test]
+    fn test_config_base_url_http() {
+        let mut config = test_config("example.com", true, true);
+        config.use_https = false;
+        assert_eq!(config.base_url(), "http://example.com");
     }
 }
