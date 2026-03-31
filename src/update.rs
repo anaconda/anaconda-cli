@@ -3,6 +3,7 @@ use serde::Deserialize;
 use std::env;
 use std::io::{Read, Write};
 
+use crate::config::Config;
 use crate::input::prompt_yes_no;
 
 // We track the repo for releases
@@ -78,14 +79,6 @@ pub struct Release {
     pub prerelease: bool,
     #[serde(default)]
     pub assets: Vec<Asset>,
-}
-
-const DEFAULT_INCLUDE_PRERELEASES: bool = false;
-
-pub fn include_prereleases() -> bool {
-    env::var("ANA_PRERELEASES")
-        .map(|v| v.to_lowercase() != "false")
-        .unwrap_or(DEFAULT_INCLUDE_PRERELEASES)
 }
 
 fn get_asset_name() -> Result<String, Error> {
@@ -178,11 +171,11 @@ fn fetch_releases() -> Result<Vec<Release>, Error> {
 }
 
 pub fn fetch_available_releases() -> Result<Vec<Release>, Error> {
-    let include_pre = include_prereleases();
+    let config = Config::load();
     let mut releases: Vec<_> = fetch_releases()?
         .into_iter()
         .filter(|r| parse_version(&r.tag_name).is_ok())
-        .filter(|r| include_pre || !r.prerelease)
+        .filter(|r| config.include_prereleases || !r.prerelease)
         .collect();
     releases.sort_by(|a, b| {
         let va = parse_version(&a.tag_name).unwrap();
