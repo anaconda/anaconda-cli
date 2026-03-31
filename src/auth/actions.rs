@@ -61,16 +61,6 @@ impl ApiClient {
         let url = format!("{}{}", self.config.base_url(), path);
         Ok(self.client.get(&url).send()?)
     }
-
-    /// Get the underlying HTTP client for custom requests.
-    pub fn raw_client(&self) -> &reqwest::blocking::Client {
-        &self.client
-    }
-
-    /// Get the configuration.
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
 }
 
 /// OpenID Connect discovery document.
@@ -106,9 +96,14 @@ struct TokenErrorResponse {
 
 /// Perform the device authorization flow.
 pub fn login() -> Result<(), AuthError> {
-    let api_client = ApiClient::new()?;
-    let client = api_client.raw_client();
-    let config = api_client.config();
+    // We use a new, unauthenticated client instead of ApiClient, since
+    // login by definition happens first. It ends up being simpler to do
+    // this, at least for now, because the auth flow needs to follow direct
+    // URLs from openid-configuration etc.
+    let config = Config::load();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(REQUEST_TIMEOUT)
+        .build()?;
 
     // TODO(mattkram): Better handling for common exceptions like SSL cert, etc.
     // Fetch OpenID configuration
