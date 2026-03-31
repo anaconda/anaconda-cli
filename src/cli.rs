@@ -1,7 +1,11 @@
+use std::collections::HashMap;
+
+use anaconda_otel_rs::signals::increment_counter;
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
 use crate::VERSION;
+use crate::update;
 
 /// Action to be performed, returned by parse()
 pub enum Action {
@@ -11,6 +15,69 @@ pub enum Action {
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
+}
+
+impl Action {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Action::ShowHelp => "help",
+            Action::ShowSelfHelp => "self.help",
+            Action::ShowVersion => "version",
+            Action::Update { .. } => "self.update",
+            Action::CheckForUpdate => "self.update.check",
+            Action::ShowAvailableVersions => "self.update.list",
+        }
+    }
+
+    /// Execute the action with telemetry middleware
+    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+        let name = self.name();
+        let mut attrs = HashMap::new();
+        attrs.insert("command".to_string(), name.into());
+        increment_counter("cli.command.invoked", 1, attrs.clone());
+
+        let result = self.run();
+
+        match &result {
+            Ok(_) => {
+                increment_counter("cli.command.success", 1, attrs);
+            }
+            Err(_) => {
+                increment_counter("cli.command.failure", 1, attrs);
+            }
+        }
+
+        result
+    }
+
+    fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            Action::ShowHelp => {
+                print_main_help();
+                Ok(())
+            }
+            Action::ShowSelfHelp => {
+                print_self_help();
+                Ok(())
+            }
+            Action::ShowVersion => {
+                println!("{}", VERSION);
+                Ok(())
+            }
+            Action::Update { force } => {
+                update::run_update(VERSION, force);
+                Ok(())
+            }
+            Action::CheckForUpdate => {
+                update::check_for_update(VERSION);
+                Ok(())
+            }
+            Action::ShowAvailableVersions => {
+                update::show_available_versions(VERSION);
+                Ok(())
+            }
+        }
+    }
 }
 
 /// Parse CLI arguments and return the action to perform.
