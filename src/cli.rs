@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 use opentelemetry::Value;
 
+use crate::FEEDBACK_URL;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
@@ -105,6 +106,7 @@ pub enum Action {
     ShowAvailableVersions,
     Bootstrap,
     OrgProxy { args: Vec<String> },
+    OpenFeedback,
 }
 
 impl Action {
@@ -124,6 +126,7 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            Action::OpenFeedback => "feedback",
         }
     }
 
@@ -192,6 +195,10 @@ impl Action {
                 update::show_available_versions(VERSION).await;
                 Ok(())
             }
+            Action::OpenFeedback => {
+                open_feedback();
+                Ok(())
+            }
         }
     }
 }
@@ -206,6 +213,7 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
                 Some(Commands::Config) => Action::ShowConfig,
+                Some(Commands::Feedback) => Action::OpenFeedback,
                 Some(Commands::Login) => Action::Login,
                 Some(Commands::Logout) => Action::Logout,
                 Some(Commands::Whoami) => Action::Whoami,
@@ -276,6 +284,7 @@ pub fn print_main_help() {
           auth           Authentication commands
           bootstrap      Install the Anaconda CLI
           config         Show current configuration
+          feedback       Open the feedback form
           login          Log in to Anaconda
           logout         Log out from Anaconda
           org            Interact with anaconda.org
@@ -360,6 +369,9 @@ enum Commands {
     /// Show current configuration
     Config,
 
+    /// Open the feedback form
+    Feedback,
+
     /// Log in to Anaconda
     Login,
 
@@ -423,6 +435,14 @@ enum SelfCommands {
         #[arg(long, conflicts_with_all = ["yes", "check"])]
         list: bool,
     },
+}
+
+fn open_feedback() {
+    println!("Opening feedback form...");
+    if let Err(e) = webbrowser::open(FEEDBACK_URL) {
+        eprintln!("Failed to open browser: {}", e);
+        println!("Please visit: {}", FEEDBACK_URL);
+    }
 }
 
 #[cfg(test)]
