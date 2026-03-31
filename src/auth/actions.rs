@@ -170,6 +170,15 @@ pub fn login() -> Result<(), AuthError> {
             println!("Waiting for authentication...");
         }
     } else {
+        println!("To authenticate, scan the QR code or visit:");
+        println!();
+        println!("  {}", display_uri);
+        if device_response.verification_uri_complete.is_none() {
+            println!();
+            println!("And enter the code: {}", device_response.user_code);
+        }
+        println!("Waiting for authentication...");
+
         // No browser — show QR code immediately with compact layout
         if let Some(ref qr) = qr_output {
             println!();
@@ -180,12 +189,6 @@ pub fn login() -> Result<(), AuthError> {
             println!();
             qr_shown = true;
         }
-        println!("To authenticate, scan the QR code or visit:");
-        println!("  {}", display_uri);
-        if device_response.verification_uri_complete.is_none() {
-            println!("And enter the code: {}", device_response.user_code);
-        }
-        println!("Waiting for authentication...");
     }
 
     // Poll for token
