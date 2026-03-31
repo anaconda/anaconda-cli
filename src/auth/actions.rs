@@ -186,6 +186,7 @@ pub fn login() -> Result<(), AuthError> {
             println!();
             println!("And enter the code: {}", device_response.user_code);
         }
+        println!();
         println!("Waiting for authentication...");
 
         // No browser — show QR code immediately
