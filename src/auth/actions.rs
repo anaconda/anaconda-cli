@@ -1,8 +1,9 @@
-//! Authentication actions (login, logout).
+//! Authentication actions (login, logout, whoami).
 
 use std::thread;
 use std::time::Duration;
 
+use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
 
 use super::api_keys::create_api_key;
@@ -11,6 +12,56 @@ use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// HTTP client with configuration and optional authentication.
+pub struct ApiClient {
+    client: reqwest::blocking::Client,
+    config: Config,
+    api_key: Option<String>,
+}
+
+impl ApiClient {
+    /// Create a new API client, loading credentials from the keyring if available.
+    pub fn new() -> Result<Self, AuthError> {
+        let config = Config::load();
+        let api_key = get_api_key(&config)?;
+
+        let mut default_headers = HeaderMap::new();
+        if let Some(ref key) = api_key {
+            let mut auth_value = HeaderValue::from_str(&format!("Bearer {}", key))
+                .map_err(|_| AuthError::InvalidKey)?;
+            auth_value.set_sensitive(true); // keeps it out of debug logs
+            default_headers.insert(header::AUTHORIZATION, auth_value);
+        }
+
+        let client = reqwest::blocking::Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .default_headers(default_headers)
+            .build()?;
+
+        Ok(Self {
+            client,
+            config,
+            api_key,
+        })
+    }
+
+    /// Check if the client has valid credentials.
+    pub fn is_authenticated(&self) -> bool {
+        self.api_key.is_some()
+    }
+
+    /// Get the configured domain.
+    pub fn domain(&self) -> &str {
+        &self.config.domain
+    }
+
+    /// Make an authenticated GET request to an API endpoint.
+    pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
+        let url = format!("{}{}", self.config.base_url(), path);
+        Ok(self.client.get(&url).send()?)
+    }
+}
 
 /// OpenID Connect discovery document.
 #[derive(Debug, Deserialize)]
@@ -45,6 +96,10 @@ struct TokenErrorResponse {
 
 /// Perform the device authorization flow.
 pub fn login() -> Result<(), AuthError> {
+    // We use a new, unauthenticated client instead of ApiClient, since
+    // login by definition happens first. It ends up being simpler to do
+    // this, at least for now, because the auth flow needs to follow direct
+    // URLs from openid-configuration etc.
     let config = Config::load();
     let client = reqwest::blocking::Client::builder()
         .timeout(REQUEST_TIMEOUT)
@@ -173,6 +228,36 @@ pub fn show_api_key() -> Result<(), AuthError> {
             println!("Run `ana login` to authenticate.");
         }
     }
+
+    Ok(())
+}
+
+/// Display information about the logged-in user.
+pub fn whoami() -> Result<(), AuthError> {
+    let client = ApiClient::new()?;
+
+    if !client.is_authenticated() {
+        println!("Not logged in to {}", client.domain());
+        println!("Run `ana login` to authenticate.");
+        return Ok(());
+    }
+
+    let response = client.get("/api/account")?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().unwrap_or_default();
+        return Err(AuthError::Authorization(format!(
+            "Failed to get account info: {} - {}",
+            status, body
+        )));
+    }
+
+    let data: serde_json::Value = response.json()?;
+    let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
+
+    println!("Your info ({}):", client.domain());
+    println!("{}", pretty);
 
     Ok(())
 }
