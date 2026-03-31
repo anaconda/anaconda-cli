@@ -16,7 +16,6 @@
 //! and `true` for any other value.
 
 use std::env;
-use std::fmt;
 
 // TODO(mattkram): Update default to anaconda.com before public release
 const DEFAULT_DOMAIN: &str = "stage.anaconda.com";
@@ -64,20 +63,19 @@ impl Config {
     }
 }
 
-impl fmt::Display for Config {
-    /// Format the configuration as a table.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Config {
+    /// Print the configuration as a table.
+    pub fn print_table(&self) {
         let rows = [
             ("domain", self.domain.as_str()),
             ("client_id", self.client_id.as_str()),
             ("ssl_verify", bool_to_str(self.ssl_verify)),
             ("open_browser", bool_to_str(self.open_browser)),
         ];
-        write!(
-            f,
+        println!(
             "{}",
             crate::console::format_table(("Setting", "Value"), &rows)
-        )
+        );
     }
 }
 
@@ -185,27 +183,6 @@ mod tests {
         assert_eq!(base_config.domain, cloned_config.domain);
         assert_eq!(base_config.ssl_verify, cloned_config.ssl_verify);
         assert_eq!(base_config.open_browser, cloned_config.open_browser);
-    }
-
-    #[test]
-    fn test_config_display() {
-        let config = test_config("anaconda.com", true, false);
-        let display_str = format!("{}", config);
-
-        assert!(display_str.contains("│ domain"));
-        assert!(display_str.contains("│ anaconda.com"));
-        assert!(display_str.contains("│ true"));
-        assert!(display_str.contains("│ false"));
-    }
-
-    #[test]
-    fn test_config_display_format() {
-        let config = test_config("test.com", false, true);
-        let display_str = format!("{}", config);
-
-        // Should be a unicode table
-        assert!(display_str.starts_with('┌'));
-        assert!(display_str.ends_with('┘'));
     }
 
     #[test]

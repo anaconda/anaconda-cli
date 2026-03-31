@@ -10,7 +10,7 @@ fn main() {
         cli::Action::ShowHelp => cli::print_main_help(),
         cli::Action::ShowSelfHelp => cli::print_self_help(),
         cli::Action::ShowVersion => println!("{}", VERSION),
-        cli::Action::ShowConfig => println!("{}", config::Config::load()),
+        cli::Action::ShowConfig => config::Config::load().print_table(),
         cli::Action::Update { force } => update::run_update(VERSION, force),
         cli::Action::CheckForUpdate => update::check_for_update(VERSION),
         cli::Action::ShowAvailableVersions => update::show_available_versions(VERSION),
