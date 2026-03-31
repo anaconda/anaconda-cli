@@ -18,6 +18,9 @@ pub enum AuthError {
 
     #[error("Keyring error: {0}")]
     Keyring(String),
+
+    #[error("Invalid API key")]
+    InvalidKey,
 }
 
 #[cfg(test)]

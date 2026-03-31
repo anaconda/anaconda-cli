@@ -3,6 +3,7 @@
 use std::thread;
 use std::time::Duration;
 
+use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
 
 use super::api_keys::create_api_key;
@@ -24,8 +25,18 @@ impl ApiClient {
     pub fn new() -> Result<Self, AuthError> {
         let config = Config::load();
         let api_key = get_api_key(&config)?;
+
+        let mut default_headers = HeaderMap::new();
+        if let Some(ref key) = api_key {
+            let mut auth_value = HeaderValue::from_str(&format!("Bearer {}", key))
+                .map_err(|_| AuthError::InvalidKey)?;
+            auth_value.set_sensitive(true); // keeps it out of debug logs
+            default_headers.insert(header::AUTHORIZATION, auth_value);
+        }
+
         let client = reqwest::blocking::Client::builder()
             .timeout(REQUEST_TIMEOUT)
+            .default_headers(default_headers)
             .build()?;
 
         Ok(Self {
@@ -48,13 +59,7 @@ impl ApiClient {
     /// Make an authenticated GET request to an API endpoint.
     pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
         let url = format!("{}{}", self.config.base_url(), path);
-        let mut request = self.client.get(&url);
-
-        if let Some(ref api_key) = self.api_key {
-            request = request.bearer_auth(api_key);
-        }
-
-        Ok(request.send()?)
+        Ok(self.client.get(&url).send()?)
     }
 
     /// Get the underlying HTTP client for custom requests.
