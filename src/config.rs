@@ -15,8 +15,37 @@
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
+use anaconda_otel_rs::{
+    attributes::ResourceAttributes, config::Configuration, signals::initialize_telemetry,
+};
 use comfy_table::{modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL, Attribute, Cell, Table};
 use std::env;
+
+use crate::VERSION;
+
+pub fn setup_telemetry() {
+    let _ = try_setup_telemetry();
+}
+
+fn try_setup_telemetry() -> Result<(), Box<dyn std::error::Error>> {
+    let mut config = Configuration::new(
+        Some("https://metrics.auth.anacondaconnect.com/v1/metrics"),
+        None,
+    )?;
+
+    let api_key = env::var("OTEL_API_KEY").ok();
+    config.set_auth_token(api_key);
+    config.set_console_exporter(false);
+    config.set_metrics_export_interval_ms(1000);
+    config.skip_internet_check = true;
+
+    let attrs = ResourceAttributes::new("ana-cli", VERSION)?;
+
+    initialize_telemetry(config, attrs, vec!["metrics"])
+        .map_err(|e| format!("Telemetry initialization failed: {}", e))?;
+
+    Ok(())
+}
 
 // TODO(mattkram): Update default to anaconda.com before public release
 const DEFAULT_DOMAIN: &str = "stage.anaconda.com";

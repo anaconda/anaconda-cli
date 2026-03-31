@@ -5,8 +5,17 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
 use crate::VERSION;
-use crate::config::Config;
+use crate::config::{self, Config};
 use crate::update;
+
+pub fn execute() {
+    config::setup_telemetry();
+
+    if let Err(e) = parse().execute() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
 
 /// Action to be performed, returned by parse()
 pub enum Action {
