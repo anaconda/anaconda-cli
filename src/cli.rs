@@ -226,6 +226,7 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSelfHelp,
+                    Some(SelfCommands::Feedback) => Action::OpenFeedback,
                     Some(SelfCommands::Update { yes, check, list }) => {
                         if check {
                             Action::CheckForUpdate
@@ -308,6 +309,7 @@ pub fn print_self_help() {
         Usage: ana self <command> [options]
 
         Commands:
+          feedback  Open the feedback form
           update    Update ana to the latest version
         "}
     );
@@ -421,6 +423,9 @@ enum AuthCommands {
 
 #[derive(Subcommand)]
 enum SelfCommands {
+    /// Open the feedback form
+    Feedback,
+
     /// Update ana to the latest version
     Update {
         /// Skip confirmation prompt
