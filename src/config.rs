@@ -16,6 +16,7 @@
 //! | `ANA_METRICS_CONSOLE_EXPORTER`   | `false`                    | Enable console metrics exporter|
 //! | `ANA_METRICS_SKIP_INTERNET_CHECK`| `true`                     | Skip internet connectivity check|
 //! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP) |
+//! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
 //!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
@@ -33,6 +34,9 @@ use crate::VERSION;
 use crate::auth;
 
 pub fn setup_telemetry() {
+    if !parse_bool_env("ANA_ENABLE_TELEMETRY", true) {
+        return;
+    }
     let _ = try_setup_telemetry();
 }
 
