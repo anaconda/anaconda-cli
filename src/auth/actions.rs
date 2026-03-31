@@ -205,6 +205,8 @@ pub fn login() -> Result<(), AuthError> {
             return Err(AuthError::Timeout);
         }
 
+        // TODO(mattkram): Revisit this when we implement async support via tokio.
+        //                 Concurrent subroutines should make this a lot cleaner.
         // Sleep in small increments so we can check for 'q' keypress responsively
         let sleep_until = std::time::Instant::now() + interval;
         while std::time::Instant::now() < sleep_until {
