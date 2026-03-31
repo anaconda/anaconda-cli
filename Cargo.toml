@@ -36,7 +36,7 @@ serde_json = "1.0"
 anaconda-otel-rs = { git = "https://github.com/anaconda/anaconda-otel-rs" }
 thiserror = "2"
 tokio = { version = "1.45", features = ["rt-multi-thread", "macros", "time", "fs", "sync"] }
-urlencoding = "2"
+urlencoding = { version = "2", optional = true }
 webbrowser = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
@@ -48,3 +48,7 @@ cargo-lock = "11"
 [dev-dependencies]
 temp-env = "0.3"
 tempfile = "3"
+
+[features]
+default = ["feedback"]
+feedback = ["dep:urlencoding"]

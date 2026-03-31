@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 use opentelemetry::Value;
 
+#[cfg(feature = "feedback")]
 use crate::FEEDBACK_BASE_URL;
 use crate::VERSION;
 use crate::anaconda_cli;
@@ -91,6 +92,7 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
 }
 
 /// Feedback type for the feedback form
+#[cfg(feature = "feedback")]
 #[derive(Clone, Copy)]
 pub enum FeedbackType {
     Bug,
@@ -113,6 +115,7 @@ pub enum Action {
     ShowAvailableVersions,
     Bootstrap,
     OrgProxy { args: Vec<String> },
+    #[cfg(feature = "feedback")]
     OpenFeedback {
         feedback_type: Option<FeedbackType>,
         description: Option<String>,
@@ -136,6 +139,7 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
         }
     }
@@ -205,6 +209,7 @@ impl Action {
                 update::show_available_versions(VERSION).await;
                 Ok(())
             }
+            #[cfg(feature = "feedback")]
             Action::OpenFeedback {
                 feedback_type,
                 description,
@@ -226,6 +231,7 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
                 Some(Commands::Config) => Action::ShowConfig,
+                #[cfg(feature = "feedback")]
                 Some(Commands::Feedback {
                     bug,
                     feature,
@@ -246,6 +252,7 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSelfHelp,
+                    #[cfg(feature = "feedback")]
                     Some(SelfCommands::Feedback {
                         bug,
                         feature,
@@ -272,6 +279,7 @@ pub fn parse() -> (Action, LogLevel) {
     }
 }
 
+#[cfg(feature = "feedback")]
 fn parse_feedback_type(bug: bool, feature: bool) -> Option<FeedbackType> {
     if bug {
         Some(FeedbackType::Bug)
@@ -310,6 +318,7 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
+#[cfg(feature = "feedback")]
 pub fn print_main_help() {
     println!(
         "{}",
@@ -337,6 +346,33 @@ pub fn print_main_help() {
     );
 }
 
+#[cfg(not(feature = "feedback"))]
+pub fn print_main_help() {
+    println!(
+        "{}",
+        formatdoc! {"
+        ana {VERSION}
+
+        Usage: ana [command] [options]
+
+        Commands:
+          auth           Authentication commands
+          bootstrap      Install the Anaconda CLI
+          config         Show current configuration
+          login          Log in to Anaconda
+          logout         Log out from Anaconda
+          org            Interact with anaconda.org
+          whoami         Display information about the logged-in user
+          self           Manage the ana installation
+
+        Options:
+          -V, --version  Print version
+          -h, --help     Print help
+        "}
+    );
+}
+
+#[cfg(feature = "feedback")]
 pub fn print_self_help() {
     println!(
         "{}",
@@ -347,6 +383,21 @@ pub fn print_self_help() {
 
         Commands:
           feedback  Open the feedback form
+          update    Update ana to the latest version
+        "}
+    );
+}
+
+#[cfg(not(feature = "feedback"))]
+pub fn print_self_help() {
+    println!(
+        "{}",
+        formatdoc! {"
+        Manage the installation
+
+        Usage: ana self <command> [options]
+
+        Commands:
           update    Update ana to the latest version
         "}
     );
@@ -409,6 +460,7 @@ enum Commands {
     Config,
 
     /// Open the feedback form
+    #[cfg(feature = "feedback")]
     Feedback {
         /// Report a bug
         #[arg(long, conflicts_with = "feature")]
@@ -473,6 +525,7 @@ enum AuthCommands {
 #[derive(Subcommand)]
 enum SelfCommands {
     /// Open the feedback form
+    #[cfg(feature = "feedback")]
     Feedback {
         /// Report a bug
         #[arg(long, conflicts_with = "feature")]
@@ -503,6 +556,7 @@ enum SelfCommands {
     },
 }
 
+#[cfg(feature = "feedback")]
 fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String>) {
     let mut params = vec![("usp", "pp_url".to_string())];
 
