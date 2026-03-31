@@ -23,7 +23,9 @@
 use anaconda_otel_rs::{
     attributes::ResourceAttributes, config::Configuration, signals::initialize_telemetry,
 };
-use comfy_table::{modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL, Attribute, Cell, Table};
+use comfy_table::{
+    Attribute, Cell, Table, modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL,
+};
 use std::env;
 use std::path::PathBuf;
 
@@ -111,16 +113,20 @@ impl Config {
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
         let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
-        let metrics_endpoint =
-            env::var("ANA_METRICS_ENDPOINT").unwrap_or_else(|_| DEFAULT_METRICS_ENDPOINT.to_string());
+        let metrics_endpoint = env::var("ANA_METRICS_ENDPOINT")
+            .unwrap_or_else(|_| DEFAULT_METRICS_ENDPOINT.to_string());
         let metrics_export_interval_ms = env::var("ANA_METRICS_EXPORT_INTERVAL_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(DEFAULT_METRICS_EXPORT_INTERVAL_MS);
-        let metrics_console_exporter =
-            parse_bool_env("ANA_METRICS_CONSOLE_EXPORTER", DEFAULT_METRICS_CONSOLE_EXPORTER);
-        let metrics_skip_internet_check =
-            parse_bool_env("ANA_METRICS_SKIP_INTERNET_CHECK", DEFAULT_METRICS_SKIP_INTERNET_CHECK);
+        let metrics_console_exporter = parse_bool_env(
+            "ANA_METRICS_CONSOLE_EXPORTER",
+            DEFAULT_METRICS_CONSOLE_EXPORTER,
+        );
+        let metrics_skip_internet_check = parse_bool_env(
+            "ANA_METRICS_SKIP_INTERNET_CHECK",
+            DEFAULT_METRICS_SKIP_INTERNET_CHECK,
+        );
         let keyring_path = env::var("ANA_KEYRING_PATH")
             .map(PathBuf::from)
             .unwrap_or_else(|_| default_keyring_path());
