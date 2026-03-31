@@ -119,7 +119,7 @@ def auth_env(
     """Environment configured to use mock auth server."""
     return {
         **env_isolated,
-        "ANA_AUTH_DOMAIN": mock_auth_server.domain,
+        "ANA_DOMAIN": mock_auth_server.domain,
         "ANA_OPEN_BROWSER": "false",  # Don't try to open browser in tests
         "ANA_USE_HTTPS": "false",  # Use HTTP for mock server
     }
