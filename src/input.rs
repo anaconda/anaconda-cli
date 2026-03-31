@@ -3,6 +3,7 @@
 //! Provides reusable components for interactive terminal input:
 //! - `TerminalGuard`: RAII guard for terminal state restoration
 //! - `KeyListener`: Background key detection with Ctrl+C handling
+//! - `prompt_yes_no`: Line-based yes/no confirmation prompt
 
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
@@ -62,6 +63,26 @@ impl KeyListener {
 
         Some((guard, rx))
     }
+}
+
+/// Prompt the user for yes/no confirmation.
+///
+/// Displays `message` followed by `[y/N]` and waits for input.
+/// Returns `true` only if the user enters "y" or "yes" (case-insensitive).
+/// Returns `false` on empty input, "n", "no", or any read error.
+///
+/// This uses line-based input, so Ctrl+C is handled normally by the terminal.
+pub fn prompt_yes_no(message: &str) -> bool {
+    use std::io::Write;
+    print!("{} [y/N] ", message);
+    std::io::stdout().flush().unwrap();
+
+    let mut input = String::new();
+    if std::io::stdin().read_line(&mut input).is_err() {
+        return false;
+    }
+
+    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
 /// RAII guard for terminal state restoration.
