@@ -29,7 +29,7 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn name(&self) -> &'static str {
+    fn match_action_name(&self) -> &'static str {
         match self {
             Action::ShowHelp => "help",
             Action::ShowSelfHelp => "self.help",
@@ -43,7 +43,7 @@ impl Action {
 
     /// Execute the action with telemetry middleware
     pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
-        let name = self.name();
+        let name = self.match_action_name();
         let mut attrs = HashMap::new();
         attrs.insert("command".to_string(), name.into());
         increment_counter("cli.command.invoked", 1, attrs.clone());
