@@ -44,6 +44,7 @@ pub enum Action {
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
+    OrgProxy { args: Vec<String> },
 }
 
 impl Action {
@@ -62,6 +63,7 @@ impl Action {
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
+            Action::OrgProxy { .. } => "org",
         }
     }
 
@@ -113,6 +115,7 @@ impl Action {
                 Ok(())
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap()?),
+            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
             Action::Login => Ok(auth::login()?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
@@ -163,6 +166,7 @@ pub fn parse() -> Action {
                     }
                 }
             },
+            Some(Commands::Org { args }) => Action::OrgProxy { args },
         },
         Err(e) => handle_parse_error(e),
     }
@@ -208,6 +212,7 @@ pub fn print_main_help() {
           config         Show current configuration
           login          Log in to Anaconda
           logout         Log out from Anaconda
+          org            Interact with anaconda.org
           whoami         Display information about the logged-in user
           self           Manage the ana installation
 
@@ -302,6 +307,17 @@ enum Commands {
     Self_ {
         #[command(subcommand)]
         command: Option<SelfCommands>,
+    },
+
+    /// Interact with anaconda.org
+    #[command(
+        trailing_var_arg = true,
+        override_usage = "ana org <command> [options]"
+    )]
+    Org {
+        /// Arguments to pass to anaconda org
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 }
 
