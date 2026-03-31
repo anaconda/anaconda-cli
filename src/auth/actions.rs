@@ -147,13 +147,10 @@ pub fn login() -> Result<(), AuthError> {
     // Listen for 'q' keypress in a background thread (for on-demand QR).
     // KeyListener handles terminal state restoration and Ctrl+C.
     let listen_for_q = browser_opened && qr_output.is_some();
-    let (_term_guard, qr_key_rx) = if listen_for_q {
-        match KeyListener::spawn(&['q']) {
-            Some((guard, rx)) => (Some(guard), Some(rx)),
-            None => (None, None),
-        }
+    let key_listener = if listen_for_q {
+        KeyListener::spawn(&['q'])
     } else {
-        (None, None)
+        None
     };
 
     let mut qr_shown = false;
@@ -205,8 +202,8 @@ pub fn login() -> Result<(), AuthError> {
         let sleep_until = std::time::Instant::now() + interval;
         while std::time::Instant::now() < sleep_until {
             if !qr_shown {
-                if let Some(ref rx) = qr_key_rx {
-                    if rx.try_recv().is_ok() {
+                if let Some(ref listener) = key_listener {
+                    if listener.try_recv().is_some() {
                         if let Some(ref qr) = qr_output {
                             println!();
                             let indent = "    ";

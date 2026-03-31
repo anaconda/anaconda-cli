@@ -1,7 +1,6 @@
 //! Terminal input utilities.
 //!
 //! Provides reusable components for interactive terminal input:
-//! - `TerminalGuard`: RAII guard for terminal state restoration
 //! - `KeyListener`: Background key detection with Ctrl+C handling
 //! - `prompt_yes_no`: Line-based yes/no confirmation prompt
 
@@ -14,7 +13,13 @@ use console::{Key, Term};
 ///
 /// Spawns a thread that listens for specific keys and sends them through
 /// a channel. Ctrl+C exits with code 130 (standard Unix SIGINT convention).
-pub struct KeyListener;
+///
+/// The listener manages terminal state internally — when dropped, the
+/// terminal is restored to its original state.
+pub struct KeyListener {
+    _guard: TerminalGuard,
+    rx: Receiver<char>,
+}
 
 impl KeyListener {
     /// Spawn a background listener for the specified keys.
@@ -23,19 +28,17 @@ impl KeyListener {
     /// Ctrl+C exits the process with code 130.
     ///
     /// Returns `None` if terminal state cannot be saved (e.g., not a TTY).
-    /// The returned `TerminalGuard` must be kept alive as long as the listener
-    /// is needed — dropping it restores the terminal to its original state.
     ///
     /// # Example
     ///
     /// ```ignore
-    /// let (_guard, rx) = KeyListener::spawn(&['q'])?;
+    /// let listener = KeyListener::spawn(&['q'])?;
     /// // In a loop:
-    /// if rx.try_recv().is_ok() {
+    /// if listener.try_recv().is_some() {
     ///     // 'q' or 'Q' was pressed
     /// }
     /// ```
-    pub fn spawn(keys: &[char]) -> Option<(TerminalGuard, Receiver<char>)> {
+    pub fn spawn(keys: &[char]) -> Option<Self> {
         let guard = TerminalGuard::new()?;
         let (tx, rx) = mpsc::channel();
         let keys: Vec<char> = keys.iter().map(|c| c.to_ascii_lowercase()).collect();
@@ -61,7 +64,14 @@ impl KeyListener {
             }
         });
 
-        Some((guard, rx))
+        Some(Self { _guard: guard, rx })
+    }
+
+    /// Check if a key was pressed without blocking.
+    ///
+    /// Returns `Some(char)` if a registered key was pressed, `None` otherwise.
+    pub fn try_recv(&self) -> Option<char> {
+        self.rx.try_recv().ok()
     }
 }
 
@@ -95,7 +105,7 @@ pub fn prompt_yes_no(message: &str) -> bool {
 /// This guard captures termios before the read thread starts and restores
 /// it on drop, regardless of how the calling function exits.
 #[cfg(unix)]
-pub struct TerminalGuard {
+struct TerminalGuard {
     saved: libc::termios,
     fd: std::os::unix::io::RawFd,
 }
@@ -128,7 +138,7 @@ impl Drop for TerminalGuard {
 }
 
 #[cfg(not(unix))]
-pub struct TerminalGuard;
+struct TerminalGuard;
 
 #[cfg(not(unix))]
 impl TerminalGuard {
