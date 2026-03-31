@@ -1,6 +1,7 @@
 mod auth;
 mod cli;
 mod config;
+mod input;
 mod qr;
 mod update;
 

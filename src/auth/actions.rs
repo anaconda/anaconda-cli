@@ -3,7 +3,6 @@
 use std::thread;
 use std::time::Duration;
 
-use console::{Key, Term};
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
 
@@ -11,6 +10,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
+use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
@@ -145,38 +145,15 @@ pub fn login() -> Result<(), AuthError> {
     let qr_output = crate::qr::qr_to_terminal(display_uri, 1, true).ok();
 
     // Listen for 'q' keypress in a background thread (for on-demand QR).
-    //
-    // The console crate's read_key() puts stdin into raw mode and blocks.
-    // If the process exits while blocked (e.g. successful auth, timeout),
-    // the crate's termios restore never runs, corrupting the terminal.
-    //
-    // We save terminal state before spawning and use a RAII guard to
-    // guarantee restoration when login() returns, regardless of path.
+    // KeyListener handles terminal state restoration and Ctrl+C.
     let listen_for_q = browser_opened && qr_output.is_some();
-    let _term_guard = if listen_for_q {
-        TerminalGuard::new()
+    let (_term_guard, qr_key_rx) = if listen_for_q {
+        match KeyListener::spawn(&['q']) {
+            Some((guard, rx)) => (Some(guard), Some(rx)),
+            None => (None, None),
+        }
     } else {
-        None
-    };
-    let qr_key_rx = if listen_for_q {
-        let (tx, rx) = std::sync::mpsc::channel();
-        thread::spawn(move || {
-            let term = Term::stdout();
-            loop {
-                if let Ok(key) = term.read_key() {
-                    match key {
-                        Key::Char('q') | Key::Char('Q') => {
-                            let _ = tx.send(());
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        });
-        Some(rx)
-    } else {
-        None
+        (None, None)
     };
 
     if browser_opened {
@@ -343,58 +320,6 @@ pub fn whoami() -> Result<(), AuthError> {
     println!("{}", pretty);
 
     Ok(())
-}
-
-/// RAII guard for terminal state restoration.
-///
-/// The console crate's read_key() puts stdin into raw mode. If the
-/// spawned keyboard-listener thread is still blocked in read_key() when
-/// the process exits normally (successful auth, timeout, Ctrl-C), the
-/// crate never restores termios, leaving the user's shell corrupted.
-///
-/// This guard captures termios before the read thread starts and restores
-/// it on drop, regardless of how login() exits.
-#[cfg(unix)]
-struct TerminalGuard {
-    saved: libc::termios,
-    fd: std::os::unix::io::RawFd,
-}
-
-#[cfg(unix)]
-impl TerminalGuard {
-    fn new() -> Option<Self> {
-        use std::os::unix::io::AsRawFd;
-        let fd = std::io::stdin().as_raw_fd();
-        let mut termios = std::mem::MaybeUninit::uninit();
-        let rc = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
-        if rc == 0 {
-            Some(Self {
-                saved: unsafe { termios.assume_init() },
-                fd,
-            })
-        } else {
-            None
-        }
-    }
-}
-
-#[cfg(unix)]
-impl Drop for TerminalGuard {
-    fn drop(&mut self) {
-        unsafe {
-            libc::tcsetattr(self.fd, libc::TCSADRAIN, &self.saved);
-        }
-    }
-}
-
-#[cfg(not(unix))]
-struct TerminalGuard;
-
-#[cfg(not(unix))]
-impl TerminalGuard {
-    fn new() -> Option<Self> {
-        Some(Self)
-    }
 }
 
 #[cfg(test)]
