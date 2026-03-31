@@ -156,6 +156,7 @@ pub fn login() -> Result<(), AuthError> {
         (None, None)
     };
 
+    let mut qr_shown = false;
     if browser_opened {
         // Browser opened — clean layout, offer QR on demand
         println!("To authenticate, visit:");
@@ -180,6 +181,7 @@ pub fn login() -> Result<(), AuthError> {
                 println!("{}{}", indent, line);
             }
             println!();
+            qr_shown = true;
         }
         println!("To authenticate, scan the QR code or visit:");
         println!("  {}", display_uri);
@@ -190,7 +192,6 @@ pub fn login() -> Result<(), AuthError> {
     }
 
     // Poll for token
-    let mut qr_shown = !browser_opened;
     let interval = Duration::from_secs(device_response.interval.unwrap_or(5));
     let timeout = Duration::from_secs(device_response.expires_in);
     let start = std::time::Instant::now();
@@ -213,8 +214,8 @@ pub fn login() -> Result<(), AuthError> {
                                 println!("{}{}", indent, line);
                             }
                             println!();
+                            qr_shown = true;
                         }
-                        qr_shown = true;
                     }
                 }
             }
