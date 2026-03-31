@@ -11,6 +11,7 @@
 //! | `ANA_AUTH_CLIENT_ID` | (Anaconda's ID) | OAuth client ID                |
 //! | `ANA_SSL_VERIFY`     | `true`          | SSL certificate verification   |
 //! | `ANA_OPEN_BROWSER`   | `true`          | Auto-open browser during login |
+//! | `ANA_USE_HTTPS`      | `true`          | Use HTTPS (set false for HTTP) |
 //!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
@@ -23,6 +24,7 @@ const DEFAULT_DOMAIN: &str = "stage.anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
 const DEFAULT_OPEN_BROWSER: bool = true;
+const DEFAULT_USE_HTTPS: bool = true;
 
 /// Global configuration for ana.
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +40,9 @@ pub struct Config {
 
     /// Whether to automatically open browser during login
     pub open_browser: bool,
+
+    /// Whether to use HTTPS (set false for HTTP, e.g. testing)
+    pub use_https: bool,
 }
 
 impl Default for Config {
@@ -54,13 +59,30 @@ impl Config {
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
         let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
+        let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
 
         Self {
             domain,
             client_id,
             ssl_verify,
             open_browser,
+            use_https,
         }
+    }
+
+    /// Get the protocol (http or https) based on configuration.
+    fn protocol(&self) -> &'static str {
+        if self.use_https { "https" } else { "http" }
+    }
+
+    /// Get the base URL for API requests.
+    pub fn base_url(&self) -> String {
+        format!("{}://{}", self.protocol(), self.domain)
+    }
+
+    /// Get the OpenID Connect well-known configuration URL.
+    pub fn well_known_url(&self) -> String {
+        format!("{}/.well-known/openid-configuration", self.base_url())
     }
 }
 
@@ -118,6 +140,7 @@ mod tests {
             client_id: DEFAULT_CLIENT_ID.to_string(),
             ssl_verify,
             open_browser,
+            use_https: true,
         }
     }
 
@@ -238,5 +261,34 @@ mod tests {
             let config = Config::load();
             assert!(!config.open_browser);
         });
+    }
+
+    #[test]
+    fn test_config_load_use_https_false_from_env() {
+        temp_env::with_var("ANA_USE_HTTPS", Some("false"), || {
+            let config = Config::load();
+            assert!(!config.use_https);
+        });
+    }
+
+    #[test]
+    fn test_config_default_use_https_is_true() {
+        temp_env::with_var("ANA_USE_HTTPS", None::<&str>, || {
+            let config = Config::load();
+            assert!(config.use_https);
+        });
+    }
+
+    #[test]
+    fn test_config_base_url_https() {
+        let config = test_config("example.com", true, true);
+        assert_eq!(config.base_url(), "https://example.com");
+    }
+
+    #[test]
+    fn test_config_base_url_http() {
+        let mut config = test_config("example.com", true, true);
+        config.use_https = false;
+        assert_eq!(config.base_url(), "http://example.com");
     }
 }

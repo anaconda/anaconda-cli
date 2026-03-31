@@ -9,6 +9,7 @@ pub enum Action {
     ShowSelfHelp,
     ShowVersion,
     ShowConfig,
+    Login,
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
@@ -21,6 +22,7 @@ pub fn parse() -> Action {
         Ok(cli) => match cli.command {
             None => Action::ShowHelp,
             Some(Commands::Config) => Action::ShowConfig,
+            Some(Commands::Login) => Action::Login,
             Some(Commands::Self_ { command }) => match command {
                 None => Action::ShowSelfHelp,
                 Some(SelfCommands::Update { yes, check, list }) => {
@@ -74,6 +76,7 @@ pub fn print_main_help() {
 
         Commands:
           config         Show current configuration
+          login          Log in to Anaconda
           self           Manage the ana installation
 
         Options:
@@ -117,6 +120,9 @@ struct Cli {
 enum Commands {
     /// Show current configuration
     Config,
+
+    /// Log in to Anaconda
+    Login,
 
     /// Manage the ana installation
     #[command(
