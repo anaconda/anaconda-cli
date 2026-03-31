@@ -1,6 +1,5 @@
 mod cli;
 mod config;
-mod console;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");

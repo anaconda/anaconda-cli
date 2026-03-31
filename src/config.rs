@@ -15,6 +15,7 @@
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
+use comfy_table::{modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL, Attribute, Cell, Table};
 use std::env;
 
 // TODO(mattkram): Update default to anaconda.com before public release
@@ -66,16 +67,18 @@ impl Config {
 impl Config {
     /// Print the configuration as a table.
     pub fn print_table(&self) {
-        let rows = [
-            ("domain", self.domain.as_str()),
-            ("client_id", self.client_id.as_str()),
-            ("ssl_verify", bool_to_str(self.ssl_verify)),
-            ("open_browser", bool_to_str(self.open_browser)),
-        ];
-        println!(
-            "{}",
-            crate::console::format_table(("Setting", "Value"), &rows)
-        );
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        table.apply_modifier(UTF8_SOLID_INNER_BORDERS);
+        table.set_header([
+            Cell::new("Setting").add_attribute(Attribute::Bold),
+            Cell::new("Value").add_attribute(Attribute::Bold),
+        ]);
+        table.add_row(["domain", &self.domain]);
+        table.add_row(["client_id", &self.client_id]);
+        table.add_row(["ssl_verify", bool_to_str(self.ssl_verify)]);
+        table.add_row(["open_browser", bool_to_str(self.open_browser)]);
+        println!("{table}");
     }
 }
 
