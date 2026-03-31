@@ -471,7 +471,6 @@ enum Commands {
         feature: bool,
 
         /// Pre-fill the description
-        #[arg(short, long)]
         description: Option<String>,
     },
 
@@ -536,7 +535,6 @@ enum SelfCommands {
         feature: bool,
 
         /// Pre-fill the description
-        #[arg(short, long)]
         description: Option<String>,
     },
 
