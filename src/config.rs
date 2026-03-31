@@ -96,6 +96,7 @@ pub struct Config {
 
     /// Skip internet connectivity check
     pub metrics_skip_internet_check: bool,
+    
     /// Path to the keyring file for storing API keys
     pub keyring_path: PathBuf,
 
