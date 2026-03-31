@@ -112,14 +112,22 @@ def mock_auth_server() -> Generator[MockAuthServer, None, None]:
 
 
 @pytest.fixture
+def keyring_path(tmp_path: Path) -> Path:
+    """Provide a temporary keyring file path."""
+    return tmp_path / "keyring"
+
+
+@pytest.fixture
 def auth_env(
     env_isolated: dict[str, str],
     mock_auth_server: MockAuthServer,
+    keyring_path: Path,
 ) -> dict[str, str]:
     """Environment configured to use mock auth server."""
     return {
         **env_isolated,
         "ANA_DOMAIN": mock_auth_server.domain,
+        "ANA_KEYRING_PATH": str(keyring_path),
         "ANA_OPEN_BROWSER": "false",  # Don't try to open browser in tests
         "ANA_USE_HTTPS": "false",  # Use HTTP for mock server
     }

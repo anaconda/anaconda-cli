@@ -4,6 +4,8 @@ version = "0.0.0" # Placeholder - actual version derived from git tags via build
 edition = "2024"
 
 [dependencies]
+base64 = "0.22"
+dirs = "6"
 clap = { version = "4", features = ["derive"] }
 comfy-table = "7"
 indicatif = "0.18"
@@ -18,3 +20,4 @@ webbrowser = "1"
 
 [dev-dependencies]
 temp-env = "0.3"
+tempfile = "3"

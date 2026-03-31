@@ -1,4 +1,4 @@
-//! OAuth 2.0 Device Authorization Grant (RFC 8628) implementation.
+//! Authentication actions (login, logout).
 
 use std::thread;
 use std::time::Duration;
@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
+use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -122,9 +123,10 @@ pub fn login() -> Result<(), AuthError> {
             // Create API key
             println!("Creating API key...");
             let api_key = create_api_key(&client, &config, &token.access_token)?;
-            println!();
-            println!("API Key: {}", api_key);
-            // TODO: Store API key securely
+
+            // Save to keyring
+            save_api_key(&config, &api_key)?;
+            println!("API key saved to {}", config.keyring_path.display());
             return Ok(());
         }
 
@@ -150,6 +152,29 @@ pub fn login() -> Result<(), AuthError> {
             }
         }
     }
+}
+
+/// Log out by removing the API key for the current domain.
+pub fn logout() -> Result<(), AuthError> {
+    let config = Config::load();
+    delete_api_key(&config)?;
+    println!("Logged out from {}", config.domain);
+    Ok(())
+}
+
+/// Display the API key for the current domain.
+pub fn show_api_key() -> Result<(), AuthError> {
+    let config = Config::load();
+
+    match get_api_key(&config)? {
+        Some(key) => println!("{}", key),
+        None => {
+            println!("Not logged in to {}", config.domain);
+            println!("Run `ana login` to authenticate.");
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

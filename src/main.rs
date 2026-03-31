@@ -9,10 +9,23 @@ fn main() {
     match cli::parse() {
         cli::Action::ShowHelp => cli::print_main_help(),
         cli::Action::ShowSelfHelp => cli::print_self_help(),
+        cli::Action::ShowAuthHelp => cli::print_auth_help(),
         cli::Action::ShowVersion => println!("{}", VERSION),
         cli::Action::ShowConfig => config::Config::load().print_table(),
         cli::Action::Login => {
             if let Err(e) = auth::login() {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        cli::Action::Logout => {
+            if let Err(e) = auth::logout() {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        cli::Action::ShowApiKey => {
+            if let Err(e) = auth::show_api_key() {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
