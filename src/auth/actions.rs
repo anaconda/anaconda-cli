@@ -10,8 +10,18 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
+use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Print a QR code to the terminal with indentation.
+fn print_qr(qr: &str) {
+    println!();
+    for line in qr.lines() {
+        println!("    {}", line);
+    }
+    println!();
+}
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
@@ -124,30 +134,67 @@ pub fn login() -> Result<(), AuthError> {
         .json()?;
 
     // Display instructions to user
-    println!("To authenticate, visit:");
-    println!();
-    if let Some(ref uri) = device_response.verification_uri_complete {
-        println!("  {}", uri);
-    } else {
-        println!("  {}", device_response.verification_uri);
-        println!();
-        println!("And enter the code: {}", device_response.user_code);
-    }
-    println!();
+    let display_uri = device_response
+        .verification_uri_complete
+        .as_deref()
+        .unwrap_or(&device_response.verification_uri);
 
-    // Open browser if configured
-    if config.open_browser {
+    // Try to open browser first — this determines whether we show QR immediately
+    let browser_opened = if config.open_browser {
         let uri = device_response
             .verification_uri_complete
             .as_ref()
             .unwrap_or(&device_response.verification_uri);
-        if let Err(e) = webbrowser::open(uri) {
-            eprintln!("Could not open browser: {}", e);
+        webbrowser::open(uri).is_ok()
+    } else {
+        false
+    };
+
+    // Pre-generate the QR code string
+    let qr_output = crate::qr::qr_to_terminal(display_uri, 1, true).ok();
+
+    // Listen for 'q' keypress in a background thread (for on-demand QR).
+    // KeyListener handles terminal state restoration and Ctrl+C.
+    let listen_for_q = browser_opened && qr_output.is_some();
+    let key_listener = if listen_for_q {
+        KeyListener::spawn(&['q'])
+    } else {
+        None
+    };
+
+    let mut qr_shown = false;
+    if browser_opened {
+        // Browser opened — clean layout, offer QR on demand
+        println!("To authenticate, visit:");
+        println!();
+        println!("  {}", display_uri);
+        if device_response.verification_uri_complete.is_none() {
+            println!();
+            println!("And enter the code: {}", device_response.user_code);
+        }
+        println!();
+        if qr_output.is_some() {
+            println!("Waiting for authentication... (press q for QR code)");
+        } else {
+            println!("Waiting for authentication...");
+        }
+    } else {
+        println!("To authenticate, scan the QR code or visit:");
+        println!();
+        println!("  {}", display_uri);
+        if device_response.verification_uri_complete.is_none() {
+            println!();
+            println!("And enter the code: {}", device_response.user_code);
+        }
+        println!();
+        println!("Waiting for authentication...");
+
+        // No browser — show QR code immediately
+        if let Some(ref qr) = qr_output {
+            print_qr(qr);
+            qr_shown = true;
         }
     }
-
-    // TODO: Spinner?
-    println!("Waiting for authentication...");
 
     // Poll for token
     let interval = Duration::from_secs(device_response.interval.unwrap_or(5));
@@ -159,7 +206,23 @@ pub fn login() -> Result<(), AuthError> {
             return Err(AuthError::Timeout);
         }
 
-        thread::sleep(interval);
+        // TODO(mattkram): Revisit this when we implement async support via tokio.
+        //                 Concurrent subroutines should make this a lot cleaner.
+        // Sleep in small increments so we can check for 'q' keypress responsively
+        let sleep_until = std::time::Instant::now() + interval;
+        while std::time::Instant::now() < sleep_until {
+            if !qr_shown {
+                if let Some(ref listener) = key_listener {
+                    if listener.try_recv().is_some() {
+                        if let Some(ref qr) = qr_output {
+                            print_qr(qr);
+                            qr_shown = true;
+                        }
+                    }
+                }
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
 
         let response = client
             .post(&openid_config.token_endpoint)

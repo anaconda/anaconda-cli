@@ -3,6 +3,8 @@ use serde::Deserialize;
 use std::env;
 use std::io::{Read, Write};
 
+use crate::input::prompt_yes_no;
+
 // We track the repo for releases
 const GITHUB_REPO: &str = "anaconda/ana-cli";
 
@@ -249,19 +251,6 @@ pub fn check_for_update(current_version: &str) {
             eprintln!("Failed to check for update: {}", e);
         }
     }
-}
-
-fn prompt_yes_no(message: &str) -> bool {
-    use std::io::Write;
-    print!("{} [y/N] ", message);
-    std::io::stdout().flush().unwrap();
-
-    let mut input = String::new();
-    if std::io::stdin().read_line(&mut input).is_err() {
-        return false;
-    }
-
-    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
 pub fn run_update(current_version: &str, force: bool) {

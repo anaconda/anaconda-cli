@@ -23,7 +23,9 @@ class TestLogin:
         result = run_ana("login", env=auth_env)
 
         assert result.returncode == 0
-        assert "To authenticate, visit:" in result.stdout
+
+        # Message varies based on QR display: "visit:" or "scan the QR code or visit:"
+        assert "visit:" in result.stdout
         assert "Successfully authenticated!" in result.stdout
         assert "API key saved to" in result.stdout
         assert keyring_path.exists()
