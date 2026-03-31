@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anaconda_otel_rs::signals::increment_counter;
+use anaconda_otel_rs::signals::{increment_counter, shutdown_telemetry};
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
@@ -10,9 +10,17 @@ use crate::config::{self, Config};
 use crate::update;
 
 pub fn execute() {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     config::setup_telemetry();
 
-    if let Err(e) = parse().execute() {
+    let result = parse().execute();
+
+    shutdown_telemetry();
+
+    if let Err(e) = result {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
@@ -57,16 +65,16 @@ impl Action {
         let name = self.match_action_name();
         let mut attrs = HashMap::new();
         attrs.insert("command".to_string(), name.into());
-        increment_counter("cli.command.invoked", 1, attrs.clone());
+        increment_counter("cli_command_invoked", 1, attrs.clone());
 
         let result = self.run();
 
         match &result {
             Ok(_) => {
-                increment_counter("cli.command.success", 1, attrs);
+                increment_counter("cli_command_success", 1, attrs);
             }
             Err(_) => {
-                increment_counter("cli.command.failure", 1, attrs);
+                increment_counter("cli_command_failure", 1, attrs);
             }
         }
 

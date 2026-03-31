@@ -28,6 +28,7 @@ use std::env;
 use std::path::PathBuf;
 
 use crate::VERSION;
+use crate::auth;
 
 pub fn setup_telemetry() {
     let _ = try_setup_telemetry();
@@ -38,8 +39,8 @@ fn try_setup_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut otel_config = Configuration::new(Some(&app_config.metrics_endpoint), None)?;
 
-    // TODO: Add API key here
-    otel_config.set_auth_token(None);
+    let api_key = auth::get_api_key(&app_config).ok().flatten();
+    otel_config.set_auth_token(api_key);
     otel_config.set_console_exporter(app_config.metrics_console_exporter);
     otel_config.set_metrics_export_interval_ms(app_config.metrics_export_interval_ms);
     otel_config.skip_internet_check = app_config.metrics_skip_internet_check;
