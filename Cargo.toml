@@ -3,11 +3,15 @@ name = "ana"
 version = "0.0.0" # Placeholder - actual version derived from git tags via build.rs
 edition = "2024"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dependencies]
 base64 = "0.22"
 dirs = "6"
 clap = { version = "4", features = ["derive"] }
 comfy-table = "7"
+console = "0.16"
 indicatif = "0.18"
 indoc = "2"
 reqwest = { version = "0.13.2", features = ["blocking", "json", "native-tls", "form"], default-features = false }
