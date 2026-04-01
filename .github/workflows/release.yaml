@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/ci.yaml
+    secrets: inherit
 
   publish-to-anaconda-dot-org:
     name: Publish to Anaconda.org
