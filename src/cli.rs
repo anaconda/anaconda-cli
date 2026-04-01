@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use anaconda_otel_rs::signals::{increment_counter, shutdown_telemetry};
+use std::time::Instant;
+
+use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
@@ -67,14 +69,18 @@ impl Action {
         attrs.insert("command".to_string(), name.into());
         increment_counter("cli_command_invoked", 1, attrs.clone());
 
+        let start = Instant::now();
         let result = self.run();
+        let duration_ms = start.elapsed().as_millis() as f64;
 
         match &result {
             Ok(_) => {
-                increment_counter("cli_command_success", 1, attrs);
+                increment_counter("cli_command_success", 1, attrs.clone());
+                record_histogram("cli_command_success_duration_ms", duration_ms, attrs);
             }
             Err(_) => {
-                increment_counter("cli_command_failure", 1, attrs);
+                increment_counter("cli_command_failure", 1, attrs.clone());
+                record_histogram("cli_command_failure_duration_ms", duration_ms, attrs);
             }
         }
 
