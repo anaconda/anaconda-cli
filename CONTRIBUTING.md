@@ -27,6 +27,22 @@ pixi run build-debug
 pixi run test
 ```
 
+## Configuring Private Git URL
+
+This project depends on private repositories. Configure git to authenticate when fetching these dependencies:
+
+```bash
+git config --global url."https://x-access-token:<YOUR_GITHUB_TOKEN>@github.com/".insteadOf "https://github.com/"
+```
+
+Replace `<YOUR_GITHUB_TOKEN>` with a [personal access token](https://github.com/settings/tokens) that has `repo` scope. Alternatively, use SSH:
+
+```bash
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+```
+
+This rewrites GitHub HTTPS URLs to use your configured authentication method.
+
 ## Reporting Issues
 
 Open a GitHub Issue for bug reports and feature requests. Include enough detail to reproduce the problem: OS, platform, ana version (`ana --version`), and the command that triggered the issue.

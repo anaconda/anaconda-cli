@@ -415,10 +415,8 @@ mod tests {
     #[test]
     fn test_get_asset_name_returns_platform_specific_name() {
         // This test verifies get_asset_name returns a valid result on supported platforms
-        let result = get_asset_name();
         // On CI/dev machines (macOS arm64, linux x86_64, windows x86_64), this should succeed
-        if result.is_ok() {
-            let name = result.unwrap();
+        if let Ok(name) = get_asset_name() {
             assert!(
                 name == "ana-darwin-arm64"
                     || name == "ana-linux-x86_64"

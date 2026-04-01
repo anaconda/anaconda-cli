@@ -19,9 +19,17 @@ self-replace = "1.5"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+anaconda-otel-rs = { git = "https://github.com/anaconda/anaconda-otel-rs" }
 thiserror = "2"
 webbrowser = "1"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [dev-dependencies]
 temp-env = "0.3"
 tempfile = "3"
+
+# Force reqwest 0.12 (used by opentelemetry-otlp) to include TLS support
+[dependencies.reqwest012]
+package = "reqwest"
+version = "0.12"
+features = ["blocking", "native-tls"]

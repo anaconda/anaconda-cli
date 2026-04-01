@@ -1,7 +1,30 @@
+use std::collections::HashMap;
+
+use anaconda_otel_rs::signals::{increment_counter, shutdown_telemetry};
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 
 use crate::VERSION;
+use crate::auth;
+use crate::config::{self, Config};
+use crate::update;
+
+pub fn execute() {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
+    config::setup_telemetry();
+
+    let result = parse().execute();
+
+    shutdown_telemetry();
+
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
 
 /// Action to be performed, returned by parse()
 pub enum Action {
@@ -17,6 +40,87 @@ pub enum Action {
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
+}
+
+impl Action {
+    fn match_action_name(&self) -> &'static str {
+        match self {
+            Action::ShowHelp => "help",
+            Action::ShowSelfHelp => "self.help",
+            Action::ShowAuthHelp => "auth.help",
+            Action::ShowVersion => "version",
+            Action::ShowConfig => "config",
+            Action::Login => "login",
+            Action::Logout => "logout",
+            Action::ShowApiKey => "auth.api-key",
+            Action::Whoami => "whoami",
+            Action::Update { .. } => "self.update",
+            Action::CheckForUpdate => "self.update.check",
+            Action::ShowAvailableVersions => "self.update.list",
+        }
+    }
+
+    /// Execute the action with telemetry middleware
+    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+        let name = self.match_action_name();
+        let mut attrs = HashMap::new();
+        attrs.insert("command".to_string(), name.into());
+        increment_counter("cli_command_invoked", 1, attrs.clone());
+
+        let result = self.run();
+
+        match &result {
+            Ok(_) => {
+                increment_counter("cli_command_success", 1, attrs);
+            }
+            Err(_) => {
+                increment_counter("cli_command_failure", 1, attrs);
+            }
+        }
+
+        result
+    }
+
+    fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            Action::ShowHelp => {
+                print_main_help();
+                Ok(())
+            }
+            Action::ShowSelfHelp => {
+                print_self_help();
+                Ok(())
+            }
+            Action::ShowAuthHelp => {
+                print_auth_help();
+                Ok(())
+            }
+            Action::ShowVersion => {
+                println!("{}", VERSION);
+                Ok(())
+            }
+            Action::ShowConfig => {
+                Config::load().print_table();
+                Ok(())
+            }
+            Action::Login => Ok(auth::login()?),
+            Action::Logout => Ok(auth::logout()?),
+            Action::ShowApiKey => Ok(auth::show_api_key()?),
+            Action::Whoami => Ok(auth::whoami()?),
+            Action::Update { force } => {
+                update::run_update(VERSION, force);
+                Ok(())
+            }
+            Action::CheckForUpdate => {
+                update::check_for_update(VERSION);
+                Ok(())
+            }
+            Action::ShowAvailableVersions => {
+                update::show_available_versions(VERSION);
+                Ok(())
+            }
+        }
+    }
 }
 
 /// Parse CLI arguments and return the action to perform.

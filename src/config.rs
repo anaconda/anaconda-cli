@@ -5,27 +5,70 @@
 //!
 //! # Environment Variables
 //!
-//! | Variable             | Default         | Description                    |
-//! |----------------------|-----------------|--------------------------------|
-//! | `ANA_DOMAIN`         | `anaconda.com`  | Authentication domain          |
-//! | `ANA_AUTH_CLIENT_ID` | (Anaconda's ID) | OAuth client ID                |
-//! | `ANA_SSL_VERIFY`     | `true`          | SSL certificate verification   |
-//! | `ANA_OPEN_BROWSER`   | `true`          | Auto-open browser during login |
-//! | `ANA_USE_HTTPS`      | `true`          | Use HTTPS (set false for HTTP) |
-//! | `ANA_PRERELEASES`    | `false`         | Include prereleases in updates |
+//! | Variable                         | Default                    | Description                     |
+//! |--------------------------------- |----------------------------|---------------------------------|
+//! | `ANA_DOMAIN`                     | `anaconda.com`             | Authentication domain           |
+//! | `ANA_AUTH_CLIENT_ID`             | (Anaconda's ID)            | OAuth client ID                 |
+//! | `ANA_SSL_VERIFY`                 | `true`                     | SSL certificate verification    |
+//! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser during login  |
+//! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint  |
+//! | `ANA_METRICS_EXPORT_INTERVAL_MS` | `1000`                     | Metrics export interval in ms   |
+//! | `ANA_METRICS_CONSOLE_EXPORTER`   | `false`                    | Enable console metrics exporter |
+//! | `ANA_METRICS_SKIP_INTERNET_CHECK`| `true`                     | Skip internet connectivity check|
+//! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP)  |
+//! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
+//! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
 //!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
-use comfy_table::{modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL, Attribute, Cell, Table};
+use anaconda_otel_rs::{
+    attributes::ResourceAttributes, config::Configuration, signals::initialize_telemetry,
+};
+use comfy_table::{
+    Attribute, Cell, Table, modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL,
+};
 use std::env;
 use std::path::PathBuf;
+
+use crate::VERSION;
+use crate::auth;
+
+pub fn setup_telemetry() {
+    if !parse_bool_env("ANA_ENABLE_TELEMETRY", true) {
+        return;
+    }
+    let _ = try_setup_telemetry();
+}
+
+fn try_setup_telemetry() -> Result<(), Box<dyn std::error::Error>> {
+    let app_config = Config::load();
+
+    let mut otel_config = Configuration::new(Some(&app_config.metrics_endpoint), None)?;
+
+    let api_key = auth::get_api_key(&app_config).ok().flatten();
+    otel_config.set_auth_token(api_key);
+    otel_config.set_console_exporter(app_config.metrics_console_exporter);
+    otel_config.set_metrics_export_interval_ms(app_config.metrics_export_interval_ms);
+    otel_config.skip_internet_check = app_config.metrics_skip_internet_check;
+
+    let attrs = ResourceAttributes::new("ana-cli", VERSION)?;
+
+    initialize_telemetry(otel_config, attrs, vec!["metrics"])
+        .map_err(|e| format!("Telemetry initialization failed: {}", e))?;
+
+    Ok(())
+}
 
 // TODO(mattkram): Update default to anaconda.com before public release
 const DEFAULT_DOMAIN: &str = "stage.anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
 const DEFAULT_OPEN_BROWSER: bool = true;
+const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.auth.anacondaconnect.com/v1/metrics";
+const DEFAULT_METRICS_EXPORT_INTERVAL_MS: i64 = 1000;
+const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
+const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 
@@ -43,6 +86,18 @@ pub struct Config {
 
     /// Whether to automatically open browser during login
     pub open_browser: bool,
+
+    /// OpenTelemetry metrics endpoint URL
+    pub metrics_endpoint: String,
+
+    /// Metrics export interval in milliseconds
+    pub metrics_export_interval_ms: i64,
+
+    /// Enable console metrics exporter
+    pub metrics_console_exporter: bool,
+
+    /// Skip internet connectivity check
+    pub metrics_skip_internet_check: bool,
 
     /// Path to the keyring file for storing API keys
     pub keyring_path: PathBuf,
@@ -68,6 +123,20 @@ impl Config {
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
         let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
+        let metrics_endpoint = env::var("ANA_METRICS_ENDPOINT")
+            .unwrap_or_else(|_| DEFAULT_METRICS_ENDPOINT.to_string());
+        let metrics_export_interval_ms = env::var("ANA_METRICS_EXPORT_INTERVAL_MS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(DEFAULT_METRICS_EXPORT_INTERVAL_MS);
+        let metrics_console_exporter = parse_bool_env(
+            "ANA_METRICS_CONSOLE_EXPORTER",
+            DEFAULT_METRICS_CONSOLE_EXPORTER,
+        );
+        let metrics_skip_internet_check = parse_bool_env(
+            "ANA_METRICS_SKIP_INTERNET_CHECK",
+            DEFAULT_METRICS_SKIP_INTERNET_CHECK,
+        );
         let keyring_path = env::var("ANA_KEYRING_PATH")
             .map(PathBuf::from)
             .unwrap_or_else(|_| default_keyring_path());
@@ -80,6 +149,10 @@ impl Config {
             client_id,
             ssl_verify,
             open_browser,
+            metrics_endpoint,
+            metrics_export_interval_ms,
+            metrics_console_exporter,
+            metrics_skip_internet_check,
             keyring_path,
             use_https,
             include_prereleases,
@@ -164,6 +237,10 @@ mod tests {
             client_id: DEFAULT_CLIENT_ID.to_string(),
             ssl_verify,
             open_browser,
+            metrics_endpoint: DEFAULT_METRICS_ENDPOINT.to_string(),
+            metrics_export_interval_ms: DEFAULT_METRICS_EXPORT_INTERVAL_MS,
+            metrics_console_exporter: DEFAULT_METRICS_CONSOLE_EXPORTER,
+            metrics_skip_internet_check: DEFAULT_METRICS_SKIP_INTERNET_CHECK,
             keyring_path: default_keyring_path(),
             use_https: true,
             include_prereleases: false,
