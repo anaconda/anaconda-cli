@@ -159,6 +159,7 @@ mod tests {
             metrics_export_interval_ms: 1000,
             metrics_console_exporter: false,
             metrics_skip_internet_check: true,
+            include_prereleases: false,
         }
     }
 
