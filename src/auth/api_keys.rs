@@ -20,8 +20,8 @@ struct ApiKeyResponse {
 }
 
 /// Create a new API key using the access token.
-pub fn create_api_key(
-    client: &reqwest::blocking::Client,
+pub async fn create_api_key(
+    client: &reqwest::Client,
     config: &Config,
     access_token: &str,
 ) -> Result<String, AuthError> {
@@ -35,23 +35,23 @@ pub fn create_api_key(
         tags: vec![format!("ana-cli/v{}", VERSION)],
     };
 
-    // TODO: AAU token header is normally added here in anaconda-auth
     let response = client
         .post(&url)
         .bearer_auth(access_token)
         .json(&payload)
-        .send()?;
+        .send()
+        .await?;
 
     if response.status() != reqwest::StatusCode::CREATED {
         let status = response.status();
-        let body = response.text().unwrap_or_default();
+        let body = response.text().await.unwrap_or_default();
         return Err(AuthError::Authorization(format!(
             "Failed to create API key: {} - {}",
             status, body
         )));
     }
 
-    let response: ApiKeyResponse = response.json()?;
+    let response: ApiKeyResponse = response.json().await?;
     Ok(response.api_key)
 }
 

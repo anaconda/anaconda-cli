@@ -9,14 +9,14 @@ use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
 
-pub fn execute() {
+pub async fn execute() {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
     config::setup_telemetry();
 
-    let result = parse().execute();
+    let result = parse().execute().await;
 
     shutdown_telemetry();
 
@@ -61,13 +61,13 @@ impl Action {
     }
 
     /// Execute the action with telemetry middleware
-    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
         let name = self.match_action_name();
         let mut attrs = HashMap::new();
         attrs.insert("command".to_string(), name.into());
         increment_counter("cli_command_invoked", 1, attrs.clone());
 
-        let result = self.run();
+        let result = self.run().await;
 
         match &result {
             Ok(_) => {
@@ -81,7 +81,7 @@ impl Action {
         result
     }
 
-    fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Action::ShowHelp => {
                 print_main_help();
@@ -103,20 +103,20 @@ impl Action {
                 Config::load().print_table();
                 Ok(())
             }
-            Action::Login => Ok(auth::login()?),
+            Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
-            Action::Whoami => Ok(auth::whoami()?),
+            Action::Whoami => Ok(auth::whoami().await?),
             Action::Update { force } => {
-                update::run_update(VERSION, force);
+                update::run_update(VERSION, force).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
-                update::check_for_update(VERSION);
+                update::check_for_update(VERSION).await;
                 Ok(())
             }
             Action::ShowAvailableVersions => {
-                update::show_available_versions(VERSION);
+                update::show_available_versions(VERSION).await;
                 Ok(())
             }
         }

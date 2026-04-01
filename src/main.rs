@@ -7,8 +7,9 @@ mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
 
-fn main() {
-    cli::execute();
+#[tokio::main]
+async fn main() {
+    cli::execute().await;
 }
 
 #[cfg(test)]
