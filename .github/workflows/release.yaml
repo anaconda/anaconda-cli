@@ -110,16 +110,26 @@ jobs:
             sha256sum "$file" > "${file}.sha256"
           done
 
-      - name: Create or update versioned release
+      - name: Upload artifacts to manually tagged release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          files: release-assets/*
+
+      - name: Create automatic prerelease
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
-          generate_release_notes: ${{ github.event_name == 'push' }}
+          prerelease: true
+          generate_release_notes: true
           files: release-assets/*
-          append_body: ${{ github.event_name == 'push' }}
-          body: ${{ github.event_name == 'push' && '---\n*Automated prerelease from main branch.*' || '' }}
+          append_body: true
+          body: |
+            ---
+            *Automated prerelease from main branch.*
 
       - name: Update latest release
         if: steps.version.outputs.prerelease != 'true'
@@ -127,6 +137,8 @@ jobs:
         with:
           tag_name: latest
           name: Latest Release
+          # TODO(mattkram): Do we want it marked as a real release?
+          # Or use prerelease to "hide" it.
           prerelease: true
           make_latest: false
           files: release-assets/*
