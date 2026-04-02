@@ -217,6 +217,11 @@ fn handle_parse_error(e: clap::Error) -> Action {
     e.exit();
 }
 
+/// Check if demo mode is enabled via ANA_DEMO=true
+fn is_demo_mode() -> bool {
+    std::env::var("ANA_DEMO").map(|v| v == "true" || v == "1").unwrap_or(false)
+}
+
 /// Styles for help output matching UX design
 struct HelpStyles {
     section: Style,   // #3fb950 - green headers
@@ -240,6 +245,30 @@ impl HelpStyles {
     }
 }
 
+/// Command definition for help output
+struct HelpCommand {
+    name: &'static str,
+    desc: &'static str,
+    prototype: bool,
+}
+
+impl HelpCommand {
+    const fn real(name: &'static str, desc: &'static str) -> Self {
+        Self { name, desc, prototype: false }
+    }
+
+    const fn proto(name: &'static str, desc: &'static str) -> Self {
+        Self { name, desc, prototype: true }
+    }
+}
+
+/// Section definition for help output
+struct HelpSection {
+    name: &'static str,
+    commands: &'static [HelpCommand],
+    advanced_start: Option<usize>, // Index where "advanced" subsection starts
+}
+
 /// Print a command row: "  command      description"
 fn print_command_row(term: &Term, styles: &HelpStyles, name: &str, desc: &str) {
     let styled_name = styles.command.apply_to(name);
@@ -253,40 +282,136 @@ fn print_section(term: &Term, styles: &HelpStyles, name: &str) {
 }
 
 /// Print the examples/quick-start code block
-fn print_examples_block(term: &Term, styles: &HelpStyles, examples: &[(&str, &str)]) {
+fn print_examples_block(term: &Term, styles: &HelpStyles, examples: &[(&str, &str)], demo_mode: bool) {
     for (comment, command) in examples {
+        // Skip demo examples in non-demo mode
+        if !demo_mode && (command.contains("install") || command.contains("jupyter") ||
+            command.contains("build") || command.contains("deploy") || command.contains("model") ||
+            command.contains("search") || command.contains("download")) {
+            continue;
+        }
         let _ = term.write_line(&format!("    {}", styles.dim.apply_to(format!("# {comment}"))));
         let _ = term.write_line(&format!("    {command}"));
     }
 }
 
+// Common commands for concise help (demo mode)
+const COMMON_COMMANDS: &[HelpCommand] = &[
+    HelpCommand::proto("install", "Install a tool -- conda, pixi, uv, pip, Jupyter, Desktop"),
+    HelpCommand::proto("jupyter", "Launch a pre-configured Jupyter instance"),
+    HelpCommand::proto("model", "Discover, pull, and manage AI models"),
+    HelpCommand::proto("build", "Build containers, packages, or PyScript apps"),
+    HelpCommand::proto("deploy", "Deploy to SageMaker, Snowflake, Databricks, and more"),
+];
+
+// All sections for full help
+const HELP_SECTIONS: &[HelpSection] = &[
+    HelpSection {
+        name: "TOOLCHAIN",
+        commands: &[
+            HelpCommand::proto("install", "Install a tool -- conda, pixi, uv, pip, Jupyter, or Anaconda Desktop"),
+            HelpCommand::proto("update", "Update one or all installed tools"),
+            HelpCommand::proto("configure", "Apply or change settings for your tools"),
+            HelpCommand::proto("uninstall", "Remove an installed tool"),
+            HelpCommand::proto("tools", "List what's installed and at which version"),
+            HelpCommand::real("config", "Show or edit current ana configuration"),
+            HelpCommand::real("self", "Manage the ana installation itself"),
+        ],
+        advanced_start: None,
+    },
+    HelpSection {
+        name: "DEVELOP",
+        commands: &[
+            HelpCommand::proto("jupyter", "Launch a pre-configured Jupyter instance"),
+            HelpCommand::proto("model", "Discover, pull, and manage AI models from Anaconda's vetted catalog"),
+            HelpCommand::proto("build", "Build containers, packages, or PyScript apps -- includes signing and CVE scanning"),
+            HelpCommand::proto("deploy", "Deploy to SageMaker, Snowflake, Databricks, Vertex AI, or Azure ML"),
+        ],
+        advanced_start: None,
+    },
+    HelpSection {
+        name: "PACKAGES",
+        commands: &[
+            HelpCommand::proto("search", "Search for packages in your Anaconda repository"),
+            HelpCommand::proto("show", "Show information about a package or object"),
+            HelpCommand::proto("download", "Download packages from your Anaconda repository"),
+            HelpCommand::proto("upload", "Upload packages to your Anaconda repository"),
+            HelpCommand::proto("remove", "Remove a package or object from your repository"),
+            // Advanced subsection starts here
+            HelpCommand::proto("copy", "Copy packages from one account to another"),
+            HelpCommand::proto("move", "Move packages between labels"),
+            HelpCommand::proto("label", "Manage your Anaconda repository channels"),
+            HelpCommand::proto("package", "Anaconda repository package utilities"),
+            HelpCommand::proto("repo", "Repository operations: channel, copy, mirror, move, search, upload"),
+        ],
+        advanced_start: Some(5),
+    },
+    HelpSection {
+        name: "ACCOUNT",
+        commands: &[
+            HelpCommand::real("login / logout", "Connect or disconnect from the Anaconda platform"),
+            HelpCommand::real("whoami", "Show your current logged-in account"),
+            HelpCommand::real("auth", "Manage your Anaconda authentication"),
+            HelpCommand::proto("org", "Interact with anaconda.org"),
+            HelpCommand::proto("sites", "Manage your Anaconda site configuration"),
+            HelpCommand::proto("token", "Manage your Anaconda repo tokens"),
+        ],
+        advanced_start: None,
+    },
+];
+
 /// Concise help shown when running `ana` with no arguments
 pub fn print_concise_help() {
     let styles = HelpStyles::new();
     let term = Term::stdout();
+    let demo_mode = is_demo_mode();
 
     // Header
     let _ = term.write_line(&format!("ana {VERSION}"));
-    let _ = term.write_line(&styles.desc.apply_to("Manage your toolchain, AI models, builds, and deployments from one place.").to_string());
+    let tagline = if demo_mode {
+        "Manage your toolchain, AI models, builds, and deployments from one place."
+    } else {
+        "The Anaconda command-line interface."
+    };
+    let _ = term.write_line(&styles.desc.apply_to(tagline).to_string());
     let _ = term.write_line("");
 
-    // Quick start section
-    print_section(&term, &styles, "QUICK START");
-    print_examples_block(&term, &styles, &[
-        ("set up your full toolchain", "ana install all"),
-        ("launch jupyter", "ana jupyter"),
-        ("build and deploy your app", "ana build && ana deploy --target snowflake"),
-    ]);
-    let _ = term.write_line("");
+    if demo_mode {
+        // Quick start section (demo only)
+        print_section(&term, &styles, "QUICK START");
+        print_examples_block(&term, &styles, &[
+            ("set up your full toolchain", "ana install all"),
+            ("launch jupyter", "ana jupyter"),
+            ("build and deploy your app", "ana build && ana deploy --target snowflake"),
+        ], demo_mode);
+        let _ = term.write_line("");
 
-    // Common commands section
-    print_section(&term, &styles, "COMMON COMMANDS");
-    print_command_row(&term, &styles, "install", "Install a tool -- conda, pixi, uv, pip, Jupyter, Desktop");
-    print_command_row(&term, &styles, "jupyter", "Launch a pre-configured Jupyter instance");
-    print_command_row(&term, &styles, "model", "Discover, pull, and manage AI models");
-    print_command_row(&term, &styles, "build", "Build containers, packages, or PyScript apps");
-    print_command_row(&term, &styles, "deploy", "Deploy to SageMaker, Snowflake, Databricks, and more");
-    let _ = term.write_line("");
+        // Common commands section (demo only)
+        print_section(&term, &styles, "COMMON COMMANDS");
+        for cmd in COMMON_COMMANDS {
+            print_command_row(&term, &styles, cmd.name, cmd.desc);
+        }
+        let _ = term.write_line("");
+    } else {
+        // Real commands only
+        print_section(&term, &styles, "COMMANDS");
+        print_command_row(&term, &styles, "login", "Log in to Anaconda");
+        print_command_row(&term, &styles, "logout", "Log out from Anaconda");
+        print_command_row(&term, &styles, "whoami", "Display information about the logged-in user");
+        print_command_row(&term, &styles, "auth", "Authentication commands");
+        print_command_row(&term, &styles, "config", "Show current configuration");
+        print_command_row(&term, &styles, "self", "Manage the ana installation");
+        let _ = term.write_line("");
+
+        print_section(&term, &styles, "OPTIONS");
+        let _ = term.write_line(&format!("  {}  {}",
+            styles.command.apply_to("-V, --version".to_string() + &" ".repeat(7)),
+            styles.desc.apply_to("Show the ana version and exit")));
+        let _ = term.write_line(&format!("  {}  {}",
+            styles.command.apply_to("-h, --help".to_string() + &" ".repeat(10)),
+            styles.desc.apply_to("Show this message and exit")));
+        let _ = term.write_line("");
+    }
 
     // Footer
     let run_help = format!("Run {} for the full command list", styles.command.apply_to("ana --help"));
@@ -299,6 +424,7 @@ pub fn print_concise_help() {
 pub fn print_full_help() {
     let styles = HelpStyles::new();
     let term = Term::stdout();
+    let demo_mode = is_demo_mode();
 
     // Get clap command for introspection
     let cmd = Cli::command();
@@ -307,78 +433,71 @@ pub fn print_full_help() {
         .map(|s| (s.get_name(), s.get_about().map(|a| a.to_string()).unwrap_or_default()))
         .collect();
 
-    // Helper to get description or fallback
-    let desc = |name: &str, fallback: &str| -> String {
-        subcommands.get(name).map(|s| s.as_str()).unwrap_or(fallback).to_string()
-    };
-
     // Header
     let _ = term.write_line(&format!("ana {VERSION}"));
-    let _ = term.write_line(&styles.desc.apply_to("Manage your toolchain, AI models, builds, and deployments from one place.").to_string());
+    let tagline = if demo_mode {
+        "Manage your toolchain, AI models, builds, and deployments from one place."
+    } else {
+        "The Anaconda command-line interface."
+    };
+    let _ = term.write_line(&styles.desc.apply_to(tagline).to_string());
     let _ = term.write_line("");
 
-    // Examples section
-    print_section(&term, &styles, "EXAMPLES");
-    print_examples_block(&term, &styles, &[
-        ("set up your full toolchain", "ana install all"),
-        ("search for and download a package", "ana search numpy && ana download numpy"),
-        ("browse and pull an AI model", "ana model search llama"),
-        ("build and deploy your app", "ana build && ana deploy --target snowflake"),
-    ]);
-    let _ = term.write_line("");
+    // Examples section (demo mode only)
+    if demo_mode {
+        print_section(&term, &styles, "EXAMPLES");
+        print_examples_block(&term, &styles, &[
+            ("set up your full toolchain", "ana install all"),
+            ("search for and download a package", "ana search numpy && ana download numpy"),
+            ("browse and pull an AI model", "ana model search llama"),
+            ("build and deploy your app", "ana build && ana deploy --target snowflake"),
+        ], demo_mode);
+        let _ = term.write_line("");
+    }
 
-    // Toolchain section
-    print_section(&term, &styles, "TOOLCHAIN");
-    print_command_row(&term, &styles, "install", &desc("install", "Install a tool -- conda, pixi, uv, pip, Jupyter, or Anaconda Desktop"));
-    print_command_row(&term, &styles, "update", &desc("update", "Update one or all installed tools"));
-    print_command_row(&term, &styles, "configure", &desc("configure", "Apply or change settings for your tools"));
-    print_command_row(&term, &styles, "uninstall", &desc("uninstall", "Remove an installed tool"));
-    print_command_row(&term, &styles, "tools", &desc("tools", "List what's installed and at which version"));
-    print_command_row(&term, &styles, "config", &desc("config", "Show or edit current ana configuration"));
-    print_command_row(&term, &styles, "self", &desc("self", "Manage the ana installation itself"));
-    let _ = term.write_line("");
+    // Print each section
+    for section in HELP_SECTIONS {
+        // Filter commands based on demo mode
+        let visible_commands: Vec<_> = section.commands.iter()
+            .enumerate()
+            .filter(|(_, cmd)| demo_mode || !cmd.prototype)
+            .collect();
 
-    // Develop section
-    print_section(&term, &styles, "DEVELOP");
-    print_command_row(&term, &styles, "jupyter", &desc("jupyter", "Launch a pre-configured Jupyter instance"));
-    print_command_row(&term, &styles, "model", &desc("model", "Discover, pull, and manage AI models from Anaconda's vetted catalog"));
-    print_command_row(&term, &styles, "build", &desc("build", "Build containers, packages, or PyScript apps -- includes signing and CVE scanning"));
-    print_command_row(&term, &styles, "deploy", &desc("deploy", "Deploy to SageMaker, Snowflake, Databricks, Vertex AI, or Azure ML"));
-    let _ = term.write_line("");
+        // Skip empty sections
+        if visible_commands.is_empty() {
+            continue;
+        }
 
-    // Packages section
-    print_section(&term, &styles, "PACKAGES");
-    print_command_row(&term, &styles, "search", &desc("search", "Search for packages in your Anaconda repository"));
-    print_command_row(&term, &styles, "show", &desc("show", "Show information about a package or object"));
-    print_command_row(&term, &styles, "download", &desc("download", "Download packages from your Anaconda repository"));
-    print_command_row(&term, &styles, "upload", &desc("upload", "Upload packages to your Anaconda repository"));
-    print_command_row(&term, &styles, "remove", &desc("remove", "Remove a package or object from your repository"));
-    let _ = term.write_line(&styles.dim.apply_to("  advanced").to_string());
-    print_command_row(&term, &styles, "copy", &desc("copy", "Copy packages from one account to another"));
-    print_command_row(&term, &styles, "move", &desc("move", "Move packages between labels"));
-    print_command_row(&term, &styles, "label", &desc("label", "Manage your Anaconda repository channels"));
-    print_command_row(&term, &styles, "package", &desc("package", "Anaconda repository package utilities"));
-    print_command_row(&term, &styles, "repo", &desc("repo", "Repository operations: channel, copy, mirror, move, search, upload"));
-    let _ = term.write_line("");
+        print_section(&term, &styles, section.name);
 
-    // Account section
-    print_section(&term, &styles, "ACCOUNT");
-    print_command_row(&term, &styles, "login / logout", &desc("login", "Connect or disconnect from the Anaconda platform"));
-    print_command_row(&term, &styles, "whoami", &desc("whoami", "Show your current logged-in account"));
-    print_command_row(&term, &styles, "auth", &desc("auth", "Manage your Anaconda authentication"));
-    print_command_row(&term, &styles, "org", &desc("org", "Interact with anaconda.org"));
-    print_command_row(&term, &styles, "sites", &desc("sites", "Manage your Anaconda site configuration"));
-    print_command_row(&term, &styles, "token", &desc("token", "Manage your Anaconda repo tokens"));
-    let _ = term.write_line("");
+        for (idx, cmd) in visible_commands {
+            // Print "advanced" label if we've reached that point
+            if let Some(adv_start) = section.advanced_start {
+                if idx == adv_start && demo_mode {
+                    let _ = term.write_line(&styles.dim.apply_to("  advanced").to_string());
+                }
+            }
+
+            // Get description from clap if available, otherwise use fallback
+            let base_name = cmd.name.split(" / ").next().unwrap_or(cmd.name);
+            let desc = subcommands.get(base_name)
+                .map(|s| s.as_str())
+                .unwrap_or(cmd.desc);
+            print_command_row(&term, &styles, cmd.name, desc);
+        }
+        let _ = term.write_line("");
+    }
 
     // Global options section
-    print_section(&term, &styles, "GLOBAL OPTIONS");
-    let _ = term.write_line(&format!("  {}  {}",
-        styles.command.apply_to("--at <site>".to_string() + &" ".repeat(11)),
-        styles.desc.apply_to("Select configured site by name or domain")));
-    let _ = term.write_line(&format!("  {}  {}",
-        styles.command.apply_to("-v, --verbose".to_string() + &" ".repeat(7)),
-        styles.desc.apply_to("Print debug information to the console")));
+    print_section(&term, &styles, if demo_mode { "GLOBAL OPTIONS" } else { "OPTIONS" });
+    if demo_mode {
+        let _ = term.write_line(&format!("  {}  {}",
+            styles.command.apply_to("--at <site>".to_string() + &" ".repeat(11)),
+            styles.desc.apply_to("Select configured site by name or domain")));
+        let _ = term.write_line(&format!("  {}  {}",
+            styles.command.apply_to("-v, --verbose".to_string() + &" ".repeat(7)),
+            styles.desc.apply_to("Print debug information to the console")));
+    }
     let _ = term.write_line(&format!("  {}  {}",
         styles.command.apply_to("-V, --version".to_string() + &" ".repeat(7)),
         styles.desc.apply_to("Show the ana version and exit")));
@@ -387,16 +506,18 @@ pub fn print_full_help() {
         styles.desc.apply_to("Show this message and exit")));
     let _ = term.write_line("");
 
-    // Typo hint box
-    let _ = term.write_line(&styles.desc.apply_to("Typo? ana will suggest the closest command.").to_string());
-    let _ = term.write_line(&format!("    {} {}", styles.dim.apply_to("# example"), ""));
-    let _ = term.write_line(&format!("    {} {}",
-        styles.error.apply_to("error:"),
-        styles.desc.apply_to("unknown command \"instal\"")));
-    let _ = term.write_line(&format!("    {} {}",
-        styles.warning.apply_to("tip:"),
-        styles.desc.apply_to(format!("did you mean {}?", styles.command.apply_to("install")))));
-    let _ = term.write_line("");
+    // Typo hint box (demo mode only)
+    if demo_mode {
+        let _ = term.write_line(&styles.desc.apply_to("Typo? ana will suggest the closest command.").to_string());
+        let _ = term.write_line(&format!("    {}", styles.dim.apply_to("# example")));
+        let _ = term.write_line(&format!("    {} {}",
+            styles.error.apply_to("error:"),
+            styles.desc.apply_to("unknown command \"instal\"")));
+        let _ = term.write_line(&format!("    {} {}",
+            styles.warning.apply_to("tip:"),
+            styles.desc.apply_to(format!("did you mean {}?", styles.command.apply_to("install")))));
+        let _ = term.write_line("");
+    }
 
     // Footer
     let run_cmd = format!("Run {} or {} for more",
