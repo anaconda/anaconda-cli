@@ -85,6 +85,32 @@ fn print_header(term: &Term) {
     let _ = term.write_line("");
 }
 
+fn print_section_blocks(term: &Term, subcommands: HashMap<String, String>, demo_mode: bool) {
+    for section in HELP_SECTIONS {
+        let visible_commands: Vec<_> = section
+            .commands
+            .iter()
+            .filter(|cmd| demo_mode || !cmd.prototype)
+            .collect();
+
+        if visible_commands.is_empty() {
+            continue;
+        }
+
+        print_section(&term, section.name);
+
+        for cmd in visible_commands {
+            let base_name = cmd.name.split(" / ").next().unwrap_or(cmd.name);
+            let desc = subcommands
+                .get(base_name)
+                .map(|s| s.as_str())
+                .unwrap_or(cmd.desc);
+            print_command_row(&term, cmd.name, desc);
+        }
+        let _ = term.write_line("");
+    }
+}
+
 fn print_options_block(term: &Term, demo_mode: bool) {
     print_section(&term, "Options");
     if demo_mode {
@@ -118,29 +144,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     }
 
     // Print each section
-    for section in HELP_SECTIONS {
-        let visible_commands: Vec<_> = section
-            .commands
-            .iter()
-            .filter(|cmd| demo_mode || !cmd.prototype)
-            .collect();
-
-        if visible_commands.is_empty() {
-            continue;
-        }
-
-        print_section(&term, section.name);
-
-        for cmd in visible_commands {
-            let base_name = cmd.name.split(" / ").next().unwrap_or(cmd.name);
-            let desc = subcommands
-                .get(base_name)
-                .map(|s| s.as_str())
-                .unwrap_or(cmd.desc);
-            print_command_row(&term, cmd.name, desc);
-        }
-        let _ = term.write_line("");
-    }
+    print_section_blocks(&term, subcommands, demo_mode);
 
     // Options section
     print_options_block(&term, demo_mode);
