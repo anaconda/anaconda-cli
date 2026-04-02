@@ -83,8 +83,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
         let visible_commands: Vec<_> = section
             .commands
             .iter()
-            .enumerate()
-            .filter(|(_, cmd)| demo_mode || !cmd.prototype)
+            .filter(|cmd| demo_mode || !cmd.prototype)
             .collect();
 
         if visible_commands.is_empty() {
@@ -93,14 +92,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
 
         print_section(&term, section.name);
 
-        for (idx, cmd) in visible_commands {
-            if let Some(adv_start) = section.advanced_start {
-                if idx == adv_start && demo_mode {
-                    let _ =
-                        term.write_line(&HelpStyle::Dim.style().apply_to("  advanced").to_string());
-                }
-            }
-
+        for cmd in visible_commands {
             let base_name = cmd.name.split(" / ").next().unwrap_or(cmd.name);
             let desc = subcommands
                 .get(base_name)

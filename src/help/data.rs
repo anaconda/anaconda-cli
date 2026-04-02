@@ -34,7 +34,6 @@ impl HelpCommand {
 pub(super) struct HelpSection {
     pub(super) name: &'static str,
     pub(super) commands: &'static [HelpCommand],
-    pub(super) advanced_start: Option<usize>,
 }
 
 /// Help sections with commands
@@ -59,7 +58,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             HelpCommand::real("config", "Show or edit current ana configuration"),
             HelpCommand::real("self", "Manage the ana installation itself"),
         ],
-        advanced_start: None,
     },
     HelpSection {
         name: "DEVELOP",
@@ -78,7 +76,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
                 "Deploy to SageMaker, Snowflake, Databricks, Vertex AI, or Azure ML",
             ),
         ],
-        advanced_start: None,
     },
     HelpSection {
         name: "PACKAGES",
@@ -91,7 +88,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             ),
             HelpCommand::proto("upload", "Upload packages to your Anaconda repository"),
             HelpCommand::proto("remove", "Remove a package or object from your repository"),
-            // Advanced subsection starts here
             HelpCommand::proto("copy", "Copy packages from one account to another"),
             HelpCommand::proto("move", "Move packages between labels"),
             HelpCommand::proto("label", "Manage your Anaconda repository channels"),
@@ -101,7 +97,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
                 "Repository operations: channel, copy, mirror, move, search, upload",
             ),
         ],
-        advanced_start: Some(5),
     },
     HelpSection {
         name: "ACCOUNT",
@@ -116,6 +111,5 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             HelpCommand::proto("sites", "Manage your Anaconda site configuration"),
             HelpCommand::proto("token", "Manage your Anaconda repo tokens"),
         ],
-        advanced_start: None,
     },
 ];
