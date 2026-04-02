@@ -3,7 +3,7 @@ use std::env::consts::{ARCH, OS};
 use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use console::{Style, Term};
 use indoc::formatdoc;
 use opentelemetry::Value;
@@ -217,33 +217,47 @@ pub fn print_main_help() {
 
     let term = Term::stdout();
 
+    // Get top-level clap command for introspection
+    let cmd = Cli::command();
+
+    // Build subcommand lookup: name -> description
+    let subcommands: HashMap<&str, String> = cmd
+        .get_subcommands()
+        .map(|s| {
+            (
+                s.get_name(),
+                s.get_about().map(|a| a.to_string()).unwrap_or_default(),
+            )
+        })
+        .collect();
+
+    // Define sections with their commands
+    let sections: &[(&str, &[&str])] = &[
+        ("ACCOUNT", &["login", "logout", "whoami", "auth"]),
+        ("PACKAGES", &["org", "repo"]),
+        ("SELF", &["config", "self"]),
+    ];
+
     // Main header
     let _ = term.write_line(&format!("ana {VERSION}"));
     let _ = term.write_line("");
     let _ = term.write_line("Usage: ana [command] [options]");
     let _ = term.write_line("");
 
-    // Account section
-    let _ = term.write_line(&section_style.apply_to("ACCOUNT").to_string());
-    let _ = term.write_line("  login          Log in to Anaconda");
-    let _ = term.write_line("  logout         Log out from Anaconda");
-    let _ = term.write_line("  whoami         Display information about the logged-in user");
-    let _ = term.write_line("  auth           Additional authentication commands");
-    let _ = term.write_line("");
+    // Print each section
+    for (section_name, commands) in sections {
+        let _ = term.write_line(&section_style.apply_to(*section_name).to_string());
+        for cmd_name in *commands {
+            let description = subcommands
+                .get(cmd_name)
+                .map(|s| s.as_str())
+                .unwrap_or("(coming soon)");
+            let _ = term.write_line(&format!("  {cmd_name:<12} {description}"));
+        }
+        let _ = term.write_line("");
+    }
 
-    // Packages section
-    let _ = term.write_line(&section_style.apply_to("PACKAGES").to_string());
-    let _ = term.write_line("  org            (coming soon)");
-    let _ = term.write_line("  repo           (coming soon)");
-    let _ = term.write_line("");
-
-    // Self section
-    let _ = term.write_line(&section_style.apply_to("SELF").to_string());
-    let _ = term.write_line("  config         Show current configuration");
-    let _ = term.write_line("  self           Manage the ana installation");
-    let _ = term.write_line("");
-
-    // Options section
+    // Options section - standard clap flags (not exposed via get_arguments)
     let _ = term.write_line(&section_style.apply_to("OPTIONS").to_string());
     let _ = term.write_line("  -V, --version  Print version");
     let _ = term.write_line("  -h, --help     Print help");
