@@ -26,7 +26,6 @@ fn print_section(term: &Term, name: &str) {
 /// Print the header at the top of the help output
 fn print_header(term: &Term) {
     let _ = term.write_line(&format!("ana (v{VERSION})"));
-    let _ = term.write_line("");
     let tagline = "Manage your toolchain, AI models, builds, and deployments from one place.";
     let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
     let _ = term.write_line("");
