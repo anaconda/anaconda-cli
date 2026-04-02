@@ -13,7 +13,9 @@ pub(super) struct HelpCommand {
 }
 
 impl HelpCommand {
-    const fn real(name: &'static str, desc: &'static str) -> Self {
+    const fn real(name: &'static str) -> Self {
+        // Real command descriptions come from the clap definition
+        let desc = "";
         Self {
             name,
             desc,
@@ -47,6 +49,8 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
         commands: &[
+            HelpCommand::real("config"),
+            HelpCommand::real("self"),
             HelpCommand::proto(
                 "install",
                 "Install a tool -- conda, pixi, uv, pip, Jupyter, or Anaconda Desktop",
@@ -55,8 +59,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             HelpCommand::proto("configure", "Apply or change settings for your tools"),
             HelpCommand::proto("uninstall", "Remove an installed tool"),
             HelpCommand::proto("tools", "List what's installed and at which version"),
-            HelpCommand::real("config", "Show or edit current ana configuration"),
-            HelpCommand::real("self", "Manage the ana installation itself"),
         ],
     },
     HelpSection {
@@ -101,12 +103,10 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "ACCOUNT",
         commands: &[
-            HelpCommand::real(
-                "login / logout",
-                "Connect or disconnect from the Anaconda platform",
-            ),
-            HelpCommand::real("whoami", "Show your current logged-in account"),
-            HelpCommand::real("auth", "Manage your Anaconda authentication"),
+            HelpCommand::real("login"),
+            HelpCommand::real("logout"),
+            HelpCommand::real("whoami"),
+            HelpCommand::real("auth"),
             HelpCommand::proto("org", "Interact with anaconda.org"),
             HelpCommand::proto("sites", "Manage your Anaconda site configuration"),
             HelpCommand::proto("token", "Manage your Anaconda repo tokens"),
