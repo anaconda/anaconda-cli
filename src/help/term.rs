@@ -24,21 +24,21 @@ fn print_section(term: &Term, name: &str) {
 }
 
 /// Print the examples/quick-start code block
-fn print_examples_block(term: &Term, header: &str, examples: &[(&str, &str)], demo_mode: bool) {
-    print_section(term, header);
+fn print_examples_block(term: &Term) {
+    print_section(term, "Examples");
+    let examples: &[(&str, &str)] = &[
+        ("set up your full toolchain", "ana install all"),
+        (
+            "search for and download a package",
+            "ana search numpy && ana download numpy",
+        ),
+        ("browse and pull an AI model", "ana model search llama"),
+        (
+            "build and deploy your app",
+            "ana build && ana deploy --target snowflake",
+        ),
+    ];
     for (comment, command) in examples {
-        // Skip demo examples in non-demo mode
-        if !demo_mode
-            && (command.contains("install")
-                || command.contains("jupyter")
-                || command.contains("build")
-                || command.contains("deploy")
-                || command.contains("model")
-                || command.contains("search")
-                || command.contains("download"))
-        {
-            continue;
-        }
         let _ = term.write_line(&format!(
             "    {}",
             HelpStyle::Dim.style().apply_to(format!("# {comment}"))
@@ -60,27 +60,12 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
     let demo_mode = is_demo_mode();
 
+    // Header block
     print_header(&term);
 
     // Examples section (demo mode only)
     if demo_mode {
-        print_examples_block(
-            &term,
-            "EXAMPLES",
-            &[
-                ("set up your full toolchain", "ana install all"),
-                (
-                    "search for and download a package",
-                    "ana search numpy && ana download numpy",
-                ),
-                ("browse and pull an AI model", "ana model search llama"),
-                (
-                    "build and deploy your app",
-                    "ana build && ana deploy --target snowflake",
-                ),
-            ],
-            demo_mode,
-        );
+        print_examples_block(&term);
     }
 
     // Print each section
