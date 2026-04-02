@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{Parser, Subcommand};
+use console::{Style, Term};
 use indoc::formatdoc;
 use opentelemetry::Value;
 
@@ -211,28 +212,41 @@ fn handle_parse_error(e: clap::Error) -> Action {
 }
 
 pub fn print_main_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        ana {VERSION}
+    // Green color: #22C55E (Tailwind green-500)
+    let section_style = Style::new().color256(78).bold();
 
-        Usage: ana [command] [options]
+    let term = Term::stdout();
 
-        Commands:
-          auth           Authentication commands
-          bootstrap      Install the Anaconda CLI
-          config         Show current configuration
-          login          Log in to Anaconda
-          logout         Log out from Anaconda
-          org            Interact with anaconda.org
-          whoami         Display information about the logged-in user
-          self           Manage the ana installation
+    // Main header
+    let _ = term.write_line(&format!("ana {VERSION}"));
+    let _ = term.write_line("");
+    let _ = term.write_line("Usage: ana [command] [options]");
+    let _ = term.write_line("");
 
-        Options:
-          -V, --version  Print version
-          -h, --help     Print help
-        "}
-    );
+    // Account section
+    let _ = term.write_line(&section_style.apply_to("ACCOUNT").to_string());
+    let _ = term.write_line("  login          Log in to Anaconda");
+    let _ = term.write_line("  logout         Log out from Anaconda");
+    let _ = term.write_line("  whoami         Display information about the logged-in user");
+    let _ = term.write_line("  auth           Additional authentication commands");
+    let _ = term.write_line("");
+
+    // Packages section
+    let _ = term.write_line(&section_style.apply_to("PACKAGES").to_string());
+    let _ = term.write_line("  org            (coming soon)");
+    let _ = term.write_line("  repo           (coming soon)");
+    let _ = term.write_line("");
+
+    // Self section
+    let _ = term.write_line(&section_style.apply_to("SELF").to_string());
+    let _ = term.write_line("  config         Show current configuration");
+    let _ = term.write_line("  self           Manage the ana installation");
+    let _ = term.write_line("");
+
+    // Options section
+    let _ = term.write_line(&section_style.apply_to("OPTIONS").to_string());
+    let _ = term.write_line("  -V, --version  Print version");
+    let _ = term.write_line("  -h, --help     Print help");
 }
 
 pub fn print_self_help() {
