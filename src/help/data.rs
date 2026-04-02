@@ -1,19 +1,19 @@
 /// Check if demo mode is enabled via ANA_DEMO=true
-pub fn is_demo_mode() -> bool {
+pub(super) fn is_demo_mode() -> bool {
     std::env::var("ANA_DEMO")
         .map(|v| v == "true" || v == "1")
         .unwrap_or(false)
 }
 
 /// Command definition for help output
-pub struct HelpCommand {
-    pub name: &'static str,
-    pub desc: &'static str,
-    pub prototype: bool,
+pub(super) struct HelpCommand {
+    pub(super) name: &'static str,
+    pub(super) desc: &'static str,
+    pub(super) prototype: bool,
 }
 
 impl HelpCommand {
-    pub const fn real(name: &'static str, desc: &'static str) -> Self {
+    const fn real(name: &'static str, desc: &'static str) -> Self {
         Self {
             name,
             desc,
@@ -21,7 +21,7 @@ impl HelpCommand {
         }
     }
 
-    pub const fn proto(name: &'static str, desc: &'static str) -> Self {
+    const fn proto(name: &'static str, desc: &'static str) -> Self {
         Self {
             name,
             desc,
@@ -31,10 +31,10 @@ impl HelpCommand {
 }
 
 /// Section definition for help output
-pub struct HelpSection {
-    pub name: &'static str,
-    pub commands: &'static [HelpCommand],
-    pub advanced_start: Option<usize>,
+pub(super) struct HelpSection {
+    pub(super) name: &'static str,
+    pub(super) commands: &'static [HelpCommand],
+    pub(super) advanced_start: Option<usize>,
 }
 
 /// Help sections with commands
@@ -44,7 +44,7 @@ pub struct HelpSection {
 ///
 /// TODO(mattkram): We still need to find a better way to create this without a
 ///                 hard-coded mapping.
-pub const HELP_SECTIONS: &[HelpSection] = &[
+pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
         commands: &[

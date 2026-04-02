@@ -10,7 +10,7 @@ fn hex_color(hex: &str) -> Color {
 }
 
 /// Styles for help output matching UX design
-pub enum HelpStyle {
+pub(super) enum HelpStyle {
     Section, // green headers
     Command, // blue command names
     Desc,    // gray descriptions
