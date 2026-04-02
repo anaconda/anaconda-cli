@@ -38,6 +38,12 @@ pub struct HelpSection {
 }
 
 /// Help sections with commands
+/// This is where we map specific commands to sections. The HelpCommand::proto()
+/// function is only used for ANA_DEMO=true purposes, while the HelpCommand::real()
+/// must map to actual implementations.
+///
+/// TODO(mattkram): We still need to find a better way to create this without a
+///                 hard-coded mapping.
 pub const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
