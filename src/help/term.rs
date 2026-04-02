@@ -85,6 +85,25 @@ fn print_header(term: &Term) {
     let _ = term.write_line("");
 }
 
+fn print_options_block(term: &Term, demo_mode: bool) {
+    print_section(&term, "Options");
+    if demo_mode {
+        print_command_row(
+            &term,
+            "--at <site>",
+            "Select configured site by name or domain",
+        );
+        print_command_row(
+            &term,
+            "-v, --verbose",
+            "Print debug information to the console",
+        );
+    }
+    print_command_row(&term, "-V, --version", "Show the ana version and exit");
+    print_command_row(&term, "-h, --help", "Show this message and exit");
+    let _ = term.write_line("");
+}
+
 /// Main help output
 pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
@@ -124,22 +143,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     }
 
     // Options section
-    print_section(&term, "Options");
-    if demo_mode {
-        print_command_row(
-            &term,
-            "--at <site>",
-            "Select configured site by name or domain",
-        );
-        print_command_row(
-            &term,
-            "-v, --verbose",
-            "Print debug information to the console",
-        );
-    }
-    print_command_row(&term, "-V, --version", "Show the ana version and exit");
-    print_command_row(&term, "-h, --help", "Show this message and exit");
-    let _ = term.write_line("");
+    print_options_block(&term, demo_mode);
 
     // Typo hint box (demo mode only)
     if demo_mode {
