@@ -3,6 +3,7 @@ mod auth;
 mod cli;
 mod config;
 mod diagnostics;
+mod help;
 mod input;
 mod paths;
 mod qr;
