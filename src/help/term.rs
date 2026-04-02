@@ -94,14 +94,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     }
 
     // Options section
-    print_section(
-        &term,
-        if demo_mode {
-            "GLOBAL OPTIONS"
-        } else {
-            "OPTIONS"
-        },
-    );
+    print_section(&term, "OPTIONS");
     if demo_mode {
         let _ = term.write_line(&format!(
             "  {}  {}",
