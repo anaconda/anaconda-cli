@@ -151,7 +151,9 @@ pub fn print_help(subcommands: HashMap<String, String>) {
         HelpStyle::Command
             .style()
             .apply_to("-h, --help".to_string() + &" ".repeat(10)),
-        HelpStyle::Desc.style().apply_to("Show this message and exit")
+        HelpStyle::Desc
+            .style()
+            .apply_to("Show this message and exit")
     ));
     let _ = term.write_line("");
 
@@ -233,8 +235,16 @@ pub fn print_auth_help() {
     let _ = term.write_line("");
 
     print_section(&term, "COMMANDS");
-    print_command_row(&term, "api-key", "Display the API key for the logged-in user");
+    print_command_row(
+        &term,
+        "api-key",
+        "Display the API key for the logged-in user",
+    );
     print_command_row(&term, "login", "Log in to Anaconda");
     print_command_row(&term, "logout", "Log out from Anaconda");
-    print_command_row(&term, "whoami", "Display information about the logged-in user");
+    print_command_row(
+        &term,
+        "whoami",
+        "Display information about the logged-in user",
+    );
 }
