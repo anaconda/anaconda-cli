@@ -23,6 +23,14 @@ fn print_section(term: &Term, name: &str) {
     );
 }
 
+/// Print the header at the top of the help output
+fn print_header(term: &Term) {
+    let _ = term.write_line(&format!("ana (v{VERSION})"));
+    let tagline = "Manage your toolchain, AI models, builds, and deployments from one place.";
+    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
+    let _ = term.write_line("");
+}
+
 /// Print the examples/quick-start code block
 fn print_examples_block(term: &Term) {
     print_section(term, "Examples");
@@ -45,43 +53,6 @@ fn print_examples_block(term: &Term) {
         ));
         let _ = term.write_line(&format!("    {command}"));
     }
-    let _ = term.write_line("");
-}
-
-/// Print typo hints (demo only)
-fn print_typo_hints(term: &Term) {
-    let _ = term.write_line(
-        &HelpStyle::Desc
-            .style()
-            .apply_to("Typo? ana will suggest the closest command.")
-            .to_string(),
-    );
-    let _ = term.write_line(&format!(
-        "    {}",
-        HelpStyle::Dim.style().apply_to("# example")
-    ));
-    let _ = term.write_line(&format!(
-        "    {} {}",
-        HelpStyle::Error.style().apply_to("error:"),
-        HelpStyle::Desc
-            .style()
-            .apply_to("unknown command \"instal\"")
-    ));
-    let _ = term.write_line(&format!(
-        "    {} {}",
-        HelpStyle::Warning.style().apply_to("tip:"),
-        HelpStyle::Desc.style().apply_to(format!(
-            "did you mean {}?",
-            HelpStyle::Command.style().apply_to("install")
-        ))
-    ));
-    let _ = term.write_line("");
-}
-
-fn print_header(term: &Term) {
-    let _ = term.write_line(&format!("ana {VERSION}"));
-    let tagline = "Manage your toolchain, AI models, builds, and deployments from one place.";
-    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
     let _ = term.write_line("");
 }
 
@@ -130,6 +101,37 @@ fn print_options_block(term: &Term, demo_mode: bool) {
     let _ = term.write_line("");
 }
 
+/// Print typo hints (demo only)
+fn print_typo_hints(term: &Term) {
+    let _ = term.write_line(
+        &HelpStyle::Desc
+            .style()
+            .apply_to("Typo? ana will suggest the closest command.")
+            .to_string(),
+    );
+    let _ = term.write_line(&format!(
+        "    {}",
+        HelpStyle::Dim.style().apply_to("# example")
+    ));
+    let _ = term.write_line(&format!(
+        "    {} {}",
+        HelpStyle::Error.style().apply_to("error:"),
+        HelpStyle::Desc
+            .style()
+            .apply_to("unknown command \"instal\"")
+    ));
+    let _ = term.write_line(&format!(
+        "    {} {}",
+        HelpStyle::Warning.style().apply_to("tip:"),
+        HelpStyle::Desc.style().apply_to(format!(
+            "did you mean {}?",
+            HelpStyle::Command.style().apply_to("install")
+        ))
+    ));
+    let _ = term.write_line("");
+}
+
+/// Print the footer at bottom of help output
 fn print_footer(term: &Term) {
     let _ = term.write_line(&format!(
         "{} {} {}",
