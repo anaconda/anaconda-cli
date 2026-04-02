@@ -48,6 +48,36 @@ fn print_examples_block(term: &Term) {
     let _ = term.write_line("");
 }
 
+/// Print typo hints (demo only)
+fn print_typo_hints(term: &Term) {
+    let _ = term.write_line(
+        &HelpStyle::Desc
+            .style()
+            .apply_to("Typo? ana will suggest the closest command.")
+            .to_string(),
+    );
+    let _ = term.write_line(&format!(
+        "    {}",
+        HelpStyle::Dim.style().apply_to("# example")
+    ));
+    let _ = term.write_line(&format!(
+        "    {} {}",
+        HelpStyle::Error.style().apply_to("error:"),
+        HelpStyle::Desc
+            .style()
+            .apply_to("unknown command \"instal\"")
+    ));
+    let _ = term.write_line(&format!(
+        "    {} {}",
+        HelpStyle::Warning.style().apply_to("tip:"),
+        HelpStyle::Desc.style().apply_to(format!(
+            "did you mean {}?",
+            HelpStyle::Command.style().apply_to("install")
+        ))
+    ));
+    let _ = term.write_line("");
+}
+
 fn print_header(term: &Term) {
     let _ = term.write_line(&format!("ana {VERSION}"));
     let tagline = "Manage your toolchain, AI models, builds, and deployments from one place.";
@@ -113,32 +143,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
 
     // Typo hint box (demo mode only)
     if demo_mode {
-        let _ = term.write_line(
-            &HelpStyle::Desc
-                .style()
-                .apply_to("Typo? ana will suggest the closest command.")
-                .to_string(),
-        );
-        let _ = term.write_line(&format!(
-            "    {}",
-            HelpStyle::Dim.style().apply_to("# example")
-        ));
-        let _ = term.write_line(&format!(
-            "    {} {}",
-            HelpStyle::Error.style().apply_to("error:"),
-            HelpStyle::Desc
-                .style()
-                .apply_to("unknown command \"instal\"")
-        ));
-        let _ = term.write_line(&format!(
-            "    {} {}",
-            HelpStyle::Warning.style().apply_to("tip:"),
-            HelpStyle::Desc.style().apply_to(format!(
-                "did you mean {}?",
-                HelpStyle::Command.style().apply_to("install")
-            ))
-        ));
-        let _ = term.write_line("");
+        print_typo_hints(&term);
     }
 
     // Footer
