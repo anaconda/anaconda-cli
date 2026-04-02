@@ -21,24 +21,24 @@ fn is_demo_mode() -> bool {
 }
 
 /// Styles for help output matching UX design
-struct HelpStyles {
-    section: Style, // #3fb950 - green headers
-    command: Style, // #79c0ff - blue command names
-    desc: Style,    // #8b949e - gray descriptions
-    dim: Style,     // #6e7681 - dim gray for comments/hints
-    error: Style,   // #f85149 - error red
-    warning: Style, // #d29922 - warning yellow
+enum HelpStyle {
+    Section, // green headers
+    Command, // blue command names
+    Desc,    // gray descriptions
+    Dim,     // dim gray for comments/hints
+    Error,   // error red
+    Warning, // warning yellow
 }
 
-impl HelpStyles {
-    fn new() -> Self {
-        Self {
-            section: Style::new().fg(hex_color("#3fb950")).bold(),
-            command: Style::new().fg(hex_color("#79c0ff")),
-            desc: Style::new().fg(hex_color("#8b949e")),
-            dim: Style::new().fg(hex_color("#6e7681")),
-            error: Style::new().fg(hex_color("#f85149")),
-            warning: Style::new().fg(hex_color("#d29922")),
+impl HelpStyle {
+    fn style(&self) -> Style {
+        match self {
+            Self::Section => Style::new().fg(hex_color("#3fb950")).bold(),
+            Self::Command => Style::new().fg(hex_color("#79c0ff")),
+            Self::Desc => Style::new().fg(hex_color("#8b949e")),
+            Self::Dim => Style::new().fg(hex_color("#6e7681")),
+            Self::Error => Style::new().fg(hex_color("#f85149")),
+            Self::Warning => Style::new().fg(hex_color("#d29922")),
         }
     }
 }
@@ -76,24 +76,19 @@ struct HelpSection {
 }
 
 /// Print a command row: "  command      description"
-fn print_command_row(term: &Term, styles: &HelpStyles, name: &str, desc: &str) {
-    let styled_name = styles.command.apply_to(name);
-    let styled_desc = styles.desc.apply_to(desc);
+fn print_command_row(term: &Term, name: &str, desc: &str) {
+    let styled_name = HelpStyle::Command.style().apply_to(name);
+    let styled_desc = HelpStyle::Desc.style().apply_to(desc);
     let _ = term.write_line(&format!("  {styled_name:<20} {styled_desc}"));
 }
 
 /// Print a section header
-fn print_section(term: &Term, styles: &HelpStyles, name: &str) {
-    let _ = term.write_line(&styles.section.apply_to(name).to_string());
+fn print_section(term: &Term, name: &str) {
+    let _ = term.write_line(&HelpStyle::Section.style().apply_to(name).to_string());
 }
 
 /// Print the examples/quick-start code block
-fn print_examples_block(
-    term: &Term,
-    styles: &HelpStyles,
-    examples: &[(&str, &str)],
-    demo_mode: bool,
-) {
+fn print_examples_block(term: &Term, examples: &[(&str, &str)], demo_mode: bool) {
     for (comment, command) in examples {
         // Skip demo examples in non-demo mode
         if !demo_mode
@@ -109,7 +104,7 @@ fn print_examples_block(
         }
         let _ = term.write_line(&format!(
             "    {}",
-            styles.dim.apply_to(format!("# {comment}"))
+            HelpStyle::Dim.style().apply_to(format!("# {comment}"))
         ));
         let _ = term.write_line(&format!("    {command}"));
     }
@@ -209,7 +204,6 @@ const HELP_SECTIONS: &[HelpSection] = &[
 
 /// Concise help shown when running `ana` with no arguments
 pub fn print_concise_help() {
-    let styles = HelpStyles::new();
     let term = Term::stdout();
     let demo_mode = is_demo_mode();
 
@@ -220,15 +214,14 @@ pub fn print_concise_help() {
     } else {
         "The Anaconda command-line interface."
     };
-    let _ = term.write_line(&styles.desc.apply_to(tagline).to_string());
+    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
     let _ = term.write_line("");
 
     if demo_mode {
         // Quick start section (demo only)
-        print_section(&term, &styles, "QUICK START");
+        print_section(&term, "QUICK START");
         print_examples_block(
             &term,
-            &styles,
             &[
                 ("set up your full toolchain", "ana install all"),
                 ("launch jupyter", "ana jupyter"),
@@ -242,41 +235,44 @@ pub fn print_concise_help() {
         let _ = term.write_line("");
 
         // Common commands section (demo only)
-        print_section(&term, &styles, "COMMON COMMANDS");
+        print_section(&term, "COMMON COMMANDS");
         for cmd in COMMON_COMMANDS {
-            print_command_row(&term, &styles, cmd.name, cmd.desc);
+            print_command_row(&term, cmd.name, cmd.desc);
         }
         let _ = term.write_line("");
     } else {
         // Real commands only
-        print_section(&term, &styles, "COMMANDS");
-        print_command_row(&term, &styles, "login", "Log in to Anaconda");
-        print_command_row(&term, &styles, "logout", "Log out from Anaconda");
+        print_section(&term, "COMMANDS");
+        print_command_row(&term, "login", "Log in to Anaconda");
+        print_command_row(&term, "logout", "Log out from Anaconda");
         print_command_row(
             &term,
-            &styles,
             "whoami",
             "Display information about the logged-in user",
         );
-        print_command_row(&term, &styles, "auth", "Authentication commands");
-        print_command_row(&term, &styles, "config", "Show current configuration");
-        print_command_row(&term, &styles, "self", "Manage the ana installation");
+        print_command_row(&term, "auth", "Authentication commands");
+        print_command_row(&term, "config", "Show current configuration");
+        print_command_row(&term, "self", "Manage the ana installation");
         let _ = term.write_line("");
 
-        print_section(&term, &styles, "OPTIONS");
+        print_section(&term, "OPTIONS");
         let _ = term.write_line(&format!(
             "  {}  {}",
-            styles
-                .command
+            HelpStyle::Command
+                .style()
                 .apply_to("-V, --version".to_string() + &" ".repeat(7)),
-            styles.desc.apply_to("Show the ana version and exit")
+            HelpStyle::Desc
+                .style()
+                .apply_to("Show the ana version and exit")
         ));
         let _ = term.write_line(&format!(
             "  {}  {}",
-            styles
-                .command
+            HelpStyle::Command
+                .style()
                 .apply_to("-h, --help".to_string() + &" ".repeat(10)),
-            styles.desc.apply_to("Show this message and exit")
+            HelpStyle::Desc
+                .style()
+                .apply_to("Show this message and exit")
         ));
         let _ = term.write_line("");
     }
@@ -284,16 +280,19 @@ pub fn print_concise_help() {
     // Footer
     let run_help = format!(
         "Run {} for the full command list",
-        styles.command.apply_to("ana --help")
+        HelpStyle::Command.style().apply_to("ana --help")
     );
-    let docs_link = styles.section.apply_to("-> docs.anaconda.com");
-    let _ = term.write_line(&styles.dim.apply_to(run_help).to_string());
-    let _ = term.write_line(&docs_link.to_string());
+    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(run_help).to_string());
+    let _ = term.write_line(
+        &HelpStyle::Section
+            .style()
+            .apply_to("-> docs.anaconda.com")
+            .to_string(),
+    );
 }
 
 /// Full help shown when running `ana --help`
 pub fn print_full_help(subcommands: HashMap<String, String>) {
-    let styles = HelpStyles::new();
     let term = Term::stdout();
     let demo_mode = is_demo_mode();
 
@@ -304,15 +303,14 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
     } else {
         "The Anaconda command-line interface."
     };
-    let _ = term.write_line(&styles.desc.apply_to(tagline).to_string());
+    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
     let _ = term.write_line("");
 
     // Examples section (demo mode only)
     if demo_mode {
-        print_section(&term, &styles, "EXAMPLES");
+        print_section(&term, "EXAMPLES");
         print_examples_block(
             &term,
-            &styles,
             &[
                 ("set up your full toolchain", "ana install all"),
                 (
@@ -345,13 +343,14 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
             continue;
         }
 
-        print_section(&term, &styles, section.name);
+        print_section(&term, section.name);
 
         for (idx, cmd) in visible_commands {
             // Print "advanced" label if we've reached that point
             if let Some(adv_start) = section.advanced_start {
                 if idx == adv_start && demo_mode {
-                    let _ = term.write_line(&styles.dim.apply_to("  advanced").to_string());
+                    let _ =
+                        term.write_line(&HelpStyle::Dim.style().apply_to("  advanced").to_string());
                 }
             }
 
@@ -361,7 +360,7 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
                 .get(base_name)
                 .map(|s| s.as_str())
                 .unwrap_or(cmd.desc);
-            print_command_row(&term, &styles, cmd.name, desc);
+            print_command_row(&term, cmd.name, desc);
         }
         let _ = term.write_line("");
     }
@@ -369,7 +368,6 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
     // Global options section
     print_section(
         &term,
-        &styles,
         if demo_mode {
             "GLOBAL OPTIONS"
         } else {
@@ -379,59 +377,68 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
     if demo_mode {
         let _ = term.write_line(&format!(
             "  {}  {}",
-            styles
-                .command
+            HelpStyle::Command
+                .style()
                 .apply_to("--at <site>".to_string() + &" ".repeat(11)),
-            styles
-                .desc
+            HelpStyle::Desc
+                .style()
                 .apply_to("Select configured site by name or domain")
         ));
         let _ = term.write_line(&format!(
             "  {}  {}",
-            styles
-                .command
+            HelpStyle::Command
+                .style()
                 .apply_to("-v, --verbose".to_string() + &" ".repeat(7)),
-            styles
-                .desc
+            HelpStyle::Desc
+                .style()
                 .apply_to("Print debug information to the console")
         ));
     }
     let _ = term.write_line(&format!(
         "  {}  {}",
-        styles
-            .command
+        HelpStyle::Command
+            .style()
             .apply_to("-V, --version".to_string() + &" ".repeat(7)),
-        styles.desc.apply_to("Show the ana version and exit")
+        HelpStyle::Desc
+            .style()
+            .apply_to("Show the ana version and exit")
     ));
     let _ = term.write_line(&format!(
         "  {}  {}",
-        styles
-            .command
+        HelpStyle::Command
+            .style()
             .apply_to("-h, --help".to_string() + &" ".repeat(10)),
-        styles.desc.apply_to("Show this message and exit")
+        HelpStyle::Desc
+            .style()
+            .apply_to("Show this message and exit")
     ));
     let _ = term.write_line("");
 
     // Typo hint box (demo mode only)
     if demo_mode {
         let _ = term.write_line(
-            &styles
-                .desc
+            &HelpStyle::Desc
+                .style()
                 .apply_to("Typo? ana will suggest the closest command.")
                 .to_string(),
         );
-        let _ = term.write_line(&format!("    {}", styles.dim.apply_to("# example")));
         let _ = term.write_line(&format!(
-            "    {} {}",
-            styles.error.apply_to("error:"),
-            styles.desc.apply_to("unknown command \"instal\"")
+            "    {}",
+            HelpStyle::Dim.style().apply_to("# example")
         ));
         let _ = term.write_line(&format!(
             "    {} {}",
-            styles.warning.apply_to("tip:"),
-            styles.desc.apply_to(format!(
+            HelpStyle::Error.style().apply_to("error:"),
+            HelpStyle::Desc
+                .style()
+                .apply_to("unknown command \"instal\"")
+        ));
+        let _ = term.write_line(&format!(
+            "    {} {}",
+            HelpStyle::Warning.style().apply_to("tip:"),
+            HelpStyle::Desc.style().apply_to(format!(
                 "did you mean {}?",
-                styles.command.apply_to("install")
+                HelpStyle::Command.style().apply_to("install")
             ))
         ));
         let _ = term.write_line("");
@@ -440,59 +447,60 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
     // Footer
     let run_cmd = format!(
         "Run {} or {} for more",
-        styles.command.apply_to("ana <command> --help"),
-        styles.command.apply_to("ana help <command>")
+        HelpStyle::Command.style().apply_to("ana <command> --help"),
+        HelpStyle::Command.style().apply_to("ana help <command>")
     );
-    let _ = term.write_line(&styles.dim.apply_to(run_cmd).to_string());
-    let _ = term.write_line(&styles.section.apply_to("-> docs.anaconda.com").to_string());
+    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(run_cmd).to_string());
+    let _ = term.write_line(
+        &HelpStyle::Section
+            .style()
+            .apply_to("-> docs.anaconda.com")
+            .to_string(),
+    );
 }
 
 /// Help for `ana self` subcommand
 pub fn print_self_help() {
-    let styles = HelpStyles::new();
     let term = Term::stdout();
 
     let _ = term.write_line("Manage the ana installation");
     let _ = term.write_line("");
     let _ = term.write_line(
-        &styles
-            .dim
+        &HelpStyle::Dim
+            .style()
             .apply_to("Usage: ana self <command> [options]")
             .to_string(),
     );
     let _ = term.write_line("");
 
-    print_section(&term, &styles, "COMMANDS");
-    print_command_row(&term, &styles, "update", "Update ana to the latest version");
+    print_section(&term, "COMMANDS");
+    print_command_row(&term, "update", "Update ana to the latest version");
 }
 
 /// Help for `ana auth` subcommand
 pub fn print_auth_help() {
-    let styles = HelpStyles::new();
     let term = Term::stdout();
 
     let _ = term.write_line("Authentication commands");
     let _ = term.write_line("");
     let _ = term.write_line(
-        &styles
-            .dim
+        &HelpStyle::Dim
+            .style()
             .apply_to("Usage: ana auth <command> [options]")
             .to_string(),
     );
     let _ = term.write_line("");
 
-    print_section(&term, &styles, "COMMANDS");
+    print_section(&term, "COMMANDS");
     print_command_row(
         &term,
-        &styles,
         "api-key",
         "Display the API key for the logged-in user",
     );
-    print_command_row(&term, &styles, "login", "Log in to Anaconda");
-    print_command_row(&term, &styles, "logout", "Log out from Anaconda");
+    print_command_row(&term, "login", "Log in to Anaconda");
+    print_command_row(&term, "logout", "Log out from Anaconda");
     print_command_row(
         &term,
-        &styles,
         "whoami",
         "Display information about the logged-in user",
     );
