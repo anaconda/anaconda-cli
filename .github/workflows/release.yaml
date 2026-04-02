@@ -172,13 +172,6 @@ jobs:
             # Publish as full release (remove draft/prerelease flags, mark as latest)
             echo "Publishing release $VERSION"
             gh release edit "$VERSION" --draft=false --prerelease=false --latest
-          else
-            echo "Creating new release $VERSION"
-            gh release create "$VERSION" \
-              --title "$VERSION" \
-              --generate-notes \
-              --latest \
-              release-assets/*
           fi
 
           # Update the 'latest' release to point to this version
