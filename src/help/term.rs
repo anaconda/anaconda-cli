@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use console::Term;
 
-use super::data::{is_demo_mode, HELP_SECTIONS};
+use super::data::{HELP_SECTIONS, is_demo_mode};
 use super::styles::HelpStyle;
 use crate::VERSION;
 
@@ -15,7 +15,12 @@ fn print_command_row(term: &Term, name: &str, desc: &str) {
 
 /// Print a section header
 fn print_section(term: &Term, name: &str) {
-    let _ = term.write_line(&HelpStyle::Section.style().apply_to(name).to_string());
+    let _ = term.write_line(
+        &HelpStyle::Section
+            .style()
+            .apply_to(name.to_uppercase())
+            .to_string(),
+    );
 }
 
 /// Print the examples/quick-start code block
