@@ -202,20 +202,20 @@ const HELP_SECTIONS: &[HelpSection] = &[
     },
 ];
 
+fn print_header(term: &Term) {
+    let _ = term.write_line(&format!("ana {VERSION}"));
+    let tagline = "Manage your toolchain, AI models, builds, and deployments from one place.";
+    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
+    let _ = term.write_line("");
+}
+
 /// Concise help shown when running `ana` with no arguments
 pub fn print_concise_help() {
     let term = Term::stdout();
     let demo_mode = is_demo_mode();
 
     // Header
-    let _ = term.write_line(&format!("ana {VERSION}"));
-    let tagline = if demo_mode {
-        "Manage your toolchain, AI models, builds, and deployments from one place."
-    } else {
-        "The Anaconda command-line interface."
-    };
-    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
-    let _ = term.write_line("");
+    print_header(&term);
 
     if demo_mode {
         // Quick start section (demo only)
@@ -297,14 +297,7 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
     let demo_mode = is_demo_mode();
 
     // Header
-    let _ = term.write_line(&format!("ana {VERSION}"));
-    let tagline = if demo_mode {
-        "Manage your toolchain, AI models, builds, and deployments from one place."
-    } else {
-        "The Anaconda command-line interface."
-    };
-    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
-    let _ = term.write_line("");
+    print_header(&term);
 
     // Examples section (demo mode only)
     if demo_mode {
