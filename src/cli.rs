@@ -44,7 +44,8 @@ pub async fn execute() {
 
 /// Action to be performed, returned by parse()
 pub enum Action {
-    ShowHelp,
+    ShowConciseHelp,
+    ShowFullHelp,
     ShowSelfHelp,
     ShowAuthHelp,
     ShowVersion,
@@ -63,7 +64,8 @@ pub enum Action {
 impl Action {
     fn match_action_name(&self) -> &'static str {
         match self {
-            Action::ShowHelp => "help",
+            Action::ShowConciseHelp => "help.concise",
+            Action::ShowFullHelp => "help.full",
             Action::ShowSelfHelp => "self.help",
             Action::ShowAuthHelp => "auth.help",
             Action::ShowVersion => "version",
@@ -107,8 +109,12 @@ impl Action {
 
     async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
-            Action::ShowHelp => {
-                print_main_help();
+            Action::ShowConciseHelp => {
+                print_concise_help();
+                Ok(())
+            }
+            Action::ShowFullHelp => {
+                print_full_help();
                 Ok(())
             }
             Action::ShowSelfHelp => {
@@ -154,7 +160,7 @@ impl Action {
 pub fn parse() -> Action {
     match Cli::try_parse() {
         Ok(cli) => match cli.command {
-            None => Action::ShowHelp,
+            None => Action::ShowConciseHelp,
             Some(Commands::Bootstrap) => Action::Bootstrap,
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
@@ -187,7 +193,7 @@ pub fn parse() -> Action {
 
 fn handle_parse_error(e: clap::Error) -> Action {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        return Action::ShowHelp;
+        return Action::ShowFullHelp;
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return Action::ShowVersion;
@@ -211,56 +217,193 @@ fn handle_parse_error(e: clap::Error) -> Action {
     e.exit();
 }
 
-pub fn print_main_help() {
-    // Green color: #22C55E (Tailwind green-500)
-    let section_style = Style::new().color256(78).bold();
+/// Styles for help output matching UX design
+struct HelpStyles {
+    section: Style,   // #3fb950 - green headers
+    command: Style,   // #79c0ff - blue command names
+    desc: Style,      // #8b949e - gray descriptions
+    dim: Style,       // #6e7681 - dim gray for comments/hints
+    error: Style,     // #f85149 - error red
+    warning: Style,   // #d29922 - warning yellow
+}
 
+impl HelpStyles {
+    fn new() -> Self {
+        Self {
+            section: Style::new().color256(77).bold(),
+            command: Style::new().color256(117),
+            desc: Style::new().color256(245),
+            dim: Style::new().color256(242),
+            error: Style::new().color256(203),
+            warning: Style::new().color256(178),
+        }
+    }
+}
+
+/// Print a command row: "  command      description"
+fn print_command_row(term: &Term, styles: &HelpStyles, name: &str, desc: &str) {
+    let styled_name = styles.command.apply_to(name);
+    let styled_desc = styles.desc.apply_to(desc);
+    let _ = term.write_line(&format!("  {styled_name:<20} {styled_desc}"));
+}
+
+/// Print a section header
+fn print_section(term: &Term, styles: &HelpStyles, name: &str) {
+    let _ = term.write_line(&styles.section.apply_to(name).to_string());
+}
+
+/// Print the examples/quick-start code block
+fn print_examples_block(term: &Term, styles: &HelpStyles, examples: &[(&str, &str)]) {
+    for (comment, command) in examples {
+        let _ = term.write_line(&format!("    {}", styles.dim.apply_to(format!("# {comment}"))));
+        let _ = term.write_line(&format!("    {command}"));
+    }
+}
+
+/// Concise help shown when running `ana` with no arguments
+pub fn print_concise_help() {
+    let styles = HelpStyles::new();
     let term = Term::stdout();
 
-    // Get top-level clap command for introspection
-    let cmd = Cli::command();
+    // Header
+    let _ = term.write_line(&format!("ana {VERSION}"));
+    let _ = term.write_line(&styles.desc.apply_to("Manage your toolchain, AI models, builds, and deployments from one place.").to_string());
+    let _ = term.write_line("");
 
-    // Build subcommand lookup: name -> description
+    // Quick start section
+    print_section(&term, &styles, "QUICK START");
+    print_examples_block(&term, &styles, &[
+        ("set up your full toolchain", "ana install all"),
+        ("launch jupyter", "ana jupyter"),
+        ("build and deploy your app", "ana build && ana deploy --target snowflake"),
+    ]);
+    let _ = term.write_line("");
+
+    // Common commands section
+    print_section(&term, &styles, "COMMON COMMANDS");
+    print_command_row(&term, &styles, "install", "Install a tool -- conda, pixi, uv, pip, Jupyter, Desktop");
+    print_command_row(&term, &styles, "jupyter", "Launch a pre-configured Jupyter instance");
+    print_command_row(&term, &styles, "model", "Discover, pull, and manage AI models");
+    print_command_row(&term, &styles, "build", "Build containers, packages, or PyScript apps");
+    print_command_row(&term, &styles, "deploy", "Deploy to SageMaker, Snowflake, Databricks, and more");
+    let _ = term.write_line("");
+
+    // Footer
+    let run_help = format!("Run {} for the full command list", styles.command.apply_to("ana --help"));
+    let docs_link = styles.section.apply_to("-> docs.anaconda.com");
+    let _ = term.write_line(&styles.dim.apply_to(run_help).to_string());
+    let _ = term.write_line(&docs_link.to_string());
+}
+
+/// Full help shown when running `ana --help`
+pub fn print_full_help() {
+    let styles = HelpStyles::new();
+    let term = Term::stdout();
+
+    // Get clap command for introspection
+    let cmd = Cli::command();
     let subcommands: HashMap<&str, String> = cmd
         .get_subcommands()
-        .map(|s| {
-            (
-                s.get_name(),
-                s.get_about().map(|a| a.to_string()).unwrap_or_default(),
-            )
-        })
+        .map(|s| (s.get_name(), s.get_about().map(|a| a.to_string()).unwrap_or_default()))
         .collect();
 
-    // Define sections with their commands
-    let sections: &[(&str, &[&str])] = &[
-        ("ACCOUNT", &["login", "logout", "whoami", "auth"]),
-        ("PACKAGES", &["org", "repo"]),
-        ("SELF", &["config", "self"]),
-    ];
+    // Helper to get description or fallback
+    let desc = |name: &str, fallback: &str| -> String {
+        subcommands.get(name).map(|s| s.as_str()).unwrap_or(fallback).to_string()
+    };
 
-    // Main header
+    // Header
     let _ = term.write_line(&format!("ana {VERSION}"));
-    let _ = term.write_line("");
-    let _ = term.write_line("Usage: ana [command] [options]");
+    let _ = term.write_line(&styles.desc.apply_to("Manage your toolchain, AI models, builds, and deployments from one place.").to_string());
     let _ = term.write_line("");
 
-    // Print each section
-    for (section_name, commands) in sections {
-        let _ = term.write_line(&section_style.apply_to(*section_name).to_string());
-        for cmd_name in *commands {
-            let description = subcommands
-                .get(cmd_name)
-                .map(|s| s.as_str())
-                .unwrap_or("(coming soon)");
-            let _ = term.write_line(&format!("  {cmd_name:<12} {description}"));
-        }
-        let _ = term.write_line("");
-    }
+    // Examples section
+    print_section(&term, &styles, "EXAMPLES");
+    print_examples_block(&term, &styles, &[
+        ("set up your full toolchain", "ana install all"),
+        ("search for and download a package", "ana search numpy && ana download numpy"),
+        ("browse and pull an AI model", "ana model search llama"),
+        ("build and deploy your app", "ana build && ana deploy --target snowflake"),
+    ]);
+    let _ = term.write_line("");
 
-    // Options section - standard clap flags (not exposed via get_arguments)
-    let _ = term.write_line(&section_style.apply_to("OPTIONS").to_string());
-    let _ = term.write_line("  -V, --version  Print version");
-    let _ = term.write_line("  -h, --help     Print help");
+    // Toolchain section
+    print_section(&term, &styles, "TOOLCHAIN");
+    print_command_row(&term, &styles, "install", &desc("install", "Install a tool -- conda, pixi, uv, pip, Jupyter, or Anaconda Desktop"));
+    print_command_row(&term, &styles, "update", &desc("update", "Update one or all installed tools"));
+    print_command_row(&term, &styles, "configure", &desc("configure", "Apply or change settings for your tools"));
+    print_command_row(&term, &styles, "uninstall", &desc("uninstall", "Remove an installed tool"));
+    print_command_row(&term, &styles, "tools", &desc("tools", "List what's installed and at which version"));
+    print_command_row(&term, &styles, "config", &desc("config", "Show or edit current ana configuration"));
+    print_command_row(&term, &styles, "self", &desc("self", "Manage the ana installation itself"));
+    let _ = term.write_line("");
+
+    // Develop section
+    print_section(&term, &styles, "DEVELOP");
+    print_command_row(&term, &styles, "jupyter", &desc("jupyter", "Launch a pre-configured Jupyter instance"));
+    print_command_row(&term, &styles, "model", &desc("model", "Discover, pull, and manage AI models from Anaconda's vetted catalog"));
+    print_command_row(&term, &styles, "build", &desc("build", "Build containers, packages, or PyScript apps -- includes signing and CVE scanning"));
+    print_command_row(&term, &styles, "deploy", &desc("deploy", "Deploy to SageMaker, Snowflake, Databricks, Vertex AI, or Azure ML"));
+    let _ = term.write_line("");
+
+    // Packages section
+    print_section(&term, &styles, "PACKAGES");
+    print_command_row(&term, &styles, "search", &desc("search", "Search for packages in your Anaconda repository"));
+    print_command_row(&term, &styles, "show", &desc("show", "Show information about a package or object"));
+    print_command_row(&term, &styles, "download", &desc("download", "Download packages from your Anaconda repository"));
+    print_command_row(&term, &styles, "upload", &desc("upload", "Upload packages to your Anaconda repository"));
+    print_command_row(&term, &styles, "remove", &desc("remove", "Remove a package or object from your repository"));
+    let _ = term.write_line(&styles.dim.apply_to("  advanced").to_string());
+    print_command_row(&term, &styles, "copy", &desc("copy", "Copy packages from one account to another"));
+    print_command_row(&term, &styles, "move", &desc("move", "Move packages between labels"));
+    print_command_row(&term, &styles, "label", &desc("label", "Manage your Anaconda repository channels"));
+    print_command_row(&term, &styles, "package", &desc("package", "Anaconda repository package utilities"));
+    print_command_row(&term, &styles, "repo", &desc("repo", "Repository operations: channel, copy, mirror, move, search, upload"));
+    let _ = term.write_line("");
+
+    // Account section
+    print_section(&term, &styles, "ACCOUNT");
+    print_command_row(&term, &styles, "login / logout", &desc("login", "Connect or disconnect from the Anaconda platform"));
+    print_command_row(&term, &styles, "whoami", &desc("whoami", "Show your current logged-in account"));
+    print_command_row(&term, &styles, "auth", &desc("auth", "Manage your Anaconda authentication"));
+    print_command_row(&term, &styles, "org", &desc("org", "Interact with anaconda.org"));
+    print_command_row(&term, &styles, "sites", &desc("sites", "Manage your Anaconda site configuration"));
+    print_command_row(&term, &styles, "token", &desc("token", "Manage your Anaconda repo tokens"));
+    let _ = term.write_line("");
+
+    // Global options section
+    print_section(&term, &styles, "GLOBAL OPTIONS");
+    let _ = term.write_line(&format!("  {}  {}",
+        styles.command.apply_to("--at <site>".to_string() + &" ".repeat(11)),
+        styles.desc.apply_to("Select configured site by name or domain")));
+    let _ = term.write_line(&format!("  {}  {}",
+        styles.command.apply_to("-v, --verbose".to_string() + &" ".repeat(7)),
+        styles.desc.apply_to("Print debug information to the console")));
+    let _ = term.write_line(&format!("  {}  {}",
+        styles.command.apply_to("-V, --version".to_string() + &" ".repeat(7)),
+        styles.desc.apply_to("Show the ana version and exit")));
+    let _ = term.write_line(&format!("  {}  {}",
+        styles.command.apply_to("-h, --help".to_string() + &" ".repeat(10)),
+        styles.desc.apply_to("Show this message and exit")));
+    let _ = term.write_line("");
+
+    // Typo hint box
+    let _ = term.write_line(&styles.desc.apply_to("Typo? ana will suggest the closest command.").to_string());
+    let _ = term.write_line(&format!("    {} {}", styles.dim.apply_to("# example"), ""));
+    let _ = term.write_line(&format!("    {} {}",
+        styles.error.apply_to("error:"),
+        styles.desc.apply_to("unknown command \"instal\"")));
+    let _ = term.write_line(&format!("    {} {}",
+        styles.warning.apply_to("tip:"),
+        styles.desc.apply_to(format!("did you mean {}?", styles.command.apply_to("install")))));
+    let _ = term.write_line("");
+
+    // Footer
+    let run_cmd = format!("Run {} or {} for more",
+        styles.command.apply_to("ana <command> --help"),
+        styles.command.apply_to("ana help <command>"));
+    let _ = term.write_line(&styles.dim.apply_to(run_cmd).to_string());
+    let _ = term.write_line(&styles.section.apply_to("-> docs.anaconda.com").to_string());
 }
 
 pub fn print_self_help() {
