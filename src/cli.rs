@@ -43,8 +43,7 @@ pub async fn execute() {
 
 /// Action to be performed, returned by parse()
 pub enum Action {
-    ShowConciseHelp,
-    ShowFullHelp,
+    ShowHelp,
     ShowSelfHelp,
     ShowAuthHelp,
     ShowVersion,
@@ -63,8 +62,7 @@ pub enum Action {
 impl Action {
     fn match_action_name(&self) -> &'static str {
         match self {
-            Action::ShowConciseHelp => "help.concise",
-            Action::ShowFullHelp => "help.full",
+            Action::ShowHelp => "help",
             Action::ShowSelfHelp => "self.help",
             Action::ShowAuthHelp => "auth.help",
             Action::ShowVersion => "version",
@@ -108,13 +106,9 @@ impl Action {
 
     async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
-            Action::ShowConciseHelp => {
-                help::print_concise_help();
-                Ok(())
-            }
-            Action::ShowFullHelp => {
+            Action::ShowHelp => {
                 let subcommands = get_subcommand_descriptions();
-                help::print_full_help(subcommands);
+                help::print_help(subcommands);
                 Ok(())
             }
             Action::ShowSelfHelp => {
@@ -160,7 +154,7 @@ impl Action {
 pub fn parse() -> Action {
     match Cli::try_parse() {
         Ok(cli) => match cli.command {
-            None => Action::ShowConciseHelp,
+            None => Action::ShowHelp,
             Some(Commands::Bootstrap) => Action::Bootstrap,
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
@@ -193,7 +187,7 @@ pub fn parse() -> Action {
 
 fn handle_parse_error(e: clap::Error) -> Action {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        return Action::ShowFullHelp;
+        return Action::ShowHelp;
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return Action::ShowVersion;

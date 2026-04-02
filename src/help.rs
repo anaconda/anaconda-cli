@@ -114,22 +114,7 @@ fn print_examples_block(term: &Term, header: &str, examples: &[(&str, &str)], de
     let _ = term.write_line("");
 }
 
-// Common commands for concise help (demo mode)
-const COMMON_COMMANDS: &[HelpCommand] = &[
-    HelpCommand::proto(
-        "install",
-        "Install a tool -- conda, pixi, uv, pip, Jupyter, Desktop",
-    ),
-    HelpCommand::proto("jupyter", "Launch a pre-configured Jupyter instance"),
-    HelpCommand::proto("model", "Discover, pull, and manage AI models"),
-    HelpCommand::proto("build", "Build containers, packages, or PyScript apps"),
-    HelpCommand::proto(
-        "deploy",
-        "Deploy to SageMaker, Snowflake, Databricks, and more",
-    ),
-];
-
-// All sections for full help
+// Help sections with commands
 const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
@@ -213,88 +198,8 @@ fn print_header(term: &Term) {
     let _ = term.write_line("");
 }
 
-/// Concise help shown when running `ana` with no arguments
-pub fn print_concise_help() {
-    let term = Term::stdout();
-    let demo_mode = is_demo_mode();
-
-    // Header
-    print_header(&term);
-
-    if demo_mode {
-        print_examples_block(
-            &term,
-            "QUICK START",
-            &[
-                ("set up your full toolchain", "ana install all"),
-                ("launch jupyter", "ana jupyter"),
-                (
-                    "build and deploy your app",
-                    "ana build && ana deploy --target snowflake",
-                ),
-            ],
-            demo_mode,
-        );
-
-        // Common commands section (demo only)
-        print_section(&term, "COMMON COMMANDS");
-        for cmd in COMMON_COMMANDS {
-            print_command_row(&term, cmd.name, cmd.desc);
-        }
-        let _ = term.write_line("");
-    } else {
-        // Real commands only
-        print_section(&term, "COMMANDS");
-        print_command_row(&term, "login", "Log in to Anaconda");
-        print_command_row(&term, "logout", "Log out from Anaconda");
-        print_command_row(
-            &term,
-            "whoami",
-            "Display information about the logged-in user",
-        );
-        print_command_row(&term, "auth", "Authentication commands");
-        print_command_row(&term, "config", "Show current configuration");
-        print_command_row(&term, "self", "Manage the ana installation");
-        let _ = term.write_line("");
-
-        print_section(&term, "OPTIONS");
-        let _ = term.write_line(&format!(
-            "  {}  {}",
-            HelpStyle::Command
-                .style()
-                .apply_to("-V, --version".to_string() + &" ".repeat(7)),
-            HelpStyle::Desc
-                .style()
-                .apply_to("Show the ana version and exit")
-        ));
-        let _ = term.write_line(&format!(
-            "  {}  {}",
-            HelpStyle::Command
-                .style()
-                .apply_to("-h, --help".to_string() + &" ".repeat(10)),
-            HelpStyle::Desc
-                .style()
-                .apply_to("Show this message and exit")
-        ));
-        let _ = term.write_line("");
-    }
-
-    // Footer
-    let run_help = format!(
-        "Run {} for the full command list",
-        HelpStyle::Command.style().apply_to("ana --help")
-    );
-    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(run_help).to_string());
-    let _ = term.write_line(
-        &HelpStyle::Section
-            .style()
-            .apply_to("-> docs.anaconda.com")
-            .to_string(),
-    );
-}
-
-/// Full help shown when running `ana --help`
-pub fn print_full_help(subcommands: HashMap<String, String>) {
+/// Main help output
+pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
     let demo_mode = is_demo_mode();
 
