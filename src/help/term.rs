@@ -1,79 +1,10 @@
 use std::collections::HashMap;
 
-use console::{Color, Style, Term};
+use console::Term;
 
+use super::data::{is_demo_mode, HELP_SECTIONS};
+use super::styles::HelpStyle;
 use crate::VERSION;
-
-/// Convert a hex color string to a console Color
-fn hex_color(hex: &str) -> Color {
-    let hex = hex.trim_start_matches('#');
-    let r = u8::from_str_radix(&hex[0..2], 16).unwrap();
-    let g = u8::from_str_radix(&hex[2..4], 16).unwrap();
-    let b = u8::from_str_radix(&hex[4..6], 16).unwrap();
-    Color::TrueColor(r, g, b)
-}
-
-/// Check if demo mode is enabled via ANA_DEMO=true
-fn is_demo_mode() -> bool {
-    std::env::var("ANA_DEMO")
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(false)
-}
-
-/// Styles for help output matching UX design
-enum HelpStyle {
-    Section, // green headers
-    Command, // blue command names
-    Desc,    // gray descriptions
-    Dim,     // dim gray for comments/hints
-    Error,   // error red
-    Warning, // warning yellow
-}
-
-impl HelpStyle {
-    fn style(&self) -> Style {
-        match self {
-            Self::Section => Style::new().fg(hex_color("#3fb950")).bold(),
-            Self::Command => Style::new().fg(hex_color("#79c0ff")),
-            Self::Desc => Style::new().fg(hex_color("#8b949e")),
-            Self::Dim => Style::new().fg(hex_color("#6e7681")),
-            Self::Error => Style::new().fg(hex_color("#f85149")),
-            Self::Warning => Style::new().fg(hex_color("#d29922")),
-        }
-    }
-}
-
-/// Command definition for help output
-struct HelpCommand {
-    name: &'static str,
-    desc: &'static str,
-    prototype: bool,
-}
-
-impl HelpCommand {
-    const fn real(name: &'static str, desc: &'static str) -> Self {
-        Self {
-            name,
-            desc,
-            prototype: false,
-        }
-    }
-
-    const fn proto(name: &'static str, desc: &'static str) -> Self {
-        Self {
-            name,
-            desc,
-            prototype: true,
-        }
-    }
-}
-
-/// Section definition for help output
-struct HelpSection {
-    name: &'static str,
-    commands: &'static [HelpCommand],
-    advanced_start: Option<usize>, // Index where "advanced" subsection starts
-}
 
 /// Print a command row: "  command      description"
 fn print_command_row(term: &Term, name: &str, desc: &str) {
@@ -89,7 +20,7 @@ fn print_section(term: &Term, name: &str) {
 
 /// Print the examples/quick-start code block
 fn print_examples_block(term: &Term, header: &str, examples: &[(&str, &str)], demo_mode: bool) {
-    print_section(&term, &header);
+    print_section(term, header);
     for (comment, command) in examples {
         // Skip demo examples in non-demo mode
         if !demo_mode
@@ -109,87 +40,8 @@ fn print_examples_block(term: &Term, header: &str, examples: &[(&str, &str)], de
         ));
         let _ = term.write_line(&format!("    {command}"));
     }
-
-    // Newline after example block
     let _ = term.write_line("");
 }
-
-// Help sections with commands
-const HELP_SECTIONS: &[HelpSection] = &[
-    HelpSection {
-        name: "TOOLCHAIN",
-        commands: &[
-            HelpCommand::proto(
-                "install",
-                "Install a tool -- conda, pixi, uv, pip, Jupyter, or Anaconda Desktop",
-            ),
-            HelpCommand::proto("update", "Update one or all installed tools"),
-            HelpCommand::proto("configure", "Apply or change settings for your tools"),
-            HelpCommand::proto("uninstall", "Remove an installed tool"),
-            HelpCommand::proto("tools", "List what's installed and at which version"),
-            HelpCommand::real("config", "Show or edit current ana configuration"),
-            HelpCommand::real("self", "Manage the ana installation itself"),
-        ],
-        advanced_start: None,
-    },
-    HelpSection {
-        name: "DEVELOP",
-        commands: &[
-            HelpCommand::proto("jupyter", "Launch a pre-configured Jupyter instance"),
-            HelpCommand::proto(
-                "model",
-                "Discover, pull, and manage AI models from Anaconda's vetted catalog",
-            ),
-            HelpCommand::proto(
-                "build",
-                "Build containers, packages, or PyScript apps -- includes signing and CVE scanning",
-            ),
-            HelpCommand::proto(
-                "deploy",
-                "Deploy to SageMaker, Snowflake, Databricks, Vertex AI, or Azure ML",
-            ),
-        ],
-        advanced_start: None,
-    },
-    HelpSection {
-        name: "PACKAGES",
-        commands: &[
-            HelpCommand::proto("search", "Search for packages in your Anaconda repository"),
-            HelpCommand::proto("show", "Show information about a package or object"),
-            HelpCommand::proto(
-                "download",
-                "Download packages from your Anaconda repository",
-            ),
-            HelpCommand::proto("upload", "Upload packages to your Anaconda repository"),
-            HelpCommand::proto("remove", "Remove a package or object from your repository"),
-            // Advanced subsection starts here
-            HelpCommand::proto("copy", "Copy packages from one account to another"),
-            HelpCommand::proto("move", "Move packages between labels"),
-            HelpCommand::proto("label", "Manage your Anaconda repository channels"),
-            HelpCommand::proto("package", "Anaconda repository package utilities"),
-            HelpCommand::proto(
-                "repo",
-                "Repository operations: channel, copy, mirror, move, search, upload",
-            ),
-        ],
-        advanced_start: Some(5),
-    },
-    HelpSection {
-        name: "ACCOUNT",
-        commands: &[
-            HelpCommand::real(
-                "login / logout",
-                "Connect or disconnect from the Anaconda platform",
-            ),
-            HelpCommand::real("whoami", "Show your current logged-in account"),
-            HelpCommand::real("auth", "Manage your Anaconda authentication"),
-            HelpCommand::proto("org", "Interact with anaconda.org"),
-            HelpCommand::proto("sites", "Manage your Anaconda site configuration"),
-            HelpCommand::proto("token", "Manage your Anaconda repo tokens"),
-        ],
-        advanced_start: None,
-    },
-];
 
 fn print_header(term: &Term) {
     let _ = term.write_line(&format!("ana {VERSION}"));
@@ -203,7 +55,6 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
     let demo_mode = is_demo_mode();
 
-    // Header
     print_header(&term);
 
     // Examples section (demo mode only)
@@ -229,7 +80,6 @@ pub fn print_help(subcommands: HashMap<String, String>) {
 
     // Print each section
     for section in HELP_SECTIONS {
-        // Filter commands based on demo mode
         let visible_commands: Vec<_> = section
             .commands
             .iter()
@@ -237,7 +87,6 @@ pub fn print_help(subcommands: HashMap<String, String>) {
             .filter(|(_, cmd)| demo_mode || !cmd.prototype)
             .collect();
 
-        // Skip empty sections
         if visible_commands.is_empty() {
             continue;
         }
@@ -245,7 +94,6 @@ pub fn print_help(subcommands: HashMap<String, String>) {
         print_section(&term, section.name);
 
         for (idx, cmd) in visible_commands {
-            // Print "advanced" label if we've reached that point
             if let Some(adv_start) = section.advanced_start {
                 if idx == adv_start && demo_mode {
                     let _ =
@@ -253,7 +101,6 @@ pub fn print_help(subcommands: HashMap<String, String>) {
                 }
             }
 
-            // Get description from clap if available, otherwise use fallback
             let base_name = cmd.name.split(" / ").next().unwrap_or(cmd.name);
             let desc = subcommands
                 .get(base_name)
@@ -264,7 +111,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
         let _ = term.write_line("");
     }
 
-    // Global options section
+    // Options section
     print_section(
         &term,
         if demo_mode {
@@ -307,9 +154,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
         HelpStyle::Command
             .style()
             .apply_to("-h, --help".to_string() + &" ".repeat(10)),
-        HelpStyle::Desc
-            .style()
-            .apply_to("Show this message and exit")
+        HelpStyle::Desc.style().apply_to("Show this message and exit")
     ));
     let _ = term.write_line("");
 
@@ -391,16 +236,8 @@ pub fn print_auth_help() {
     let _ = term.write_line("");
 
     print_section(&term, "COMMANDS");
-    print_command_row(
-        &term,
-        "api-key",
-        "Display the API key for the logged-in user",
-    );
+    print_command_row(&term, "api-key", "Display the API key for the logged-in user");
     print_command_row(&term, "login", "Log in to Anaconda");
     print_command_row(&term, "logout", "Log out from Anaconda");
-    print_command_row(
-        &term,
-        "whoami",
-        "Display information about the logged-in user",
-    );
+    print_command_row(&term, "whoami", "Display information about the logged-in user");
 }
