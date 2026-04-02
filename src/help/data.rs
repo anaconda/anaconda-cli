@@ -47,6 +47,18 @@ pub(super) struct HelpSection {
 ///                 hard-coded mapping.
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
+        name: "ACCOUNT",
+        commands: &[
+            HelpCommand::real("login"),
+            HelpCommand::real("logout"),
+            HelpCommand::real("whoami"),
+            HelpCommand::real("auth"),
+            HelpCommand::proto("org", "Interact with anaconda.org"),
+            HelpCommand::proto("sites", "Manage your Anaconda site configuration"),
+            HelpCommand::proto("token", "Manage your Anaconda repo tokens"),
+        ],
+    },
+    HelpSection {
         name: "TOOLCHAIN",
         commands: &[
             HelpCommand::real("config"),
@@ -98,18 +110,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
                 "repo",
                 "Repository operations: channel, copy, mirror, move, search, upload",
             ),
-        ],
-    },
-    HelpSection {
-        name: "ACCOUNT",
-        commands: &[
-            HelpCommand::real("login"),
-            HelpCommand::real("logout"),
-            HelpCommand::real("whoami"),
-            HelpCommand::real("auth"),
-            HelpCommand::proto("org", "Interact with anaconda.org"),
-            HelpCommand::proto("sites", "Manage your Anaconda site configuration"),
-            HelpCommand::proto("token", "Manage your Anaconda repo tokens"),
         ],
     },
 ];
