@@ -130,6 +130,20 @@ fn print_options_block(term: &Term, demo_mode: bool) {
     let _ = term.write_line("");
 }
 
+fn print_footer(term: &Term) {
+    let run_cmd = format!(
+        "Run {} for more",
+        HelpStyle::Command.style().apply_to("ana <command> --help"),
+    );
+    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(run_cmd).to_string());
+    let _ = term.write_line(
+        &HelpStyle::Section
+            .style()
+            .apply_to("-> docs.anaconda.com")
+            .to_string(),
+    );
+}
+
 /// Main help output
 pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
@@ -155,18 +169,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     }
 
     // Footer
-    let run_cmd = format!(
-        "Run {} or {} for more",
-        HelpStyle::Command.style().apply_to("ana <command> --help"),
-        HelpStyle::Command.style().apply_to("ana help <command>")
-    );
-    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(run_cmd).to_string());
-    let _ = term.write_line(
-        &HelpStyle::Section
-            .style()
-            .apply_to("-> docs.anaconda.com")
-            .to_string(),
-    );
+    print_footer(&term);
 }
 
 /// Help for `ana self` subcommand
