@@ -94,45 +94,21 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     }
 
     // Options section
-    print_section(&term, "OPTIONS");
+    print_section(&term, "Options");
     if demo_mode {
-        let _ = term.write_line(&format!(
-            "  {}  {}",
-            HelpStyle::Command
-                .style()
-                .apply_to("--at <site>".to_string() + &" ".repeat(11)),
-            HelpStyle::Desc
-                .style()
-                .apply_to("Select configured site by name or domain")
-        ));
-        let _ = term.write_line(&format!(
-            "  {}  {}",
-            HelpStyle::Command
-                .style()
-                .apply_to("-v, --verbose".to_string() + &" ".repeat(7)),
-            HelpStyle::Desc
-                .style()
-                .apply_to("Print debug information to the console")
-        ));
+        print_command_row(
+            &term,
+            "--at <site>",
+            "Select configured site by name or domain",
+        );
+        print_command_row(
+            &term,
+            "-v, --verbose",
+            "Print debug information to the console",
+        );
     }
-    let _ = term.write_line(&format!(
-        "  {}  {}",
-        HelpStyle::Command
-            .style()
-            .apply_to("-V, --version".to_string() + &" ".repeat(7)),
-        HelpStyle::Desc
-            .style()
-            .apply_to("Show the ana version and exit")
-    ));
-    let _ = term.write_line(&format!(
-        "  {}  {}",
-        HelpStyle::Command
-            .style()
-            .apply_to("-h, --help".to_string() + &" ".repeat(10)),
-        HelpStyle::Desc
-            .style()
-            .apply_to("Show this message and exit")
-    ));
+    print_command_row(&term, "-V, --version", "Show the ana version and exit");
+    print_command_row(&term, "-h, --help", "Show this message and exit");
     let _ = term.write_line("");
 
     // Typo hint box (demo mode only)
