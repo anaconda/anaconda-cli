@@ -88,7 +88,8 @@ fn print_section(term: &Term, name: &str) {
 }
 
 /// Print the examples/quick-start code block
-fn print_examples_block(term: &Term, examples: &[(&str, &str)], demo_mode: bool) {
+fn print_examples_block(term: &Term, header: &str, examples: &[(&str, &str)], demo_mode: bool) {
+    print_section(&term, &header);
     for (comment, command) in examples {
         // Skip demo examples in non-demo mode
         if !demo_mode
@@ -108,6 +109,9 @@ fn print_examples_block(term: &Term, examples: &[(&str, &str)], demo_mode: bool)
         ));
         let _ = term.write_line(&format!("    {command}"));
     }
+
+    // Newline after example block
+    let _ = term.write_line("");
 }
 
 // Common commands for concise help (demo mode)
@@ -218,10 +222,9 @@ pub fn print_concise_help() {
     print_header(&term);
 
     if demo_mode {
-        // Quick start section (demo only)
-        print_section(&term, "QUICK START");
         print_examples_block(
             &term,
+            "QUICK START",
             &[
                 ("set up your full toolchain", "ana install all"),
                 ("launch jupyter", "ana jupyter"),
@@ -232,7 +235,6 @@ pub fn print_concise_help() {
             ],
             demo_mode,
         );
-        let _ = term.write_line("");
 
         // Common commands section (demo only)
         print_section(&term, "COMMON COMMANDS");
@@ -301,9 +303,9 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
 
     // Examples section (demo mode only)
     if demo_mode {
-        print_section(&term, "EXAMPLES");
         print_examples_block(
             &term,
+            "EXAMPLES",
             &[
                 ("set up your full toolchain", "ana install all"),
                 (
@@ -318,7 +320,6 @@ pub fn print_full_help(subcommands: HashMap<String, String>) {
             ],
             demo_mode,
         );
-        let _ = term.write_line("");
     }
 
     // Print each section
