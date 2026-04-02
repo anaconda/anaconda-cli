@@ -131,11 +131,12 @@ fn print_options_block(term: &Term, demo_mode: bool) {
 }
 
 fn print_footer(term: &Term) {
-    let run_cmd = format!(
-        "Run {} for more",
+    let _ = term.write_line(&format!(
+        "{} {} {}",
+        HelpStyle::Dim.style().apply_to("Run"),
         HelpStyle::Command.style().apply_to("ana <command> --help"),
-    );
-    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(run_cmd).to_string());
+        HelpStyle::Dim.style().apply_to("for more"),
+    ));
     let _ = term.write_line(
         &HelpStyle::Section
             .style()
