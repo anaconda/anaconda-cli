@@ -164,17 +164,14 @@ jobs:
         run: |
           VERSION="${{ needs.release-info.outputs.version }}"
 
-          # Check if release exists (draft or published)
+          # Check if release exists (draft, prerelease, or published)
           if gh release view "$VERSION" &>/dev/null; then
             echo "Uploading assets to existing release $VERSION"
             gh release upload "$VERSION" release-assets/* --clobber
 
-            # If it's a draft, publish it now
-            DRAFT_STATUS=$(gh release view "$VERSION" --json isDraft -q '.isDraft')
-            if [[ "$DRAFT_STATUS" == "true" ]]; then
-              echo "Publishing draft release $VERSION"
-              gh release edit "$VERSION" --draft=false
-            fi
+            # Publish as full release (remove draft/prerelease flags)
+            echo "Publishing release $VERSION"
+            gh release edit "$VERSION" --draft=false --prerelease=false
           else
             echo "Creating new release $VERSION"
             gh release create "$VERSION" \
