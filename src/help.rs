@@ -1,8 +1,17 @@
 use std::collections::HashMap;
 
-use console::{Style, Term};
+use console::{Color, Style, Term};
 
 use crate::VERSION;
+
+/// Convert a hex color string to a console Color
+fn hex_color(hex: &str) -> Color {
+    let hex = hex.trim_start_matches('#');
+    let r = u8::from_str_radix(&hex[0..2], 16).unwrap();
+    let g = u8::from_str_radix(&hex[2..4], 16).unwrap();
+    let b = u8::from_str_radix(&hex[4..6], 16).unwrap();
+    Color::TrueColor(r, g, b)
+}
 
 /// Check if demo mode is enabled via ANA_DEMO=true
 fn is_demo_mode() -> bool {
@@ -24,12 +33,12 @@ struct HelpStyles {
 impl HelpStyles {
     fn new() -> Self {
         Self {
-            section: Style::new().color256(77).bold(),
-            command: Style::new().color256(117),
-            desc: Style::new().color256(245),
-            dim: Style::new().color256(242),
-            error: Style::new().color256(203),
-            warning: Style::new().color256(178),
+            section: Style::new().fg(hex_color("#3fb950")).bold(),
+            command: Style::new().fg(hex_color("#79c0ff")),
+            desc: Style::new().fg(hex_color("#8b949e")),
+            dim: Style::new().fg(hex_color("#6e7681")),
+            error: Style::new().fg(hex_color("#f85149")),
+            warning: Style::new().fg(hex_color("#d29922")),
         }
     }
 }
