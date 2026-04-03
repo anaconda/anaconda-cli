@@ -12,9 +12,11 @@ use crate::config::{self, Config};
 use crate::update;
 
 pub fn execute() {
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+    // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        tracing_subscriber::EnvFilter::new("anaconda_otel_rs=off,opentelemetry=off,reqwest=off")
+    });
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     config::setup_telemetry();
 
