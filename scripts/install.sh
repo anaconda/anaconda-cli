@@ -47,6 +47,7 @@ Options:
   -v, --version VERSION    Version to install (default: ${DEFAULT_VERSION})
       --no-verify-checksum Disable checksum validation after download (default: false)
       --no-path-update     Skip shell profile modification
+      --no-bootstrap       Skip running 'ana bootstrap' after installation
   -t, --token TOKEN        GitHub token for private repo access
   -f, --force              Overwrite existing installation without prompting
   -h, --help               Show this help message
@@ -56,6 +57,7 @@ Environment variables:
   ANA_VERSION              Same as --version
   ANA_VERIFY_CHECKSUM      Set to "false" to skip checksum verification
   ANA_NO_PATH_UPDATE       Set to non-empty to skip PATH update
+  ANA_BOOTSTRAP            Set to "false" to skip bootstrap
   ANA_FORCE_INSTALL        Set to non-empty to overwrite without prompting
   GITHUB_TOKEN             Same as --token
 
@@ -99,6 +101,10 @@ parse_args() {
                 ;;
             --no-path-update)
                 ANA_NO_PATH_UPDATE="1"
+                shift
+                ;;
+            --no-bootstrap)
+                ANA_BOOTSTRAP="false"
                 shift
                 ;;
             -f|--force)
@@ -175,6 +181,8 @@ main() {
     if [ -z "${ANA_NO_PATH_UPDATE:-}" ]; then
         update_shell_profile "$_install_dir"
     fi
+
+    run_bootstrap "$_install_dir"
 
     printf "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started.\n"
 }
@@ -365,7 +373,40 @@ install_binary() {
     info "Installed ana to %s" "$_dest"
 }
 
+run_bootstrap() {
+    local _install_dir="$1"
+    local _ana_bin="${_install_dir}/${BINARY_NAME}"
+    local _bootstrap="${ANA_BOOTSTRAP:-true}"
+
+    case "$_bootstrap" in
+        false|0)
+            info "Skipping bootstrap (disabled)"
+            return 0
+            ;;
+        true|1) ;;
+        *)
+            err "Invalid ANA_BOOTSTRAP value '%s'. Must be 'true', 'false', '1', or '0'." "$_bootstrap"
+            ;;
+    esac
+
+    info "Running ana bootstrap..."
+    if "$_ana_bin" bootstrap; then
+        info "Bootstrap completed successfully"
+    else
+        warn "Bootstrap failed. You can run 'ana bootstrap' manually later."
+    fi
+}
+
 update_shell_profile() {
+    local _dir="$1"
+    local _ana_bin_dir="$HOME/.ana/bin"
+
+    # Add both the install directory and ~/.ana/bin (for tool symlinks)
+    add_to_path "$_dir"
+    add_to_path "$_ana_bin_dir"
+}
+
+add_to_path() {
     local _dir="$1" _line
 
     # Already in $PATH
@@ -392,7 +433,6 @@ update_shell_profile() {
             return 0
             ;;
     esac
-    printf "\n"
 }
 
 append_line_if_missing() {

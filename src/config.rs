@@ -201,12 +201,9 @@ impl Config {
     }
 }
 
-/// Get the default keyring path (~/.ana/keyring).
+/// Get the default keyring path (~/.ana/keyring or $ANA_HOME/keyring).
 fn default_keyring_path() -> PathBuf {
-    dirs::home_dir()
-        .expect("Could not determine home directory")
-        .join(".ana")
-        .join("keyring")
+    crate::paths::ana_home().join("keyring")
 }
 
 /// Parse a boolean from a string value.

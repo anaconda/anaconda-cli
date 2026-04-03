@@ -1,0 +1,14 @@
+[workspace]
+name = "anaconda-cli"
+channels = [
+    "https://repo.anaconda.com/pkgs/main",
+    "anaconda-cloud",  # Fallback for packages not released to main
+]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[dependencies]
+python = ">=3.12,<3.14"
+anaconda-auth = "*"
+anaconda-ai = "*"
+anaconda-client = "*"
+anaconda-cli-base = "*"

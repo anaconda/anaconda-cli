@@ -176,9 +176,13 @@ jobs:
 
           # Update the 'latest' release to point to this version
           if gh release view latest &>/dev/null; then
+            echo "Removing existing 'latest' release, for replacement"
             gh release delete latest --yes
             git push origin :refs/tags/latest 2>/dev/null || true
           fi
+
+          # Delete local tag if it exists (from fetch-depth: 0)
+          git tag -d latest 2>/dev/null || true
 
           NOTES=$(cat <<EOF
           This release always points to the most recent build.
@@ -187,6 +191,7 @@ jobs:
           EOF
           )
 
+          echo "Publishing release 'latest'"
           gh release create latest \
             --title "Latest Release" \
             --prerelease \
