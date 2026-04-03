@@ -1,16 +1,26 @@
 use std::collections::HashMap;
-
+use std::env::consts::{ARCH, OS};
 use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
+use opentelemetry::Value;
 
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
+
+/// Build base telemetry attributes with system information.
+fn system_attrs() -> HashMap<String, Value> {
+    let mut attrs = HashMap::new();
+    attrs.insert("os".to_string(), OS.into());
+    attrs.insert("arch".to_string(), ARCH.into());
+    attrs.insert("version".to_string(), VERSION.into());
+    attrs
+}
 
 pub fn execute() {
     // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
@@ -72,7 +82,7 @@ impl Action {
     /// Execute the action with telemetry middleware
     pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
         let name = self.match_action_name();
-        let mut attrs = HashMap::new();
+        let mut attrs = system_attrs();
         attrs.insert("command".to_string(), name.into());
         increment_counter("cli_command_invoked", 1, attrs.clone());
 
