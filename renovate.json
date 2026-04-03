@@ -17,5 +17,8 @@
   ],
   "extends": [
     "local>anaconda/renovate-config"
+  ],
+  "gitIgnoredAuthors": [
+    "devops+anaconda-bot@anaconda.com"
   ]
 }

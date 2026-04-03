@@ -33,6 +33,10 @@ jobs:
         with:
           token: ${{ secrets.ANACONDA_BOT_TOKEN }}
 
+      - name: Configure git for private repos
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
         with:
@@ -43,31 +47,41 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Run pre-commit
+      - name: Run pre-commit and locks
+        id: updates
         run: |
-          pixi run pre-commit
-
-      ############################
-      # Checkout + commit + push when the previous pre-commit run step failed, as that indicates
-      # auto-fixes / formatting updates, but not outside pull-requests to avoid pushing commits without
-      # review to the main branch and also not for draft PRs to avoid pushing commits while the PR is
-      # still being worked on.
-      # Don't run pre-commit a second time after the commit, as that would mark the commit which triggered
-      # the workflow as green, which technically is not correct. A succeeding workflow run after commit + push
-      # will mark the PR as green, if everything is fine.
+          echo "::group::Rebuilding lockfiles and running pre-commit"
+          pixi lock
+          pixi run cargo-lock
+          pixi run pre-commit || :
+          echo "::endgroup::"
+          echo ""
+          if git status --porcelain | grep .; then
+            echo "::error::Changes detected:"
+            if git status --porcelain | grep Cargo.lock; then echo "- Cargo.lock"; fi
+            if git status --porcelain | grep pixi.lock; then echo "- pixi.lock"; fi
+            if git status --porcelain | grep -vE "(Cargo|pixi).lock"; then echo "- Pre-commit updates"; fi
+            echo "changed=1" >>$GITHUB_OUTPUT
+          else
+            echo "No changes detected!"
+          fi
 
       - name: Checkout the branch we're running on to enable a commit to it
-        if: ${{ failure() && github.event_name == 'pull_request' }}
+        if: steps.updates.outputs.changed == 1
         run: |
           git fetch origin refs/heads/${{ github.head_ref }}:refs/remotes/origin/${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
 
       - name: Commit linted files
-        if: ${{ failure() && github.event_name == 'pull_request' }}
+        if: steps.updates.outputs.changed == 1
         uses: EndBug/add-and-commit@290ea2c423ad77ca9c62ae0f5b224379612c0321 # v10.0.0
         with:
           message: 'chore(pre-commit): Linting'
           author_name: Anaconda Bot
           author_email: devops+anaconda-bot@anaconda.com
 
-      ############################
+      - name: Fail if changes occurred
+        if: steps.updates.outputs.changed == 1
+        run: |
+          echo "::error::Changes were committed. A new CI run will start."
+          exit 1
