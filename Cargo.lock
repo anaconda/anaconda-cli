@@ -61,7 +61,7 @@ dependencies = [
  "miette",
  "rattler",
  "rattler_cache",
- "rattler_conda_types 0.43.5",
+ "rattler_conda_types 0.44.0",
  "rattler_lock",
  "rattler_networking",
  "rattler_repodata_gateway",
