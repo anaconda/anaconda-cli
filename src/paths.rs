@@ -42,7 +42,6 @@ pub fn tool_prefix(name: &str) -> PathBuf {
     tools_dir().join(name)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

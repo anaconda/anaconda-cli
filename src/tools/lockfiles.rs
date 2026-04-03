@@ -13,9 +13,8 @@ struct Tool {
 const TOOLS: &[Tool] = &[Tool {
     name: "anaconda-cli",
     lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
-        binaries: &["anaconda"],
-    },
-];
+    binaries: &["anaconda"],
+}];
 
 fn find_tool(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|t| t.name == name)

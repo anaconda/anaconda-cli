@@ -12,8 +12,8 @@ use rattler::{
 use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
-use crate::paths;
 use super::lockfiles;
+use crate::paths;
 
 /// Global progress bar for installation feedback.
 static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock::new(|| {
@@ -26,8 +26,8 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
 pub async fn install_tool(name: &str) -> miette::Result<()> {
     let prefix = paths::tool_prefix(name);
 
-    let lock_content = lockfiles::content(name)
-        .ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+    let lock_content =
+        lockfiles::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = lockfiles::binaries(name).unwrap_or(&[]);
 

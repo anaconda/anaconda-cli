@@ -260,9 +260,18 @@ mod tests {
         save_api_key(&config_c, "key-for-c").unwrap();
 
         // Each config should only return its own key
-        assert_eq!(get_api_key(&config_a).unwrap(), Some("key-for-a".to_string()));
-        assert_eq!(get_api_key(&config_b).unwrap(), Some("key-for-b".to_string()));
-        assert_eq!(get_api_key(&config_c).unwrap(), Some("key-for-c".to_string()));
+        assert_eq!(
+            get_api_key(&config_a).unwrap(),
+            Some("key-for-a".to_string())
+        );
+        assert_eq!(
+            get_api_key(&config_b).unwrap(),
+            Some("key-for-b".to_string())
+        );
+        assert_eq!(
+            get_api_key(&config_c).unwrap(),
+            Some("key-for-c".to_string())
+        );
 
         // A domain with no key should return None
         let config_unknown = test_config_with_keyring(keyring_path.clone(), "unknown.com");
