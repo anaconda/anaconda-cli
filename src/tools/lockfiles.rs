@@ -10,11 +10,18 @@ struct Tool {
 }
 
 /// Embedded tool configurations.
-const TOOLS: &[Tool] = &[Tool {
-    name: "anaconda-cli",
-    lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
-    binaries: &["anaconda"],
-}];
+const TOOLS: &[Tool] = &[
+    Tool {
+        name: "anaconda-cli",
+        lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
+        binaries: &["anaconda"],
+    },
+    Tool {
+        name: "pixi",
+        lockfile: include_str!("../../lockfiles/pixi/pixi.lock"),
+        binaries: &["pixi"],
+    },
+];
 
 fn find_tool(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|t| t.name == name)
