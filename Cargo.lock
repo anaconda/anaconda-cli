@@ -2764,48 +2764,6 @@ dependencies = [
 
 [[package]]
 name = "rattler_conda_types"
-version = "0.42.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a02606220a75836c766cd41e610bfe885379e40a5a11683f93c0cc7ae83b6fc8"
-dependencies = [
- "ahash",
- "chrono",
- "core-foundation",
- "dirs",
- "fancy-regex",
- "file_url",
- "fs-err",
- "glob",
- "hex",
- "indexmap 2.13.1",
- "itertools 0.14.0",
- "lazy-regex",
- "memmap2",
- "nom",
- "nom-language",
- "purl",
- "rattler_digest",
- "rattler_macros",
- "rattler_redaction",
- "regex",
- "serde",
- "serde-untagged",
- "serde_json",
- "serde_repr",
- "serde_with",
- "serde_yaml",
- "simd-json",
- "smallvec",
- "strum",
- "tempfile",
- "thiserror 2.0.18",
- "tracing",
- "typed-path",
- "url",
-]
-
-[[package]]
-name = "rattler_conda_types"
 version = "0.43.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7ca62ce5fb125421f001d8f1551eb4fb8c75544bb55ae9f266f1cd46dc76078"
@@ -2909,9 +2867,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_lock"
-version = "0.26.9"
+version = "0.26.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1a29c9d0c943189a1ac29f7729ded9be7370822f062f46f7ebdc6992c4fc5cf"
+checksum = "0764b43f793094d6842bf0b0f5e528a0a2edd0f94396a1080f8e886c3ec2ef57"
 dependencies = [
  "ahash",
  "chrono",
@@ -2920,9 +2878,9 @@ dependencies = [
  "itertools 0.14.0",
  "pep440_rs",
  "pep508_rs",
- "rattler_conda_types 0.42.4",
+ "rattler_conda_types 0.43.5",
  "rattler_digest",
- "rattler_solve 4.1.2",
+ "rattler_solve 4.2.6",
  "serde",
  "serde-value",
  "serde_repr",
@@ -3144,14 +3102,14 @@ dependencies = [
 
 [[package]]
 name = "rattler_solve"
-version = "4.1.2"
+version = "4.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bcb44026943936653b4a22b489edb7a69fc69bfb258ad4ffa01908488cb89b7"
+checksum = "5bddb1eb6f4f2afcd4710a3072aa9d6cdc90b8304d5544228da475ce33b78268"
 dependencies = [
  "chrono",
  "humantime",
  "itertools 0.14.0",
- "rattler_conda_types 0.42.4",
+ "rattler_conda_types 0.43.5",
  "rattler_digest",
  "serde",
  "tempfile",
