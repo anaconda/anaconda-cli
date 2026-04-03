@@ -232,7 +232,10 @@ pub fn apply_update(release: &Release) -> Result<(), Error> {
 pub fn check_for_update(current_version: &str) {
     match check_update(current_version) {
         Ok(UpdateCheck::Available(release)) => {
-            println!("Update available: {} -> {}", current_version, release.tag_name);
+            println!(
+                "Update available: {} -> {}",
+                current_version, release.tag_name
+            );
         }
         Ok(UpdateCheck::AlreadyUpToDate) => {
             println!("Already up to date ({})", current_version);
@@ -265,7 +268,10 @@ pub fn run_update(current_version: &str, force: bool) {
                 }
             }
             match apply_update(&release) {
-                Ok(()) => println!("Updated successfully: {} -> {}", current_version, release.tag_name),
+                Ok(()) => println!(
+                    "Updated successfully: {} -> {}",
+                    current_version, release.tag_name
+                ),
                 Err(e) => eprintln!("Failed to update: {}", e),
             }
         }
@@ -383,7 +389,9 @@ mod tests {
             make_release("v0.0.2.dev1", true),
         ];
         let result = find_update(releases, "0.0.1").unwrap();
-        assert!(matches!(result, UpdateCheck::Available(release) if release.tag_name == "v0.0.2.dev1"));
+        assert!(
+            matches!(result, UpdateCheck::Available(release) if release.tag_name == "v0.0.2.dev1")
+        );
     }
 
     #[test]

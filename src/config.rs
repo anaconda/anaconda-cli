@@ -141,8 +141,7 @@ impl Config {
             .map(PathBuf::from)
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
-        let include_prereleases =
-            parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
 
         Self {
             domain,
