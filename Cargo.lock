@@ -65,7 +65,7 @@ dependencies = [
  "rattler_lock",
  "rattler_networking",
  "rattler_repodata_gateway",
- "rattler_solve",
+ "rattler_solve 4.2.6",
  "rattler_virtual_packages",
  "reqwest",
  "reqwest-middleware",
@@ -2867,9 +2867,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_lock"
-version = "0.26.16"
+version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0764b43f793094d6842bf0b0f5e528a0a2edd0f94396a1080f8e886c3ec2ef57"
+checksum = "87eb7c1ff3fe8da8c73aa4aac29e83a2cdbfee4edec2ad5bb273583373bf25bd"
 dependencies = [
  "ahash",
  "chrono",
@@ -2878,9 +2878,9 @@ dependencies = [
  "itertools 0.14.0",
  "pep440_rs",
  "pep508_rs",
- "rattler_conda_types 0.43.5",
+ "rattler_conda_types 0.44.0",
  "rattler_digest",
- "rattler_solve",
+ "rattler_solve 5.0.0",
  "serde",
  "serde-value",
  "serde_repr",
@@ -3113,6 +3113,22 @@ dependencies = [
  "rattler_conda_types 0.43.5",
  "rattler_digest",
  "resolvo",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
+name = "rattler_solve"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a06bc4b00a76892ad824210f10190979fa0e1c58a216e36b80f6ab95bba0a85"
+dependencies = [
+ "chrono",
+ "humantime",
+ "itertools 0.14.0",
+ "rattler_conda_types 0.44.0",
+ "rattler_digest",
  "serde",
  "tempfile",
  "thiserror 2.0.18",
