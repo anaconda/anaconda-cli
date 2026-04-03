@@ -1,4 +1,4 @@
-.PHONY: help debug test test-integration
+.PHONY: help debug test test-integration lockfiles
 
 help:  ## Display help on all Makefile targets
 	@@grep -h '^[a-zA-Z]' $(MAKEFILE_LIST) | awk -F ':.*?## ' 'NF==2 {printf "   %-20s%s\n", $$1, $$2}' | sort
@@ -11,3 +11,6 @@ test:  ## Run all the unit tests
 
 test-integration:  ## Run CLI integration tests
 	pixi run test-integration
+
+lockfiles:  ## Regenerate all lockfiles
+	./lockfiles/lock-all.sh
