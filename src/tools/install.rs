@@ -91,6 +91,7 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
         .with_package_cache(package_cache)
         .with_target_platform(platform)
         .with_installed_packages(installed)
+        // TODO(mattkram): Review whether we should execute link scripts by default or not
         .with_execute_link_scripts(true)
         .with_reporter(
             IndicatifReporter::builder()
