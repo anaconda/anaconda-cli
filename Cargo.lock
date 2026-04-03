@@ -59,6 +59,7 @@ dependencies = [
  "indoc",
  "libc",
  "miette",
+ "opentelemetry",
  "rattler",
  "rattler_cache",
  "rattler_conda_types",
