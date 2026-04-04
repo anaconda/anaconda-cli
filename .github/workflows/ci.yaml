@@ -33,6 +33,8 @@ jobs:
           pixi run test
 
       - name: Build as standalone binary
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run build-release
 
@@ -70,6 +72,8 @@ jobs:
           pixi-version: v0.66.0
 
       - name: Build as conda package
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run build-conda
 

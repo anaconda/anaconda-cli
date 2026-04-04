@@ -11,11 +11,12 @@ mod update;
 pub const VERSION: &str = env!("PKG_VERSION");
 
 #[cfg(feature = "diagnostics")]
-const SENTRY_DSN: &str = "https://c3c5f0c3bc1590e4a439af529d0bec39@o4506633492365312.ingest.us.sentry.io/4511137151385600";
+const SENTRY_DSN: &str = env!("SENTRY_DSN");
 
 #[tokio::main]
 async fn main() {
     // Initialize Sentry - guard must be held for the lifetime of the program
+    // DSN is injected at build time; empty string disables Sentry
     #[cfg(feature = "diagnostics")]
     let _sentry_guard = sentry::init((
         SENTRY_DSN,
@@ -26,6 +27,8 @@ async fn main() {
                     .unwrap_or_else(|_| "production".to_string())
                     .into(),
             ),
+            send_default_pii: false,
+            attach_stacktrace: true,
             ..Default::default()
         },
     ));
