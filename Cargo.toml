@@ -7,7 +7,9 @@ edition = "2024"
 libc = "0.2"
 
 [features]
-default = []
+# TODO(mattkram): For the early project phase, we will enable diagnostics in our builds by
+#                 default. We will review this behavior before public release.
+default = ["diagnostics"]
 diagnostics = ["sentry"]
 
 [dependencies]
