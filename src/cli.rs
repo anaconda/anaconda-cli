@@ -110,11 +110,15 @@ pub enum Action {
     Logout,
     ShowApiKey,
     Whoami,
-    Update { force: bool },
+    Update {
+        force: bool,
+    },
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
-    OrgProxy { args: Vec<String> },
+    OrgProxy {
+        args: Vec<String>,
+    },
     #[cfg(feature = "feedback")]
     OpenFeedback {
         feedback_type: Option<FeedbackType>,
@@ -578,10 +582,9 @@ fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String
 
     let url = format!("{}?{}", FEEDBACK_BASE_URL, query_string);
 
-    println!("Opening feedback form...");
+    println!("Opening feedback form: {}", url);
     if let Err(e) = webbrowser::open(&url) {
         eprintln!("Failed to open browser: {}", e);
-        println!("Please visit: {}", url);
     }
 }
 
