@@ -37,3 +37,6 @@ python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
     --output-json SBOM.json \
     --output-md SBOM.md \
     "${TARGET_FILES[@]}"
+
+# Clean up intermediate files
+rm -f audit.raw.json ana.cdx.json "${TARGET_FILES[@]}"
