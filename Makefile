@@ -1,4 +1,4 @@
-.PHONY: help version build debug release test test-release test-integration pre-commit conda cargo-lock lockfiles lockfiles-force
+.PHONY: help version build debug release test test-release test-integration pre-commit conda lockfiles lockfiles-force
 
 help:  ## Display help on all Makefile targets
 	@@grep -h '^[a-zA-Z]' $(MAKEFILE_LIST) | awk -F ':.*?## ' 'NF==2 {printf "   %-20s%s\n", $$1, $$2}' | sort
@@ -28,9 +28,6 @@ pre-commit:  ## Run pre-commit hooks on all files
 
 conda:  ## Build the conda package
 	pixi run build-conda
-
-cargo-lock:  ## Regenerate Cargo lockfile
-	pixi run cargo-lock
 
 lockfiles:  ## Regenerate Cargo.lock (if needed) and update SBOM
 	pixi run lockfiles
