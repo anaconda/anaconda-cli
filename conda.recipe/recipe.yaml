@@ -1,30 +1,12 @@
 package:
   name: ana-cli
-  version: ${{ env.get("PKG_VERSION") | default("0.0.0") }}
+  version: ${{ pkg_version | default("0.0.0") }}
 
 source:
   path: ..
 
 build:
   number: 0
-
-requirements:
-  build:
-    - rust
-    - if: linux
-      then:
-        - pkg-config
-  host:
-    - if: linux
-      then:
-        - openssl
-
-tests:
-  - script:
-      - if: unix
-        then: run_test.sh
-      - if: win
-        then: run_test.bat
 
 about:
   homepage: https://github.com/anaconda/ana-cli

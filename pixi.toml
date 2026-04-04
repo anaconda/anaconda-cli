@@ -9,8 +9,11 @@ pytest = ">=8"
 python = ">=3.10"
 rattler-build = ">=0.61.1,<0.62"
 rust = "*"
-setuptools-scm = ">=8"
 anaconda-client = ">=1.14.1,<2"
+
+[tasks.get-version]
+cmd = "./scripts/get_version.sh"
+description = "Derive version from git tags and write to VERSION"
 
 [tasks.pre-commit]
 cmd = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
@@ -21,20 +24,28 @@ cmd = "cargo generate-lockfile"
 description = "Re-generate Cargo lockfile"
 
 [tasks.build-conda]
-cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
+cmd = "rattler-build build --recipe conda.recipe"
+depends-on = ["build-release"]
 description = "Build the conda package"
 
 [tasks.build-debug]
-cmd = "python scripts/with_version.py cargo build"
+cmd = "cargo build"
+depends-on = ["get-version"]
 description = "Build the standalone Rust binary in debug mode"
 
 [tasks.build-release]
-cmd = "python scripts/with_version.py cargo build --release"
+cmd = "cargo build --release"
+depends-on = ["get-version"]
 description = "Build the standalone Rust binary in release mode"
 
 [tasks.test]
 cmd = "python scripts/with_version.py cargo test -- --show-output"
 description = "Run the unit tests"
+
+[tasks.test-release]
+cmd = "cargo test --release"
+depends-on = ["build-release"]
+description = "Run the unit tests in release mode"
 
 [tasks.test-integration]
 cmd = "pytest tests -v"
