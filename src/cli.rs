@@ -7,12 +7,12 @@ use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 use opentelemetry::Value;
 
-#[cfg(feature = "feedback")]
-use crate::FEEDBACK_BASE_URL;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
+#[cfg(feature = "feedback")]
+use crate::feedback::{self, FeedbackType};
 use crate::update;
 
 /// Log level for tracing output.
@@ -89,14 +89,6 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
     }
 
     tracing_subscriber::EnvFilter::new(level.as_filter_str())
-}
-
-/// Feedback type for the feedback form
-#[cfg(feature = "feedback")]
-#[derive(Clone, Copy)]
-pub enum FeedbackType {
-    Bug,
-    Feature,
 }
 
 /// Action to be performed, returned by parse()
@@ -218,7 +210,7 @@ impl Action {
                 feedback_type,
                 description,
             } => {
-                open_feedback(feedback_type, description);
+                feedback::open_feedback(feedback_type, description);
                 Ok(())
             }
         }
@@ -241,7 +233,7 @@ pub fn parse() -> (Action, LogLevel) {
                     feature,
                     description,
                 }) => Action::OpenFeedback {
-                    feedback_type: parse_feedback_type(bug, feature),
+                    feedback_type: feedback::parse_feedback_type(bug, feature),
                     description,
                 },
                 Some(Commands::Login) => Action::Login,
@@ -262,7 +254,7 @@ pub fn parse() -> (Action, LogLevel) {
                         feature,
                         description,
                     }) => Action::OpenFeedback {
-                        feedback_type: parse_feedback_type(bug, feature),
+                        feedback_type: feedback::parse_feedback_type(bug, feature),
                         description,
                     },
                     Some(SelfCommands::Update { yes, check, list }) => {
@@ -280,17 +272,6 @@ pub fn parse() -> (Action, LogLevel) {
             (action, level)
         }
         Err(e) => handle_parse_error(e),
-    }
-}
-
-#[cfg(feature = "feedback")]
-fn parse_feedback_type(bug: bool, feature: bool) -> Option<FeedbackType> {
-    if bug {
-        Some(FeedbackType::Bug)
-    } else if feature {
-        Some(FeedbackType::Feature)
-    } else {
-        None
     }
 }
 
@@ -322,88 +303,47 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-#[cfg(feature = "feedback")]
 pub fn print_main_help() {
+    let feedback_line = if cfg!(feature = "feedback") {
+        "  feedback       Open the feedback form\n"
+    } else {
+        ""
+    };
     println!(
-        "{}",
-        formatdoc! {"
-        ana {VERSION}
+        "ana {VERSION}
 
-        Usage: ana [command] [options]
+Usage: ana [command] [options]
 
-        Commands:
-          auth           Authentication commands
-          bootstrap      Install the Anaconda CLI
-          config         Show current configuration
-          feedback       Open the feedback form
-          login          Log in to Anaconda
-          logout         Log out from Anaconda
-          org            Interact with anaconda.org
-          whoami         Display information about the logged-in user
-          self           Manage the ana installation
+Commands:
+  auth           Authentication commands
+  bootstrap      Install the Anaconda CLI
+  config         Show current configuration
+{feedback_line}  login          Log in to Anaconda
+  logout         Log out from Anaconda
+  org            Interact with anaconda.org
+  whoami         Display information about the logged-in user
+  self           Manage the ana installation
 
-        Options:
-          -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
-          -V, --version  Print version
-          -h, --help     Print help
-        "}
+Options:
+  -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
+  -V, --version  Print version
+  -h, --help     Print help"
     );
 }
 
-#[cfg(not(feature = "feedback"))]
-pub fn print_main_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        ana {VERSION}
-
-        Usage: ana [command] [options]
-
-        Commands:
-          auth           Authentication commands
-          bootstrap      Install the Anaconda CLI
-          config         Show current configuration
-          login          Log in to Anaconda
-          logout         Log out from Anaconda
-          org            Interact with anaconda.org
-          whoami         Display information about the logged-in user
-          self           Manage the ana installation
-
-        Options:
-          -V, --version  Print version
-          -h, --help     Print help
-        "}
-    );
-}
-
-#[cfg(feature = "feedback")]
 pub fn print_self_help() {
+    let feedback_line = if cfg!(feature = "feedback") {
+        "  feedback  Open the feedback form\n"
+    } else {
+        ""
+    };
     println!(
-        "{}",
-        formatdoc! {"
-        Manage the installation
+        "Manage the installation
 
-        Usage: ana self <command> [options]
+Usage: ana self <command> [options]
 
-        Commands:
-          feedback  Open the feedback form
-          update    Update ana to the latest version
-        "}
-    );
-}
-
-#[cfg(not(feature = "feedback"))]
-pub fn print_self_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        Manage the installation
-
-        Usage: ana self <command> [options]
-
-        Commands:
-          update    Update ana to the latest version
-        "}
+Commands:
+{feedback_line}  update    Update ana to the latest version"
     );
 }
 
@@ -556,36 +496,6 @@ enum SelfCommands {
         #[arg(long, conflicts_with_all = ["yes", "check"])]
         list: bool,
     },
-}
-
-#[cfg(feature = "feedback")]
-fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String>) {
-    let mut params = vec![("usp", "pp_url".to_string())];
-
-    if let Some(ft) = feedback_type {
-        let type_value = match ft {
-            FeedbackType::Bug => "Bug",
-            FeedbackType::Feature => "Feature / Enhancement request",
-        };
-        params.push(("entry.1875536722", type_value.to_string()));
-    }
-
-    if let Some(desc) = description {
-        params.push(("entry.949440629", desc));
-    }
-
-    let query_string: String = params
-        .iter()
-        .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
-        .collect::<Vec<_>>()
-        .join("&");
-
-    let url = format!("{}?{}", FEEDBACK_BASE_URL, query_string);
-
-    println!("Opening feedback form: {}", url);
-    if let Err(e) = webbrowser::open(&url) {
-        eprintln!("Failed to open browser: {}", e);
-    }
 }
 
 #[cfg(test)]
