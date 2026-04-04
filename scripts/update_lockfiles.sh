@@ -16,12 +16,24 @@ if [ ! -f Cargo.lock ] || [ Cargo.toml -nt Cargo.lock ]; then
     cargo generate-lockfile
 fi
 
-# Generate raw CycloneDX SBOM (all targets, reproducible timestamp)
-SOURCE_DATE_EPOCH=0 cargo cyclonedx --format json --target all
+# Target triples for per-platform SBOM generation
+TARGETS=(x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-pc-windows-msvc)
+
+# Generate per-target CycloneDX SBOMs (reproducible timestamp)
+TARGET_FILES=()
+for target in "${TARGETS[@]}"; do
+    echo "==> Generating SBOM for $target"
+    SOURCE_DATE_EPOCH=0 cargo cyclonedx --format json --target "$target" \
+        --override-filename "ana-${target}"
+    TARGET_FILES+=("ana-${target}.json")
+done
 
 # Run cargo-audit (allow non-zero exit for found vulnerabilities)
 cargo audit --json > audit.raw.json 2>/dev/null || true
 
-# Process into SBOM.json and SBOM.md
+# Process into SBOM.json and SBOM.md (merge per-target SBOMs + audit)
 python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
-    ana.cdx.json audit.raw.json SBOM.json SBOM.md
+    --audit audit.raw.json \
+    --output-json SBOM.json \
+    --output-md SBOM.md \
+    "${TARGET_FILES[@]}"

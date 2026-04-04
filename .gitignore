@@ -38,6 +38,7 @@ conda.recipe/variants.yaml
 
 # SBOM intermediate files
 *.cdx.json
+ana-*.json
 audit.raw.json
 
 # local dev config

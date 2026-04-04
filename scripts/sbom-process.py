@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-"""Process cargo-cyclonedx and cargo-audit output into SBOM.json and SBOM.md.
+"""Process per-target cargo-cyclonedx and cargo-audit output into SBOM.json and SBOM.md.
 
-Usage: sbom-process.py [--force] <sbom-raw.json> <audit.json> <SBOM.json> <SBOM.md>
+Usage:
+    sbom-process.py [--force] --audit <audit.json>
+        --output-json <SBOM.json> --output-md <SBOM.md>
+        <target-sbom-1.json> [<target-sbom-2.json> ...]
 
-Reads the raw CycloneDX SBOM from cargo-cyclonedx and vulnerability data from
-cargo-audit, merges them, and produces a clean SBOM.json and human-readable
-SBOM.md with packages, security advisories, and license summary tables.
+Merges per-target CycloneDX SBOMs into a single combined SBOM with platform
+annotations, integrates cargo-audit vulnerability data, and produces a clean
+SBOM.json and human-readable SBOM.md.
 """
 
+import argparse
 import json
 import os
-import sys
+import re
 from urllib.parse import unquote
+
+# Mapping from Rust target triples to short platform labels
+TARGET_LABELS: dict[str, str] = {
+    "x86_64-unknown-linux-gnu": "linux",
+    "aarch64-apple-darwin": "macos",
+    "x86_64-pc-windows-msvc": "windows",
+}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -52,13 +63,61 @@ def get_license(comp: dict) -> str:
         return "NOASSERTION"
     parts = []
     for entry in licenses:
-        # cargo-cyclonedx uses {"expression": "MIT OR Apache-2.0"} format
         if "expression" in entry:
             parts.append(entry["expression"])
         else:
             lic = entry.get("license", {})
             parts.append(lic.get("id", lic.get("name", "NOASSERTION")))
     return " AND ".join(parts) if parts else "NOASSERTION"
+
+
+def label_from_filename(filename: str) -> str:
+    """Extract a platform label from a per-target SBOM filename.
+
+    E.g. 'ana-x86_64-unknown-linux-gnu.json' -> 'linux'
+    """
+    base = os.path.basename(filename)
+    for triple, label in TARGET_LABELS.items():
+        if triple in base:
+            return label
+    # Fallback: strip ana- prefix and .json suffix
+    return re.sub(r"^ana-|\.json$", "", base)
+
+
+# ---------------------------------------------------------------------------
+# Merging per-target SBOMs
+# ---------------------------------------------------------------------------
+
+
+def merge_target_sboms(
+    target_files: list[str],
+) -> tuple[dict, dict[tuple[str, str], set[str]]]:
+    """Merge multiple per-target CycloneDX SBOMs into a single combined SBOM.
+
+    Returns (combined_sbom, platform_map) where platform_map maps
+    (name, version) -> set of platform labels.
+    """
+    platform_map: dict[tuple[str, str], set[str]] = {}
+    # Use the first target as the base SBOM (for metadata, etc.)
+    combined: dict = {}
+    seen_components: dict[tuple[str, str], dict] = {}
+
+    for filepath in target_files:
+        label = label_from_filename(filepath)
+        with open(filepath) as f:
+            data = json.load(f)
+
+        if not combined:
+            combined = data
+        for comp in data.get("components", []):
+            key = (comp["name"], comp.get("version", ""))
+            platform_map.setdefault(key, set()).add(label)
+            if key not in seen_components:
+                seen_components[key] = comp
+
+    # Replace components with the merged set
+    combined["components"] = list(seen_components.values())
+    return combined, platform_map
 
 
 # ---------------------------------------------------------------------------
@@ -88,10 +147,8 @@ def merge_audit(sbom: dict, audit: dict) -> None:
 
         vuln_id = advisory.get("id", "")
         aliases = advisory.get("aliases", [])
-        # Prefer CVE ID if available
         cve_id = next((a for a in aliases if a.startswith("CVE-")), vuln_id)
 
-        # Build affects list
         affects = []
         pkg_name = package.get("name", "")
         pkg_version = package.get("version", "")
@@ -99,7 +156,6 @@ def merge_audit(sbom: dict, audit: dict) -> None:
         if ref:
             affects.append({"ref": ref})
 
-        # Build ratings from CVSS if available
         ratings = []
         cvss = advisory.get("cvss")
         if cvss:
@@ -124,7 +180,6 @@ def merge_audit(sbom: dict, audit: dict) -> None:
             "ratings": ratings,
             "affects": affects,
         }
-        # Add RUSTSEC ID as reference if we used CVE as primary
         if cve_id != vuln_id:
             vuln["references"] = [
                 {
@@ -138,7 +193,6 @@ def merge_audit(sbom: dict, audit: dict) -> None:
 
         vulnerabilities.append(vuln)
 
-    # Add warnings (unmaintained, unsound, etc.) as informational entries
     for warn_type, warn_list in warnings.items():
         for warn_entry in warn_list:
             advisory = warn_entry.get("advisory", {})
@@ -209,12 +263,30 @@ def extract_scores(vuln: dict) -> tuple[str, str, str]:
     return v2, v3, severity
 
 
-def generate_markdown(data: dict) -> str:
-    """Generate SBOM.md from a CycloneDX BOM."""
+def platform_display(platforms: set[str], all_labels: set[str]) -> str:
+    """Return a display string for platform annotations.
+
+    Returns empty string if the dep is on all platforms (no annotation needed).
+    """
+    if platforms >= all_labels:
+        return ""
+    return ", ".join(sorted(platforms))
+
+
+def generate_markdown(
+    data: dict,
+    platform_map: dict[tuple[str, str], set[str]] | None = None,
+) -> str:
+    """Generate SBOM.md from a CycloneDX BOM with optional platform annotations."""
     components = data.get("components", [])
     vulnerabilities = data.get("vulnerabilities", [])
     created = data.get("metadata", {}).get("timestamp", "unknown")
     spec_version = data.get("specVersion", "unknown")
+
+    all_labels = set()
+    if platform_map:
+        for platforms in platform_map.values():
+            all_labels |= platforms
 
     # Build bom-ref -> component lookup
     ref_to_comp: dict[str, dict] = {}
@@ -257,13 +329,29 @@ def generate_markdown(data: dict) -> str:
 
     affected_pkgs = set(f"{r[0]}@{r[1]}" for r in advisory_rows)
 
+    # Count platform-specific deps
+    platform_specific_count = 0
+    if platform_map and all_labels:
+        for comp in components:
+            key = (comp["name"], comp.get("version", ""))
+            platforms = platform_map.get(key, all_labels)
+            if platforms < all_labels:
+                platform_specific_count += 1
+
     # --- Render ---
     lines: list[str] = []
     lines.append("# Software Bill of Materials (SBOM)")
     lines.append("")
     lines.append(f"Generated: {created}<br>")
     lines.append(f"Format: CycloneDX {spec_version}<br>")
-    lines.append(f"Packages: {len(components)}")
+    if platform_specific_count:
+        lines.append(
+            f"Packages: {len(components)}"
+            f" ({platform_specific_count} platform-specific)<br>"
+        )
+        lines.append(f"Platforms: {', '.join(sorted(all_labels))}")
+    else:
+        lines.append(f"Packages: {len(components)}")
     if not advisory_rows:
         lines.append("<br>**Security advisories: 0 found at this time**")
     else:
@@ -285,10 +373,15 @@ def generate_markdown(data: dict) -> str:
     lines.append("")
 
     # Package table
+    has_platforms = platform_map is not None and all_labels
     lines.append("## Packages")
     lines.append("")
-    lines.append("| Package | Version | License | CVEs |")
-    lines.append("| --- | --- | --- | ---: |")
+    if has_platforms:
+        lines.append("| Package | Version | License | Platforms | CVEs |")
+        lines.append("| --- | --- | --- | --- | ---: |")
+    else:
+        lines.append("| Package | Version | License | CVEs |")
+        lines.append("| --- | --- | --- | ---: |")
     for comp in components_sorted:
         name = comp.get("name", "")
         version = comp.get("version", "")
@@ -304,7 +397,18 @@ def generate_markdown(data: dict) -> str:
         )
         cve_display = str(cve_count) if cve_count else ""
 
-        lines.append(f"| {display_name} | {version} | {license_val} | {cve_display} |")
+        if has_platforms:
+            key = (name, version)
+            platforms = platform_map.get(key, all_labels)
+            plat_display = platform_display(platforms, all_labels)
+            lines.append(
+                f"| {display_name} | {version} | {license_val}"
+                f" | {plat_display} | {cve_display} |"
+            )
+        else:
+            lines.append(
+                f"| {display_name} | {version} | {license_val} | {cve_display} |"
+            )
     lines.append("")
 
     # Security advisories table
@@ -318,7 +422,6 @@ def generate_markdown(data: dict) -> str:
             _, _, _, v2, v3, sev = row
             v2_f = float(v2) if v2 else 0.0
             v3_f = float(v3) if v3 else 0.0
-            # Info-level warnings sort last
             info_penalty = 100 if sev == "INFO" else 0
             return (info_penalty, -max(v3_f, v2_f), -v3_f, -v2_f, row[0].lower())
 
@@ -371,23 +474,22 @@ def material_content(data: dict) -> tuple[list, list]:
 
 
 def main() -> None:
-    force = "--force" in sys.argv
-    args = [a for a in sys.argv[1:] if a != "--force"]
+    parser = argparse.ArgumentParser(
+        description="Merge per-target CycloneDX SBOMs with cargo-audit data"
+    )
+    parser.add_argument("--force", action="store_true", help="Force regeneration")
+    parser.add_argument("--audit", required=True, help="cargo-audit JSON output")
+    parser.add_argument("--output-json", required=True, help="Output SBOM.json path")
+    parser.add_argument("--output-md", required=True, help="Output SBOM.md path")
+    parser.add_argument(
+        "target_sboms", nargs="+", help="Per-target CycloneDX SBOM JSON files"
+    )
+    args = parser.parse_args()
 
-    if len(args) != 4:
-        print(
-            f"Usage: {sys.argv[0]} [--force] <sbom-raw.json> <audit.json>"
-            f" <SBOM.json> <SBOM.md>",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    # Merge per-target SBOMs
+    sbom, platform_map = merge_target_sboms(args.target_sboms)
 
-    raw_path, audit_path, json_path, md_path = args
-
-    with open(raw_path) as f:
-        sbom = json.load(f)
-
-    with open(audit_path) as f:
+    with open(args.audit) as f:
         audit = json.load(f)
 
     # Merge audit findings into the SBOM
@@ -395,27 +497,35 @@ def main() -> None:
 
     comp_count = len(sbom.get("components", []))
     vuln_count = len(sbom.get("vulnerabilities", []))
-    print(f"==> {comp_count} components, {vuln_count} vulnerabilities")
+    platform_specific = sum(
+        1
+        for platforms in platform_map.values()
+        if platforms < set(TARGET_LABELS.values())
+    )
+    print(
+        f"==> {comp_count} components ({platform_specific} platform-specific),"
+        f" {vuln_count} vulnerabilities"
+    )
 
     # Compare material content against existing SBOM.json
-    if not force and os.path.exists(json_path):
-        with open(json_path) as f:
+    if not args.force and os.path.exists(args.output_json):
+        with open(args.output_json) as f:
             existing = json.load(f)
         if material_content(sbom) == material_content(existing):
             print("==> No material changes — SBOM.json and SBOM.md unchanged")
             return
 
     # Write clean JSON
-    with open(json_path, "w") as f:
+    with open(args.output_json, "w") as f:
         json.dump(sbom, f, indent=2)
         f.write("\n")
-    print(f"==> Wrote {json_path}")
+    print(f"==> Wrote {args.output_json}")
 
     # Generate and write markdown
-    md = generate_markdown(sbom)
-    with open(md_path, "w") as f:
+    md = generate_markdown(sbom, platform_map)
+    with open(args.output_md, "w") as f:
         f.write(md)
-    print(f"==> Wrote {md_path}")
+    print(f"==> Wrote {args.output_md}")
 
 
 if __name__ == "__main__":
