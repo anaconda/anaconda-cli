@@ -84,7 +84,6 @@ def merge_audit(sbom: dict, audit: dict) -> None:
 
     for entry in vuln_list:
         advisory = entry.get("advisory", {})
-        versions = entry.get("versions", {})
         package = entry.get("package", {})
 
         vuln_id = advisory.get("id", "")
@@ -301,15 +300,11 @@ def generate_markdown(data: dict) -> str:
         display_name = f"[{escaped_name}]({link})" if link else escaped_name
 
         cve_count = sum(
-            1
-            for r in advisory_rows
-            if r[0].lower() == name.lower() and r[1] == version
+            1 for r in advisory_rows if r[0].lower() == name.lower() and r[1] == version
         )
         cve_display = str(cve_count) if cve_count else ""
 
-        lines.append(
-            f"| {display_name} | {version} | {license_val} | {cve_display} |"
-        )
+        lines.append(f"| {display_name} | {version} | {license_val} | {cve_display} |")
     lines.append("")
 
     # Security advisories table

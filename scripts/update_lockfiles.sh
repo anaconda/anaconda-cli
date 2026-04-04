@@ -23,5 +23,5 @@ cargo cyclonedx --format json
 cargo audit --json > audit.raw.json 2>/dev/null || true
 
 # Process into SBOM.json and SBOM.md
-python3 scripts/sbom-process.py $FORCE_FLAG \
+python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
     ana.cdx.json audit.raw.json SBOM.json SBOM.md
