@@ -47,10 +47,10 @@ cmd = "pytest tests -v"
 depends-on = ["build-release"]
 description = "Run integration tests"
 
-[tasks.lockfiles]
+[tasks.sbom]
 cmd = "./scripts/update_lockfiles.sh"
 description = "Regenerate Cargo.lock (if needed) and update SBOM"
 
-[tasks.lockfiles-force]
+[tasks.sbom-force]
 cmd = "./scripts/update_lockfiles.sh --force"
 description = "Regenerate Cargo.lock and SBOM unconditionally"
