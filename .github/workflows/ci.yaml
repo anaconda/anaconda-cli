@@ -46,13 +46,9 @@ jobs:
           fetch-depth: 0
 
       - name: Configure git for private repos
-        env:
-          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
         run: |
-          if [ -n "$PRIVATE_REPO_TOKEN" ]; then
-            git config --global url."https://x-access-token:${PRIVATE_REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-            git config --global url."https://x-access-token:${PRIVATE_REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          fi
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo
           echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
