@@ -12,6 +12,8 @@ pub const VERSION: &str = env!("PKG_VERSION");
 
 #[cfg(feature = "diagnostics")]
 const SENTRY_DSN: &str = env!("SENTRY_DSN");
+#[cfg(feature = "diagnostics")]
+const BUILD_TARGET: &str = env!("BUILD_TARGET");
 
 #[tokio::main]
 async fn main() {
@@ -32,6 +34,13 @@ async fn main() {
             ..Default::default()
         },
     ));
+
+    #[cfg(feature = "diagnostics")]
+    sentry::configure_scope(|scope| {
+        scope.set_tag("os", std::env::consts::OS);
+        scope.set_tag("arch", std::env::consts::ARCH);
+        scope.set_tag("target", BUILD_TARGET);
+    });
 
     cli::execute().await;
 }
