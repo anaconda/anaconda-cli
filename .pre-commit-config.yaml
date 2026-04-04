@@ -12,7 +12,7 @@ repos:
         args: [--autofix]
       - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.8
+    rev: v0.15.9
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -32,6 +32,13 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: rustfmt
+        entry: cargo fmt --
+        language: system
+        types: [rust]
   - repo: meta
     hooks:
       - id: check-hooks-apply

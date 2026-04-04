@@ -1,18 +1,33 @@
 use std::collections::HashMap;
+use std::env::consts::{ARCH, OS};
+use std::time::Instant;
 
-use anaconda_otel_rs::signals::{increment_counter, shutdown_telemetry};
+use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
+use opentelemetry::Value;
 
 use crate::VERSION;
+use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
 
+/// Build base telemetry attributes with system information.
+fn system_attrs() -> HashMap<String, Value> {
+    let mut attrs = HashMap::new();
+    attrs.insert("os".to_string(), OS.into());
+    attrs.insert("arch".to_string(), ARCH.into());
+    attrs.insert("version".to_string(), VERSION.into());
+    attrs
+}
+
 pub async fn execute() {
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+    // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        tracing_subscriber::EnvFilter::new("anaconda_otel_rs=off,opentelemetry=off,reqwest=off")
+    });
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     config::setup_telemetry();
 
@@ -40,6 +55,8 @@ pub enum Action {
     Update { force: bool },
     CheckForUpdate,
     ShowAvailableVersions,
+    Bootstrap,
+    OrgProxy { args: Vec<String> },
 }
 
 impl Action {
@@ -57,24 +74,30 @@ impl Action {
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
+            Action::Bootstrap => "bootstrap",
+            Action::OrgProxy { .. } => "org",
         }
     }
 
     /// Execute the action with telemetry middleware
     pub async fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
         let name = self.match_action_name();
-        let mut attrs = HashMap::new();
+        let mut attrs = system_attrs();
         attrs.insert("command".to_string(), name.into());
         increment_counter("cli_command_invoked", 1, attrs.clone());
 
+        let start = Instant::now();
         let result = self.run().await;
+        let duration_ms = start.elapsed().as_millis() as f64;
 
         match &result {
             Ok(_) => {
-                increment_counter("cli_command_success", 1, attrs);
+                increment_counter("cli_command_success", 1, attrs.clone());
+                record_histogram("cli_command_success_duration_ms", duration_ms, attrs);
             }
             Err(_) => {
-                increment_counter("cli_command_failure", 1, attrs);
+                increment_counter("cli_command_failure", 1, attrs.clone());
+                record_histogram("cli_command_failure_duration_ms", duration_ms, attrs);
             }
         }
 
@@ -103,6 +126,8 @@ impl Action {
                 Config::load().print_table();
                 Ok(())
             }
+            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap()?),
+            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
             Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
@@ -129,6 +154,7 @@ pub fn parse() -> Action {
     match Cli::try_parse() {
         Ok(cli) => match cli.command {
             None => Action::ShowHelp,
+            Some(Commands::Bootstrap) => Action::Bootstrap,
             Some(Commands::Config) => Action::ShowConfig,
             Some(Commands::Login) => Action::Login,
             Some(Commands::Logout) => Action::Logout,
@@ -152,6 +178,7 @@ pub fn parse() -> Action {
                     }
                 }
             },
+            Some(Commands::Org { args }) => Action::OrgProxy { args },
         },
         Err(e) => handle_parse_error(e),
     }
@@ -193,9 +220,11 @@ pub fn print_main_help() {
 
         Commands:
           auth           Authentication commands
+          bootstrap      Install the Anaconda CLI
           config         Show current configuration
           login          Log in to Anaconda
           logout         Log out from Anaconda
+          org            Interact with anaconda.org
           whoami         Display information about the logged-in user
           self           Manage the ana installation
 
@@ -266,6 +295,9 @@ enum Commands {
         command: Option<AuthCommands>,
     },
 
+    /// Install the Anaconda CLI
+    Bootstrap,
+
     /// Show current configuration
     Config,
 
@@ -287,6 +319,17 @@ enum Commands {
     Self_ {
         #[command(subcommand)]
         command: Option<SelfCommands>,
+    },
+
+    /// Interact with anaconda.org
+    #[command(
+        trailing_var_arg = true,
+        override_usage = "ana org <command> [options]"
+    )]
+    Org {
+        /// Arguments to pass to anaconda org
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 }
 

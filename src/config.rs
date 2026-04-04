@@ -73,7 +73,7 @@ const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 
 /// Global configuration for ana.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct Config {
     /// The domain for authentication (e.g., "anaconda.com")
     pub domain: String,
@@ -141,8 +141,7 @@ impl Config {
             .map(PathBuf::from)
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
-        let include_prereleases =
-            parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
 
         Self {
             domain,
@@ -185,25 +184,26 @@ impl Config {
             Cell::new("Setting").add_attribute(Attribute::Bold),
             Cell::new("Value").add_attribute(Attribute::Bold),
         ]);
-        table.add_row(["domain", &self.domain]);
-        table.add_row(["client_id", &self.client_id]);
-        table.add_row(["ssl_verify", bool_to_str(self.ssl_verify)]);
-        table.add_row(["open_browser", bool_to_str(self.open_browser)]);
+
+        if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(self) {
+            for (key, value) in map {
+                let value_str = match value {
+                    serde_json::Value::String(s) => s,
+                    serde_json::Value::Bool(b) => b.to_string(),
+                    serde_json::Value::Number(n) => n.to_string(),
+                    _ => value.to_string(),
+                };
+                table.add_row([key, value_str]);
+            }
+        }
+
         println!("{table}");
     }
 }
 
-/// Get the default keyring path (~/.ana/keyring).
+/// Get the default keyring path (~/.ana/keyring or $ANA_HOME/keyring).
 fn default_keyring_path() -> PathBuf {
-    dirs::home_dir()
-        .expect("Could not determine home directory")
-        .join(".ana")
-        .join("keyring")
-}
-
-/// Convert a boolean to a string.
-fn bool_to_str(val: bool) -> &'static str {
-    if val { "true" } else { "false" }
+    crate::paths::ana_home().join("keyring")
 }
 
 /// Parse a boolean from a string value.
