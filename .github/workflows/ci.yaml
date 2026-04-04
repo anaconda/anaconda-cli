@@ -4,6 +4,13 @@ on:
   pull_request:
   merge_group:
   workflow_call:
+    secrets:
+      PRIVATE_REPO_TOKEN:
+        description: Token for accessing private repositories
+        required: true
+      SENTRY_DSN:
+        description: Sentry DSN for error reporting (only for release builds)
+        required: false
 
 jobs:
   build-and-test:
