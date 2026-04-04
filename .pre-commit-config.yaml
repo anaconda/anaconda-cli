@@ -10,6 +10,7 @@ repos:
       - id: end-of-file-fixer
       - id: pretty-format-json
         args: [--autofix]
+        exclude: ^SBOM\.json$
       - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.9
@@ -45,6 +46,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^Cargo\.toml$
+      - id: sbom
+        name: SBOM freshness
+        entry: pixi run sbom
+        language: system
+        pass_filenames: false
+        files: ^Cargo\.(toml|lock)$
   - repo: meta
     hooks:
       - id: check-hooks-apply

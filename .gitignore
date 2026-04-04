@@ -36,5 +36,9 @@ bin/
 VERSION
 conda.recipe/variants.yaml
 
+# SBOM intermediate files
+*.cdx.json
+audit.raw.json
+
 # local dev config
 .claude/
