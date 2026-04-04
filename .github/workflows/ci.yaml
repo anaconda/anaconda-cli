@@ -44,6 +44,7 @@ jobs:
         with:
           token: ${{ secrets.ANACONDA_BOT_TOKEN || github.token }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure git for private repos
         run: |
