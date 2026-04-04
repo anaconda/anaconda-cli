@@ -31,9 +31,10 @@ fn print_header(term: &Term) {
     let _ = term.write_line("");
 }
 
-/// Print the examples/quick-start code block
+/// Print the examples/quick-start code block in a styled box with rounded corners
 fn print_examples_block(term: &Term) {
     print_section(term, "Examples");
+
     let examples: &[(&str, &str)] = &[
         ("set up your full toolchain", "ana install all"),
         (
@@ -46,13 +47,53 @@ fn print_examples_block(term: &Term) {
             "ana build && ana deploy --target snowflake",
         ),
     ];
+
+    let margin = "  ";
+    let inner_width: usize = 56;
+    let border = HelpStyle::BoxDim.style();
+
+    // Box-drawing characters for rounded corners
+    let horizontal = "─";
+
+    // Top border
+    let _ = term.write_line(&format!(
+        "{margin}{}{}{}",
+        border.apply_to("╭"),
+        border.apply_to(horizontal.repeat(inner_width + 2)),
+        border.apply_to("╮")
+    ));
+
+    // Content lines
     for (comment, command) in examples {
+        // Comment line
+        let comment_text = format!("# {comment}");
+        let padding = inner_width.saturating_sub(comment_text.len());
+        let padded_comment = format!(" {comment_text}{} ", " ".repeat(padding));
         let _ = term.write_line(&format!(
-            "    {}",
-            HelpStyle::Dim.style().apply_to(format!("# {comment}"))
+            "{margin}{}{}{}",
+            border.apply_to("│"),
+            HelpStyle::BoxDim.style().apply_to(&padded_comment),
+            border.apply_to("│")
         ));
-        let _ = term.write_line(&format!("    {command}"));
+
+        // Command line
+        let padding = inner_width.saturating_sub(command.len());
+        let padded_cmd = format!(" {command}{} ", " ".repeat(padding));
+        let _ = term.write_line(&format!(
+            "{margin}{}{}{}",
+            border.apply_to("│"),
+            HelpStyle::BoxCommand.style().apply_to(&padded_cmd),
+            border.apply_to("│")
+        ));
     }
+
+    // Bottom border
+    let _ = term.write_line(&format!(
+        "{margin}{}{}{}",
+        border.apply_to("╰"),
+        border.apply_to(horizontal.repeat(inner_width + 2)),
+        border.apply_to("╯")
+    ));
     let _ = term.write_line("");
 }
 
