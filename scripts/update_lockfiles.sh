@@ -16,8 +16,8 @@ if [ ! -f Cargo.lock ] || [ Cargo.toml -nt Cargo.lock ]; then
     cargo generate-lockfile
 fi
 
-# Generate raw CycloneDX SBOM
-cargo cyclonedx --format json
+# Generate raw CycloneDX SBOM (all targets, reproducible timestamp)
+SOURCE_DATE_EPOCH=0 cargo cyclonedx --format json --target all
 
 # Run cargo-audit (allow non-zero exit for found vulnerabilities)
 cargo audit --json > audit.raw.json 2>/dev/null || true
