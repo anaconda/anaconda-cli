@@ -88,7 +88,7 @@ Platforms: linux, macos, windows
 | [erased-serde](https://crates.io/crates/erased-serde) | 0.4.10 | MIT OR Apache-2.0 |  |  |
 | [errno](https://crates.io/crates/errno) | 0.3.14 | MIT OR Apache-2.0 | linux, macos |  |
 | [fancy-regex](https://crates.io/crates/fancy-regex) | 0.17.0 | MIT |  |  |
-| [fastrand](https://crates.io/crates/fastrand) | 2.3.0 | Apache-2.0 OR MIT |  |  |
+| [fastrand](https://crates.io/crates/fastrand) | 2.4.0 | Apache-2.0 OR MIT |  |  |
 | [file\_url](https://crates.io/crates/file_url) | 0.2.7 | BSD-3-Clause |  |  |
 | [filetime](https://crates.io/crates/filetime) | 0.2.27 | MIT OR Apache-2.0 |  |  |
 | [find-msvc-tools](https://crates.io/crates/find-msvc-tools) | 0.1.9 | MIT OR Apache-2.0 |  |  |
