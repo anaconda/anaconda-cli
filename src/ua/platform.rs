@@ -78,7 +78,7 @@ fn system_release() -> (String, String) {
 
     unsafe {
         #[link(name = "ntdll")]
-        extern "system" {
+        unsafe extern "system" {
             fn RtlGetVersion(lp_version_information: *mut OsVersionInfoExW) -> i32;
         }
 
