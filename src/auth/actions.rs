@@ -77,6 +77,70 @@ impl ApiClient {
             .await
             .map_err(|e| AuthError::Network(e.to_string()))
     }
+
+    /// Make an authenticated POST request to an API endpoint.
+    pub async fn post<T: serde::Serialize + ?Sized>(
+        &self,
+        path: &str,
+        body: &T,
+    ) -> Result<reqwest::Response, AuthError> {
+        let url = format!("{}{}", self.config.base_url(), path);
+        let json_body = serde_json::to_string(body)
+            .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
+        self.client
+            .post(&url)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(json_body)
+            .send()
+            .await
+            .map_err(|e| AuthError::Network(e.to_string()))
+    }
+
+    /// Make an authenticated PUT request to an API endpoint.
+    pub async fn put<T: serde::Serialize + ?Sized>(
+        &self,
+        path: &str,
+        body: &T,
+    ) -> Result<reqwest::Response, AuthError> {
+        let url = format!("{}{}", self.config.base_url(), path);
+        let json_body = serde_json::to_string(body)
+            .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
+        self.client
+            .put(&url)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(json_body)
+            .send()
+            .await
+            .map_err(|e| AuthError::Network(e.to_string()))
+    }
+
+    /// Make an authenticated PATCH request to an API endpoint.
+    pub async fn patch<T: serde::Serialize + ?Sized>(
+        &self,
+        path: &str,
+        body: &T,
+    ) -> Result<reqwest::Response, AuthError> {
+        let url = format!("{}{}", self.config.base_url(), path);
+        let json_body = serde_json::to_string(body)
+            .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
+        self.client
+            .patch(&url)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(json_body)
+            .send()
+            .await
+            .map_err(|e| AuthError::Network(e.to_string()))
+    }
+
+    /// Make an authenticated DELETE request to an API endpoint.
+    pub async fn delete(&self, path: &str) -> Result<reqwest::Response, AuthError> {
+        let url = format!("{}{}", self.config.base_url(), path);
+        self.client
+            .delete(&url)
+            .send()
+            .await
+            .map_err(|e| AuthError::Network(e.to_string()))
+    }
 }
 
 /// OpenID Connect discovery document.
