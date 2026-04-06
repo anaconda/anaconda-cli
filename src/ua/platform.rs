@@ -140,6 +140,9 @@ mod tests {
         let (system, release) = system_release();
         assert!(!system.is_empty());
         assert!(!release.is_empty());
+        // On Unix, uname always provides a real release string.
+        // On Windows we return "unknown" without a winapi crate.
+        #[cfg(unix)]
         assert_ne!(release, "unknown");
     }
 
