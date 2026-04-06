@@ -10,7 +10,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
-use crate::http::build_client;
+use crate::http::{build_client, Client};
 use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -26,10 +26,10 @@ fn print_qr(qr: &str) {
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
-    /// The underlying HTTP client with logging middleware.
-    pub client: reqwest_middleware::ClientWithMiddleware,
-    config: Config,
+    /// The underlying HTTP client with base URL and logging middleware.
+    pub client: Client,
     api_key: Option<String>,
+    domain: String,
 }
 
 impl ApiClient {
@@ -46,16 +46,17 @@ impl ApiClient {
             default_headers.insert(header::AUTHORIZATION, auth_value);
         }
 
-        let client = build_client(
+        let client = Client::new(
             reqwest::Client::builder()
                 .timeout(REQUEST_TIMEOUT)
                 .default_headers(default_headers),
+            config.base_url(),
         )?;
 
         Ok(Self {
             client,
-            config,
             api_key,
+            domain: config.domain,
         })
     }
 
@@ -66,12 +67,7 @@ impl ApiClient {
 
     /// Get the configured domain.
     pub fn domain(&self) -> &str {
-        &self.config.domain
-    }
-
-    /// Get the base URL for API requests.
-    pub fn base_url(&self) -> String {
-        self.config.base_url()
+        &self.domain
     }
 }
 
@@ -318,10 +314,9 @@ pub async fn whoami() -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let url = format!("{}/api/account", api.base_url());
     let response = api
         .client
-        .get(&url)
+        .get("/api/account")
         .send()
         .await
         .map_err(|e| AuthError::Network(e.to_string()))?;
