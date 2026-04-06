@@ -58,26 +58,9 @@ fn system_release() -> (String, String) {
         "windows" => "Windows",
         other => other,
     };
-    let release = os_version_windows().unwrap_or_else(|| "unknown".to_string());
-    (system.to_string(), release)
-}
-
-#[cfg(not(unix))]
-fn os_version_windows() -> Option<String> {
-    std::process::Command::new("cmd")
-        .args(["/C", "ver"])
-        .output()
-        .ok()
-        .and_then(|out| {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            // "Microsoft Windows [Version 10.0.22631.4890]"
-            s.split('[')
-                .nth(1)?
-                .split(']')
-                .next()?
-                .strip_prefix("Version ")
-                .map(|v| v.to_string())
-        })
+    // Without winapi/windows-sys we can't query the version without a subprocess.
+    // Use "unknown" for now; revisit if Windows support becomes a priority.
+    (system.to_string(), "unknown".to_string())
 }
 
 /// Get the OS distribution name and version.
@@ -104,15 +87,27 @@ fn os_distribution() -> Option<(String, String)> {
 
 #[cfg(target_os = "macos")]
 fn macos_version() -> Option<(String, String)> {
-    let output = std::process::Command::new("sw_vers")
-        .arg("-productVersion")
-        .output()
-        .ok()?;
-    let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if version.is_empty() {
-        return None;
-    }
+    // Read from SystemVersion.plist instead of shelling out to sw_vers.
+    let content =
+        std::fs::read_to_string("/System/Library/CoreServices/SystemVersion.plist").ok()?;
+    let version = parse_plist_key(&content, "ProductVersion")?;
     Some(("OSX".to_string(), version))
+}
+
+/// Extract a string value for `key` from a simple XML plist.
+#[cfg(target_os = "macos")]
+fn parse_plist_key(xml: &str, key: &str) -> Option<String> {
+    let mut lines = xml.lines();
+    while let Some(line) = lines.next() {
+        if line.trim() == format!("<key>{}</key>", key) {
+            let val_line = lines.next()?.trim().to_string();
+            return val_line
+                .strip_prefix("<string>")
+                .and_then(|s| s.strip_suffix("</string>"))
+                .map(|s| s.to_string());
+        }
+    }
+    None
 }
 
 #[cfg(target_os = "linux")]
