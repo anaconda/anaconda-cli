@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use reqwest::blocking::RequestBuilder;
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
@@ -58,6 +58,11 @@ impl ApiClient {
         })
     }
 
+    /// Get the config.
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
     /// Check if the client has valid credentials.
     pub fn is_authenticated(&self) -> bool {
         self.api_key.is_some()
@@ -91,7 +96,7 @@ impl ApiClient {
         if status.is_success() {
             info!(%method, %url, %status, duration_ms = %duration.as_millis(), "request completed");
         } else {
-            warn!(%method, %url, %status, duration_ms = %duration.as_millis(), "request failed");
+            tracing::error!(%method, %url, %status, duration_ms = %duration.as_millis(), "request failed");
         }
 
         Ok(response)
@@ -110,27 +115,41 @@ impl ApiClient {
     }
 
     /// Create a PUT request builder.
+    #[allow(dead_code)]
     pub fn put_builder(&self, path: &str) -> RequestBuilder {
         let url = format!("{}{}", self.config.base_url(), path);
         self.client.put(&url)
     }
 
     /// Create a PATCH request builder.
+    #[allow(dead_code)]
     pub fn patch_builder(&self, path: &str) -> RequestBuilder {
         let url = format!("{}{}", self.config.base_url(), path);
         self.client.patch(&url)
     }
 
     /// Create a DELETE request builder.
+    #[allow(dead_code)]
     pub fn delete_builder(&self, path: &str) -> RequestBuilder {
         let url = format!("{}{}", self.config.base_url(), path);
         self.client.delete(&url)
     }
 
     /// Create a request builder for any HTTP method.
+    #[allow(dead_code)]
     pub fn request_builder(&self, method: reqwest::Method, path: &str) -> RequestBuilder {
         let url = format!("{}{}", self.config.base_url(), path);
         self.client.request(method, &url)
+    }
+
+    /// Create a GET request builder for a full URL (not relative to base_url).
+    pub fn get_url(&self, url: &str) -> RequestBuilder {
+        self.client.get(url)
+    }
+
+    /// Create a POST request builder for a full URL (not relative to base_url).
+    pub fn post_url(&self, url: &str) -> RequestBuilder {
+        self.client.post(url)
     }
 }
 
@@ -167,18 +186,14 @@ struct TokenErrorResponse {
 
 /// Perform the device authorization flow.
 pub fn login() -> Result<(), AuthError> {
-    // We use a new, unauthenticated client instead of ApiClient, since
-    // login by definition happens first. It ends up being simpler to do
-    // this, at least for now, because the auth flow needs to follow direct
-    // URLs from openid-configuration etc.
-    let config = Config::load();
-    let client = reqwest::blocking::Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()?;
+    let client = ApiClient::new()?;
+    let config = client.config();
 
     // TODO(mattkram): Better handling for common exceptions like SSL cert, etc.
     // Fetch OpenID configuration
-    let openid_config: OpenIdConfig = client.get(&config.well_known_url()).send()?.json()?;
+    let openid_config: OpenIdConfig = client
+        .send(client.get_url(&config.well_known_url()))?
+        .json()?;
 
     let device_auth_endpoint = openid_config
         .device_authorization_endpoint
@@ -186,12 +201,12 @@ pub fn login() -> Result<(), AuthError> {
 
     // Request device authorization
     let device_response: DeviceAuthResponse = client
-        .post(&device_auth_endpoint)
-        .form(&[
-            ("client_id", config.client_id.as_str()),
-            ("scope", "openid profile email"),
-        ])
-        .send()?
+        .send(
+            client.post_url(&device_auth_endpoint).form(&[
+                ("client_id", config.client_id.as_str()),
+                ("scope", "openid profile email"),
+            ]),
+        )?
         .json()?;
 
     // Display instructions to user
@@ -264,6 +279,7 @@ pub fn login() -> Result<(), AuthError> {
 
     loop {
         if start.elapsed() > timeout {
+            tracing::error!("authentication timed out waiting for user");
             return Err(AuthError::Timeout);
         }
 
@@ -285,14 +301,13 @@ pub fn login() -> Result<(), AuthError> {
             thread::sleep(Duration::from_millis(100));
         }
 
-        let response = client
-            .post(&openid_config.token_endpoint)
-            .form(&[
+        let response = client.send(
+            client.post_url(&openid_config.token_endpoint).form(&[
                 ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
                 ("device_code", &device_response.device_code),
                 ("client_id", &config.client_id),
-            ])
-            .send()?;
+            ]),
+        )?;
 
         if response.status().is_success() {
             let token: TokenResponse = response.json()?;
@@ -301,14 +316,15 @@ pub fn login() -> Result<(), AuthError> {
 
             // Create API key
             println!("Creating API key...");
-            let api_key = create_api_key(&client, &config, &token.access_token)?;
+            let api_key = create_api_key(&client, &token.access_token)?;
 
             // Save to keyring
-            save_api_key(&config, &api_key)?;
-            println!("API key saved to {}", config.keyring_path.display());
+            save_api_key(client.config(), &api_key)?;
+            println!("API key saved to {}", client.config().keyring_path.display());
             return Ok(());
         }
 
+        // Parse error response to check for expected polling states
         let error: TokenErrorResponse = response.json()?;
         match error.error.as_str() {
             "authorization_pending" => continue,
@@ -316,18 +332,22 @@ pub fn login() -> Result<(), AuthError> {
                 thread::sleep(Duration::from_secs(5));
                 continue;
             }
-            "expired_token" => return Err(AuthError::Timeout),
+            "expired_token" => {
+                tracing::error!("token expired during authentication");
+                return Err(AuthError::Timeout);
+            }
             "access_denied" => {
+                tracing::error!("user denied access");
                 return Err(AuthError::Authorization(
                     "Access denied by user".to_string(),
                 ));
             }
             _ => {
-                return Err(AuthError::Authorization(
-                    error
-                        .error_description
-                        .unwrap_or_else(|| error.error.clone()),
-                ));
+                let desc = error
+                    .error_description
+                    .unwrap_or_else(|| error.error.clone());
+                tracing::error!(error = %error.error, description = %desc, "token request failed");
+                return Err(AuthError::Authorization(desc));
             }
         }
     }
@@ -371,10 +391,8 @@ pub fn whoami() -> Result<(), AuthError> {
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().unwrap_or_default();
-        return Err(AuthError::Authorization(format!(
-            "Failed to get account info: {} - {}",
-            status, body
-        )));
+        tracing::error!(%status, %body, "failed to get account info");
+        return Err(AuthError::Authorization("Failed to get account info".into()));
     }
 
     let data: serde_json::Value = response.json()?;

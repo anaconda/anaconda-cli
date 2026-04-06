@@ -15,7 +15,7 @@ use crate::config::{self, Config};
 use crate::update;
 
 /// Determine log level from args and env before full CLI parsing.
-/// Returns the verbosity level: 0=warn, 1=info, 2=debug, 3+=trace
+/// Returns the verbosity level: 0=off, 1=error, 2=warn, 3=info, 4=debug, 5+=trace
 fn get_verbosity() -> u8 {
     // Check env var first (ANA_LOG or RUST_LOG)
     if std::env::var("ANA_LOG").is_ok() || std::env::var("RUST_LOG").is_ok() {
@@ -45,17 +45,15 @@ fn build_log_filter(verbosity: u8) -> EnvFilter {
         return filter;
     }
 
-    // Otherwise, use verbosity level
-    let app_level = match verbosity {
-        0 => "warn",
-        1 => "info",
-        2 => "debug",
-        _ => "trace",
-    };
-
-    EnvFilter::new(format!(
-        "ana={app_level},anaconda_otel_rs=off,opentelemetry=off,reqwest=off"
-    ))
+    // Verbosity levels: 0=off, 1=error, 2=warn, 3=info, 4=debug, 5+=trace (with libs)
+    match verbosity {
+        0 => EnvFilter::new("off"),
+        1 => EnvFilter::new("ana=error"),
+        2 => EnvFilter::new("ana=warn"),
+        3 => EnvFilter::new("ana=info"),
+        4 => EnvFilter::new("ana=debug"),
+        _ => EnvFilter::new("trace"), // Everything including libs
+    }
 }
 
 /// Build base telemetry attributes with system information.
@@ -277,7 +275,7 @@ pub fn print_main_help() {
           self           Manage the ana installation
 
         Options:
-          -v, --verbose  Increase verbosity (-v, -vv, -vvv)
+          -v, --verbose  Increase verbosity (-v=error, -vv=warn, -vvv=info, -vvvv=debug, -vvvvv=trace)
           -V, --version  Print version
           -h, --help     Print help
 
@@ -330,7 +328,7 @@ pub fn print_auth_help() {
     override_usage = "ana [command] [options]",
 )]
 struct Cli {
-    /// Increase verbosity (-v=info, -vv=debug, -vvv=trace)
+    /// Increase verbosity (-v=error, -vv=warn, -vvv=info, -vvvv=debug, -vvvvv=trace)
     #[arg(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
     verbose: u8,
 

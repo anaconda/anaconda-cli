@@ -2,9 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::actions::ApiClient;
 use super::errors::AuthError;
 use crate::VERSION;
-use crate::config::Config;
 
 /// Request body for creating an API key.
 #[derive(Debug, Serialize)]
@@ -20,12 +20,7 @@ struct ApiKeyResponse {
 }
 
 /// Create a new API key using the access token.
-pub fn create_api_key(
-    client: &reqwest::blocking::Client,
-    config: &Config,
-    access_token: &str,
-) -> Result<String, AuthError> {
-    let url = format!("{}/api/auth/api-keys", config.base_url());
+pub fn create_api_key(client: &ApiClient, access_token: &str) -> Result<String, AuthError> {
     let payload = CreateApiKeyRequest {
         scopes: vec![
             "cloud:read".to_string(),
@@ -36,19 +31,18 @@ pub fn create_api_key(
     };
 
     // TODO: AAU token header is normally added here in anaconda-auth
-    let response = client
-        .post(&url)
-        .bearer_auth(access_token)
-        .json(&payload)
-        .send()?;
+    let response = client.send(
+        client
+            .post_builder("/api/auth/api-keys")
+            .bearer_auth(access_token)
+            .json(&payload),
+    )?;
 
-    if response.status() != reqwest::StatusCode::CREATED {
+    if !response.status().is_success() {
         let status = response.status();
         let body = response.text().unwrap_or_default();
-        return Err(AuthError::Authorization(format!(
-            "Failed to create API key: {} - {}",
-            status, body
-        )));
+        tracing::error!(%status, %body, "failed to create API key");
+        return Err(AuthError::Authorization("Failed to create API key".into()));
     }
 
     let response: ApiKeyResponse = response.json()?;
