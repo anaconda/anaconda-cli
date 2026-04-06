@@ -45,4 +45,11 @@ mod tests {
             ua
         );
     }
+
+    #[test]
+    fn test_user_agent_print() {
+        let ua = user_agent();
+        eprintln!("User-Agent: {}", ua);
+        assert!(!ua.is_empty());
+    }
 }
