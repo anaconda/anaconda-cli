@@ -26,8 +26,7 @@ fn print_qr(qr: &str) {
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
-    /// The underlying HTTP client with base URL and logging middleware.
-    pub client: Client,
+    inner: Client,
     api_key: Option<String>,
     domain: String,
 }
@@ -54,7 +53,7 @@ impl ApiClient {
         )?;
 
         Ok(Self {
-            client,
+            inner: client,
             api_key,
             domain: config.domain,
         })
@@ -68,6 +67,35 @@ impl ApiClient {
     /// Get the configured domain.
     pub fn domain(&self) -> &str {
         &self.domain
+    }
+
+    /// GET request.
+    pub fn get(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.get(url)
+    }
+
+    /// POST request.
+    #[allow(dead_code)]
+    pub fn post(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.post(url)
+    }
+
+    /// PUT request.
+    #[allow(dead_code)]
+    pub fn put(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.put(url)
+    }
+
+    /// PATCH request.
+    #[allow(dead_code)]
+    pub fn patch(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.patch(url)
+    }
+
+    /// DELETE request.
+    #[allow(dead_code)]
+    pub fn delete(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.delete(url)
     }
 }
 
@@ -306,16 +334,15 @@ pub fn show_api_key() -> Result<(), AuthError> {
 
 /// Display information about the logged-in user.
 pub async fn whoami() -> Result<(), AuthError> {
-    let api = ApiClient::new()?;
+    let client = ApiClient::new()?;
 
-    if !api.is_authenticated() {
-        println!("Not logged in to {}", api.domain());
+    if !client.is_authenticated() {
+        println!("Not logged in to {}", client.domain());
         println!("Run `ana login` to authenticate.");
         return Ok(());
     }
 
-    let response = api
-        .client
+    let response = client
         .get("/api/account")
         .send()
         .await
@@ -334,7 +361,7 @@ pub async fn whoami() -> Result<(), AuthError> {
     let data: serde_json::Value = response.json().await?;
     let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
 
-    println!("Your info ({}):", api.domain());
+    println!("Your info ({}):", client.domain());
     println!("{}", pretty);
 
     Ok(())
