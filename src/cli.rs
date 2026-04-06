@@ -35,6 +35,7 @@ pub async fn execute() {
     shutdown_telemetry();
 
     if let Err(e) = result {
+        tracing::error!("Command failed: {}", e);
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
@@ -220,9 +221,11 @@ fn handle_parse_error(e: clap::Error) -> (Action, u8) {
         let args: Vec<String> = std::env::args().collect();
         if args.len() > 1 && args[1] == "self" {
             if args.len() > 2 {
+                tracing::error!("Unknown self command: {}", args[2]);
                 eprintln!("Unknown self command: {}", args[2]);
             }
         } else if args.len() > 1 {
+            tracing::error!("Unknown command: {}", args[1]);
             eprintln!("Unknown command: {}", args[1]);
         }
         std::process::exit(1);
