@@ -42,10 +42,7 @@ pub fn run_subcommand(subcommand: &str, args: &[String]) -> Result<(), String> {
     if status.success() {
         Ok(())
     } else {
-        let msg = format!(
-            "anaconda exited with code {}",
-            status.code().unwrap_or(1)
-        );
+        let msg = format!("anaconda exited with code {}", status.code().unwrap_or(1));
         tracing::error!("{}", msg);
         Err(msg)
     }

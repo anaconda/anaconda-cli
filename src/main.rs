@@ -3,6 +3,7 @@ mod auth;
 mod cli;
 mod config;
 mod http;
+mod diagnostics;
 mod input;
 mod paths;
 mod qr;
@@ -13,6 +14,7 @@ pub const VERSION: &str = env!("PKG_VERSION");
 
 #[tokio::main]
 async fn main() {
+    let _diagnostics_guard = diagnostics::init();
     cli::execute().await;
 }
 
