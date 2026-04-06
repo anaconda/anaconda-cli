@@ -296,40 +296,47 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
 
 pub fn print_main_help() {
     println!(
-        "ana {VERSION}
+        "{}",
+        formatdoc! {"
+        ana {VERSION}
 
-Usage: ana [command] [options]
+        Usage: ana [command] [options]
 
-Commands:
-  auth           Authentication commands
-  bootstrap      Install the Anaconda CLI
-  config         Show current configuration
-  login          Log in to Anaconda
-  logout         Log out from Anaconda
-  org            Interact with anaconda.org
-  whoami         Display information about the logged-in user
-  self           Manage the ana installation
+        Commands:
+          auth           Authentication commands
+          bootstrap      Install the Anaconda CLI
+          config         Show current configuration
+          login          Log in to Anaconda
+          logout         Log out from Anaconda
+          org            Interact with anaconda.org
+          whoami         Display information about the logged-in user
+          self           Manage the ana installation
 
-Options:
-  -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
-  -V, --version  Print version
-  -h, --help     Print help"
+        Options:
+          -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
+          -V, --version  Print version
+          -h, --help     Print help
+        "}
     );
 }
 
 pub fn print_self_help() {
     let feedback_line = if cfg!(feature = "feedback") {
-        "  feedback  Open the feedback form\n"
+        "feedback  Open the feedback form\n  "
     } else {
-        ""
+        "  "
     };
     println!(
-        "Manage the installation
+        "{}",
+        formatdoc! {"
+        Manage the installation
 
-Usage: ana self <command> [options]
+        Usage: ana self <command> [options]
 
-Commands:
-{feedback_line}  update    Update ana to the latest version"
+        Commands:
+          {feedback_line}\
+          update    Update ana to the latest version
+        "}
     );
 }
 
