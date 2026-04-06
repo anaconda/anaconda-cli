@@ -26,7 +26,8 @@ fn print_qr(qr: &str) {
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
-    client: reqwest_middleware::ClientWithMiddleware,
+    /// The underlying HTTP client with logging middleware.
+    pub client: reqwest_middleware::ClientWithMiddleware,
     config: Config,
     api_key: Option<String>,
 }
@@ -68,82 +69,9 @@ impl ApiClient {
         &self.config.domain
     }
 
-    /// Make an authenticated GET request to an API endpoint.
-    pub async fn get(&self, path: &str) -> Result<reqwest::Response, AuthError> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        self.client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| AuthError::Network(e.to_string()))
-    }
-
-    /// Make an authenticated POST request to an API endpoint.
-    #[allow(dead_code)]
-    pub async fn post<T: serde::Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &T,
-    ) -> Result<reqwest::Response, AuthError> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        let json_body = serde_json::to_string(body)
-            .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
-        self.client
-            .post(&url)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(json_body)
-            .send()
-            .await
-            .map_err(|e| AuthError::Network(e.to_string()))
-    }
-
-    /// Make an authenticated PUT request to an API endpoint.
-    #[allow(dead_code)]
-    pub async fn put<T: serde::Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &T,
-    ) -> Result<reqwest::Response, AuthError> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        let json_body = serde_json::to_string(body)
-            .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
-        self.client
-            .put(&url)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(json_body)
-            .send()
-            .await
-            .map_err(|e| AuthError::Network(e.to_string()))
-    }
-
-    /// Make an authenticated PATCH request to an API endpoint.
-    #[allow(dead_code)]
-    pub async fn patch<T: serde::Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &T,
-    ) -> Result<reqwest::Response, AuthError> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        let json_body = serde_json::to_string(body)
-            .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
-        self.client
-            .patch(&url)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(json_body)
-            .send()
-            .await
-            .map_err(|e| AuthError::Network(e.to_string()))
-    }
-
-    /// Make an authenticated DELETE request to an API endpoint.
-    #[allow(dead_code)]
-    pub async fn delete(&self, path: &str) -> Result<reqwest::Response, AuthError> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        self.client
-            .delete(&url)
-            .send()
-            .await
-            .map_err(|e| AuthError::Network(e.to_string()))
+    /// Get the base URL for API requests.
+    pub fn base_url(&self) -> String {
+        self.config.base_url()
     }
 }
 
@@ -382,15 +310,21 @@ pub fn show_api_key() -> Result<(), AuthError> {
 
 /// Display information about the logged-in user.
 pub async fn whoami() -> Result<(), AuthError> {
-    let client = ApiClient::new()?;
+    let api = ApiClient::new()?;
 
-    if !client.is_authenticated() {
-        println!("Not logged in to {}", client.domain());
+    if !api.is_authenticated() {
+        println!("Not logged in to {}", api.domain());
         println!("Run `ana login` to authenticate.");
         return Ok(());
     }
 
-    let response = client.get("/api/account").await?;
+    let url = format!("{}/api/account", api.base_url());
+    let response = api
+        .client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| AuthError::Network(e.to_string()))?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -405,7 +339,7 @@ pub async fn whoami() -> Result<(), AuthError> {
     let data: serde_json::Value = response.json().await?;
     let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
 
-    println!("Your info ({}):", client.domain());
+    println!("Your info ({}):", api.domain());
     println!("{}", pretty);
 
     Ok(())
