@@ -23,15 +23,14 @@ fn system_attrs() -> HashMap<String, Value> {
 }
 
 pub async fn execute() {
-    // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        tracing_subscriber::EnvFilter::new("anaconda_otel_rs=off,opentelemetry=off,reqwest=off")
-    });
+    let (action, verbosity) = parse();
+
+    let filter = build_tracing_filter(verbosity);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
     config::setup_telemetry();
 
-    let result = parse().execute().await;
+    let result = action.execute().await;
 
     shutdown_telemetry();
 
@@ -39,6 +38,25 @@ pub async fn execute() {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
+}
+
+/// Build tracing filter based on verbosity level.
+/// Respects RUST_LOG env var if set, otherwise uses verbosity flags.
+fn build_tracing_filter(verbosity: u8) -> tracing_subscriber::EnvFilter {
+    if let Ok(filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
+        return filter;
+    }
+
+    let filter_str = match verbosity {
+        0 => "off",
+        1 => "ana=error,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+        2 => "ana=warn,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+        3 => "ana=info,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+        4 => "ana=debug,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+        _ => "trace",
+    };
+
+    tracing_subscriber::EnvFilter::new(filter_str)
 }
 
 /// Action to be performed, returned by parse()
@@ -148,48 +166,52 @@ impl Action {
     }
 }
 
-/// Parse CLI arguments and return the action to perform.
+/// Parse CLI arguments and return the action to perform along with verbosity level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
-pub fn parse() -> Action {
+pub fn parse() -> (Action, u8) {
     match Cli::try_parse() {
-        Ok(cli) => match cli.command {
-            None => Action::ShowHelp,
-            Some(Commands::Bootstrap) => Action::Bootstrap,
-            Some(Commands::Config) => Action::ShowConfig,
-            Some(Commands::Login) => Action::Login,
-            Some(Commands::Logout) => Action::Logout,
-            Some(Commands::Whoami) => Action::Whoami,
-            Some(Commands::Auth { command }) => match command {
-                None => Action::ShowAuthHelp,
-                Some(AuthCommands::ApiKey) => Action::ShowApiKey,
-                Some(AuthCommands::Login) => Action::Login,
-                Some(AuthCommands::Logout) => Action::Logout,
-                Some(AuthCommands::Whoami) => Action::Whoami,
-            },
-            Some(Commands::Self_ { command }) => match command {
-                None => Action::ShowSelfHelp,
-                Some(SelfCommands::Update { yes, check, list }) => {
-                    if check {
-                        Action::CheckForUpdate
-                    } else if list {
-                        Action::ShowAvailableVersions
-                    } else {
-                        Action::Update { force: yes }
+        Ok(cli) => {
+            let verbosity = cli.verbose;
+            let action = match cli.command {
+                None => Action::ShowHelp,
+                Some(Commands::Bootstrap) => Action::Bootstrap,
+                Some(Commands::Config) => Action::ShowConfig,
+                Some(Commands::Login) => Action::Login,
+                Some(Commands::Logout) => Action::Logout,
+                Some(Commands::Whoami) => Action::Whoami,
+                Some(Commands::Auth { command }) => match command {
+                    None => Action::ShowAuthHelp,
+                    Some(AuthCommands::ApiKey) => Action::ShowApiKey,
+                    Some(AuthCommands::Login) => Action::Login,
+                    Some(AuthCommands::Logout) => Action::Logout,
+                    Some(AuthCommands::Whoami) => Action::Whoami,
+                },
+                Some(Commands::Self_ { command }) => match command {
+                    None => Action::ShowSelfHelp,
+                    Some(SelfCommands::Update { yes, check, list }) => {
+                        if check {
+                            Action::CheckForUpdate
+                        } else if list {
+                            Action::ShowAvailableVersions
+                        } else {
+                            Action::Update { force: yes }
+                        }
                     }
-                }
-            },
-            Some(Commands::Org { args }) => Action::OrgProxy { args },
-        },
+                },
+                Some(Commands::Org { args }) => Action::OrgProxy { args },
+            };
+            (action, verbosity)
+        }
         Err(e) => handle_parse_error(e),
     }
 }
 
-fn handle_parse_error(e: clap::Error) -> Action {
+fn handle_parse_error(e: clap::Error) -> (Action, u8) {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        return Action::ShowHelp;
+        return (Action::ShowHelp, 0);
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
-        return Action::ShowVersion;
+        return (Action::ShowVersion, 0);
     }
 
     // Handle unknown subcommand errors with custom format
@@ -229,6 +251,7 @@ pub fn print_main_help() {
           self           Manage the ana installation
 
         Options:
+          -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
           -V, --version  Print version
           -h, --help     Print help
         "}
@@ -280,6 +303,10 @@ pub fn print_auth_help() {
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Increase verbosity (-v=error, -vv=warn, -vvv=info, -vvvv=debug, -vvvvv=trace)
+    #[arg(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
+    verbose: u8,
 }
 
 #[derive(Subcommand)]
