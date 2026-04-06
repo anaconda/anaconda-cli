@@ -4,6 +4,13 @@ on:
   pull_request:
   merge_group:
   workflow_call:
+    secrets:
+      PRIVATE_REPO_TOKEN:
+        description: Token for accessing private repositories
+        required: true
+      SENTRY_DSN:
+        description: Sentry DSN for error reporting (only for release builds)
+        required: false
 
 jobs:
   build-and-test:
@@ -33,6 +40,8 @@ jobs:
           pixi run test
 
       - name: Build as standalone binary
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run build-release
 
@@ -70,6 +79,8 @@ jobs:
           pixi-version: v0.66.0
 
       - name: Build as conda package
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run build-conda
 
