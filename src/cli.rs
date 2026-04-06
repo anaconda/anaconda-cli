@@ -227,15 +227,6 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
                 Some(Commands::Config) => Action::ShowConfig,
-                #[cfg(feature = "feedback")]
-                Some(Commands::Feedback {
-                    bug,
-                    feature,
-                    description,
-                }) => Action::OpenFeedback {
-                    feedback_type: feedback::parse_feedback_type(bug, feature),
-                    description,
-                },
                 Some(Commands::Login) => Action::Login,
                 Some(Commands::Logout) => Action::Logout,
                 Some(Commands::Whoami) => Action::Whoami,
@@ -304,11 +295,6 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
 }
 
 pub fn print_main_help() {
-    let feedback_line = if cfg!(feature = "feedback") {
-        "  feedback       Open the feedback form\n"
-    } else {
-        ""
-    };
     println!(
         "ana {VERSION}
 
@@ -318,7 +304,7 @@ Commands:
   auth           Authentication commands
   bootstrap      Install the Anaconda CLI
   config         Show current configuration
-{feedback_line}  login          Log in to Anaconda
+  login          Log in to Anaconda
   logout         Log out from Anaconda
   org            Interact with anaconda.org
   whoami         Display information about the logged-in user
@@ -402,21 +388,6 @@ enum Commands {
 
     /// Show current configuration
     Config,
-
-    /// Open the feedback form
-    #[cfg(feature = "feedback")]
-    Feedback {
-        /// Report a bug
-        #[arg(long, conflicts_with = "feature")]
-        bug: bool,
-
-        /// Request a feature
-        #[arg(long, conflicts_with = "bug")]
-        feature: bool,
-
-        /// Pre-fill the description
-        description: Option<String>,
-    },
 
     /// Log in to Anaconda
     Login,
