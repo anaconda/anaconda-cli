@@ -209,6 +209,7 @@ pub async fn login() -> Result<(), AuthError> {
 
     loop {
         if start.elapsed() > timeout {
+            tracing::error!("Authentication timed out");
             return Err(AuthError::Timeout);
         }
 
@@ -260,18 +261,22 @@ pub async fn login() -> Result<(), AuthError> {
                 sleep(Duration::from_secs(5)).await;
                 continue;
             }
-            "expired_token" => return Err(AuthError::Timeout),
+            "expired_token" => {
+                tracing::error!("Token expired during authentication");
+                return Err(AuthError::Timeout);
+            }
             "access_denied" => {
+                tracing::error!("Access denied by user");
                 return Err(AuthError::Authorization(
                     "Access denied by user".to_string(),
                 ));
             }
             _ => {
-                return Err(AuthError::Authorization(
-                    error
-                        .error_description
-                        .unwrap_or_else(|| error.error.clone()),
-                ));
+                let msg = error
+                    .error_description
+                    .unwrap_or_else(|| error.error.clone());
+                tracing::error!("Authorization error: {}", msg);
+                return Err(AuthError::Authorization(msg));
             }
         }
     }
@@ -315,6 +320,7 @@ pub async fn whoami() -> Result<(), AuthError> {
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
+        tracing::error!("Failed to get account info: {} - {}", status, body);
         return Err(AuthError::Authorization(format!(
             "Failed to get account info: {} - {}",
             status, body

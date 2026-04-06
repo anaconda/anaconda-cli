@@ -45,6 +45,7 @@ pub async fn create_api_key(
     if response.status() != reqwest::StatusCode::CREATED {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
+        tracing::error!("Failed to create API key: {} - {}", status, body);
         return Err(AuthError::Authorization(format!(
             "Failed to create API key: {} - {}",
             status, body

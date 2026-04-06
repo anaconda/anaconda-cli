@@ -25,10 +25,12 @@ pub fn run_subcommand(subcommand: &str, args: &[String]) -> Result<(), String> {
     let anaconda_bin = paths::bin_dir().join("anaconda");
 
     if !anaconda_bin.exists() {
-        return Err(format!(
+        let msg = format!(
             "anaconda not found at {}. Run `ana bootstrap` first.",
             anaconda_bin.display()
-        ));
+        );
+        tracing::error!("{}", msg);
+        return Err(msg);
     }
 
     let status = Command::new(&anaconda_bin)
@@ -40,9 +42,8 @@ pub fn run_subcommand(subcommand: &str, args: &[String]) -> Result<(), String> {
     if status.success() {
         Ok(())
     } else {
-        Err(format!(
-            "anaconda exited with code {}",
-            status.code().unwrap_or(1)
-        ))
+        let msg = format!("anaconda exited with code {}", status.code().unwrap_or(1));
+        tracing::error!("{}", msg);
+        Err(msg)
     }
 }

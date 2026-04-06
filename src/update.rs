@@ -12,7 +12,10 @@ const GITHUB_REPO: &str = "anaconda/ana-cli";
 fn github_client() -> Result<reqwest::Client, Error> {
     let token = match env::var("GITHUB_TOKEN") {
         Ok(token) if !token.is_empty() => token,
-        _ => return Err(Error::MissingToken),
+        _ => {
+            tracing::error!("GITHUB_TOKEN not set or empty");
+            return Err(Error::MissingToken);
+        }
     };
     reqwest::Client::builder()
         .user_agent("ana-cli")
@@ -89,7 +92,10 @@ fn get_asset_name() -> Result<String, Error> {
         ("macos", "aarch64") => Ok("ana-darwin-arm64".to_string()),
         ("linux", "x86_64") => Ok("ana-linux-x86_64".to_string()),
         ("windows", "x86_64") => Ok("ana-windows-x86_64.exe".to_string()),
-        _ => Err(Error::UnsupportedPlatform(format!("{}-{}", os, arch))),
+        _ => {
+            tracing::error!("Unsupported platform: {}-{}", os, arch);
+            Err(Error::UnsupportedPlatform(format!("{}-{}", os, arch)))
+        }
     }
 }
 
@@ -250,6 +256,7 @@ pub async fn check_for_update(current_version: &str) {
             println!("No releases available.");
         }
         Err(e) => {
+            tracing::error!("Failed to check for update: {}", e);
             eprintln!("Failed to check for update: {}", e);
         }
     }
@@ -259,6 +266,7 @@ pub async fn run_update(current_version: &str, force: bool) {
     let check = match check_update(current_version).await {
         Ok(c) => c,
         Err(e) => {
+            tracing::error!("Failed to check for updates: {}", e);
             eprintln!("Failed to check for updates: {}", e);
             return;
         }
@@ -278,7 +286,10 @@ pub async fn run_update(current_version: &str, force: bool) {
                     "Updated successfully: {} -> {}",
                     current_version, release.tag_name
                 ),
-                Err(e) => eprintln!("Failed to update: {}", e),
+                Err(e) => {
+                    tracing::error!("Failed to update: {}", e);
+                    eprintln!("Failed to update: {}", e);
+                }
             }
         }
         UpdateCheck::AlreadyUpToDate => {
@@ -294,6 +305,7 @@ pub async fn show_available_versions(current_version: &str) {
     let releases = match fetch_available_releases().await {
         Ok(r) => r,
         Err(e) => {
+            tracing::error!("Failed to fetch releases: {}", e);
             eprintln!("Failed to fetch releases: {}", e);
             return;
         }

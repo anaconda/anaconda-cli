@@ -13,6 +13,44 @@ use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
 
+/// Log level for tracing output.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum LogLevel {
+    #[default]
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl From<u8> for LogLevel {
+    fn from(count: u8) -> Self {
+        match count {
+            0 => Self::Off,
+            1 => Self::Error,
+            2 => Self::Warn,
+            3 => Self::Info,
+            4 => Self::Debug,
+            _ => Self::Trace,
+        }
+    }
+}
+
+impl LogLevel {
+    fn as_filter_str(&self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Error => "ana=error,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Warn => "ana=warn,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Info => "ana=info,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Debug => "ana=debug,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Trace => "ana=trace,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+        }
+    }
+}
+
 /// Build base telemetry attributes with system information.
 fn system_attrs() -> HashMap<String, Value> {
     let mut attrs = HashMap::new();
@@ -23,22 +61,32 @@ fn system_attrs() -> HashMap<String, Value> {
 }
 
 pub async fn execute() {
-    // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        tracing_subscriber::EnvFilter::new("anaconda_otel_rs=off,opentelemetry=off,reqwest=off")
-    });
+    let (action, level) = parse();
+
+    let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
     config::setup_telemetry();
 
-    let result = parse().execute().await;
+    let result = action.execute().await;
 
     shutdown_telemetry();
 
     if let Err(e) = result {
+        tracing::error!("Command failed: {}", e);
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
+}
+
+/// Build tracing filter based on log level.
+/// Respects RUST_LOG env var if set, otherwise uses verbosity flags.
+fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
+    if let Ok(filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
+        return filter;
+    }
+
+    tracing_subscriber::EnvFilter::new(level.as_filter_str())
 }
 
 /// Action to be performed, returned by parse()
@@ -148,48 +196,52 @@ impl Action {
     }
 }
 
-/// Parse CLI arguments and return the action to perform.
+/// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
-pub fn parse() -> Action {
+pub fn parse() -> (Action, LogLevel) {
     match Cli::try_parse() {
-        Ok(cli) => match cli.command {
-            None => Action::ShowHelp,
-            Some(Commands::Bootstrap) => Action::Bootstrap,
-            Some(Commands::Config) => Action::ShowConfig,
-            Some(Commands::Login) => Action::Login,
-            Some(Commands::Logout) => Action::Logout,
-            Some(Commands::Whoami) => Action::Whoami,
-            Some(Commands::Auth { command }) => match command {
-                None => Action::ShowAuthHelp,
-                Some(AuthCommands::ApiKey) => Action::ShowApiKey,
-                Some(AuthCommands::Login) => Action::Login,
-                Some(AuthCommands::Logout) => Action::Logout,
-                Some(AuthCommands::Whoami) => Action::Whoami,
-            },
-            Some(Commands::Self_ { command }) => match command {
-                None => Action::ShowSelfHelp,
-                Some(SelfCommands::Update { yes, check, list }) => {
-                    if check {
-                        Action::CheckForUpdate
-                    } else if list {
-                        Action::ShowAvailableVersions
-                    } else {
-                        Action::Update { force: yes }
+        Ok(cli) => {
+            let level: LogLevel = cli.verbose.into();
+            let action = match cli.command {
+                None => Action::ShowHelp,
+                Some(Commands::Bootstrap) => Action::Bootstrap,
+                Some(Commands::Config) => Action::ShowConfig,
+                Some(Commands::Login) => Action::Login,
+                Some(Commands::Logout) => Action::Logout,
+                Some(Commands::Whoami) => Action::Whoami,
+                Some(Commands::Auth { command }) => match command {
+                    None => Action::ShowAuthHelp,
+                    Some(AuthCommands::ApiKey) => Action::ShowApiKey,
+                    Some(AuthCommands::Login) => Action::Login,
+                    Some(AuthCommands::Logout) => Action::Logout,
+                    Some(AuthCommands::Whoami) => Action::Whoami,
+                },
+                Some(Commands::Self_ { command }) => match command {
+                    None => Action::ShowSelfHelp,
+                    Some(SelfCommands::Update { yes, check, list }) => {
+                        if check {
+                            Action::CheckForUpdate
+                        } else if list {
+                            Action::ShowAvailableVersions
+                        } else {
+                            Action::Update { force: yes }
+                        }
                     }
-                }
-            },
-            Some(Commands::Org { args }) => Action::OrgProxy { args },
-        },
+                },
+                Some(Commands::Org { args }) => Action::OrgProxy { args },
+            };
+            (action, level)
+        }
         Err(e) => handle_parse_error(e),
     }
 }
 
-fn handle_parse_error(e: clap::Error) -> Action {
+fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        return Action::ShowHelp;
+        return (Action::ShowHelp, LogLevel::Off);
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
-        return Action::ShowVersion;
+        return (Action::ShowVersion, LogLevel::Off);
     }
 
     // Handle unknown subcommand errors with custom format
@@ -198,9 +250,11 @@ fn handle_parse_error(e: clap::Error) -> Action {
         let args: Vec<String> = std::env::args().collect();
         if args.len() > 1 && args[1] == "self" {
             if args.len() > 2 {
+                tracing::error!("Unknown self command: {}", args[2]);
                 eprintln!("Unknown self command: {}", args[2]);
             }
         } else if args.len() > 1 {
+            tracing::error!("Unknown command: {}", args[1]);
             eprintln!("Unknown command: {}", args[1]);
         }
         std::process::exit(1);
@@ -229,6 +283,7 @@ pub fn print_main_help() {
           self           Manage the ana installation
 
         Options:
+          -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
           -V, --version  Print version
           -h, --help     Print help
         "}
@@ -280,6 +335,10 @@ pub fn print_auth_help() {
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Increase verbosity (-v=error, -vv=warn, -vvv=info, -vvvv=debug, -vvvvv=trace)
+    #[arg(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
+    verbose: u8,
 }
 
 #[derive(Subcommand)]
