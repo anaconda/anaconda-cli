@@ -6,12 +6,57 @@ use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_te
 use clap::{Parser, Subcommand};
 use indoc::formatdoc;
 use opentelemetry::Value;
+use tracing_subscriber::EnvFilter;
 
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
+
+/// Determine log level from args and env before full CLI parsing.
+/// Returns the verbosity level: 0=warn, 1=info, 2=debug, 3+=trace
+fn get_verbosity() -> u8 {
+    // Check env var first (ANA_LOG or RUST_LOG)
+    if std::env::var("ANA_LOG").is_ok() || std::env::var("RUST_LOG").is_ok() {
+        return 0; // Let EnvFilter handle it
+    }
+
+    // Check for -v flags in args
+    let mut verbosity = 0u8;
+    for arg in std::env::args().skip(1) {
+        if arg == "-v" || arg == "--verbose" {
+            verbosity = verbosity.saturating_add(1);
+        } else if arg.starts_with("-v") && arg.chars().skip(1).all(|c| c == 'v') {
+            // Handle -vv, -vvv, etc.
+            verbosity = verbosity.saturating_add(arg.len() as u8 - 1);
+        }
+    }
+    verbosity
+}
+
+/// Build the tracing filter based on verbosity level.
+fn build_log_filter(verbosity: u8) -> EnvFilter {
+    // If RUST_LOG or ANA_LOG is set, use that
+    if let Ok(filter) = std::env::var("ANA_LOG") {
+        return EnvFilter::new(filter);
+    }
+    if let Ok(filter) = EnvFilter::try_from_default_env() {
+        return filter;
+    }
+
+    // Otherwise, use verbosity level
+    let app_level = match verbosity {
+        0 => "warn",
+        1 => "info",
+        2 => "debug",
+        _ => "trace",
+    };
+
+    EnvFilter::new(format!(
+        "ana={app_level},anaconda_otel_rs=off,opentelemetry=off,reqwest=off"
+    ))
+}
 
 /// Build base telemetry attributes with system information.
 fn system_attrs() -> HashMap<String, Value> {
@@ -23,11 +68,14 @@ fn system_attrs() -> HashMap<String, Value> {
 }
 
 pub fn execute() {
-    // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        tracing_subscriber::EnvFilter::new("anaconda_otel_rs=off,opentelemetry=off,reqwest=off")
-    });
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    // Configure logging based on -v flags or ANA_LOG/RUST_LOG env vars
+    let verbosity = get_verbosity();
+    let filter = build_log_filter(verbosity);
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_target(false)
+        .without_time()
+        .init();
 
     config::setup_telemetry();
 
@@ -36,7 +84,7 @@ pub fn execute() {
     shutdown_telemetry();
 
     if let Err(e) = result {
-        eprintln!("Error: {}", e);
+        tracing::error!("{}", e);
         std::process::exit(1);
     }
 }
@@ -198,10 +246,10 @@ fn handle_parse_error(e: clap::Error) -> Action {
         let args: Vec<String> = std::env::args().collect();
         if args.len() > 1 && args[1] == "self" {
             if args.len() > 2 {
-                eprintln!("Unknown self command: {}", args[2]);
+                tracing::error!("Unknown self command: {}", args[2]);
             }
         } else if args.len() > 1 {
-            eprintln!("Unknown command: {}", args[1]);
+            tracing::error!("Unknown command: {}", args[1]);
         }
         std::process::exit(1);
     }
@@ -229,8 +277,12 @@ pub fn print_main_help() {
           self           Manage the ana installation
 
         Options:
+          -v, --verbose  Increase verbosity (-v, -vv, -vvv)
           -V, --version  Print version
           -h, --help     Print help
+
+        Environment:
+          ANA_LOG        Set log filter (e.g., ANA_LOG=ana=debug)
         "}
     );
 }
@@ -278,6 +330,10 @@ pub fn print_auth_help() {
     override_usage = "ana [command] [options]",
 )]
 struct Cli {
+    /// Increase verbosity (-v=info, -vv=debug, -vvv=trace)
+    #[arg(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
+    verbose: u8,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }

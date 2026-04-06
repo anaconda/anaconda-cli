@@ -1,10 +1,12 @@
 //! Authentication actions (login, logout, whoami).
 
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
+use reqwest::blocking::RequestBuilder;
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
+use tracing::{debug, info, warn};
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
@@ -66,10 +68,69 @@ impl ApiClient {
         &self.config.domain
     }
 
-    /// Make an authenticated GET request to an API endpoint.
-    pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
+    /// Send a request with logging middleware.
+    /// Logs the request method/URL before sending and status/duration after.
+    pub fn send(
+        &self,
+        request: RequestBuilder,
+    ) -> Result<reqwest::blocking::Response, AuthError> {
+        // Build the request to inspect it before sending
+        let request = request.build()?;
+        let method = request.method().clone();
+        let url = request.url().clone();
+
+        debug!(%method, %url, "sending request");
+        let start = Instant::now();
+
+        // Execute the request
+        let response = self.client.execute(request)?;
+
+        let duration = start.elapsed();
+        let status = response.status();
+
+        if status.is_success() {
+            info!(%method, %url, %status, duration_ms = %duration.as_millis(), "request completed");
+        } else {
+            warn!(%method, %url, %status, duration_ms = %duration.as_millis(), "request failed");
+        }
+
+        Ok(response)
+    }
+
+    /// Create a GET request builder.
+    pub fn get_builder(&self, path: &str) -> RequestBuilder {
         let url = format!("{}{}", self.config.base_url(), path);
-        Ok(self.client.get(&url).send()?)
+        self.client.get(&url)
+    }
+
+    /// Create a POST request builder.
+    pub fn post_builder(&self, path: &str) -> RequestBuilder {
+        let url = format!("{}{}", self.config.base_url(), path);
+        self.client.post(&url)
+    }
+
+    /// Create a PUT request builder.
+    pub fn put_builder(&self, path: &str) -> RequestBuilder {
+        let url = format!("{}{}", self.config.base_url(), path);
+        self.client.put(&url)
+    }
+
+    /// Create a PATCH request builder.
+    pub fn patch_builder(&self, path: &str) -> RequestBuilder {
+        let url = format!("{}{}", self.config.base_url(), path);
+        self.client.patch(&url)
+    }
+
+    /// Create a DELETE request builder.
+    pub fn delete_builder(&self, path: &str) -> RequestBuilder {
+        let url = format!("{}{}", self.config.base_url(), path);
+        self.client.delete(&url)
+    }
+
+    /// Create a request builder for any HTTP method.
+    pub fn request_builder(&self, method: reqwest::Method, path: &str) -> RequestBuilder {
+        let url = format!("{}{}", self.config.base_url(), path);
+        self.client.request(method, &url)
     }
 }
 
@@ -305,7 +366,7 @@ pub fn whoami() -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let response = client.get("/api/account")?;
+    let response = client.send(client.get_builder("/api/account"))?;
 
     if !response.status().is_success() {
         let status = response.status();
