@@ -6,12 +6,12 @@ use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_te
 use clap::{CommandFactory, Parser, Subcommand};
 use opentelemetry::Value;
 
+use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::help;
 use crate::update;
-use crate::VERSION;
 
 /// Build base telemetry attributes with system information.
 fn system_attrs() -> HashMap<String, Value> {
