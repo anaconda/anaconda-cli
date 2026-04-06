@@ -22,7 +22,7 @@ fn system_attrs() -> HashMap<String, Value> {
     attrs
 }
 
-pub fn execute() {
+pub async fn execute() {
     // Suppress telemetry logs by default to avoid leaking errors when telemetry fails
     let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
         tracing_subscriber::EnvFilter::new("anaconda_otel_rs=off,opentelemetry=off,reqwest=off")
@@ -31,7 +31,7 @@ pub fn execute() {
 
     config::setup_telemetry();
 
-    let result = parse().execute();
+    let result = parse().execute().await;
 
     shutdown_telemetry();
 
@@ -80,14 +80,14 @@ impl Action {
     }
 
     /// Execute the action with telemetry middleware
-    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
         let name = self.match_action_name();
         let mut attrs = system_attrs();
         attrs.insert("command".to_string(), name.into());
         increment_counter("cli_command_invoked", 1, attrs.clone());
 
         let start = Instant::now();
-        let result = self.run();
+        let result = self.run().await;
         let duration_ms = start.elapsed().as_millis() as f64;
 
         match &result {
@@ -104,7 +104,7 @@ impl Action {
         result
     }
 
-    fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Action::ShowHelp => {
                 print_main_help();
@@ -128,20 +128,20 @@ impl Action {
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap()?),
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
-            Action::Login => Ok(auth::login()?),
+            Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
-            Action::Whoami => Ok(auth::whoami()?),
+            Action::Whoami => Ok(auth::whoami().await?),
             Action::Update { force } => {
-                update::run_update(VERSION, force);
+                update::run_update(VERSION, force).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
-                update::check_for_update(VERSION);
+                update::check_for_update(VERSION).await;
                 Ok(())
             }
             Action::ShowAvailableVersions => {
-                update::show_available_versions(VERSION);
+                update::show_available_versions(VERSION).await;
                 Ok(())
             }
         }

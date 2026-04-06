@@ -1,10 +1,10 @@
 //! Authentication actions (login, logout, whoami).
 
-use std::thread;
 use std::time::Duration;
 
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
+use tokio::time::sleep;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
@@ -25,7 +25,7 @@ fn print_qr(qr: &str) {
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
     config: Config,
     api_key: Option<String>,
 }
@@ -44,7 +44,7 @@ impl ApiClient {
             default_headers.insert(header::AUTHORIZATION, auth_value);
         }
 
-        let client = reqwest::blocking::Client::builder()
+        let client = reqwest::Client::builder()
             .timeout(REQUEST_TIMEOUT)
             .default_headers(default_headers)
             .build()?;
@@ -67,9 +67,9 @@ impl ApiClient {
     }
 
     /// Make an authenticated GET request to an API endpoint.
-    pub fn get(&self, path: &str) -> Result<reqwest::blocking::Response, AuthError> {
+    pub async fn get(&self, path: &str) -> Result<reqwest::Response, AuthError> {
         let url = format!("{}{}", self.config.base_url(), path);
-        Ok(self.client.get(&url).send()?)
+        Ok(self.client.get(&url).send().await?)
     }
 }
 
@@ -105,19 +105,23 @@ struct TokenErrorResponse {
 }
 
 /// Perform the device authorization flow.
-pub fn login() -> Result<(), AuthError> {
+pub async fn login() -> Result<(), AuthError> {
     // We use a new, unauthenticated client instead of ApiClient, since
     // login by definition happens first. It ends up being simpler to do
     // this, at least for now, because the auth flow needs to follow direct
     // URLs from openid-configuration etc.
     let config = Config::load();
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
         .build()?;
 
-    // TODO(mattkram): Better handling for common exceptions like SSL cert, etc.
     // Fetch OpenID configuration
-    let openid_config: OpenIdConfig = client.get(&config.well_known_url()).send()?.json()?;
+    let openid_config: OpenIdConfig = client
+        .get(&config.well_known_url())
+        .send()
+        .await?
+        .json()
+        .await?;
 
     let device_auth_endpoint = openid_config
         .device_authorization_endpoint
@@ -130,8 +134,10 @@ pub fn login() -> Result<(), AuthError> {
             ("client_id", config.client_id.as_str()),
             ("scope", "openid profile email"),
         ])
-        .send()?
-        .json()?;
+        .send()
+        .await?
+        .json()
+        .await?;
 
     // Display instructions to user
     let display_uri = device_response
@@ -206,9 +212,7 @@ pub fn login() -> Result<(), AuthError> {
             return Err(AuthError::Timeout);
         }
 
-        // TODO(mattkram): Revisit this when we implement async support via tokio.
-        //                 Concurrent subroutines should make this a lot cleaner.
-        // Sleep in small increments so we can check for 'q' keypress responsively
+        // Check for 'q' keypress while waiting
         let sleep_until = std::time::Instant::now() + interval;
         while std::time::Instant::now() < sleep_until {
             if !qr_shown {
@@ -221,7 +225,7 @@ pub fn login() -> Result<(), AuthError> {
                     }
                 }
             }
-            thread::sleep(Duration::from_millis(100));
+            sleep(Duration::from_millis(100)).await;
         }
 
         let response = client
@@ -231,16 +235,17 @@ pub fn login() -> Result<(), AuthError> {
                 ("device_code", &device_response.device_code),
                 ("client_id", &config.client_id),
             ])
-            .send()?;
+            .send()
+            .await?;
 
         if response.status().is_success() {
-            let token: TokenResponse = response.json()?;
+            let token: TokenResponse = response.json().await?;
             println!();
             println!("Successfully authenticated!");
 
             // Create API key
             println!("Creating API key...");
-            let api_key = create_api_key(&client, &config, &token.access_token)?;
+            let api_key = create_api_key(&client, &config, &token.access_token).await?;
 
             // Save to keyring
             save_api_key(&config, &api_key)?;
@@ -248,11 +253,11 @@ pub fn login() -> Result<(), AuthError> {
             return Ok(());
         }
 
-        let error: TokenErrorResponse = response.json()?;
+        let error: TokenErrorResponse = response.json().await?;
         match error.error.as_str() {
             "authorization_pending" => continue,
             "slow_down" => {
-                thread::sleep(Duration::from_secs(5));
+                sleep(Duration::from_secs(5)).await;
                 continue;
             }
             "expired_token" => return Err(AuthError::Timeout),
@@ -296,7 +301,7 @@ pub fn show_api_key() -> Result<(), AuthError> {
 }
 
 /// Display information about the logged-in user.
-pub fn whoami() -> Result<(), AuthError> {
+pub async fn whoami() -> Result<(), AuthError> {
     let client = ApiClient::new()?;
 
     if !client.is_authenticated() {
@@ -305,18 +310,18 @@ pub fn whoami() -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let response = client.get("/api/account")?;
+    let response = client.get("/api/account").await?;
 
     if !response.status().is_success() {
         let status = response.status();
-        let body = response.text().unwrap_or_default();
+        let body = response.text().await.unwrap_or_default();
         return Err(AuthError::Authorization(format!(
             "Failed to get account info: {} - {}",
             status, body
         )));
     }
 
-    let data: serde_json::Value = response.json()?;
+    let data: serde_json::Value = response.json().await?;
     let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
 
     println!("Your info ({}):", client.domain());
