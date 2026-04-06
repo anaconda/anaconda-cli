@@ -13,7 +13,7 @@ static PLATFORM_STRING: LazyLock<String> = LazyLock::new(build_platform_string);
 ///
 /// Examples:
 ///   macOS:   `Darwin/25.2.0 OSX/26.2 rattler/0.40.3`
-///   Linux:   `Linux/6.5.0 Ubuntu/22.04 rattler/0.40.3`
+///   Linux:   `Linux/6.5.0 ubuntu/22.04 glibc/2.35 rattler/0.40.3`
 ///   Windows: `Windows/10.0.22631 rattler/0.40.3`
 pub fn platform_string() -> &'static str {
     &PLATFORM_STRING
@@ -27,6 +27,10 @@ fn build_platform_string() -> String {
 
     if let Some((name, version)) = os_distribution() {
         parts.push(format!("{}/{}", name, version));
+    }
+
+    if let Some((family, version)) = libc_version() {
+        parts.push(format!("{}/{}", family, version));
     }
 
     parts.push(format!("rattler/{}", RATTLER_VERSION));
@@ -153,7 +157,36 @@ fn linux_distribution() -> Option<(String, String)> {
             version = Some(val.trim_matches('"').to_string());
         }
     }
-    Some((name?, version.unwrap_or_default()))
+    Some((name?.to_lowercase(), version.unwrap_or_default()))
+}
+
+/// Get the C library family and version.
+///
+/// On Linux (glibc): returns ("glibc", version) via gnu_get_libc_version().
+/// On other platforms: returns None.
+fn libc_version() -> Option<(String, String)> {
+    #[cfg(target_os = "linux")]
+    {
+        linux_libc_version()
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        None
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_libc_version() -> Option<(String, String)> {
+    unsafe {
+        let ver = std::ffi::CStr::from_ptr(libc::gnu_get_libc_version())
+            .to_string_lossy()
+            .into_owned();
+        if ver.is_empty() {
+            return None;
+        }
+        Some(("glibc".to_string(), ver))
+    }
 }
 
 #[cfg(test)]
@@ -197,5 +230,12 @@ mod tests {
     fn test_linux_includes_distro() {
         let s = platform_string();
         assert!(s.contains("Linux/"), "expected Linux/, got: {}", s);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_linux_includes_glibc() {
+        let s = platform_string();
+        assert!(s.contains("glibc/"), "expected glibc/, got: {}", s);
     }
 }
