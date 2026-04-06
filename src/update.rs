@@ -319,14 +319,14 @@ pub async fn show_available_versions(current_version: &str) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_fetch_releases_missing_token_error() {
+    #[tokio::test]
+    async fn test_fetch_releases_missing_token_error() {
         // This test will fail if GITHUB_TOKEN is set in the environment
         // In CI, ensure it's not set, or skip this test
         if env::var("GITHUB_TOKEN").is_ok() {
             return; // Skip test if token is set
         }
-        let result = github_client();
+        let result = fetch_releases().await;
         assert_eq!(result.unwrap_err(), Error::MissingToken);
     }
 
