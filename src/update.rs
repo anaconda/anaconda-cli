@@ -1,7 +1,7 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use std::env;
-use std::io::{Read, Write};
+use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
 use crate::input::prompt_yes_no;
@@ -9,12 +9,12 @@ use crate::input::prompt_yes_no;
 // We track the repo for releases
 const GITHUB_REPO: &str = "anaconda/ana-cli";
 
-fn github_client() -> Result<reqwest::blocking::Client, Error> {
+fn github_client() -> Result<reqwest::Client, Error> {
     let token = match env::var("GITHUB_TOKEN") {
         Ok(token) if !token.is_empty() => token,
         _ => return Err(Error::MissingToken),
     };
-    reqwest::blocking::Client::builder()
+    reqwest::Client::builder()
         .user_agent("ana-cli")
         .default_headers({
             let mut headers = reqwest::header::HeaderMap::new();
@@ -103,13 +103,17 @@ pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
         .ok_or(Error::AssetNotFound(asset_name))
 }
 
-pub fn download_and_replace(asset: &Asset) -> Result<(), Error> {
+pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
+    use futures_util::StreamExt;
+
     let client = github_client()?;
-    let mut response = client
+    let response = client
         .get(&asset.url)
         .header("Accept", "application/octet-stream")
-        .send()?
-        .error_for_status()?;
+        .send()
+        .await?
+        .error_for_status()
+        .map_err(|e| Error::Http(e.to_string()))?;
 
     let total_size = response.content_length().unwrap_or(0);
 
@@ -123,19 +127,17 @@ pub fn download_and_replace(asset: &Asset) -> Result<(), Error> {
 
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(&asset.name);
-    let mut file = std::fs::File::create(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
+    let mut file = tokio::fs::File::create(&temp_path)
+        .await
+        .map_err(|e| Error::Io(e.to_string()))?;
 
-    let mut buffer = [0u8; 8192];
-    loop {
-        let n = response
-            .read(&mut buffer)
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| Error::Io(e.to_string()))?;
+        file.write_all(&chunk)
+            .await
             .map_err(|e| Error::Io(e.to_string()))?;
-        if n == 0 {
-            break;
-        }
-        file.write_all(&buffer[..n])
-            .map_err(|e| Error::Io(e.to_string()))?;
-        pb.inc(n as u64);
+        pb.inc(chunk.len() as u64);
     }
 
     pb.finish_and_clear();
@@ -158,21 +160,25 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
     semver::Version::parse(&normalized).map_err(|_| Error::VersionParse(tag.to_string()))
 }
 
-fn fetch_releases() -> Result<Vec<Release>, Error> {
+async fn fetch_releases() -> Result<Vec<Release>, Error> {
     let client = github_client()?;
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
     let releases: Vec<Release> = client
         .get(&url)
         .header("Accept", "application/vnd.github+json")
-        .send()?
-        .error_for_status()?
-        .json()?;
+        .send()
+        .await?
+        .error_for_status()
+        .map_err(|e| Error::Http(e.to_string()))?
+        .json()
+        .await?;
     Ok(releases)
 }
 
-pub fn fetch_available_releases() -> Result<Vec<Release>, Error> {
+pub async fn fetch_available_releases() -> Result<Vec<Release>, Error> {
     let config = Config::load();
-    let mut releases: Vec<_> = fetch_releases()?
+    let mut releases: Vec<_> = fetch_releases()
+        .await?
         .into_iter()
         .filter(|r| parse_version(&r.tag_name).is_ok())
         .filter(|r| config.include_prereleases || !r.prerelease)
@@ -217,20 +223,20 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCh
     }
 }
 
-pub fn check_update(current_version: &str) -> Result<UpdateCheck, Error> {
-    let releases = fetch_available_releases()?;
+pub async fn check_update(current_version: &str) -> Result<UpdateCheck, Error> {
+    let releases = fetch_available_releases().await?;
     find_update(releases, current_version)
 }
 
-pub fn apply_update(release: &Release) -> Result<(), Error> {
+pub async fn apply_update(release: &Release) -> Result<(), Error> {
     let asset = get_asset_for_platform(release)?;
     println!("Downloading {} ({})", asset.name, asset.url);
-    download_and_replace(asset)?;
+    download_and_replace(asset).await?;
     Ok(())
 }
 
-pub fn check_for_update(current_version: &str) {
-    match check_update(current_version) {
+pub async fn check_for_update(current_version: &str) {
+    match check_update(current_version).await {
         Ok(UpdateCheck::Available(release)) => {
             println!(
                 "Update available: {} -> {}",
@@ -249,8 +255,8 @@ pub fn check_for_update(current_version: &str) {
     }
 }
 
-pub fn run_update(current_version: &str, force: bool) {
-    let check = match check_update(current_version) {
+pub async fn run_update(current_version: &str, force: bool) {
+    let check = match check_update(current_version).await {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Failed to check for updates: {}", e);
@@ -267,7 +273,7 @@ pub fn run_update(current_version: &str, force: bool) {
                     return;
                 }
             }
-            match apply_update(&release) {
+            match apply_update(&release).await {
                 Ok(()) => println!(
                     "Updated successfully: {} -> {}",
                     current_version, release.tag_name
@@ -284,8 +290,8 @@ pub fn run_update(current_version: &str, force: bool) {
     }
 }
 
-pub fn show_available_versions(current_version: &str) {
-    let releases = match fetch_available_releases() {
+pub async fn show_available_versions(current_version: &str) {
+    let releases = match fetch_available_releases().await {
         Ok(r) => r,
         Err(e) => {
             eprintln!("Failed to fetch releases: {}", e);
@@ -313,14 +319,14 @@ pub fn show_available_versions(current_version: &str) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_fetch_releases_missing_token_error() {
+    #[tokio::test]
+    async fn test_fetch_releases_missing_token_error() {
         // This test will fail if GITHUB_TOKEN is set in the environment
         // In CI, ensure it's not set, or skip this test
         if env::var("GITHUB_TOKEN").is_ok() {
             return; // Skip test if token is set
         }
-        let result = fetch_releases();
+        let result = fetch_releases().await;
         assert_eq!(result.unwrap_err(), Error::MissingToken);
     }
 
