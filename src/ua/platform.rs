@@ -1,6 +1,9 @@
 //! Platform identification for the user-agent string.
 //!
-//! Produces: `{kernel}/{release} {os}/{version} rattler/{version}`
+//! Format aligns with conda's user-agent conventions where possible:
+//!   `{kernel}/{release} {os}/{version} [glibc/{version}] rattler/{version}`
+//!
+//! All platform detection uses direct syscalls or file reads — no subprocesses.
 
 use std::sync::LazyLock;
 
@@ -122,7 +125,11 @@ fn os_distribution() -> Option<(String, String)> {
 
 #[cfg(target_os = "macos")]
 fn macos_version() -> Option<(String, String)> {
-    // Read from SystemVersion.plist instead of shelling out to sw_vers.
+    // Read SystemVersion.plist directly rather than shelling out to sw_vers.
+    // Note: processes linked against SDK <= 10.15 see a shimmed "10.16" here
+    // instead of the real version (11+). This doesn't affect us because we
+    // compile against a modern SDK, but conda's Python-based approach needs
+    // a sw_vers fallback for that reason.
     let content =
         std::fs::read_to_string("/System/Library/CoreServices/SystemVersion.plist").ok()?;
     let version = parse_plist_key(&content, "ProductVersion")?;
@@ -147,6 +154,9 @@ fn parse_plist_key(xml: &str, key: &str) -> Option<String> {
 
 #[cfg(target_os = "linux")]
 fn linux_distribution() -> Option<(String, String)> {
+    // Reads /etc/os-release directly. conda uses the `distro` Python package
+    // which has additional fallbacks (/etc/lsb-release, distro-specific files),
+    // but /etc/os-release is standard on all modern distros.
     let content = std::fs::read_to_string("/etc/os-release").ok()?;
     let mut name = None;
     let mut version = None;
@@ -157,6 +167,7 @@ fn linux_distribution() -> Option<(String, String)> {
             version = Some(val.trim_matches('"').to_string());
         }
     }
+    // Lowercase to match conda's distro.id() convention (e.g. "ubuntu" not "Ubuntu").
     Some((name?.to_lowercase(), version.unwrap_or_default()))
 }
 
@@ -178,6 +189,8 @@ fn libc_version() -> Option<(String, String)> {
 
 #[cfg(target_os = "linux")]
 fn linux_libc_version() -> Option<(String, String)> {
+    // Assumes glibc. musl-based distros (Alpine) won't have this symbol,
+    // but the libc crate's gnu_get_libc_version binding handles that gracefully.
     unsafe {
         let ver = std::ffi::CStr::from_ptr(libc::gnu_get_libc_version())
             .to_string_lossy()
