@@ -79,6 +79,7 @@ impl ApiClient {
     }
 
     /// Make an authenticated POST request to an API endpoint.
+    #[allow(dead_code)]
     pub async fn post<T: serde::Serialize + ?Sized>(
         &self,
         path: &str,
@@ -97,6 +98,7 @@ impl ApiClient {
     }
 
     /// Make an authenticated PUT request to an API endpoint.
+    #[allow(dead_code)]
     pub async fn put<T: serde::Serialize + ?Sized>(
         &self,
         path: &str,
@@ -115,6 +117,7 @@ impl ApiClient {
     }
 
     /// Make an authenticated PATCH request to an API endpoint.
+    #[allow(dead_code)]
     pub async fn patch<T: serde::Serialize + ?Sized>(
         &self,
         path: &str,
@@ -133,6 +136,7 @@ impl ApiClient {
     }
 
     /// Make an authenticated DELETE request to an API endpoint.
+    #[allow(dead_code)]
     pub async fn delete(&self, path: &str) -> Result<reqwest::Response, AuthError> {
         let url = format!("{}{}", self.config.base_url(), path);
         self.client
