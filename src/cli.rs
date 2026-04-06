@@ -13,6 +13,44 @@ use crate::auth;
 use crate::config::{self, Config};
 use crate::update;
 
+/// Log level for tracing output.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum LogLevel {
+    #[default]
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl From<u8> for LogLevel {
+    fn from(count: u8) -> Self {
+        match count {
+            0 => Self::Off,
+            1 => Self::Error,
+            2 => Self::Warn,
+            3 => Self::Info,
+            4 => Self::Debug,
+            _ => Self::Trace,
+        }
+    }
+}
+
+impl LogLevel {
+    fn as_filter_str(&self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Error => "ana=error,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Warn => "ana=warn,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Info => "ana=info,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Debug => "ana=debug,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+            Self::Trace => "ana=trace,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
+        }
+    }
+}
+
 /// Build base telemetry attributes with system information.
 fn system_attrs() -> HashMap<String, Value> {
     let mut attrs = HashMap::new();
@@ -23,9 +61,9 @@ fn system_attrs() -> HashMap<String, Value> {
 }
 
 pub async fn execute() {
-    let (action, verbosity) = parse();
+    let (action, level) = parse();
 
-    let filter = build_tracing_filter(verbosity);
+    let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
     config::setup_telemetry();
@@ -41,23 +79,14 @@ pub async fn execute() {
     }
 }
 
-/// Build tracing filter based on verbosity level.
+/// Build tracing filter based on log level.
 /// Respects RUST_LOG env var if set, otherwise uses verbosity flags.
-fn build_tracing_filter(verbosity: u8) -> tracing_subscriber::EnvFilter {
+fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
     if let Ok(filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
         return filter;
     }
 
-    let filter_str = match verbosity {
-        0 => "off",
-        1 => "ana=error,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
-        2 => "ana=warn,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
-        3 => "ana=info,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
-        4 => "ana=debug,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
-        _ => "trace",
-    };
-
-    tracing_subscriber::EnvFilter::new(filter_str)
+    tracing_subscriber::EnvFilter::new(level.as_filter_str())
 }
 
 /// Action to be performed, returned by parse()
@@ -167,12 +196,12 @@ impl Action {
     }
 }
 
-/// Parse CLI arguments and return the action to perform along with verbosity level.
+/// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
-pub fn parse() -> (Action, u8) {
+pub fn parse() -> (Action, LogLevel) {
     match Cli::try_parse() {
         Ok(cli) => {
-            let verbosity = cli.verbose;
+            let level: LogLevel = cli.verbose.into();
             let action = match cli.command {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
@@ -201,18 +230,18 @@ pub fn parse() -> (Action, u8) {
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
             };
-            (action, verbosity)
+            (action, level)
         }
         Err(e) => handle_parse_error(e),
     }
 }
 
-fn handle_parse_error(e: clap::Error) -> (Action, u8) {
+fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        return (Action::ShowHelp, 0);
+        return (Action::ShowHelp, LogLevel::Off);
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
-        return (Action::ShowVersion, 0);
+        return (Action::ShowVersion, LogLevel::Off);
     }
 
     // Handle unknown subcommand errors with custom format
