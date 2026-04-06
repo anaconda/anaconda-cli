@@ -7,6 +7,9 @@ pub enum AuthError {
     #[error("HTTP request failed: {0}")]
     Request(#[from] reqwest::Error),
 
+    #[error("Network error: {0}")]
+    Network(String),
+
     #[error("Authorization failed: {0}")]
     Authorization(String),
 

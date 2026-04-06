@@ -2,6 +2,7 @@ mod anaconda_cli;
 mod auth;
 mod cli;
 mod config;
+mod http;
 mod input;
 mod paths;
 mod qr;

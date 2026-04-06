@@ -1,5 +1,6 @@
 //! API key management.
 
+use reqwest::header;
 use serde::{Deserialize, Serialize};
 
 use super::errors::AuthError;
@@ -21,7 +22,7 @@ struct ApiKeyResponse {
 
 /// Create a new API key using the access token.
 pub async fn create_api_key(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     config: &Config,
     access_token: &str,
 ) -> Result<String, AuthError> {
@@ -35,12 +36,17 @@ pub async fn create_api_key(
         tags: vec![format!("ana-cli/v{}", VERSION)],
     };
 
+    let body = serde_json::to_string(&payload)
+        .map_err(|e| AuthError::Network(format!("Failed to serialize request: {}", e)))?;
+
     let response = client
         .post(&url)
         .bearer_auth(access_token)
-        .json(&payload)
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(body)
         .send()
-        .await?;
+        .await
+        .map_err(|e| AuthError::Network(e.to_string()))?;
 
     if response.status() != reqwest::StatusCode::CREATED {
         let status = response.status();

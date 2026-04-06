@@ -50,12 +50,14 @@ name = "ana"
 version = "0.0.0"
 dependencies = [
  "anaconda-otel-rs",
+ "async-trait",
  "base64",
  "clap",
  "comfy-table",
  "console",
  "dirs",
  "futures-util",
+ "http",
  "indicatif",
  "indoc",
  "libc",

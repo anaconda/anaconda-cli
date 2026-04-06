@@ -10,6 +10,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
+use crate::http::build_client;
 use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -25,7 +26,7 @@ fn print_qr(qr: &str) {
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
-    client: reqwest::Client,
+    client: reqwest_middleware::ClientWithMiddleware,
     config: Config,
     api_key: Option<String>,
 }
@@ -44,10 +45,11 @@ impl ApiClient {
             default_headers.insert(header::AUTHORIZATION, auth_value);
         }
 
-        let client = reqwest::Client::builder()
-            .timeout(REQUEST_TIMEOUT)
-            .default_headers(default_headers)
-            .build()?;
+        let client = build_client(
+            reqwest::Client::builder()
+                .timeout(REQUEST_TIMEOUT)
+                .default_headers(default_headers),
+        )?;
 
         Ok(Self {
             client,
@@ -69,7 +71,11 @@ impl ApiClient {
     /// Make an authenticated GET request to an API endpoint.
     pub async fn get(&self, path: &str) -> Result<reqwest::Response, AuthError> {
         let url = format!("{}{}", self.config.base_url(), path);
-        Ok(self.client.get(&url).send().await?)
+        self.client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| AuthError::Network(e.to_string()))
     }
 }
 
@@ -111,15 +117,14 @@ pub async fn login() -> Result<(), AuthError> {
     // this, at least for now, because the auth flow needs to follow direct
     // URLs from openid-configuration etc.
     let config = Config::load();
-    let client = reqwest::Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()?;
+    let client = build_client(reqwest::Client::builder().timeout(REQUEST_TIMEOUT))?;
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
         .get(&config.well_known_url())
         .send()
-        .await?
+        .await
+        .map_err(|e| AuthError::Network(e.to_string()))?
         .json()
         .await?;
 
@@ -135,7 +140,8 @@ pub async fn login() -> Result<(), AuthError> {
             ("scope", "openid profile email"),
         ])
         .send()
-        .await?
+        .await
+        .map_err(|e| AuthError::Network(e.to_string()))?
         .json()
         .await?;
 
@@ -237,7 +243,8 @@ pub async fn login() -> Result<(), AuthError> {
                 ("client_id", &config.client_id),
             ])
             .send()
-            .await?;
+            .await
+            .map_err(|e| AuthError::Network(e.to_string()))?;
 
         if response.status().is_success() {
             let token: TokenResponse = response.json().await?;
