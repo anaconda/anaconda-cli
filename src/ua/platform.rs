@@ -1,13 +1,11 @@
 //! Platform identification for the user-agent string.
 //!
 //! Format aligns with conda's user-agent conventions where possible:
-//!   `{kernel}/{release} {os}/{version} [glibc/{version}] rattler/{version}`
+//!   `{kernel}/{release} [{os}/{version}] [glibc/{version}]`
 //!
 //! All platform detection uses direct syscalls or file reads — no subprocesses.
 
 use std::sync::LazyLock;
-
-const RATTLER_VERSION: &str = env!("RATTLER_VERSION");
 
 /// Cached platform string (computed once per process).
 static PLATFORM_STRING: LazyLock<String> = LazyLock::new(build_platform_string);
@@ -15,9 +13,9 @@ static PLATFORM_STRING: LazyLock<String> = LazyLock::new(build_platform_string);
 /// Return the platform identification string.
 ///
 /// Examples:
-///   macOS:   `Darwin/25.2.0 OSX/26.2 rattler/0.40.3`
-///   Linux:   `Linux/6.5.0 ubuntu/22.04 glibc/2.35 rattler/0.40.3`
-///   Windows: `Windows/10.0.22631 rattler/0.40.3`
+///   macOS:   `Darwin/25.2.0 OSX/26.2`
+///   Linux:   `Linux/6.5.0 ubuntu/22.04 glibc/2.35`
+///   Windows: `Windows/10.0.22631`
 pub fn platform_string() -> &'static str {
     &PLATFORM_STRING
 }
@@ -35,8 +33,6 @@ fn build_platform_string() -> String {
     if let Some((family, version)) = libc_version() {
         parts.push(format!("{}/{}", family, version));
     }
-
-    parts.push(format!("rattler/{}", RATTLER_VERSION));
 
     parts.join(" ")
 }
@@ -218,16 +214,6 @@ mod tests {
         assert!(!system.is_empty());
         assert!(!release.is_empty());
         assert_ne!(release, "unknown");
-    }
-
-    #[test]
-    fn test_platform_string_contains_rattler() {
-        let s = platform_string();
-        assert!(
-            s.contains("rattler/"),
-            "expected rattler/ in platform string, got: {}",
-            s
-        );
     }
 
     #[cfg(target_os = "macos")]
