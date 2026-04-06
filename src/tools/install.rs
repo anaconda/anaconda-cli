@@ -190,14 +190,10 @@ fn make_download_client() -> reqwest_middleware::ClientWithMiddleware {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_lockfile_parse_error() {
-        let result = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(install_from_lockfile(
-                Path::new("/tmp/test"),
-                "invalid lockfile content",
-            ));
+    #[tokio::test]
+    async fn test_lockfile_parse_error() {
+        let result =
+            install_from_lockfile(Path::new("/tmp/test"), "invalid lockfile content").await;
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
