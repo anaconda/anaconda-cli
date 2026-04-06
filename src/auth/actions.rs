@@ -10,7 +10,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
-use crate::http::{build_client, Client};
+use crate::http::{Client, build_client};
 use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
