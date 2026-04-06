@@ -9,8 +9,9 @@ libc = "0.2"
 [features]
 # TODO(mattkram): For the early project phase, we will enable diagnostics in our builds by
 #                 default. We will review this behavior before public release.
-default = ["diagnostics"]
-diagnostics = ["sentry"]
+default = ["diagnostics", "feedback"]
+diagnostics = ["dep:sentry"]
+feedback = ["dep:urlencoding"]
 
 [dependencies]
 base64 = "0.22"
@@ -48,7 +49,3 @@ cargo-lock = "11"
 [dev-dependencies]
 temp-env = "0.3"
 tempfile = "3"
-
-[features]
-default = ["feedback"]
-feedback = ["dep:urlencoding"]
