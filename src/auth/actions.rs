@@ -2,8 +2,8 @@
 
 use std::time::{Duration, Instant};
 
-use reqwest::header::{self, HeaderMap, HeaderValue};
 use reqwest::RequestBuilder;
+use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
 use tokio::time::sleep;
 use tracing::{debug, info};
@@ -75,10 +75,7 @@ impl ApiClient {
 
     /// Send a request with logging middleware.
     /// Logs the request method/URL before sending and status/duration after.
-    pub async fn send(
-        &self,
-        request: RequestBuilder,
-    ) -> Result<reqwest::Response, AuthError> {
+    pub async fn send(&self, request: RequestBuilder) -> Result<reqwest::Response, AuthError> {
         // Build the request to inspect it before sending
         let request = request.build()?;
         let method = request.method().clone();
@@ -202,12 +199,10 @@ pub async fn login() -> Result<(), AuthError> {
 
     // Request device authorization
     let device_response: DeviceAuthResponse = client
-        .send(
-            client.post_url(&device_auth_endpoint).form(&[
-                ("client_id", config.client_id.as_str()),
-                ("scope", "openid profile email"),
-            ]),
-        )
+        .send(client.post_url(&device_auth_endpoint).form(&[
+            ("client_id", config.client_id.as_str()),
+            ("scope", "openid profile email"),
+        ]))
         .await?
         .json()
         .await?;
@@ -303,13 +298,11 @@ pub async fn login() -> Result<(), AuthError> {
         }
 
         let response = client
-            .send(
-                client.post_url(&openid_config.token_endpoint).form(&[
-                    ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
-                    ("device_code", &device_response.device_code),
-                    ("client_id", &config.client_id),
-                ]),
-            )
+            .send(client.post_url(&openid_config.token_endpoint).form(&[
+                ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+                ("device_code", &device_response.device_code),
+                ("client_id", &config.client_id),
+            ]))
             .await?;
 
         if response.status().is_success() {
@@ -323,7 +316,10 @@ pub async fn login() -> Result<(), AuthError> {
 
             // Save to keyring
             save_api_key(client.config(), &api_key)?;
-            println!("API key saved to {}", client.config().keyring_path.display());
+            println!(
+                "API key saved to {}",
+                client.config().keyring_path.display()
+            );
             return Ok(());
         }
 
@@ -395,7 +391,9 @@ pub async fn whoami() -> Result<(), AuthError> {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         tracing::error!(%status, %body, "failed to get account info");
-        return Err(AuthError::Authorization("Failed to get account info".into()));
+        return Err(AuthError::Authorization(
+            "Failed to get account info".into(),
+        ));
     }
 
     let data: serde_json::Value = response.json().await?;
