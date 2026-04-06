@@ -174,7 +174,7 @@ impl Action {
                 Config::load().print_table();
                 Ok(())
             }
-            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap()?),
+            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap().await?),
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
             Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
