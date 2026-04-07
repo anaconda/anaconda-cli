@@ -18,7 +18,7 @@ fn github_client() -> Result<reqwest::Client, Error> {
         }
     };
     reqwest::Client::builder()
-        .user_agent("ana-cli")
+        .user_agent(crate::ua::user_agent())
         .default_headers({
             let mut headers = reqwest::header::HeaderMap::new();
             headers.insert(
