@@ -3,6 +3,8 @@ mod auth;
 mod cli;
 mod config;
 mod diagnostics;
+#[cfg(feature = "feedback")]
+mod feedback;
 mod input;
 mod paths;
 mod qr;
@@ -11,6 +13,8 @@ mod ua;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
+#[cfg(feature = "feedback")]
+pub const FEEDBACK_BASE_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSeGd9p7pQSHvjIc6RNShjTQCGmM-5_3xkPNpNfYk102-HZB8Q/viewform";
 
 #[tokio::main]
 async fn main() {

@@ -9,8 +9,9 @@ libc = "0.2"
 [features]
 # TODO(mattkram): For the early project phase, we will enable diagnostics in our builds by
 #                 default. We will review this behavior before public release.
-default = ["diagnostics"]
-diagnostics = ["sentry"]
+default = ["diagnostics", "feedback"]
+diagnostics = ["dep:sentry"]
+feedback = ["dep:urlencoding"]
 
 [dependencies]
 base64 = "0.22"
@@ -36,6 +37,7 @@ serde_json = "1.0"
 anaconda-otel-rs = { git = "https://github.com/anaconda/anaconda-otel-rs" }
 thiserror = "2"
 tokio = { version = "1.45", features = ["rt-multi-thread", "macros", "time", "fs", "sync"] }
+urlencoding = { version = "2", optional = true }
 webbrowser = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

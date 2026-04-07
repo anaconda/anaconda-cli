@@ -11,6 +11,8 @@ use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
+#[cfg(feature = "feedback")]
+use crate::feedback::{self, FeedbackType};
 use crate::update;
 
 /// Log level for tracing output.
@@ -100,11 +102,20 @@ pub enum Action {
     Logout,
     ShowApiKey,
     Whoami,
-    Update { force: bool },
+    Update {
+        force: bool,
+    },
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
-    OrgProxy { args: Vec<String> },
+    OrgProxy {
+        args: Vec<String>,
+    },
+    #[cfg(feature = "feedback")]
+    OpenFeedback {
+        feedback_type: Option<FeedbackType>,
+        description: Option<String>,
+    },
 }
 
 impl Action {
@@ -124,6 +135,8 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            #[cfg(feature = "feedback")]
+            Action::OpenFeedback { .. } => "feedback",
         }
     }
 
@@ -192,6 +205,14 @@ impl Action {
                 update::show_available_versions(VERSION).await;
                 Ok(())
             }
+            #[cfg(feature = "feedback")]
+            Action::OpenFeedback {
+                feedback_type,
+                description,
+            } => {
+                feedback::open_feedback(feedback_type, description);
+                Ok(())
+            }
         }
     }
 }
@@ -218,6 +239,15 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSelfHelp,
+                    #[cfg(feature = "feedback")]
+                    Some(SelfCommands::Feedback {
+                        bug,
+                        feature,
+                        description,
+                    }) => Action::OpenFeedback {
+                        feedback_type: feedback::parse_feedback_type(bug, feature),
+                        description,
+                    },
                     Some(SelfCommands::Update { yes, check, list }) => {
                         if check {
                             Action::CheckForUpdate
@@ -291,6 +321,11 @@ pub fn print_main_help() {
 }
 
 pub fn print_self_help() {
+    let feedback_line = if cfg!(feature = "feedback") {
+        "feedback  Open the feedback form\n  "
+    } else {
+        "  "
+    };
     println!(
         "{}",
         formatdoc! {"
@@ -299,6 +334,7 @@ pub fn print_self_help() {
         Usage: ana self <command> [options]
 
         Commands:
+          {feedback_line}\
           update    Update ana to the latest version
         "}
     );
@@ -409,6 +445,21 @@ enum AuthCommands {
 
 #[derive(Subcommand)]
 enum SelfCommands {
+    /// Open the feedback form
+    #[cfg(feature = "feedback")]
+    Feedback {
+        /// Report a bug
+        #[arg(long, conflicts_with = "feature")]
+        bug: bool,
+
+        /// Request a feature
+        #[arg(long, conflicts_with = "bug")]
+        feature: bool,
+
+        /// Pre-fill the description
+        description: Option<String>,
+    },
+
     /// Update ana to the latest version
     Update {
         /// Skip confirmation prompt
