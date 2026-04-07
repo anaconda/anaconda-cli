@@ -41,15 +41,6 @@ jobs:
         run: |
           pixi run test
 
-      - name: Verify SENTRY_DSN is set
-        shell: bash
-        run: |
-          if [ -n "$SENTRY_DSN" ]; then
-            echo "SENTRY_DSN is set (length: ${#SENTRY_DSN})"
-          else
-            echo "WARNING: SENTRY_DSN is empty or not set"
-          fi
-
       - name: Build as standalone binary
         run: |
           cargo clean
@@ -89,15 +80,6 @@ jobs:
         uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
         with:
           pixi-version: v0.66.0
-
-      - name: Verify SENTRY_DSN is set
-        shell: bash
-        run: |
-          if [ -n "$SENTRY_DSN" ]; then
-            echo "SENTRY_DSN is set (length: ${#SENTRY_DSN})"
-          else
-            echo "WARNING: SENTRY_DSN is empty or not set"
-          fi
 
       - name: Build as conda package
         run: |
