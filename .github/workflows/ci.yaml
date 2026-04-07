@@ -36,6 +36,8 @@ jobs:
           pixi-version: v0.66.0
 
       - name: Run tests
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run test
 
@@ -57,6 +59,8 @@ jobs:
           pixi run build-release
 
       - name: Run integration tests
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run test-integration
 
