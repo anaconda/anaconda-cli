@@ -3,9 +3,9 @@ mod auth;
 mod cli;
 mod config;
 mod diagnostics;
-mod http;
 #[cfg(feature = "feedback")]
 mod feedback;
+mod http;
 mod input;
 mod paths;
 mod qr;
