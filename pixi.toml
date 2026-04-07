@@ -33,7 +33,7 @@ cmd = "python scripts/with_version.py cargo build --release"
 description = "Build the standalone Rust binary in release mode"
 
 [tasks.test]
-cmd = "python scripts/with_version.py cargo test"
+cmd = "python scripts/with_version.py cargo test -- --show-output"
 description = "Run the unit tests"
 
 [tasks.test-integration]

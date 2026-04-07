@@ -41,6 +41,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 opentelemetry = "0.31.0"
 
+[build-dependencies]
+cargo-lock = "11"
+
 [dev-dependencies]
 temp-env = "0.3"
 tempfile = "3"
