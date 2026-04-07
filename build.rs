@@ -13,6 +13,7 @@ fn main() {
     // Sentry DSN is injected at build time. If not set, defaults to empty string
     // which will disable Sentry at runtime.
     let sentry_dsn = std::env::var("SENTRY_DSN").unwrap_or_default();
+    println!("cargo:warning=SENTRY_DSN length: {}", sentry_dsn.len());
     println!("cargo:rustc-env=SENTRY_DSN={}", sentry_dsn);
 
     // Expose build target info for Sentry tags
