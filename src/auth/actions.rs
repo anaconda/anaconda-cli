@@ -45,6 +45,7 @@ impl ApiClient {
         }
 
         let client = reqwest::Client::builder()
+            .user_agent(crate::ua::user_agent())
             .timeout(REQUEST_TIMEOUT)
             .default_headers(default_headers)
             .build()?;
@@ -112,6 +113,7 @@ pub async fn login() -> Result<(), AuthError> {
     // URLs from openid-configuration etc.
     let config = Config::load();
     let client = reqwest::Client::builder()
+        .user_agent(crate::ua::user_agent())
         .timeout(REQUEST_TIMEOUT)
         .build()?;
 
