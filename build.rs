@@ -28,14 +28,10 @@ fn main() {
 
 /// Extract a dependency's resolved version from Cargo.lock.
 fn extract_dep_version(lock_path: &str, dep_name: &str) -> Option<String> {
-    let content = std::fs::read_to_string(lock_path).ok()?;
-    let mut found_name = false;
-    for line in content.lines() {
-        if line.starts_with("name = ") && line.contains(&format!("\"{}\"", dep_name)) {
-            found_name = true;
-        } else if found_name && line.starts_with("version = ") {
-            return line.split('"').nth(1).map(|s| s.to_string());
-        }
-    }
-    None
+    let lockfile = cargo_lock::Lockfile::load(lock_path).ok()?;
+    lockfile
+        .packages
+        .iter()
+        .find(|p| p.name.as_str() == dep_name)
+        .map(|p| p.version.to_string())
 }
