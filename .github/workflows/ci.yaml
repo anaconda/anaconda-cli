@@ -16,6 +16,8 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     strategy:
       fail-fast: false
       matrix:
@@ -39,21 +41,9 @@ jobs:
         run: |
           pixi run test
 
-      - name: Verify SENTRY_DSN is set
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-        shell: bash
-        run: |
-          if [ -n "$SENTRY_DSN" ]; then
-            echo "SENTRY_DSN is set (length: ${#SENTRY_DSN})"
-          else
-            echo "WARNING: SENTRY_DSN is empty or not set"
-          fi
-
       - name: Build as standalone binary
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
+          cargo clean
           pixi run build-release
 
       - name: Run integration tests
@@ -70,6 +60,8 @@ jobs:
   build-conda:
     name: Build Conda (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,20 +81,7 @@ jobs:
         with:
           pixi-version: v0.66.0
 
-      - name: Verify SENTRY_DSN is set
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-        shell: bash
-        run: |
-          if [ -n "$SENTRY_DSN" ]; then
-            echo "SENTRY_DSN is set (length: ${#SENTRY_DSN})"
-          else
-            echo "WARNING: SENTRY_DSN is empty or not set"
-          fi
-
       - name: Build as conda package
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           pixi run build-conda
 
