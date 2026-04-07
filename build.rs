@@ -18,4 +18,20 @@ fn main() {
     // Expose build target info for Sentry tags
     let target = std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());
     println!("cargo:rustc-env=BUILD_TARGET={}", target);
+
+    // Extract rattler version from Cargo.lock for the user-agent string
+    println!("cargo:rerun-if-changed=Cargo.lock");
+    let rattler_version =
+        extract_dep_version("Cargo.lock", "rattler").unwrap_or_else(|| "unknown".to_string());
+    println!("cargo:rustc-env=RATTLER_VERSION={}", rattler_version);
+}
+
+/// Extract a dependency's resolved version from Cargo.lock.
+fn extract_dep_version(lock_path: &str, dep_name: &str) -> Option<String> {
+    let lockfile = cargo_lock::Lockfile::load(lock_path).ok()?;
+    lockfile
+        .packages
+        .iter()
+        .find(|p| p.name.as_str() == dep_name)
+        .map(|p| p.version.to_string())
 }
