@@ -7,8 +7,8 @@ pub enum AuthError {
     #[error("HTTP request failed: {0}")]
     Request(#[from] reqwest::Error),
 
-    #[error("Network error: {0}")]
-    Network(String),
+    #[error("HTTP middleware error: {0}")]
+    Middleware(String),
 
     #[error("Authorization failed: {0}")]
     Authorization(String),
@@ -21,9 +21,12 @@ pub enum AuthError {
 
     #[error("Keyring error: {0}")]
     Keyring(String),
+}
 
-    #[error("Invalid API key")]
-    InvalidKey,
+impl From<reqwest_middleware::Error> for AuthError {
+    fn from(e: reqwest_middleware::Error) -> Self {
+        AuthError::Middleware(e.to_string())
+    }
 }
 
 #[cfg(test)]

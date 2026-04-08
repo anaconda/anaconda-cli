@@ -41,12 +41,12 @@ pub struct Client {
 }
 
 impl Client {
-    /// Create a new client with base URL and logging middleware.
+    /// Create a new client with base URL, user-agent, and logging middleware.
     pub fn new(
         builder: reqwest::ClientBuilder,
         base_url: impl Into<String>,
     ) -> std::result::Result<Self, reqwest::Error> {
-        let client = builder.build()?;
+        let client = builder.user_agent(crate::ua::user_agent()).build()?;
         let inner = reqwest_middleware::ClientBuilder::new(client)
             .with(LoggingMiddleware)
             .build();
@@ -95,11 +95,20 @@ impl Client {
     }
 }
 
-/// Build an HTTP client with logging middleware (no base URL).
+/// Create a `HeaderMap` with a sensitive `Authorization: Bearer` header.
+pub fn bearer_header(token: &str) -> reqwest::header::HeaderMap {
+    let mut headers = reqwest::header::HeaderMap::new();
+    let mut value = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap();
+    value.set_sensitive(true);
+    headers.insert(reqwest::header::AUTHORIZATION, value);
+    headers
+}
+
+/// Build an HTTP client with user-agent and logging middleware (no base URL).
 pub fn build_client(
     builder: reqwest::ClientBuilder,
 ) -> std::result::Result<reqwest_middleware::ClientWithMiddleware, reqwest::Error> {
-    let client = builder.build()?;
+    let client = builder.user_agent(crate::ua::user_agent()).build()?;
     Ok(reqwest_middleware::ClientBuilder::new(client)
         .with(LoggingMiddleware)
         .build())

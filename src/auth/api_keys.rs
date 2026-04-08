@@ -40,8 +40,7 @@ pub async fn create_api_key(
         .bearer_auth(access_token)
         .json(&payload)
         .send()
-        .await
-        .map_err(|e| AuthError::Network(e.to_string()))?;
+        .await?;
 
     if response.status() != reqwest::StatusCode::CREATED {
         let status = response.status();

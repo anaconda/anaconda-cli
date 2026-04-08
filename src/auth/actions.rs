@@ -2,7 +2,6 @@
 
 use std::time::Duration;
 
-use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
 use tokio::time::sleep;
 
@@ -10,7 +9,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
-use crate::http::{Client, build_client};
+use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -37,21 +36,12 @@ impl ApiClient {
         let config = Config::load();
         let api_key = get_api_key(&config)?;
 
-        let mut default_headers = HeaderMap::new();
+        let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
         if let Some(ref key) = api_key {
-            let mut auth_value = HeaderValue::from_str(&format!("Bearer {}", key))
-                .map_err(|_| AuthError::InvalidKey)?;
-            auth_value.set_sensitive(true); // keeps it out of debug logs
-            default_headers.insert(header::AUTHORIZATION, auth_value);
+            builder = builder.default_headers(bearer_header(key));
         }
 
-        let client = Client::new(
-            reqwest::Client::builder()
-                .user_agent(crate::ua::user_agent())
-                .timeout(REQUEST_TIMEOUT)
-                .default_headers(default_headers),
-            config.base_url(),
-        )?;
+        let client = Client::new(builder, config.base_url())?;
 
         Ok(Self {
             inner: client,
@@ -139,18 +129,13 @@ pub async fn login() -> Result<(), AuthError> {
     // URLs from openid-configuration etc.
     let config = Config::load();
 
-    let client = build_client(
-        reqwest::Client::builder()
-            .user_agent(crate::ua::user_agent())
-            .timeout(REQUEST_TIMEOUT),
-    )?;
+    let client = build_client(reqwest::Client::builder().timeout(REQUEST_TIMEOUT))?;
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
         .get(&config.well_known_url())
         .send()
-        .await
-        .map_err(|e| AuthError::Network(e.to_string()))?
+        .await?
         .json()
         .await?;
 
@@ -166,8 +151,7 @@ pub async fn login() -> Result<(), AuthError> {
             ("scope", "openid profile email"),
         ])
         .send()
-        .await
-        .map_err(|e| AuthError::Network(e.to_string()))?
+        .await?
         .json()
         .await?;
 
@@ -269,8 +253,7 @@ pub async fn login() -> Result<(), AuthError> {
                 ("client_id", &config.client_id),
             ])
             .send()
-            .await
-            .map_err(|e| AuthError::Network(e.to_string()))?;
+            .await?;
 
         if response.status().is_success() {
             let token: TokenResponse = response.json().await?;
@@ -348,11 +331,7 @@ pub async fn whoami() -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let response = client
-        .get("/api/account")
-        .send()
-        .await
-        .map_err(|e| AuthError::Network(e.to_string()))?;
+    let response = client.get("/api/account").send().await?;
 
     if !response.status().is_success() {
         let status = response.status();
