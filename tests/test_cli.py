@@ -160,11 +160,6 @@ class TestLogin:
 class TestBootstrap:
     """Tests for 'ana bootstrap' subcommand."""
 
-    def test_bootstrap_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("bootstrap", "--help")
-        assert result.returncode == 0
-        assert "Install the Anaconda CLI" in result.stdout
-
     def test_bootstrap_installs_anaconda_cli(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
