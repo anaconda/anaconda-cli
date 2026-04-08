@@ -3,8 +3,7 @@ use std::env::consts::{ARCH, OS};
 use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
-use clap::{Parser, Subcommand};
-use indoc::formatdoc;
+use clap::{CommandFactory, Parser, Subcommand};
 use opentelemetry::Value;
 
 use crate::VERSION;
@@ -13,6 +12,7 @@ use crate::auth;
 use crate::config::{self, Config};
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
+use crate::help;
 use crate::update;
 
 /// Log level for tracing output.
@@ -94,8 +94,7 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
 /// Action to be performed, returned by parse()
 pub enum Action {
     ShowHelp,
-    ShowSelfHelp,
-    ShowAuthHelp,
+    ShowSubcommandHelp(String),
     ShowVersion,
     ShowConfig,
     Login,
@@ -122,8 +121,7 @@ impl Action {
     fn match_action_name(&self) -> &'static str {
         match self {
             Action::ShowHelp => "help",
-            Action::ShowSelfHelp => "self.help",
-            Action::ShowAuthHelp => "auth.help",
+            Action::ShowSubcommandHelp(_) => "subcommand.help",
             Action::ShowVersion => "version",
             Action::ShowConfig => "config",
             Action::Login => "login",
@@ -168,15 +166,12 @@ impl Action {
     async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Action::ShowHelp => {
-                print_main_help();
+                let subcommands = get_subcommand_descriptions();
+                help::print_help(subcommands);
                 Ok(())
             }
-            Action::ShowSelfHelp => {
-                print_self_help();
-                Ok(())
-            }
-            Action::ShowAuthHelp => {
-                print_auth_help();
+            Action::ShowSubcommandHelp(name) => {
+                help::print_subcommand_help(&get_subcommand(&name));
                 Ok(())
             }
             Action::ShowVersion => {
@@ -231,14 +226,14 @@ pub fn parse() -> (Action, LogLevel) {
                 Some(Commands::Logout) => Action::Logout,
                 Some(Commands::Whoami) => Action::Whoami,
                 Some(Commands::Auth { command }) => match command {
-                    None => Action::ShowAuthHelp,
+                    None => Action::ShowSubcommandHelp("auth".to_string()),
                     Some(AuthCommands::ApiKey) => Action::ShowApiKey,
                     Some(AuthCommands::Login) => Action::Login,
                     Some(AuthCommands::Logout) => Action::Logout,
                     Some(AuthCommands::Whoami) => Action::Whoami,
                 },
                 Some(Commands::Self_ { command }) => match command {
-                    None => Action::ShowSelfHelp,
+                    None => Action::ShowSubcommandHelp("self".to_string()),
                     #[cfg(feature = "feedback")]
                     Some(SelfCommands::Feedback {
                         bug,
@@ -266,8 +261,27 @@ pub fn parse() -> (Action, LogLevel) {
     }
 }
 
+/// Check if a string is a valid subcommand name
+fn is_valid_subcommand(name: &str) -> bool {
+    Cli::command()
+        .get_subcommands()
+        .any(|s| s.get_name() == name)
+}
+
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
+        // Check if help was requested for a subcommand
+        let args: Vec<String> = std::env::args().collect();
+        if args.len() > 1 {
+            let subcommand = &args[1];
+            // Check if it's a valid subcommand (not a flag)
+            if !subcommand.starts_with('-') && is_valid_subcommand(subcommand) {
+                return (
+                    Action::ShowSubcommandHelp(subcommand.clone()),
+                    LogLevel::Off,
+                );
+            }
+        }
         return (Action::ShowHelp, LogLevel::Off);
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
@@ -294,67 +308,26 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-pub fn print_main_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        ana {VERSION}
-
-        Usage: ana [command] [options]
-
-        Commands:
-          auth           Authentication commands
-          bootstrap      Install the Anaconda CLI
-          config         Show current configuration
-          login          Log in to Anaconda
-          logout         Log out from Anaconda
-          org            Interact with anaconda.org
-          whoami         Display information about the logged-in user
-          self           Manage the ana installation
-
-        Options:
-          -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
-          -V, --version  Print version
-          -h, --help     Print help
-        "}
-    );
+/// Get subcommand names and descriptions from clap for help introspection
+fn get_subcommand_descriptions() -> HashMap<String, String> {
+    Cli::command()
+        .get_subcommands()
+        .map(|s| {
+            (
+                s.get_name().to_string(),
+                s.get_about().map(|a| a.to_string()).unwrap_or_default(),
+            )
+        })
+        .collect()
 }
 
-pub fn print_self_help() {
-    let feedback_line = if cfg!(feature = "feedback") {
-        "feedback  Open the feedback form\n  "
-    } else {
-        "  "
-    };
-    println!(
-        "{}",
-        formatdoc! {"
-        Manage the installation
-
-        Usage: ana self <command> [options]
-
-        Commands:
-          {feedback_line}\
-          update    Update ana to the latest version
-        "}
-    );
-}
-
-pub fn print_auth_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        Authentication commands
-
-        Usage: ana auth <command> [options]
-
-        Commands:
-          api-key   Display the API key for the logged-in user
-          login     Log in to Anaconda
-          logout    Log out from Anaconda
-          whoami    Display information about the logged-in user
-        "}
-    );
+/// Get a subcommand's clap Command by name
+fn get_subcommand(name: &str) -> clap::Command {
+    Cli::command()
+        .get_subcommands()
+        .find(|s| s.get_name() == name)
+        .cloned()
+        .expect("subcommand should exist")
 }
 
 #[derive(Parser)]
@@ -485,5 +458,26 @@ mod tests {
     fn test_cli_parses() {
         // Verify clap setup is valid
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn test_all_subcommands_in_help_sections() {
+        let cmd = Cli::command();
+        let clap_subcommands: std::collections::HashSet<_> =
+            cmd.get_subcommands().map(|s| s.get_name()).collect();
+
+        let help_section_commands: std::collections::HashSet<_> =
+            help::get_all_section_commands().into_iter().collect();
+
+        let missing: Vec<_> = clap_subcommands
+            .difference(&help_section_commands)
+            .collect();
+
+        assert!(
+            missing.is_empty(),
+            "Subcommands missing from help sections: {:?}. \
+             Add them to HELP_SECTIONS in src/help/data.rs",
+            missing
+        );
     }
 }

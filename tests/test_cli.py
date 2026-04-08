@@ -15,23 +15,22 @@ class TestHelp:
     def test_help_flag(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
         assert result.returncode == 0
-        assert "Usage: ana [command] [options]" in result.stdout
+        assert "Manage your" in result.stdout
 
     def test_help_short_flag(self, run_ana: AnaRunner) -> None:
         result = run_ana("-h")
         assert result.returncode == 0
-        assert "Usage: ana [command] [options]" in result.stdout
+        assert "Manage your" in result.stdout
 
     def test_no_args_shows_help(self, run_ana: AnaRunner) -> None:
         result = run_ana()
         assert result.returncode == 0
-        assert "Usage: ana [command] [options]" in result.stdout
+        assert "Manage your" in result.stdout
 
     def test_help_shows_version_in_header(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
         # Header should be "ana {version}" on first line
         first_line = result.stdout.split("\n")[0]
-        assert first_line.startswith("ana ")
         assert re.match(r"ana \d+\.\d+\.\d+", first_line)
 
     def test_help_shows_self_command(self, run_ana: AnaRunner) -> None:
@@ -43,6 +42,62 @@ class TestHelp:
         result = run_ana("--help")
         assert "-V, --version" in result.stdout
         assert "-h, --help" in result.stdout
+
+
+class TestSubcommandHelp:
+    """Tests for --help on subcommands."""
+
+    def test_bootstrap_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("bootstrap", "--help")
+        assert result.returncode == 0
+        assert "Install the Anaconda CLI" in result.stdout
+        assert "Usage: ana bootstrap" in result.stdout
+
+    def test_config_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config", "--help")
+        assert result.returncode == 0
+        assert "Show current configuration" in result.stdout
+        assert "Usage: ana config" in result.stdout
+
+    def test_login_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("login", "--help")
+        assert result.returncode == 0
+        assert "Log in to Anaconda" in result.stdout
+        assert "Usage: ana login" in result.stdout
+
+    def test_logout_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("logout", "--help")
+        assert result.returncode == 0
+        assert "Log out from Anaconda" in result.stdout
+        assert "Usage: ana logout" in result.stdout
+
+    def test_whoami_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("whoami", "--help")
+        assert result.returncode == 0
+        assert "Display information about the logged-in user" in result.stdout
+        assert "Usage: ana whoami" in result.stdout
+
+    def test_self_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("self", "--help")
+        assert result.returncode == 0
+        assert "Manage the ana installation" in result.stdout
+        assert "Usage: ana self" in result.stdout
+        assert "COMMANDS" in result.stdout
+        assert "update" in result.stdout
+
+    def test_auth_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("auth", "--help")
+        assert result.returncode == 0
+        assert "Authentication commands" in result.stdout
+        assert "Usage: ana auth" in result.stdout
+        assert "COMMANDS" in result.stdout
+        assert "api-key" in result.stdout
+
+    def test_org_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("org", "--help")
+        assert result.returncode == 0
+        assert "Interact with anaconda.org" in result.stdout
+        assert "Usage: ana org" in result.stdout
 
 
 class TestVersion:
@@ -152,20 +207,9 @@ class TestLogin:
         assert "login" in result.stdout
         assert "Log in to Anaconda" in result.stdout
 
-    def test_login_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("login", "--help")
-        assert result.returncode == 0
-        assert "Log in to Anaconda" in result.stdout
-
 
 class TestBootstrap:
     """Tests for 'ana bootstrap' subcommand."""
-
-    def test_help_shows_bootstrap_command(self, run_ana: AnaRunner) -> None:
-        result = run_ana("--help")
-        assert result.returncode == 0
-        assert "bootstrap" in result.stdout
-        assert "Install the Anaconda CLI" in result.stdout
 
     def test_bootstrap_installs_anaconda_cli(
         self, run_ana: AnaRunner, fake_home: Path
