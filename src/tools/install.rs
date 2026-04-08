@@ -38,6 +38,10 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, binaries)?;
 
+    // Spawn a background process to pre-warm the security cache and compile
+    // Python bytecode, so the first run of the tool is fast.
+    super::prewarm::spawn_background(&prefix);
+
     Ok(())
 }
 

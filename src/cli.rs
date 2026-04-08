@@ -68,11 +68,17 @@ pub async fn execute() {
     let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
-    config::setup_telemetry();
+    // Skip telemetry for internal commands (e.g. _prewarm spawned by install)
+    let is_internal = matches!(&action, Action::Prewarm { .. });
+    if !is_internal {
+        config::setup_telemetry();
+    }
 
     let result = action.execute().await;
 
-    shutdown_telemetry();
+    if !is_internal {
+        shutdown_telemetry();
+    }
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
@@ -107,6 +113,9 @@ pub enum Action {
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
+    Prewarm {
+        prefix: String,
+    },
     OrgProxy {
         args: Vec<String>,
     },
@@ -132,6 +141,7 @@ impl Action {
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
+            Action::Prewarm { .. } => "_prewarm",
             Action::OrgProxy { .. } => "org",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
@@ -183,6 +193,10 @@ impl Action {
                 Ok(())
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap().await?),
+            Action::Prewarm { prefix } => {
+                crate::tools::prewarm::run(std::path::Path::new(&prefix));
+                Ok(())
+            }
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
             Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
@@ -221,6 +235,7 @@ pub fn parse() -> (Action, LogLevel) {
             let action = match cli.command {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
+                Some(Commands::Prewarm { prefix }) => Action::Prewarm { prefix },
                 Some(Commands::Config) => Action::ShowConfig,
                 Some(Commands::Login) => Action::Login,
                 Some(Commands::Logout) => Action::Logout,
@@ -366,6 +381,13 @@ enum Commands {
     /// Install the Anaconda CLI
     Bootstrap,
 
+    /// Pre-warm environment caches (internal, used by install)
+    #[command(name = "_prewarm", hide = true)]
+    Prewarm {
+        /// Path to the prefix to pre-warm
+        prefix: String,
+    },
+
     /// Show current configuration
     Config,
 
@@ -463,8 +485,11 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         let cmd = Cli::command();
-        let clap_subcommands: std::collections::HashSet<_> =
-            cmd.get_subcommands().map(|s| s.get_name()).collect();
+        let clap_subcommands: std::collections::HashSet<_> = cmd
+            .get_subcommands()
+            .filter(|s| !s.is_hide_set())
+            .map(|s| s.get_name())
+            .collect();
 
         let help_section_commands: std::collections::HashSet<_> =
             help::get_all_section_commands().into_iter().collect();
