@@ -23,7 +23,6 @@ clap = { version = "4", features = ["derive"] }
 comfy-table = "7"
 console = "0.16"
 indicatif = "0.18"
-indoc = "2"
 miette = { version = "7.6", features = ["fancy"] }
 rattler = { version = "0.40", default-features = false, features = ["indicatif"] }
 rattler_cache = { version = "0.6", default-features = false }

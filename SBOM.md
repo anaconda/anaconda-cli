@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-08T15:31:40Z<br>
+Generated: 2026-04-08T17:14:13Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 465 (65 platform-specific)<br>
+Packages: 463 (65 platform-specific)<br>
 Platforms: linux, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -171,7 +171,6 @@ Platforms: linux, macos, windows
 | [indexmap](https://crates.io/crates/indexmap) | 1.9.3 | Apache-2.0 OR MIT |  |  |
 | [indexmap](https://crates.io/crates/indexmap) | 2.13.1 | Apache-2.0 OR MIT |  |  |
 | [indicatif](https://crates.io/crates/indicatif) | 0.18.4 | MIT |  |  |
-| [indoc](https://crates.io/crates/indoc) | 2.0.7 | MIT OR Apache-2.0 |  |  |
 | [ipnet](https://crates.io/crates/ipnet) | 2.12.0 | MIT OR Apache-2.0 |  |  |
 | [iri-string](https://crates.io/crates/iri-string) | 0.7.12 | MIT OR Apache-2.0 |  |  |
 | [is\_ci](https://crates.io/crates/is_ci) | 1.2.0 | ISC |  |  |
@@ -296,7 +295,6 @@ Platforms: linux, macos, windows
 | [rustls](https://crates.io/crates/rustls) | 0.23.37 | Apache-2.0 OR ISC OR MIT |  |  |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.14.0 | MIT OR Apache-2.0 |  |  |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.10 | ISC |  |  |
-| [rustversion](https://crates.io/crates/rustversion) | 1.0.22 | MIT OR Apache-2.0 |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
 | [ryu](https://crates.io/crates/ryu) | 1.0.23 | Apache-2.0 OR BSL-1.0 |  |  |
 | [schannel](https://crates.io/crates/schannel) | 0.1.29 | MIT | windows |  |
@@ -480,7 +478,7 @@ Platforms: linux, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 252 |
+| MIT OR Apache-2.0 | 250 |
 | MIT | 95 |
 | Apache-2.0 OR MIT | 34 |
 | Apache-2.0 | 19 |
