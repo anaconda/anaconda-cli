@@ -7,27 +7,31 @@
 #[cfg(feature = "diagnostics")]
 mod inner {
     use crate::VERSION;
+    use crate::config::Config;
 
     const SENTRY_DSN: &str = env!("SENTRY_DSN");
     const BUILD_TARGET: &str = env!("BUILD_TARGET");
 
     /// Guard that must be held for the lifetime of the program.
-    pub type Guard = sentry::ClientInitGuard;
+    pub type Guard = Option<sentry::ClientInitGuard>;
 
     /// Initialize the diagnostics system.
     ///
     /// Returns a guard that must be held for the lifetime of the program.
     /// The DSN is injected at build time; an empty string disables Sentry.
+    /// Set ANA_SENTRY_DISABLED=1 at runtime to disable even when DSN is present.
     pub fn init() -> Guard {
+        let config = Config::load();
+
+        if config.sentry_disabled {
+            return None;
+        }
+
         let guard = sentry::init((
             SENTRY_DSN,
             sentry::ClientOptions {
                 release: Some(VERSION.into()),
-                environment: Some(
-                    std::env::var("ANA_ENV")
-                        .unwrap_or_else(|_| "production".to_string())
-                        .into(),
-                ),
+                environment: Some(config.sentry_environment.into()),
                 send_default_pii: false,
                 attach_stacktrace: true,
                 ..Default::default()
@@ -40,7 +44,7 @@ mod inner {
             scope.set_tag("target", BUILD_TARGET);
         });
 
-        guard
+        Some(guard)
     }
 }
 

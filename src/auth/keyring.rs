@@ -160,6 +160,10 @@ mod tests {
             metrics_console_exporter: false,
             metrics_skip_internet_check: true,
             include_prereleases: false,
+            #[cfg(feature = "diagnostics")]
+            sentry_disabled: false,
+            #[cfg(feature = "diagnostics")]
+            sentry_environment: "test".to_string(),
         }
     }
 

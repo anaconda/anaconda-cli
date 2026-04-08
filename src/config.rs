@@ -19,6 +19,13 @@
 //! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
 //!
+//! When the `diagnostics` feature is enabled:
+//!
+//! | Variable                         | Default                    | Description                     |
+//! |--------------------------------- |----------------------------|---------------------------------|
+//! | `ANA_SENTRY_DISABLED`            | `false`                    | Disable Sentry error reporting  |
+//! | `ANA_SENTRY_ENVIRONMENT`         | `production`               | Sentry environment tag          |
+//!
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
@@ -71,6 +78,10 @@ const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
+#[cfg(feature = "diagnostics")]
+const DEFAULT_SENTRY_DISABLED: bool = false;
+#[cfg(feature = "diagnostics")]
+const DEFAULT_SENTRY_ENVIRONMENT: &str = "production";
 
 /// Global configuration for ana.
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
@@ -107,6 +118,14 @@ pub struct Config {
 
     /// Whether to include prereleases when checking for updates
     pub include_prereleases: bool,
+
+    /// Whether Sentry error reporting is disabled
+    #[cfg(feature = "diagnostics")]
+    pub sentry_disabled: bool,
+
+    /// Sentry environment tag (e.g., "production", "integration-test")
+    #[cfg(feature = "diagnostics")]
+    pub sentry_environment: String,
 }
 
 impl Default for Config {
@@ -142,6 +161,11 @@ impl Config {
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
         let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        #[cfg(feature = "diagnostics")]
+        let sentry_disabled = parse_bool_env("ANA_SENTRY_DISABLED", DEFAULT_SENTRY_DISABLED);
+        #[cfg(feature = "diagnostics")]
+        let sentry_environment = env::var("ANA_SENTRY_ENVIRONMENT")
+            .unwrap_or_else(|_| DEFAULT_SENTRY_ENVIRONMENT.to_string());
 
         Self {
             domain,
@@ -155,6 +179,10 @@ impl Config {
             keyring_path,
             use_https,
             include_prereleases,
+            #[cfg(feature = "diagnostics")]
+            sentry_disabled,
+            #[cfg(feature = "diagnostics")]
+            sentry_environment,
         }
     }
 
@@ -244,6 +272,10 @@ mod tests {
             keyring_path: default_keyring_path(),
             use_https: true,
             include_prereleases: false,
+            #[cfg(feature = "diagnostics")]
+            sentry_disabled: false,
+            #[cfg(feature = "diagnostics")]
+            sentry_environment: DEFAULT_SENTRY_ENVIRONMENT.to_string(),
         }
     }
 
