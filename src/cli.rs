@@ -173,11 +173,11 @@ impl Action {
                 Ok(())
             }
             Action::ShowSelfHelp => {
-                help::print_self_help();
+                help::print_subcommand_help(&get_subcommand("self"));
                 Ok(())
             }
             Action::ShowAuthHelp => {
-                help::print_auth_help();
+                help::print_subcommand_help(&get_subcommand("auth"));
                 Ok(())
             }
             Action::ShowVersion => {
@@ -306,6 +306,15 @@ fn get_subcommand_descriptions() -> HashMap<String, String> {
             )
         })
         .collect()
+}
+
+/// Get a subcommand's clap Command by name
+fn get_subcommand(name: &str) -> clap::Command {
+    Cli::command()
+        .get_subcommands()
+        .find(|s| s.get_name() == name)
+        .cloned()
+        .expect("subcommand should exist")
 }
 
 #[derive(Parser)]

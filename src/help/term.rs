@@ -156,49 +156,34 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     print_footer(&term);
 }
 
-/// Help for `ana self` subcommand
-pub fn print_self_help() {
+/// Help for a subcommand (e.g., `ana self`, `ana auth`)
+pub fn print_subcommand_help(cmd: &clap::Command) {
     let term = Term::stdout();
 
-    let _ = term.write_line("Manage the ana installation");
-    let _ = term.write_line("");
+    // Description
+    if let Some(about) = cmd.get_about() {
+        let _ = term.write_line(&about.to_string());
+        let _ = term.write_line("");
+    }
+
+    // Usage
+    let name = cmd.get_name();
     let _ = term.write_line(
         &HelpStyle::Dim
             .style()
-            .apply_to("Usage: ana self <command> [options]")
+            .apply_to(format!("Usage: ana {name} <command> [options]"))
             .to_string(),
     );
     let _ = term.write_line("");
 
+    // Commands
     print_section(&term, "COMMANDS");
-    print_command_row(&term, "update", "Update ana to the latest version");
-}
-
-/// Help for `ana auth` subcommand
-pub fn print_auth_help() {
-    let term = Term::stdout();
-
-    let _ = term.write_line("Authentication commands");
-    let _ = term.write_line("");
-    let _ = term.write_line(
-        &HelpStyle::Dim
-            .style()
-            .apply_to("Usage: ana auth <command> [options]")
-            .to_string(),
-    );
-    let _ = term.write_line("");
-
-    print_section(&term, "COMMANDS");
-    print_command_row(
-        &term,
-        "api-key",
-        "Display the API key for the logged-in user",
-    );
-    print_command_row(&term, "login", "Log in to Anaconda");
-    print_command_row(&term, "logout", "Log out from Anaconda");
-    print_command_row(
-        &term,
-        "whoami",
-        "Display information about the logged-in user",
-    );
+    for subcmd in cmd.get_subcommands() {
+        let name = subcmd.get_name();
+        let desc = subcmd
+            .get_about()
+            .map(|a| a.to_string())
+            .unwrap_or_default();
+        print_command_row(&term, name, &desc);
+    }
 }
