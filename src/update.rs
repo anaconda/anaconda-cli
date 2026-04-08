@@ -81,6 +81,8 @@ pub struct Release {
     pub tag_name: String,
     pub prerelease: bool,
     #[serde(default)]
+    pub draft: bool,
+    #[serde(default)]
     pub assets: Vec<Asset>,
 }
 
@@ -186,6 +188,7 @@ pub async fn fetch_available_releases() -> Result<Vec<Release>, Error> {
     let mut releases: Vec<_> = fetch_releases()
         .await?
         .into_iter()
+        .filter(|r| !r.draft) // Always exclude draft releases
         .filter(|r| parse_version(&r.tag_name).is_ok())
         .filter(|r| config.include_prereleases || !r.prerelease)
         .collect();
@@ -373,6 +376,16 @@ mod tests {
         Release {
             tag_name: tag.to_string(),
             prerelease,
+            draft: false,
+            assets: vec![],
+        }
+    }
+
+    fn make_draft_release(tag: &str) -> Release {
+        Release {
+            tag_name: tag.to_string(),
+            prerelease: false,
+            draft: true,
             assets: vec![],
         }
     }
@@ -421,6 +434,20 @@ mod tests {
     }
 
     #[test]
+    fn test_draft_releases_should_be_filtered() {
+        // Draft releases should be filtered out by fetch_available_releases
+        // This test documents the expected behavior: drafts are excluded before find_update
+        let releases = vec![
+            make_release("v0.0.1", false),
+            make_draft_release("v0.0.2"), // This would be filtered by fetch_available_releases
+        ];
+        // After filtering drafts, only v0.0.1 remains
+        let filtered: Vec<_> = releases.into_iter().filter(|r| !r.draft).collect();
+        let result = find_update(filtered, "0.0.1").unwrap();
+        assert!(matches!(result, UpdateCheck::AlreadyUpToDate));
+    }
+
+    #[test]
     fn test_find_update_invalid_current_version() {
         let releases = vec![make_release("v0.0.1", false)];
         let result = find_update(releases, "invalid");
@@ -456,6 +483,7 @@ mod tests {
         let release = Release {
             tag_name: "v1.0.0".to_string(),
             prerelease: false,
+            draft: false,
             assets: vec![
                 Asset {
                     name: "ana-darwin-arm64".to_string(),
@@ -484,6 +512,7 @@ mod tests {
         let release = Release {
             tag_name: "v1.0.0".to_string(),
             prerelease: false,
+            draft: false,
             assets: vec![Asset {
                 name: "ana-unknown-platform".to_string(),
                 url: "https://example.com/unknown".to_string(),
