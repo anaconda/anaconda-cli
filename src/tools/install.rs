@@ -178,6 +178,7 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Re
 /// Create an HTTP client for downloading packages.
 fn make_download_client() -> reqwest_middleware::ClientWithMiddleware {
     let client = reqwest::Client::builder()
+        .user_agent(crate::ua::user_agent())
         .no_gzip()
         .build()
         .expect("failed to create HTTP client");
