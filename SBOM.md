@@ -261,19 +261,19 @@ Platforms: linux, macos, windows
 | [rand\_core](https://crates.io/crates/rand_core) | 0.10.0 | MIT OR Apache-2.0 |  |  |
 | [rand\_core](https://crates.io/crates/rand_core) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [rand\_xorshift](https://crates.io/crates/rand_xorshift) | 0.4.0 | MIT OR Apache-2.0 |  |  |
-| [rattler](https://crates.io/crates/rattler) | 0.40.4 | BSD-3-Clause |  |  |
-| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.6.19 | BSD-3-Clause |  |  |
-| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.44.4 | BSD-3-Clause |  |  |
+| [rattler](https://crates.io/crates/rattler) | 0.40.5 | BSD-3-Clause |  |  |
+| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.6.20 | BSD-3-Clause |  |  |
+| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.44.5 | BSD-3-Clause |  |  |
 | [rattler\_digest](https://crates.io/crates/rattler_digest) | 1.2.3 | BSD-3-Clause |  |  |
-| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.27.5 | BSD-3-Clause |  |  |
+| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.27.6 | BSD-3-Clause |  |  |
 | [rattler\_macros](https://crates.io/crates/rattler_macros) | 1.0.12 | BSD-3-Clause |  |  |
-| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.54 | BSD-3-Clause |  |  |
-| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.26.7 | BSD-3-Clause |  |  |
-| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.24.7 | BSD-3-Clause |  |  |
+| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.55 | BSD-3-Clause |  |  |
+| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.26.8 | BSD-3-Clause |  |  |
+| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.24.8 | BSD-3-Clause |  |  |
 | [rattler\_pty](https://crates.io/crates/rattler_pty) | 0.2.9 | BSD-3-Clause |  |  |
 | [rattler\_redaction](https://crates.io/crates/rattler_redaction) | 0.1.13 | BSD-3-Clause |  |  |
-| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.26.7 | BSD-3-Clause |  |  |
-| [rattler\_solve](https://crates.io/crates/rattler_solve) | 5.2.0 | BSD-3-Clause |  |  |
+| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.26.8 | BSD-3-Clause |  |  |
+| [rattler\_solve](https://crates.io/crates/rattler_solve) | 5.2.1 | BSD-3-Clause |  |  |
 | [rayon](https://crates.io/crates/rayon) | 1.11.0 | MIT OR Apache-2.0 |  |  |
 | [rayon-core](https://crates.io/crates/rayon-core) | 1.13.0 | MIT OR Apache-2.0 |  |  |
 | [ref-cast](https://crates.io/crates/ref-cast) | 1.0.25 | MIT OR Apache-2.0 |  |  |
