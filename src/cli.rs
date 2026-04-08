@@ -437,4 +437,25 @@ mod tests {
         // Verify clap setup is valid
         Cli::command().debug_assert();
     }
+
+    #[test]
+    fn test_all_subcommands_in_help_sections() {
+        let cmd = Cli::command();
+        let clap_subcommands: std::collections::HashSet<_> =
+            cmd.get_subcommands().map(|s| s.get_name()).collect();
+
+        let help_section_commands: std::collections::HashSet<_> =
+            help::get_all_section_commands().into_iter().collect();
+
+        let missing: Vec<_> = clap_subcommands
+            .difference(&help_section_commands)
+            .collect();
+
+        assert!(
+            missing.is_empty(),
+            "Subcommands missing from help sections: {:?}. \
+             Add them to HELP_SECTIONS in src/help/data.rs",
+            missing
+        );
+    }
 }
