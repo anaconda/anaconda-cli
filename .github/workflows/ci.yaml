@@ -73,11 +73,11 @@ jobs:
         with:
           pixi-version: v0.66.0
 
-      - name: Build release binary
-        run: pixi run build-release
-
       - name: Run unit tests
         run: pixi run test-release
+
+      - name: Build release binary
+        run: pixi run build-release
 
       - name: Run integration tests
         run: pixi run test-integration
