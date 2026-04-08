@@ -44,6 +44,62 @@ class TestHelp:
         assert "-h, --help" in result.stdout
 
 
+class TestSubcommandHelp:
+    """Tests for --help on subcommands."""
+
+    def test_bootstrap_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("bootstrap", "--help")
+        assert result.returncode == 0
+        assert "Install the Anaconda CLI" in result.stdout
+        assert "Usage: ana bootstrap" in result.stdout
+
+    def test_config_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("config", "--help")
+        assert result.returncode == 0
+        assert "Show current configuration" in result.stdout
+        assert "Usage: ana config" in result.stdout
+
+    def test_login_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("login", "--help")
+        assert result.returncode == 0
+        assert "Log in to Anaconda" in result.stdout
+        assert "Usage: ana login" in result.stdout
+
+    def test_logout_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("logout", "--help")
+        assert result.returncode == 0
+        assert "Log out from Anaconda" in result.stdout
+        assert "Usage: ana logout" in result.stdout
+
+    def test_whoami_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("whoami", "--help")
+        assert result.returncode == 0
+        assert "Display information about the logged-in user" in result.stdout
+        assert "Usage: ana whoami" in result.stdout
+
+    def test_self_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("self", "--help")
+        assert result.returncode == 0
+        assert "Manage the ana installation" in result.stdout
+        assert "Usage: ana self" in result.stdout
+        assert "COMMANDS" in result.stdout
+        assert "update" in result.stdout
+
+    def test_auth_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("auth", "--help")
+        assert result.returncode == 0
+        assert "Authentication commands" in result.stdout
+        assert "Usage: ana auth" in result.stdout
+        assert "COMMANDS" in result.stdout
+        assert "api-key" in result.stdout
+
+    def test_org_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("org", "--help")
+        assert result.returncode == 0
+        assert "Interact with anaconda.org" in result.stdout
+        assert "Usage: ana org" in result.stdout
+
+
 class TestVersion:
     """Tests for --version output."""
 
@@ -149,11 +205,6 @@ class TestLogin:
         result = run_ana("--help")
         assert result.returncode == 0
         assert "login" in result.stdout
-        assert "Log in to Anaconda" in result.stdout
-
-    def test_login_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("login", "--help")
-        assert result.returncode == 0
         assert "Log in to Anaconda" in result.stdout
 
 

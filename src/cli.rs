@@ -94,8 +94,7 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
 /// Action to be performed, returned by parse()
 pub enum Action {
     ShowHelp,
-    ShowSelfHelp,
-    ShowAuthHelp,
+    ShowSubcommandHelp(String),
     ShowVersion,
     ShowConfig,
     Login,
@@ -122,8 +121,7 @@ impl Action {
     fn match_action_name(&self) -> &'static str {
         match self {
             Action::ShowHelp => "help",
-            Action::ShowSelfHelp => "self.help",
-            Action::ShowAuthHelp => "auth.help",
+            Action::ShowSubcommandHelp(_) => "subcommand.help",
             Action::ShowVersion => "version",
             Action::ShowConfig => "config",
             Action::Login => "login",
@@ -172,12 +170,8 @@ impl Action {
                 help::print_help(subcommands);
                 Ok(())
             }
-            Action::ShowSelfHelp => {
-                help::print_subcommand_help(&get_subcommand("self"));
-                Ok(())
-            }
-            Action::ShowAuthHelp => {
-                help::print_subcommand_help(&get_subcommand("auth"));
+            Action::ShowSubcommandHelp(name) => {
+                help::print_subcommand_help(&get_subcommand(&name));
                 Ok(())
             }
             Action::ShowVersion => {
@@ -232,14 +226,14 @@ pub fn parse() -> (Action, LogLevel) {
                 Some(Commands::Logout) => Action::Logout,
                 Some(Commands::Whoami) => Action::Whoami,
                 Some(Commands::Auth { command }) => match command {
-                    None => Action::ShowAuthHelp,
+                    None => Action::ShowSubcommandHelp("auth".to_string()),
                     Some(AuthCommands::ApiKey) => Action::ShowApiKey,
                     Some(AuthCommands::Login) => Action::Login,
                     Some(AuthCommands::Logout) => Action::Logout,
                     Some(AuthCommands::Whoami) => Action::Whoami,
                 },
                 Some(Commands::Self_ { command }) => match command {
-                    None => Action::ShowSelfHelp,
+                    None => Action::ShowSubcommandHelp("self".to_string()),
                     #[cfg(feature = "feedback")]
                     Some(SelfCommands::Feedback {
                         bug,
@@ -267,8 +261,27 @@ pub fn parse() -> (Action, LogLevel) {
     }
 }
 
+/// Check if a string is a valid subcommand name
+fn is_valid_subcommand(name: &str) -> bool {
+    Cli::command()
+        .get_subcommands()
+        .any(|s| s.get_name() == name)
+}
+
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
+        // Check if help was requested for a subcommand
+        let args: Vec<String> = std::env::args().collect();
+        if args.len() > 1 {
+            let subcommand = &args[1];
+            // Check if it's a valid subcommand (not a flag)
+            if !subcommand.starts_with('-') && is_valid_subcommand(subcommand) {
+                return (
+                    Action::ShowSubcommandHelp(subcommand.clone()),
+                    LogLevel::Off,
+                );
+            }
+        }
         return (Action::ShowHelp, LogLevel::Off);
     }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {

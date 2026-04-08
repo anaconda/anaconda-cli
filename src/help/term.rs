@@ -156,7 +156,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     print_footer(&term);
 }
 
-/// Help for a subcommand (e.g., `ana self`, `ana auth`)
+/// Help for a subcommand (e.g., `ana self`, `ana auth`, `ana bootstrap`)
 pub fn print_subcommand_help(cmd: &clap::Command) {
     let term = Term::stdout();
 
@@ -166,19 +166,27 @@ pub fn print_subcommand_help(cmd: &clap::Command) {
         let _ = term.write_line("");
     }
 
-    // Usage (from clap's override or generated)
+    // Usage - render and ensure it starts with "ana "
     let usage = cmd.clone().render_usage().to_string();
+    let usage = if usage.starts_with("Usage: ana ") {
+        usage
+    } else {
+        usage.replacen("Usage: ", "Usage: ana ", 1)
+    };
     let _ = term.write_line(&HelpStyle::Dim.style().apply_to(usage).to_string());
     let _ = term.write_line("");
 
-    // Commands
-    print_section(&term, "COMMANDS");
-    for subcmd in cmd.get_subcommands() {
-        let name = subcmd.get_name();
-        let desc = subcmd
-            .get_about()
-            .map(|a| a.to_string())
-            .unwrap_or_default();
-        print_command_row(&term, name, &desc);
+    // Commands (only if there are subcommands)
+    let subcommands: Vec<_> = cmd.get_subcommands().collect();
+    if !subcommands.is_empty() {
+        print_section(&term, "COMMANDS");
+        for subcmd in subcommands {
+            let name = subcmd.get_name();
+            let desc = subcmd
+                .get_about()
+                .map(|a| a.to_string())
+                .unwrap_or_default();
+            print_command_row(&term, name, &desc);
+        }
     }
 }
