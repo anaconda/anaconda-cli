@@ -5,6 +5,7 @@ mod config;
 mod diagnostics;
 #[cfg(feature = "feedback")]
 mod feedback;
+mod help;
 mod http;
 mod input;
 mod paths;
