@@ -114,8 +114,8 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
         print_section(term, section.name);
 
         for cmd in section.commands {
-            let desc = subcommands.get(cmd.name).map(|s| s.as_str()).unwrap_or("");
-            print_command_row(term, cmd.name, desc);
+            let desc = subcommands.get(*cmd).map(|s| s.as_str()).unwrap_or("");
+            print_command_row(term, cmd, desc);
         }
 
         let _ = term.write_line("");
