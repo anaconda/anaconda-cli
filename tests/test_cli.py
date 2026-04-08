@@ -15,24 +15,23 @@ class TestHelp:
     def test_help_flag(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
         assert result.returncode == 0
-        assert "Usage: ana [command] [options]" in result.stdout
+        assert "Manage your" in result.stdout
 
     def test_help_short_flag(self, run_ana: AnaRunner) -> None:
         result = run_ana("-h")
         assert result.returncode == 0
-        assert "Usage: ana [command] [options]" in result.stdout
+        assert "Manage your" in result.stdout
 
     def test_no_args_shows_help(self, run_ana: AnaRunner) -> None:
         result = run_ana()
         assert result.returncode == 0
-        assert "Usage: ana [command] [options]" in result.stdout
+        assert "Manage your" in result.stdout
 
     def test_help_shows_version_in_header(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
-        # Header should be "ana {version}" on first line
+        # Header should be "ana (v{version})" on first line
         first_line = result.stdout.split("\n")[0]
-        assert first_line.startswith("ana ")
-        assert re.match(r"ana \d+\.\d+\.\d+", first_line)
+        assert re.match(r"ana \(v\d+\.\d+\.\d+", first_line)
 
     def test_help_shows_self_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")

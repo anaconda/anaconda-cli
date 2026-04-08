@@ -3,8 +3,7 @@ use std::env::consts::{ARCH, OS};
 use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
-use clap::{Parser, Subcommand};
-use indoc::formatdoc;
+use clap::{CommandFactory, Parser, Subcommand};
 use opentelemetry::Value;
 
 use crate::VERSION;
@@ -13,6 +12,7 @@ use crate::auth;
 use crate::config::{self, Config};
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
+use crate::help;
 use crate::update;
 
 /// Log level for tracing output.
@@ -168,15 +168,16 @@ impl Action {
     async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Action::ShowHelp => {
-                print_main_help();
+                let subcommands = get_subcommand_descriptions();
+                help::print_help(subcommands);
                 Ok(())
             }
             Action::ShowSelfHelp => {
-                print_self_help();
+                help::print_self_help();
                 Ok(())
             }
             Action::ShowAuthHelp => {
-                print_auth_help();
+                help::print_auth_help();
                 Ok(())
             }
             Action::ShowVersion => {
@@ -294,67 +295,17 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-pub fn print_main_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        ana {VERSION}
-
-        Usage: ana [command] [options]
-
-        Commands:
-          auth           Authentication commands
-          bootstrap      Install the Anaconda CLI
-          config         Show current configuration
-          login          Log in to Anaconda
-          logout         Log out from Anaconda
-          org            Interact with anaconda.org
-          whoami         Display information about the logged-in user
-          self           Manage the ana installation
-
-        Options:
-          -v, --verbose  Increase verbosity (use multiple times: -vvvvv for trace)
-          -V, --version  Print version
-          -h, --help     Print help
-        "}
-    );
-}
-
-pub fn print_self_help() {
-    let feedback_line = if cfg!(feature = "feedback") {
-        "feedback  Open the feedback form\n  "
-    } else {
-        "  "
-    };
-    println!(
-        "{}",
-        formatdoc! {"
-        Manage the installation
-
-        Usage: ana self <command> [options]
-
-        Commands:
-          {feedback_line}\
-          update    Update ana to the latest version
-        "}
-    );
-}
-
-pub fn print_auth_help() {
-    println!(
-        "{}",
-        formatdoc! {"
-        Authentication commands
-
-        Usage: ana auth <command> [options]
-
-        Commands:
-          api-key   Display the API key for the logged-in user
-          login     Log in to Anaconda
-          logout    Log out from Anaconda
-          whoami    Display information about the logged-in user
-        "}
-    );
+/// Get subcommand names and descriptions from clap for help introspection
+fn get_subcommand_descriptions() -> HashMap<String, String> {
+    Cli::command()
+        .get_subcommands()
+        .map(|s| {
+            (
+                s.get_name().to_string(),
+                s.get_about().map(|a| a.to_string()).unwrap_or_default(),
+            )
+        })
+        .collect()
 }
 
 #[derive(Parser)]
