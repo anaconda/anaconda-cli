@@ -198,6 +198,7 @@ name = "ana"
 version = "0.0.0"
 dependencies = [
  "anaconda-otel-rs",
+ "async-trait",
  "base64",
  "cargo-lock",
  "clap",
@@ -205,6 +206,7 @@ dependencies = [
  "console",
  "dirs",
  "futures-util",
+ "http 1.4.0",
  "indicatif",
  "indoc",
  "libc",

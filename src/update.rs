@@ -4,12 +4,13 @@ use std::env;
 use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
+use crate::http::{bearer_header, build_client};
 use crate::input::prompt_yes_no;
 
 // We track the repo for releases
 const GITHUB_REPO: &str = "anaconda/ana-cli";
 
-fn github_client() -> Result<reqwest::Client, Error> {
+fn github_client() -> Result<reqwest_middleware::ClientWithMiddleware, Error> {
     let token = match env::var("GITHUB_TOKEN") {
         Ok(token) if !token.is_empty() => token,
         _ => {
@@ -17,18 +18,9 @@ fn github_client() -> Result<reqwest::Client, Error> {
             return Err(Error::MissingToken);
         }
     };
-    reqwest::Client::builder()
-        .user_agent(crate::ua::user_agent())
-        .default_headers({
-            let mut headers = reqwest::header::HeaderMap::new();
-            headers.insert(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", token).parse().unwrap(),
-            );
-            headers
-        })
-        .build()
-        .map_err(|e| Error::Http(e.to_string()))
+    Ok(build_client(
+        reqwest::Client::builder().default_headers(bearer_header(&token)),
+    )?)
 }
 
 #[derive(Debug, PartialEq)]
@@ -66,6 +58,12 @@ impl std::fmt::Display for Error {
 
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Self {
+        Error::Http(e.to_string())
+    }
+}
+
+impl From<reqwest_middleware::Error> for Error {
+    fn from(e: reqwest_middleware::Error) -> Self {
         Error::Http(e.to_string())
     }
 }
@@ -120,8 +118,7 @@ pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
         .header("Accept", "application/octet-stream")
         .send()
         .await?
-        .error_for_status()
-        .map_err(|e| Error::Http(e.to_string()))?;
+        .error_for_status()?;
 
     let total_size = response.content_length().unwrap_or(0);
 
@@ -176,8 +173,7 @@ async fn fetch_releases() -> Result<Vec<Release>, Error> {
         .header("Accept", "application/vnd.github+json")
         .send()
         .await?
-        .error_for_status()
-        .map_err(|e| Error::Http(e.to_string()))?
+        .error_for_status()?
         .json()
         .await?;
     Ok(releases)

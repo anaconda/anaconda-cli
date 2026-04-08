@@ -21,7 +21,7 @@ struct ApiKeyResponse {
 
 /// Create a new API key using the access token.
 pub async fn create_api_key(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     config: &Config,
     access_token: &str,
 ) -> Result<String, AuthError> {

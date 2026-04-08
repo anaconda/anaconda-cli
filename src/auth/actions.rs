@@ -2,7 +2,6 @@
 
 use std::time::Duration;
 
-use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde::Deserialize;
 use tokio::time::sleep;
 
@@ -10,6 +9,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
+use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -25,9 +25,9 @@ fn print_qr(qr: &str) {
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
-    client: reqwest::Client,
-    config: Config,
+    inner: Client,
     api_key: Option<String>,
+    domain: String,
 }
 
 impl ApiClient {
@@ -36,24 +36,17 @@ impl ApiClient {
         let config = Config::load();
         let api_key = get_api_key(&config)?;
 
-        let mut default_headers = HeaderMap::new();
+        let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
         if let Some(ref key) = api_key {
-            let mut auth_value = HeaderValue::from_str(&format!("Bearer {}", key))
-                .map_err(|_| AuthError::InvalidKey)?;
-            auth_value.set_sensitive(true); // keeps it out of debug logs
-            default_headers.insert(header::AUTHORIZATION, auth_value);
+            builder = builder.default_headers(bearer_header(key));
         }
 
-        let client = reqwest::Client::builder()
-            .user_agent(crate::ua::user_agent())
-            .timeout(REQUEST_TIMEOUT)
-            .default_headers(default_headers)
-            .build()?;
+        let client = Client::new(builder, config.base_url())?;
 
         Ok(Self {
-            client,
-            config,
+            inner: client,
             api_key,
+            domain: config.domain,
         })
     }
 
@@ -64,13 +57,36 @@ impl ApiClient {
 
     /// Get the configured domain.
     pub fn domain(&self) -> &str {
-        &self.config.domain
+        &self.domain
     }
 
-    /// Make an authenticated GET request to an API endpoint.
-    pub async fn get(&self, path: &str) -> Result<reqwest::Response, AuthError> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        Ok(self.client.get(&url).send().await?)
+    /// GET request.
+    pub fn get(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.get(url)
+    }
+
+    /// POST request.
+    #[allow(dead_code)]
+    pub fn post(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.post(url)
+    }
+
+    /// PUT request.
+    #[allow(dead_code)]
+    pub fn put(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.put(url)
+    }
+
+    /// PATCH request.
+    #[allow(dead_code)]
+    pub fn patch(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.patch(url)
+    }
+
+    /// DELETE request.
+    #[allow(dead_code)]
+    pub fn delete(&self, url: &str) -> reqwest_middleware::RequestBuilder {
+        self.inner.delete(url)
     }
 }
 
@@ -112,10 +128,8 @@ pub async fn login() -> Result<(), AuthError> {
     // this, at least for now, because the auth flow needs to follow direct
     // URLs from openid-configuration etc.
     let config = Config::load();
-    let client = reqwest::Client::builder()
-        .user_agent(crate::ua::user_agent())
-        .timeout(REQUEST_TIMEOUT)
-        .build()?;
+
+    let client = build_client(reqwest::Client::builder().timeout(REQUEST_TIMEOUT))?;
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
@@ -317,7 +331,7 @@ pub async fn whoami() -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let response = client.get("/api/account").await?;
+    let response = client.get("/api/account").send().await?;
 
     if !response.status().is_success() {
         let status = response.status();
