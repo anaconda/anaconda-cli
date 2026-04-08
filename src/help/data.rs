@@ -5,6 +5,9 @@ pub(super) struct HelpSection {
 }
 
 /// Help sections with commands (only real, implemented commands)
+/// TODO(mattkram): It would be more ergonomic to define sections alongside each
+///                 subcommand but the implementation of that is complicated. For
+///                 now, assuming YAGNI and asserting inclusing via unit tests.
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "ACCOUNT",
