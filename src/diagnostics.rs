@@ -20,9 +20,7 @@ mod inner {
     /// Returns a guard that must be held for the lifetime of the program.
     /// The DSN is injected at build time; an empty string disables Sentry.
     /// Set ANA_SENTRY_DISABLED=1 at runtime to disable even when DSN is present.
-    pub fn init() -> Guard {
-        let config = Config::load();
-
+    pub fn init(config: &Config) -> Guard {
         if config.sentry_disabled {
             return None;
         }
@@ -31,7 +29,7 @@ mod inner {
             SENTRY_DSN,
             sentry::ClientOptions {
                 release: Some(VERSION.into()),
-                environment: Some(config.sentry_environment.into()),
+                environment: Some(config.sentry_environment.clone().into()),
                 send_default_pii: false,
                 attach_stacktrace: true,
                 ..Default::default()
@@ -50,10 +48,12 @@ mod inner {
 
 #[cfg(not(feature = "diagnostics"))]
 mod inner {
+    use crate::config::Config;
+
     /// Guard is a no-op when diagnostics is disabled.
     pub type Guard = ();
 
-    pub fn init() -> Guard {}
+    pub fn init(_config: &Config) -> Guard {}
 }
 
 pub use inner::*;
