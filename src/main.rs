@@ -18,7 +18,8 @@ pub const FEEDBACK_BASE_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSe
 
 #[tokio::main]
 async fn main() {
-    let _diagnostics_guard = diagnostics::init();
+    let config = config::Config::load();
+    let _diagnostics_guard = diagnostics::init(&config);
     cli::execute().await;
 }
 
