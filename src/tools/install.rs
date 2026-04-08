@@ -12,7 +12,7 @@ use rattler::{
 use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
-use super::lockfiles;
+use super::{lockfiles, pixi_config};
 use crate::paths;
 
 /// Global progress bar for installation feedback.
@@ -37,6 +37,12 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, binaries)?;
+
+    // Tool-specific post-install configuration
+    if name == "pixi" {
+        let pixi_bin = prefix.join("bin").join("pixi");
+        pixi_config::configure_default_channels(&pixi_bin)?;
+    }
 
     Ok(())
 }
