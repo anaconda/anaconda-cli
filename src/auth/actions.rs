@@ -142,7 +142,7 @@ pub async fn login() -> Result<(), AuthError> {
     let client = build_client(
         reqwest::Client::builder()
             .user_agent(crate::ua::user_agent())
-            .timeout(REQUEST_TIMEOUT)
+            .timeout(REQUEST_TIMEOUT),
     )?;
 
     // Fetch OpenID configuration
