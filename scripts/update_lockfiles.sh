@@ -28,8 +28,16 @@ for target in "${TARGETS[@]}"; do
     TARGET_FILES+=("ana-${target}.json")
 done
 
-# Run cargo-audit (allow non-zero exit for found vulnerabilities)
-cargo audit --json > audit.raw.json 2>/dev/null || true
+# Run cargo-audit: exit code 1 means "vulnerabilities found" (expected),
+# but any other non-zero exit indicates an actual failure (missing binary,
+# corrupted advisory DB, etc.) that should not be silently swallowed.
+cargo audit --json > audit.raw.json 2>audit.stderr.log || {
+    rc=$?
+    if [ $rc -ne 1 ]; then
+        cat audit.stderr.log >&2
+        exit $rc
+    fi
+}
 
 # Process into SBOM.json and SBOM.md (merge per-target SBOMs + audit)
 python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
@@ -39,4 +47,4 @@ python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
     "${TARGET_FILES[@]}"
 
 # Clean up intermediate files
-rm -f audit.raw.json ana.cdx.json "${TARGET_FILES[@]}"
+rm -f audit.raw.json audit.stderr.log ana.cdx.json "${TARGET_FILES[@]}"

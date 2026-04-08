@@ -1,7 +1,7 @@
 # Software Bill of Materials (SBOM)
 
 Generated: 1970-01-01T00:00:00.000000000Z<br>
-Format: CycloneDX 1.3<br>
+Format: CycloneDX 1.4<br>
 Packages: 465 (65 platform-specific)<br>
 Platforms: linux, macos, windows
 <br>**Security advisories: 0 found at this time**

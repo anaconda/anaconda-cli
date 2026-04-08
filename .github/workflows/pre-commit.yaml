@@ -66,7 +66,7 @@ jobs:
 
           git config user.name "Anaconda Bot"
           git config user.email "devops+anaconda-bot@anaconda.com"
-          git add -A
+          git add -u
           git commit -m "chore(pre-commit): Linting"
           git push
 

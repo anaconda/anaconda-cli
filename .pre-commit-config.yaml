@@ -45,7 +45,7 @@ repos:
         entry: pixi run sbom
         language: system
         pass_filenames: false
-        files: ^Cargo\.toml$
+        files: ^(Cargo\.(toml|lock)|scripts/(sbom-process\.py|update_lockfiles\.sh))$
   - repo: meta
     hooks:
       - id: check-hooks-apply

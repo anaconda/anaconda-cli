@@ -101,6 +101,8 @@ def merge_target_sboms(
     # Use the first target as the base SBOM (for metadata, etc.)
     combined: dict = {}
     seen_components: dict[tuple[str, str], dict] = {}
+    # Union dependency graph edges across all targets
+    seen_deps: dict[str, set[str]] = {}
 
     for filepath in target_files:
         label = label_from_filename(filepath)
@@ -114,9 +116,50 @@ def merge_target_sboms(
             platform_map.setdefault(key, set()).add(label)
             if key not in seen_components:
                 seen_components[key] = comp
+        for dep in data.get("dependencies", []):
+            ref = dep["ref"]
+            seen_deps.setdefault(ref, set()).update(dep.get("dependsOn", []))
 
-    # Replace components with the merged set
+    # Replace components and dependencies with the merged sets
     combined["components"] = list(seen_components.values())
+    combined["dependencies"] = [
+        {"ref": ref, "dependsOn": sorted(deps)} for ref, deps in seen_deps.items()
+    ]
+
+    all_labels = set(TARGET_LABELS.values())
+
+    # Write platform annotations as CycloneDX component properties so that
+    # downstream consumers of SBOM.json can see which platforms need each dep.
+    for comp in combined["components"]:
+        key = (comp["name"], comp.get("version", ""))
+        platforms = platform_map.get(key, set())
+        if platforms and platforms < all_labels:
+            comp.setdefault("properties", []).append(
+                {"name": "cdx:ana:platforms", "value": ",".join(sorted(platforms))}
+            )
+
+    # Sanitize local filesystem paths from metadata (cargo-cyclonedx embeds
+    # the developer's absolute path in bom-ref and purl).
+    meta_comp = combined.get("metadata", {}).get("component", {})
+    for field in ("bom-ref", "purl"):
+        val = meta_comp.get(field, "")
+        if "file:///" in val:
+            # Keep only the fragment after '#' (e.g. "ana@0.0.0")
+            meta_comp[field] = val.split("#")[-1] if "#" in val else val
+        elif "file://." in val:
+            meta_comp[field] = val.replace("file://.", "")
+
+    # Update metadata properties to reflect all merged target triples
+    all_triples = sorted(TARGET_LABELS.keys())
+    props = combined.get("metadata", {}).get("properties", [])
+    for prop in props:
+        if prop.get("name") == "cdx:rustc:sbom:target:triple":
+            prop["value"] = ",".join(all_triples)
+            break
+
+    # Bump specVersion to 1.4 since we use the vulnerabilities field (added in 1.4)
+    combined["specVersion"] = "1.4"
+
     return combined, platform_map
 
 
