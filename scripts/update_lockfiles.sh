@@ -19,11 +19,11 @@ fi
 # Target triples for per-platform SBOM generation
 TARGETS=(x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-pc-windows-msvc)
 
-# Generate per-target CycloneDX SBOMs (reproducible timestamp)
+# Generate per-target CycloneDX SBOMs
 TARGET_FILES=()
 for target in "${TARGETS[@]}"; do
     echo "==> Generating SBOM for $target"
-    SOURCE_DATE_EPOCH=0 cargo cyclonedx --format json --target "$target" \
+    cargo cyclonedx --format json --target "$target" \
         --override-filename "ana-${target}"
     TARGET_FILES+=("ana-${target}.json")
 done

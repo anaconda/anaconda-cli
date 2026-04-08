@@ -15,6 +15,8 @@ import argparse
 import json
 import os
 import re
+from datetime import datetime
+from datetime import timezone
 from urllib.parse import unquote
 
 # Mapping from Rust target triples to short platform labels
@@ -166,6 +168,14 @@ def merge_target_sboms(
         if prop.get("name") == "cdx:rustc:sbom:target:triple":
             prop["value"] = ",".join(all_triples)
             break
+
+    # Set timestamp to current UTC time (CycloneDX convention).
+    # material_content() excludes metadata, so a timestamp-only change
+    # won't trigger a rewrite.
+    now = datetime.now(tz=timezone.utc)
+    combined.setdefault("metadata", {})["timestamp"] = now.strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
     # Bump specVersion to 1.4 since we use the vulnerabilities field (added in 1.4)
     combined["specVersion"] = "1.4"
@@ -517,9 +527,11 @@ def _strip_volatile(comp: dict) -> dict:
 
 
 def material_content(data: dict) -> tuple[list, list]:
-    """Extract the material (non-metadata) content for comparison.
+    """Extract the material content for comparison.
 
     Strips bom-ref fields since they may change between runs.
+    Excludes metadata (including timestamp) and dependencies (which
+    contain volatile bom-ref values).
     """
     comps = [_strip_volatile(c) for c in data.get("components", [])]
     vulns = data.get("vulnerabilities", [])
