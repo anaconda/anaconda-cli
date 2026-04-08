@@ -29,6 +29,23 @@ TARGET_LABELS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
+_LOCAL_PATH_RE = re.compile(r"path\+file:///[^#\"]+(?=#)")
+
+
+def _sanitize_local_paths(sbom: dict) -> None:
+    """Replace absolute local paths with a generic placeholder in-place.
+
+    cargo-cyclonedx embeds the developer's workspace path in bom-ref, purl,
+    and dependency ref fields.  We round-trip through JSON so every occurrence
+    is caught regardless of where it appears in the tree.
+    """
+    raw = json.dumps(sbom)
+    sanitized = _LOCAL_PATH_RE.sub("path+file:///tmp/ana-cli", raw)
+    if sanitized != raw:
+        sbom.clear()
+        sbom.update(json.loads(sanitized))
+
+
 def md_escape(text: str) -> str:
     """Escape underscores for Markdown table cells."""
     return text.replace("_", r"\_")
@@ -138,16 +155,9 @@ def merge_target_sboms(
                 {"name": "cdx:ana:platforms", "value": ",".join(sorted(platforms))}
             )
 
-    # Sanitize local filesystem paths from metadata (cargo-cyclonedx embeds
-    # the developer's absolute path in bom-ref and purl).
-    meta_comp = combined.get("metadata", {}).get("component", {})
-    for field in ("bom-ref", "purl"):
-        val = meta_comp.get(field, "")
-        if "file:///" in val:
-            # Keep only the fragment after '#' (e.g. "ana@0.0.0")
-            meta_comp[field] = val.split("#")[-1] if "#" in val else val
-        elif "file://." in val:
-            meta_comp[field] = val.replace("file://.", "")
+    # Sanitize local filesystem paths (cargo-cyclonedx embeds the developer's
+    # absolute path in bom-ref, purl, and dependency ref fields).
+    _sanitize_local_paths(combined)
 
     # Update metadata properties to reflect all merged target triples
     all_triples = sorted(TARGET_LABELS.keys())

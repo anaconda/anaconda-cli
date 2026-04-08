@@ -13,15 +13,15 @@
     ],
     "component": {
       "type": "application",
-      "bom-ref": "ana@0.0.0",
+      "bom-ref": "path+file:///tmp/ana-cli#ana@0.0.0",
       "name": "ana",
       "version": "0.0.0",
       "scope": "required",
-      "purl": "pkg:cargo/ana@0.0.0?download_url=",
+      "purl": "pkg:cargo/ana@0.0.0?download_url=file://.",
       "components": [
         {
           "type": "application",
-          "bom-ref": "path+file:///home/runner/work/ana-cli/ana-cli#ana@0.0.0 bin-target-0",
+          "bom-ref": "path+file:///tmp/ana-cli#ana@0.0.0 bin-target-0",
           "name": "ana",
           "version": "0.0.0",
           "purl": "pkg:cargo/ana@0.0.0?download_url=file://.#src/main.rs"
@@ -14479,7 +14479,7 @@
       ]
     },
     {
-      "ref": "path+file:///home/runner/work/ana-cli/ana-cli#ana@0.0.0",
+      "ref": "path+file:///tmp/ana-cli#ana@0.0.0",
       "dependsOn": [
         "git+https://github.com/anaconda/anaconda-otel-rs#0.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
