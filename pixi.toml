@@ -11,14 +11,14 @@ rattler-build = ">=0.61.1,<0.62"
 rust = "*"
 setuptools-scm = ">=8"
 anaconda-client = ">=1.14.1,<2"
+cargo-auditable = ">=0.7,<1"
+cargo-audit = ">=0.22,<1"
+cargo-cyclonedx = ">=0.5,<1"
 
 [tasks.pre-commit]
 cmd = "pre-commit run --verbose --show-diff-on-failure --color=always --all-files"
 description = "Run pre-commit hooks on all files"
 
-[tasks.cargo-lock]
-cmd = "cargo generate-lockfile"
-description = "Re-generate Cargo lockfile"
 
 [tasks.build-conda]
 cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
@@ -26,11 +26,11 @@ depends-on = ["build-release"]
 description = "Build the conda package"
 
 [tasks.build-debug]
-cmd = "python scripts/with_version.py cargo build"
+cmd = "python scripts/with_version.py cargo auditable build"
 description = "Build the standalone Rust binary in debug mode"
 
 [tasks.build-release]
-cmd = "python scripts/with_version.py cargo build --release"
+cmd = "python scripts/with_version.py cargo auditable build --release"
 description = "Build the standalone Rust binary in release mode"
 
 [tasks.test]
@@ -46,3 +46,11 @@ description = "Run the unit tests in release mode"
 cmd = "pytest tests -v"
 depends-on = ["build-release"]
 description = "Run integration tests"
+
+[tasks.sbom]
+cmd = "./scripts/update_lockfiles.sh"
+description = "Regenerate Cargo.lock (if needed) and update SBOM"
+
+[tasks.sbom-force]
+cmd = "./scripts/update_lockfiles.sh --force"
+description = "Regenerate Cargo.lock and SBOM unconditionally"

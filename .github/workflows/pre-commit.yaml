@@ -53,38 +53,22 @@ jobs:
       - name: Run pre-commit and locks
         id: updates
         run: |
-          echo "::group::Rebuilding lockfiles and running pre-commit"
-          pixi lock
-          pixi run cargo-lock
           pixi run pre-commit || :
-          echo "::endgroup::"
-          echo ""
-          if git status --porcelain | grep .; then
-            echo "::error::Changes detected:"
-            if git status --porcelain | grep Cargo.lock; then echo "- Cargo.lock"; fi
-            if git status --porcelain | grep pixi.lock; then echo "- pixi.lock"; fi
-            if git status --porcelain | grep -vE "(Cargo|pixi).lock"; then echo "- Pre-commit updates"; fi
+          if git status --porcelain | grep -q .; then
             echo "changed=1" >>$GITHUB_OUTPUT
-          else
-            echo "No changes detected!"
           fi
 
-      - name: Checkout the branch we're running on to enable a commit to it
+      - name: Commit and fail if changes occurred
         if: steps.updates.outputs.changed == 1
         run: |
           git fetch origin refs/heads/${{ github.head_ref }}:refs/remotes/origin/${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
 
-      - name: Commit linted files
-        if: steps.updates.outputs.changed == 1
-        uses: EndBug/add-and-commit@290ea2c423ad77ca9c62ae0f5b224379612c0321 # v10.0.0
-        with:
-          message: 'chore(pre-commit): Linting'
-          author_name: Anaconda Bot
-          author_email: devops+anaconda-bot@anaconda.com
+          git config user.name "Anaconda Bot"
+          git config user.email "devops+anaconda-bot@anaconda.com"
+          git add -u
+          git commit -m "chore(pre-commit): Linting"
+          git push
 
-      - name: Fail if changes occurred
-        if: steps.updates.outputs.changed == 1
-        run: |
           echo "::error::Changes were committed. A new CI run will start."
           exit 1
