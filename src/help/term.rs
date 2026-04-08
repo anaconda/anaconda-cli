@@ -166,14 +166,9 @@ pub fn print_subcommand_help(cmd: &clap::Command) {
         let _ = term.write_line("");
     }
 
-    // Usage
-    let name = cmd.get_name();
-    let _ = term.write_line(
-        &HelpStyle::Dim
-            .style()
-            .apply_to(format!("Usage: ana {name} <command> [options]"))
-            .to_string(),
-    );
+    // Usage (from clap's override or generated)
+    let usage = cmd.clone().render_usage().to_string();
+    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(usage).to_string());
     let _ = term.write_line("");
 
     // Commands
