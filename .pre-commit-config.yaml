@@ -39,6 +39,12 @@ repos:
         entry: cargo fmt --
         language: system
         types: [rust]
+      - id: cargo-lock
+        name: Cargo.lock freshness
+        entry: cargo generate-lockfile
+        language: system
+        pass_filenames: false
+        files: ^Cargo\.toml$
   - repo: meta
     hooks:
       - id: check-hooks-apply

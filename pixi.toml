@@ -22,6 +22,7 @@ description = "Re-generate Cargo lockfile"
 
 [tasks.build-conda]
 cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
+depends-on = ["build-release"]
 description = "Build the conda package"
 
 [tasks.build-debug]
@@ -35,6 +36,11 @@ description = "Build the standalone Rust binary in release mode"
 [tasks.test]
 cmd = "python scripts/with_version.py cargo test -- --show-output"
 description = "Run the unit tests"
+
+[tasks.test-release]
+cmd = "python scripts/with_version.py cargo test --release"
+depends-on = ["build-release"]
+description = "Run the unit tests in release mode"
 
 [tasks.test-integration]
 cmd = "pytest tests -v"

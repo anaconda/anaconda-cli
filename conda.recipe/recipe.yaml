@@ -8,24 +8,6 @@ source:
 build:
   number: 0
 
-requirements:
-  build:
-    - rust
-    - if: linux
-      then:
-        - pkg-config
-  host:
-    - if: linux
-      then:
-        - openssl
-
-tests:
-  - script:
-      - if: unix
-        then: run_test.sh
-      - if: win
-        then: run_test.bat
-
 about:
   homepage: https://github.com/anaconda/ana-cli
   license: Apache-2.0

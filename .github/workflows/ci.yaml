@@ -1,7 +1,15 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
   merge_group:
   workflow_call:
     secrets:
@@ -12,16 +20,24 @@ on:
         description: Sentry DSN for error reporting (only for release builds)
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
-    name: Build & Test (${{ matrix.os }})
+  build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -31,15 +47,30 @@ jobs:
       - name: Configure git for private repos
         run: |
           git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
 
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
         with:
           pixi-version: v0.66.0
 
-      - name: Run tests
-        run: |
-          pixi run test
+      - name: Run unit tests
+        run: pixi run test-release
 
       - name: Build as standalone binary
         run: |
@@ -47,8 +78,17 @@ jobs:
           pixi run build-release
 
       - name: Run integration tests
-        run: |
-          pixi run test-integration
+        run: pixi run test-integration
+
+      - name: Build conda package
+        run: pixi run build-conda
+
+      - name: Upload conda package
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: conda-package-${{ matrix.os }}
+          path: output/
+          retention-days: 7
 
       - name: Upload binary
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -92,10 +132,11 @@ jobs:
           path: output/
           retention-days: 7
 
+
   check:
     name: Check
     if: always()
-    needs: [build-and-test, build-conda]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether all jobs succeeded
