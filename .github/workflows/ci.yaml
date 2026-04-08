@@ -53,6 +53,10 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Hash SENTRY_DSN for cache key
+        id: dsn-hash
+        run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
       - name: Cache Cargo registry and build
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
@@ -60,8 +64,11 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          # Include a hash of SENTRY_DSN so cached artifacts are invalidated
+          # when the DSN changes (build.rs embeds it at compile time).
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
           restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-
             cargo-${{ runner.os }}-
 
       - name: Set up pixi
@@ -69,13 +76,11 @@ jobs:
         with:
           pixi-version: v0.66.0
 
+      - name: Build release binary
+        run: pixi run build-release
+
       - name: Run unit tests
         run: pixi run test-release
-
-      - name: Build as standalone binary
-        run: |
-          cargo clean
-          pixi run build-release
 
       - name: Run integration tests
         run: pixi run test-integration
