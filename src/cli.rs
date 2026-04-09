@@ -108,6 +108,9 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
+    ObProxy {
+        args: Vec<String>,
+    },
     UserAgent {
         prefix: Option<String>,
     },
@@ -150,6 +153,7 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            Action::ObProxy { .. } => "ob",
             Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
@@ -221,6 +225,7 @@ impl Action {
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx).await?),
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)?),
+            Action::ObProxy { args } => Ok(anaconda_cli::run_ob(ctx, &args)?),
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -345,6 +350,7 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
+                Some(Commands::Ob { args }) => Action::ObProxy { args },
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -521,6 +527,14 @@ enum Commands {
     )]
     Org {
         /// Arguments to pass to anaconda org
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Run Outerbounds CLI
+    #[command(trailing_var_arg = true, override_usage = "ana ob [options]")]
+    Ob {
+        /// Arguments to pass to ob
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
