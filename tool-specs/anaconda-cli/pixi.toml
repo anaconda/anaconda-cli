@@ -9,3 +9,6 @@ anaconda-auth = "*"
 anaconda-ai = "*"
 anaconda-client = "*"
 anaconda-cli-base = "*"
+
+[pypi-dependencies]
+outerbounds = "*"
