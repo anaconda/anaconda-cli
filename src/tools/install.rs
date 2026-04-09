@@ -194,11 +194,11 @@ fn install_pypi_packages(
         pypi_packages.len()
     );
 
-    let pip_bin = prefix.join("bin").join("pip");
-    if !pip_bin.exists() {
+    let python_bin = prefix.join("bin").join("python");
+    if !python_bin.exists() {
         return Err(miette::miette!(
-            "pip not found at {}. Add pip to conda dependencies.",
-            pip_bin.display()
+            "python not found at {}",
+            python_bin.display()
         ));
     }
 
@@ -216,8 +216,8 @@ fn install_pypi_packages(
     }
 
     let start = Instant::now();
-    let status = Command::new(&pip_bin)
-        .args(["install", "--quiet", "--no-deps"])
+    let status = Command::new(&python_bin)
+        .args(["-m", "pip", "install", "--quiet", "--no-deps"])
         .args(&urls)
         .status()
         .into_diagnostic()
