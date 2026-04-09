@@ -21,6 +21,15 @@ const TOOLS: &[Tool] = &[
         },
     },
     Tool {
+        name: "outerbounds",
+        lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
+        binaries: if cfg![unix] {
+            &[&["bin", "outerbounds"], &["bin", "obproject-deploy"]]
+        } else {
+            &[&["Scripts", "outerbounds"], &["Scripts", "obproject-deploy"]]
+        },
+    },
+    Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
