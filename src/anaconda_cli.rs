@@ -51,3 +51,32 @@ pub fn run_subcommand(
         Err(msg)
     }
 }
+
+pub fn run_ob(_ctx: &mut CommandContext, args: &[String]) -> Result<(), String> {
+    let ob_bin = paths::bin_path("outerbounds");
+
+    if !ob_bin.exists() {
+        let msg = format!(
+            "outerbounds not found at {}. Run `ana tool install outerbounds` first.",
+            ob_bin.display()
+        );
+        tracing::error!("{}", msg);
+        return Err(msg);
+    }
+
+    let status = Command::new(&ob_bin)
+        .args(args)
+        .status()
+        .map_err(|e| format!("Failed to run outerbounds: {}", e))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        let msg = format!(
+            "outerbounds exited with code {}",
+            status.code().unwrap_or(1)
+        );
+        tracing::error!("{}", msg);
+        Err(msg)
+    }
+}

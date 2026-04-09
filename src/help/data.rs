@@ -15,6 +15,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "tool",
             "bootstrap",
             "feature",
+            "ob",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",
