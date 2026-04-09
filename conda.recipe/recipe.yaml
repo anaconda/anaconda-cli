@@ -1,6 +1,6 @@
 package:
   name: ana-cli
-  version: ${{ env.get("PKG_VERSION") | default("0.0.0") }}
+  version: ${{ pkg_version | default("0.0.0") }}
 
 source:
   path: ..

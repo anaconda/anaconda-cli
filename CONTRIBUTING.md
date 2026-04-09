@@ -4,44 +4,53 @@ Thank you for your interest in contributing to ana. This document covers the bas
 
 ## Getting Started
 
-ana is written in Rust. Development tasks are managed through [pixi](https://pixi.sh). Install pixi first:
+ana is written in Rust. The project is self-hosting: `ana` manages its own development environment and build tasks.
+
+### Prerequisites
+
+This project depends on `anaconda/anaconda-otel-rs`, a private repository in the Anaconda GitHub org. You must have SSH access to the org configured before building.
+
+### First-Time Setup
 
 ```bash
-curl -fsSL https://pixi.sh/install.sh | bash
+./scripts/bootstrap.sh
 ```
 
-Clone the repo, then use `pixi run <task>` for development:
+The bootstrap script is idempotent — you can re-run it at any time to verify or repair your setup. On a fresh clone, it performs the following steps:
 
-| Task            | Description                                      |
-| :-------------- | :----------------------------------------------- |
-| `build-conda`   | Build the conda package                          |
-| `build-debug`   | Build the standalone Rust binary in debug mode   |
-| `build-release` | Build the standalone Rust binary in release mode |
-| `pre-commit`    | Run pre-commit hooks on all files                |
-| `test`          | Run the unit tests                               |
+1. **Rust toolchain** — Checks for a compatible Rust installation (>= 1.85.0). If Rust is installed at `~/.cargo/bin` but not on your PATH, the script detects it automatically. If Rust is missing or too old, it offers to install one via [rustup](https://rustup.rs/).
+2. **Build ana** — Builds `ana` from source using `cargo build --release` and installs the binary to `~/.ana/bin/`.
+3. **Development environment** — Runs `ana prepare` to create the project environment (Python, pre-commit, pytest, rattler-build, etc.) from the lockfile into `.pixi/envs/default/`.
+4. **Pre-commit hook** — Installs a git pre-commit hook that runs linting and formatting checks via `ana run pre-commit`.
+5. **pixi check** — Checks for a [pixi](https://pixi.sh) installation. While not required for building or running tasks, pixi is currently needed for local development workflows such as adding or removing packages from the manifest.
+6. **PATH guidance** — If any tools (Rust, ana, pixi) are installed but not on your PATH, the script tells you exactly what to add to your shell profile.
 
-For example:
+> **Note:** A local Rust toolchain is required today because bootstrap builds `ana` from source. Future versions of the script will download official release binaries instead, and the Rust toolchain included in the project's conda environment (installed by `ana prepare`) will be sufficient for development.
+
+You can also run arbitrary commands in the project environment:
 
 ```bash
-pixi run build-debug
-pixi run test
+ana run -- python -c "import sys; print(sys.executable)"
 ```
 
-## Configuring Private Git URL
+### Development Tasks
 
-This project depends on private repositories. Configure git to authenticate when fetching these dependencies:
+| Task                  | Description                                      |
+| :-------------------- | :----------------------------------------------- |
+| `build-debug`         | Build the standalone Rust binary in debug mode   |
+| `build-release`       | Build the standalone Rust binary in release mode |
+| `pre-commit`          | Run pre-commit hooks on all files                |
+| `test`                | Run the unit tests                               |
+| `test-install-script` | Run integration tests for the install script     |
+
+Run tasks with:
 
 ```bash
-git config --global url."https://x-access-token:<YOUR_GITHUB_TOKEN>@github.com/".insteadOf "https://github.com/"
+ana run test
+ana run build-release
 ```
 
-Replace `<YOUR_GITHUB_TOKEN>` with a [personal access token](https://github.com/settings/tokens) that has `repo` scope. Alternatively, use SSH:
-
-```bash
-git config --global url."git@github.com:".insteadOf "https://github.com/"
-```
-
-This rewrites GitHub HTTPS URLs to use your configured authentication method.
+If the environment is not yet installed, `ana run` will install it automatically on first use. If the manifest has been edited since the last lock, `ana run` will also re-lock and re-install before executing the task.
 
 ## Reporting Issues
 
@@ -54,7 +63,7 @@ Open a GitHub Issue for bug reports and feature requests. Include enough detail 
 3. Reference the issue in your PR description (e.g., `Closes #123`).
 4. Keep pull requests focused. One logical change per PR.
 5. Include tests for new functionality or bug fixes.
-6. Ensure `pixi run test` and `pixi run pre-commit` pass before opening the PR.
+6. Ensure `ana run test` and `ana run pre-commit` pass before opening the PR.
 7. Write a clear PR description that explains *what* changed and *why*.
 
 ## PR Title Format

@@ -68,26 +68,38 @@ jobs:
           # when the DSN changes (build.rs embeds it at compile time).
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
-      - name: Set up pixi
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
-        with:
-          pixi-version: v0.67.0
+      - name: Build binary
+        run: cargo build --release
+
+      - name: Set up ana
+        run: |
+          ANA="./ana${{ matrix.os == 'windows-latest' && '.exe' || '' }}"
+          cp "./target/release/ana${{ matrix.os == 'windows-latest' && '.exe' || '' }}" "$ANA"
+          echo "ANA=$ANA" >> "$GITHUB_ENV"
+
+          # TEMPORARY WORKAROUND: Pin the Rust toolchain paths so ana's
+          # environment (which includes conda's cargo/rustc) doesn't shadow the
+          # CI toolchain. Without this, cargo detects a different compiler and
+          # rebuilds everything from scratch, defeating the build cache.
+          # Remove this once the bootstrap binary is downloaded instead of built
+          # from source — at that point, cargo build won't run in CI at all.
+          echo "CARGO=$(which cargo)" >> "$GITHUB_ENV"
+          echo "RUSTC=$(which rustc)" >> "$GITHUB_ENV"
+
+          $ANA prepare
 
       - name: Run unit tests
-        run: pixi run test-release
-
-      - name: Build release binary
-        run: pixi run build-release
+        run: $ANA run test-release
 
       - name: Run integration tests
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        run: pixi run test-integration
+        run: $ANA run test-integration
 
       - name: Build conda package
-        run: pixi run build-conda
+        run: $ANA run build-conda
 
       - name: Upload conda package
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

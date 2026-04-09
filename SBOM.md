@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-08T17:14:13Z<br>
+Generated: 2026-04-09T14:47:17Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 463 (65 platform-specific)<br>
+Packages: 469 (65 platform-specific)<br>
 Platforms: linux, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -322,6 +322,7 @@ Platforms: linux, macos, windows
 | [serde\_derive](https://crates.io/crates/serde_derive) | 1.0.228 | MIT OR Apache-2.0 |  |  |
 | [serde\_json](https://crates.io/crates/serde_json) | 1.0.149 | MIT OR Apache-2.0 |  |  |
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.20 | MIT OR Apache-2.0 |  |  |
+| [serde\_spanned](https://crates.io/crates/serde_spanned) | 0.6.9 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_urlencoded](https://crates.io/crates/serde_urlencoded) | 0.7.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_with](https://crates.io/crates/serde_with) | 3.18.0 | MIT OR Apache-2.0 |  |  |
@@ -373,9 +374,13 @@ Platforms: linux, macos, windows
 | [tokio-rustls](https://crates.io/crates/tokio-rustls) | 0.26.4 | MIT OR Apache-2.0 |  |  |
 | [tokio-stream](https://crates.io/crates/tokio-stream) | 0.1.18 | MIT |  |  |
 | [tokio-util](https://crates.io/crates/tokio-util) | 0.7.18 | MIT |  |  |
+| [toml](https://crates.io/crates/toml) | 0.8.23 | MIT OR Apache-2.0 |  |  |
 | [toml](https://crates.io/crates/toml) | 0.9.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.6.11 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_edit](https://crates.io/crates/toml_edit) | 0.22.27 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_write](https://crates.io/crates/toml_write) | 0.1.2 | MIT OR Apache-2.0 |  |  |
 | [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.5 | MIT |  |  |
 | [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.5 | MIT |  |  |
@@ -466,6 +471,7 @@ Platforms: linux, macos, windows
 | [zerotrie](https://crates.io/crates/zerotrie) | 0.2.4 | Unicode-3.0 |  |  |
 | [zerovec](https://crates.io/crates/zerovec) | 0.11.6 | Unicode-3.0 |  |  |
 | [zerovec-derive](https://crates.io/crates/zerovec-derive) | 0.11.3 | Unicode-3.0 |  |  |
+| [zip](https://crates.io/crates/zip) | 2.4.2 | MIT |  |  |
 | [zip](https://crates.io/crates/zip) | 8.5.1 | MIT |  |  |
 | [zlib-rs](https://crates.io/crates/zlib-rs) | 0.6.3 | Zlib |  |  |
 | [zmij](https://crates.io/crates/zmij) | 1.0.21 | MIT |  |  |
@@ -478,8 +484,8 @@ Platforms: linux, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 250 |
-| MIT | 95 |
+| MIT OR Apache-2.0 | 255 |
+| MIT | 96 |
 | Apache-2.0 OR MIT | 34 |
 | Apache-2.0 | 19 |
 | Unicode-3.0 | 18 |
