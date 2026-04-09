@@ -10,6 +10,10 @@ pub(super) struct HelpSection {
 ///                 now, assuming YAGNI and asserting inclusing via unit tests.
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
+        name: "PROJECT",
+        commands: &["prepare", "run", "shell"],
+    },
+    HelpSection {
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
     },

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from collections.abc import Callable
 from collections.abc import Generator
@@ -10,6 +11,22 @@ from pathlib import Path
 
 import pytest
 from mock_auth_server import MockAuthServer
+
+# The anaconda-otel-rs crate emits ERROR-level tracing lines when its telemetry
+# system has not been initialized (e.g. "telemetry system not initialized").
+# In integration tests the binary runs without a telemetry backend, so these
+# lines appear on stderr and occasionally stdout.  If left in place they cause
+# spurious assertion failures in tests that check captured output.  We strip
+# them here, at the runner level, so individual tests don't need to account for
+# non-deterministic telemetry noise.
+_OTEL_NOISE = re.compile(
+    r"^.*anaconda_otel_rs::signals.*telemetry system not initialized\.\n?", re.MULTILINE
+)
+
+
+def _strip_otel(text: str) -> str:
+    """Remove otel ERROR lines that leak into captured output."""
+    return _OTEL_NOISE.sub("", text)
 
 
 def _find_repo_root() -> Path:
@@ -93,13 +110,17 @@ def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
     ) -> subprocess.CompletedProcess[str]:
         # Start with isolated environment and update with argument if available
         env = {**env_isolated, **(env or {})}
-        return subprocess.run(
+        result = subprocess.run(
             [str(ana_binary), *args],
             capture_output=True,
             text=True,
             env=env,
             input=input,
         )
+        # Strip otel tracing noise that leaks when telemetry is not initialized
+        result.stdout = _strip_otel(result.stdout)
+        result.stderr = _strip_otel(result.stderr)
+        return result
 
     return _run
 
