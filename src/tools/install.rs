@@ -1,6 +1,6 @@
 //! Package installation from lockfiles via rattler.
 
-use std::{path::Path, path::PathBuf, str::FromStr, time::Instant};
+use std::{path::Path, path::PathBuf, str::FromStr, time::Instant}
 
 use indicatif::{MultiProgress, ProgressDrawTarget};
 use miette::{Context, IntoDiagnostic};
@@ -10,11 +10,15 @@ use rattler::{
     package_cache::PackageCache,
 };
 use rattler_conda_types::{Platform, PrefixRecord};
-use rattler_lock::LockFile;
+use rattler_lock::{LockFile, UrlOrPath};
+use sha2::{Digest, Sha256};
 
 use super::{pixi_config, tools};
 use crate::context::CommandContext;
 use crate::paths;
+
+/// Filename for storing the lockfile hash in the tool prefix.
+const LOCKFILE_HASH_FILENAME: &str = ".lockfile-hash";
 
 /// Global progress bar for installation feedback.
 static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock::new(|| {
@@ -22,6 +26,36 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
     mp.set_draw_target(ProgressDrawTarget::stderr_with_hz(20));
     mp
 });
+
+/// Compute SHA-256 hash of content and return as hex string.
+fn compute_hash(content: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    let result = hasher.finalize();
+    hex_encode(&result)
+}
+
+/// Encode bytes as lowercase hex string.
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// Read the stored lockfile hash from the tool prefix.
+fn read_stored_hash(prefix: &Path) -> Option<String> {
+    let hash_file = prefix.join(LOCKFILE_HASH_FILENAME);
+    std::fs::read_to_string(hash_file)
+        .ok()
+        .map(|s| s.trim().to_string())
+}
+
+/// Write the lockfile hash to the tool prefix.
+fn write_hash(prefix: &Path, hash: &str) -> miette::Result<()> {
+    let hash_file = prefix.join(LOCKFILE_HASH_FILENAME);
+    std::fs::write(&hash_file, hash)
+        .into_diagnostic()
+        .context("failed to write lockfile hash")?;
+    Ok(())
+}
 
 /// Install a tool from its lockfile.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
@@ -32,11 +66,24 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     let lock_content =
         tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
+    let current_hash = compute_hash(&lock_content);
     let binaries = tools::binaries(name).unwrap_or(Vec::new());
 
-    eprintln!("Installing {} into {}", name, prefix.display());
+    // Check if already up-to-date
+    if let Some(stored_hash) = read_stored_hash(&prefix) {
+        if stored_hash == current_hash {
+            eprintln!("{} is already up to date", name);
+            return Ok(());
+        }
+        eprintln!("Updating {} in {}", name, prefix.display());
+    } else {
+        eprintln!("Installing {} into {}", name, prefix.display());
+    }
 
     install_from_lockfile(&prefix, &lock_content).await?;
+
+    // Store the hash after successful installation
+    write_hash(&prefix, &current_hash)?;
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, &binaries)?;
@@ -112,14 +159,82 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
         .context("failed to install packages")?;
 
     if result.transaction.operations.is_empty() {
-        eprintln!("   ✓ Already up to date");
+        eprintln!("   ✓ Conda packages already up to date");
     } else {
         eprintln!(
-            "   Installed {} packages in {:.1}s",
+            "   Installed {} conda packages in {:.1}s",
             result.transaction.operations.len(),
             start.elapsed().as_secs_f64()
         );
     }
+
+    // Install PyPI packages via pip
+    install_pypi_packages(prefix, &env, platform)?;
+
+    Ok(())
+}
+
+/// Install PyPI packages from the lockfile using pip.
+fn install_pypi_packages(
+    prefix: &Path,
+    env: &rattler_lock::Environment,
+    platform: Platform,
+) -> miette::Result<()> {
+    let Some(pypi_iter) = env.pypi_packages(platform) else {
+        return Ok(());
+    };
+    let pypi_packages: Vec<_> = pypi_iter.collect();
+
+    if pypi_packages.is_empty() {
+        return Ok(());
+    }
+
+    eprintln!(
+        "   Installing {} PyPI packages via pip",
+        pypi_packages.len()
+    );
+
+    let pip_bin = prefix.join("bin").join("pip");
+    if !pip_bin.exists() {
+        return Err(miette::miette!(
+            "pip not found at {}. Add pip to conda dependencies.",
+            pip_bin.display()
+        ));
+    }
+
+    // Collect URLs for all PyPI packages
+    let urls: Vec<String> = pypi_packages
+        .iter()
+        .filter_map(|(data, _env_data)| match &data.location {
+            UrlOrPath::Url(url) => Some(url.to_string()),
+            UrlOrPath::Path(_) => None, // Skip local paths for now
+        })
+        .collect();
+
+    if urls.is_empty() {
+        return Ok(());
+    }
+
+    let start = Instant::now();
+    let status = Command::new(&pip_bin)
+        .args(["install", "--quiet", "--no-deps"])
+        .args(&urls)
+        .status()
+        .into_diagnostic()
+        .context("failed to run pip")?;
+
+    if !status.success() {
+        return Err(miette::miette!(
+            "pip install failed with exit code {}",
+            status.code().unwrap_or(1)
+        ));
+    }
+
+    eprintln!(
+        "   Installed {} PyPI packages in {:.1}s",
+        urls.len(),
+        start.elapsed().as_secs_f64()
+    );
 
     Ok(())
 }
@@ -299,6 +414,7 @@ mod tests {
         );
     }
 
+<<<<<<< HEAD
     #[cfg(windows)]
     mod windows_tests {
         use super::*;
