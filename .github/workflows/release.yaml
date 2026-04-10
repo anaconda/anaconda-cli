@@ -73,7 +73,6 @@ jobs:
           labels: ${{ needs.release-info.outputs.is_release == 'true' && 'main' || 'dev' }}
           private: true
           force: true
-          verbose: true
 
   # create-github-release:
   #   name: Upload Binaries to GitHub Release
