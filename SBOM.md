@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-08T17:14:13Z<br>
+Generated: 2026-04-13T22:18:33Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 463 (65 platform-specific)<br>
 Platforms: linux, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 2 (2 INFO) across 2 packages**
 
 ## Packages
 
@@ -254,8 +254,8 @@ Platforms: linux, macos, windows
 | [quick-xml](https://crates.io/crates/quick-xml) | 0.37.5 | MIT | linux |  |
 | [quick-xml](https://crates.io/crates/quick-xml) | 0.38.4 | MIT | macos |  |
 | [quote](https://crates.io/crates/quote) | 1.0.45 | MIT OR Apache-2.0 |  |  |
-| [rand](https://crates.io/crates/rand) | 0.10.0 | MIT OR Apache-2.0 |  |  |
-| [rand](https://crates.io/crates/rand) | 0.9.2 | MIT OR Apache-2.0 |  |  |
+| [rand](https://crates.io/crates/rand) | 0.10.0 | MIT OR Apache-2.0 |  | 1 |
+| [rand](https://crates.io/crates/rand) | 0.9.2 | MIT OR Apache-2.0 |  | 1 |
 | [rand\_chacha](https://crates.io/crates/rand_chacha) | 0.9.0 | MIT OR Apache-2.0 |  |  |
 | [rand\_core](https://crates.io/crates/rand_core) | 0.10.0 | MIT OR Apache-2.0 |  |  |
 | [rand\_core](https://crates.io/crates/rand_core) | 0.9.5 | MIT OR Apache-2.0 |  |  |
@@ -473,6 +473,13 @@ Platforms: linux, macos, windows
 | [zstd](https://crates.io/crates/zstd) | 0.13.3 | MIT |  |  |
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
+
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| rand | 0.10.0 | [RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html) |  |  | INFO |
+| rand | 0.9.2 | [RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html) |  |  | INFO |
 
 ## License Summary
 
