@@ -4,8 +4,6 @@ permissions:
   contents: read
 
 on:
-  # TODO: Remove after we test
-  pull_request:
   push:
     branches:
       - main
@@ -75,108 +73,108 @@ jobs:
           force: true
           verbose: true
 
-  # create-github-release:
-  #   name: Upload Binaries to GitHub Release
-  #   runs-on: ubuntu-latest
-  #   needs: [ci, release-info]
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-  #       with:
-  #         fetch-depth: 0
-  #
-  #     - name: Download binaries
-  #       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-  #       with:
-  #         path: binaries
-  #         pattern: binary-*
-  #
-  #     - name: Rename binaries
-  #       run: |
-  #         mkdir -p release-assets
-  #         mv binaries/binary-ubuntu-latest/ana release-assets/ana-linux-x86_64
-  #         mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
-  #         mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
-  #
-  #     - name: Generate checksums
-  #       run: |
-  #         cd release-assets
-  #         for file in *; do
-  #           sha256sum "$file" > "${file}.sha256"
-  #         done
-  #
-  #     # For prereleases (main branch pushes): create automatic prerelease
-  #     - name: Create automatic prerelease
-  #       if: needs.release-info.outputs.is_release == 'false'
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
-  #       run: |
-  #         VERSION="${{ needs.release-info.outputs.version }}"
-  #
-  #         # Delete existing prerelease if it exists (prereleases are recreated each time)
-  #         if gh release view "$VERSION" &>/dev/null; then
-  #           gh release delete "$VERSION" --yes
-  #           git push origin ":refs/tags/$VERSION" 2>/dev/null || true
-  #         fi
-  #
-  #         gh release create "$VERSION" \
-  #           --title "$VERSION" \
-  #           --prerelease \
-  #           --generate-notes \
-  #           release-assets/*
-  #
-  #         # Append footer to release notes
-  #         CURRENT_BODY=$(gh release view "$VERSION" --json body -q '.body')
-  #         NOTES=$(cat <<EOF
-  #         ${CURRENT_BODY}
-  #
-  #         ---
-  #         *Automated prerelease from main branch.*
-  #         EOF
-  #         )
-  #
-  #         gh release edit "$VERSION" --notes "$NOTES"
-  #
-  #     # For releases: upload artifacts to existing draft release, publish it, and update latest
-  #     - name: Publish release
-  #       if: needs.release-info.outputs.is_release == 'true'
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
-  #       run: |
-  #         VERSION="${{ needs.release-info.outputs.version }}"
-  #
-  #         # Check if release exists (draft, prerelease, or published)
-  #         if gh release view "$VERSION" &>/dev/null; then
-  #           echo "Uploading assets to existing release $VERSION"
-  #           gh release upload "$VERSION" release-assets/* --clobber
-  #
-  #           # Publish as full release (remove draft/prerelease flags, mark as latest)
-  #           echo "Publishing release $VERSION"
-  #           gh release edit "$VERSION" --draft=false --prerelease=false --latest
-  #         fi
-  #
-  #         # Update the 'latest' release to point to this version
-  #         if gh release view latest &>/dev/null; then
-  #           echo "Removing existing 'latest' release, for replacement"
-  #           gh release delete latest --yes
-  #           git push origin :refs/tags/latest 2>/dev/null || true
-  #         fi
-  #
-  #         # Delete local tag if it exists (from fetch-depth: 0)
-  #         git tag -d latest 2>/dev/null || true
-  #
-  #         NOTES=$(cat <<EOF
-  #         This release always points to the most recent build.
-  #
-  #         **Version:** ${VERSION}
-  #         EOF
-  #         )
-  #
-  #         echo "Publishing release 'latest'"
-  #         gh release create latest \
-  #           --title "Latest Release" \
-  #           --prerelease \
-  #           --notes "$NOTES" \
-  #           release-assets/*
+  create-github-release:
+    name: Upload Binaries to GitHub Release
+    runs-on: ubuntu-latest
+    needs: [ci, release-info]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Download binaries
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: binaries
+          pattern: binary-*
+
+      - name: Rename binaries
+        run: |
+          mkdir -p release-assets
+          mv binaries/binary-ubuntu-latest/ana release-assets/ana-linux-x86_64
+          mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
+          mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
+
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          for file in *; do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
+      # For prereleases (main branch pushes): create automatic prerelease
+      - name: Create automatic prerelease
+        if: needs.release-info.outputs.is_release == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.release-info.outputs.version }}"
+
+          # Delete existing prerelease if it exists (prereleases are recreated each time)
+          if gh release view "$VERSION" &>/dev/null; then
+            gh release delete "$VERSION" --yes
+            git push origin ":refs/tags/$VERSION" 2>/dev/null || true
+          fi
+
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --prerelease \
+            --generate-notes \
+            release-assets/*
+
+          # Append footer to release notes
+          CURRENT_BODY=$(gh release view "$VERSION" --json body -q '.body')
+          NOTES=$(cat <<EOF
+          ${CURRENT_BODY}
+
+          ---
+          *Automated prerelease from main branch.*
+          EOF
+          )
+
+          gh release edit "$VERSION" --notes "$NOTES"
+
+      # For releases: upload artifacts to existing draft release, publish it, and update latest
+      - name: Publish release
+        if: needs.release-info.outputs.is_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.release-info.outputs.version }}"
+
+          # Check if release exists (draft, prerelease, or published)
+          if gh release view "$VERSION" &>/dev/null; then
+            echo "Uploading assets to existing release $VERSION"
+            gh release upload "$VERSION" release-assets/* --clobber
+
+            # Publish as full release (remove draft/prerelease flags, mark as latest)
+            echo "Publishing release $VERSION"
+            gh release edit "$VERSION" --draft=false --prerelease=false --latest
+          fi
+
+          # Update the 'latest' release to point to this version
+          if gh release view latest &>/dev/null; then
+            echo "Removing existing 'latest' release, for replacement"
+            gh release delete latest --yes
+            git push origin :refs/tags/latest 2>/dev/null || true
+          fi
+
+          # Delete local tag if it exists (from fetch-depth: 0)
+          git tag -d latest 2>/dev/null || true
+
+          NOTES=$(cat <<EOF
+          This release always points to the most recent build.
+
+          **Version:** ${VERSION}
+          EOF
+          )
+
+          echo "Publishing release 'latest'"
+          gh release create latest \
+            --title "Latest Release" \
+            --prerelease \
+            --notes "$NOTES" \
+            release-assets/*
