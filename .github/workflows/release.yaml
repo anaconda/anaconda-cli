@@ -65,7 +65,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload to anaconda.org
-        uses: anaconda/github-actions/upload-package@v0.1.0
+        uses: anaconda/github-actions/upload-package@87cc83d84eac5e351be43025afd51126cf558f20 # v0.1.1
         with:
           token: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
           owner: anaconda-cloud
