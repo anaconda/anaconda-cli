@@ -20,6 +20,13 @@ pub fn configure_default_channels(pixi_bin: &Path) -> miette::Result<()> {
     let existing_channels = get_default_channels(pixi_bin)?;
 
     if let Some(ref channels) = existing_channels {
+        // Check if already configured correctly
+        if channels.len() == 1 && channels[0] == ANACONDA_MAIN_CHANNEL {
+            eprintln!();
+            eprintln!("   Pixi default channels already configured correctly.");
+            return Ok(());
+        }
+
         // User has existing configuration - show it and prompt
         eprintln!();
         eprintln!("   Pixi already has default channels configured:");
