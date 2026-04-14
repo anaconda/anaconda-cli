@@ -43,6 +43,33 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
     }
 
+    if name == "observable-python" {
+        register_observable_python_env(&prefix)?;
+    }
+
+    Ok(())
+}
+
+/// Register a Python environment with observable-python for instrumentation.
+fn register_observable_python_env(prefix: &Path) -> miette::Result<()> {
+    let observable_python = prefix.join("bin").join("observable-python");
+
+    eprintln!("   Registering Python environment with observable-python...");
+
+    let status = std::process::Command::new(&observable_python)
+        .args(["observe-env", &prefix.to_string_lossy()])
+        .status()
+        .into_diagnostic()
+        .context("failed to run observable-python observe-env")?;
+
+    if !status.success() {
+        return Err(miette::miette!(
+            "observable-python observe-env failed with exit code {:?}",
+            status.code()
+        ));
+    }
+
+    eprintln!("   ✓ Python environment registered for observability");
     Ok(())
 }
 
