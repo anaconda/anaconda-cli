@@ -40,8 +40,7 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
     // Tool-specific post-install configuration
     if name == "pixi" {
-        let pixi_bin = prefix.join("bin").join("pixi");
-        pixi_config::configure_default_channels(&pixi_bin)?;
+        pixi_config::configure_default_channels(&paths::bin_dir().join("pixi"))?;
     }
 
     Ok(())
