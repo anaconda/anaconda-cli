@@ -90,6 +90,7 @@ def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
         *args: str,
         env: dict[str, str] | None = None,
         input: str | None = None,
+        cwd: Path | str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         # Start with isolated environment and update with argument if available
         env = {**env_isolated, **(env or {})}
@@ -99,6 +100,7 @@ def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
             text=True,
             env=env,
             input=input,
+            cwd=cwd,
         )
 
     return _run
