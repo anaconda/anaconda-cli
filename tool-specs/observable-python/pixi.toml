@@ -1,0 +1,10 @@
+[workspace]
+name = "observable-python"
+channels = [
+    "https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python",
+    "https://repo.anaconda.com/pkgs/main",
+]
+platforms = ["linux-64", "osx-arm64"]
+
+[dependencies]
+observable-python = "*"

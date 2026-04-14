@@ -21,6 +21,11 @@ const TOOLS: &[Tool] = &[
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &["pixi"],
     },
+    Tool {
+        name: "observable-python",
+        lockfile: include_str!("../../tool-specs/observable-python/pixi.lock"),
+        binaries: &["python", "obanalyze", "obview", "obmcp"],
+    },
 ];
 
 fn find_tool(name: &str) -> Option<&'static Tool> {
