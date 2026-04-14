@@ -15,8 +15,6 @@ mod qr;
 mod tools;
 mod ua;
 mod update;
-#[cfg(test)]
-mod version;
 
 pub const VERSION: &str = env!("PKG_VERSION");
 #[cfg(feature = "feedback")]
