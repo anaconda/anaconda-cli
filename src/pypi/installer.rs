@@ -2,9 +2,9 @@
 //!
 //! Installs Python wheel files (.whl) into a prefix's site-packages
 //! directory, following PEP 427 conventions. Wheels are cached locally
-//! at `~/.cache/ana/wheels/{sha256}.whl` to avoid redundant downloads.
+//! by SHA256 to avoid redundant downloads.
 //!
-//! Upstream candidate: `rattler_pypi_installer`
+//! See `pypi/mod.rs` for planned caching and installation improvements.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
