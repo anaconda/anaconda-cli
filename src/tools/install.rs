@@ -1,6 +1,6 @@
 //! Package installation from lockfiles via rattler.
 
-use std::{path::Path, time::Instant};
+use std::{path::Path, str::FromStr, time::Instant};
 
 use indicatif::{MultiProgress, ProgressDrawTarget};
 use miette::{Context, IntoDiagnostic};
@@ -43,7 +43,7 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
 /// Install packages from a lockfile string to a prefix.
 pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette::Result<()> {
-    let lock_file = LockFile::from_str_with_base_directory(lock_content, None)
+    let lock_file = LockFile::from_str(lock_content)
         .into_diagnostic()
         .context("failed to parse lockfile")?;
 
@@ -51,25 +51,17 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
         .default_environment()
         .ok_or_else(|| miette::miette!("lockfile has no default environment"))?;
 
-    let current_platform = Platform::current();
-    let platform = env
-        .platforms()
-        .find(|p| p.subdir() == current_platform)
-        .ok_or_else(|| {
-            miette::miette!("lockfile has no records for platform {}", current_platform)
-        })?;
+    let platform = Platform::current();
     let records = env
         .conda_repodata_records(platform)
         .into_diagnostic()
         .context("failed to extract records from lockfile")?
-        .ok_or_else(|| {
-            miette::miette!("lockfile has no records for platform {}", current_platform)
-        })?;
+        .ok_or_else(|| miette::miette!("lockfile has no records for platform {}", platform))?;
 
     eprintln!(
         "   Lockfile contains {} packages for {}",
         records.len(),
-        current_platform
+        platform
     );
 
     // Ensure prefix directory exists
@@ -97,7 +89,7 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
     let result = Installer::new()
         .with_download_client(client)
         .with_package_cache(package_cache)
-        .with_target_platform(current_platform)
+        .with_target_platform(platform)
         .with_installed_packages(installed)
         // TODO(mattkram): Review whether we should execute link scripts by default or not
         .with_execute_link_scripts(true)
