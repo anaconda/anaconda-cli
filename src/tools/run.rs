@@ -8,7 +8,7 @@ use crate::projects;
 /// Run a task using a tool.
 ///
 /// If `tool` is specified, use that tool. Otherwise, auto-detect from project.
-/// The tool's task prefix (e.g., "run" for pixi/uv) is automatically applied.
+/// The tool's task prefix (e.g., "run" for pixi) is automatically applied.
 pub async fn run(tool: Option<&str>, args: &[String]) -> Result<ExitStatus, String> {
     let tool_name = match tool {
         Some(name) => {

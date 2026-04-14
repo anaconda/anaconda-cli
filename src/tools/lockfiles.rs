@@ -7,7 +7,7 @@ struct Tool {
     name: &'static str,
     lockfile: &'static str,
     binaries: &'static [&'static str],
-    /// Command prefix for running tasks (e.g., "run" for `pixi run` or `uv run`)
+    /// Command prefix for running tasks (e.g., "run" for `pixi run`)
     task_prefix: &'static [&'static str],
 }
 
