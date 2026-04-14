@@ -13,6 +13,7 @@ use crate::config::{self, Config};
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::help;
+use crate::project;
 use crate::update;
 
 /// Log level for tracing output.
@@ -101,6 +102,14 @@ pub enum Action {
     Logout,
     ShowApiKey,
     Whoami,
+    Install,
+    Run {
+        task: String,
+    },
+    RunCommand {
+        command: Vec<String>,
+    },
+    Shell,
     Update {
         force: bool,
     },
@@ -128,6 +137,10 @@ impl Action {
             Action::Logout => "logout",
             Action::ShowApiKey => "auth.api-key",
             Action::Whoami => "whoami",
+            Action::Install => "install",
+            Action::Run { .. } => "run",
+            Action::RunCommand { .. } => "run",
+            Action::Shell => "shell",
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
@@ -184,6 +197,58 @@ impl Action {
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap().await?),
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
+            Action::Install => {
+                let manifest_path = find_manifest()?;
+                let manifest = project::manifest::parse(&manifest_path)?;
+                let lockfile_path = manifest
+                    .lockfile_path
+                    .as_ref()
+                    .ok_or("No lockfile (ana.lock or pixi.lock) found")?;
+                // No stale lockfile check here — prepare/install is an explicit user
+                // action. Staleness guards only apply to run and shell, which would
+                // otherwise silently use an outdated environment.
+                project::env::install(&manifest_path, lockfile_path).await?;
+                Ok(())
+            }
+            Action::Run { task } => {
+                let manifest_path = find_manifest()?;
+                let manifest = project::manifest::parse(&manifest_path)?;
+
+                if !manifest.tasks.contains_key(&task) {
+                    eprintln!("Unknown task: '{}'\n\nAvailable tasks:", task);
+                    project::tasks::list(&manifest.tasks);
+                    return Err(format!("Unknown task: '{}'", task).into());
+                }
+
+                let env_prefix = ensure_env_installed(&manifest_path, &manifest).await?;
+                let status = project::tasks::run(&task, &manifest.tasks, &env_prefix)?;
+                if !status.success() {
+                    std::process::exit(status.code().unwrap_or(1));
+                }
+                Ok(())
+            }
+            Action::RunCommand { command } => {
+                let manifest_path = find_manifest()?;
+                let manifest = project::manifest::parse(&manifest_path)?;
+
+                let env_prefix = ensure_env_installed(&manifest_path, &manifest).await?;
+                let cmd = command.join(" ");
+                let status = project::tasks::run_command(&cmd, &env_prefix)?;
+                if !status.success() {
+                    std::process::exit(status.code().unwrap_or(1));
+                }
+                Ok(())
+            }
+            Action::Shell => {
+                let manifest_path = find_manifest()?;
+                let manifest = project::manifest::parse(&manifest_path)?;
+                let _env_prefix = ensure_env_installed(&manifest_path, &manifest).await?;
+                let status = project::env::shell(&manifest_path)?;
+                if !status.success() {
+                    std::process::exit(status.code().unwrap_or(1));
+                }
+                Ok(())
+            }
             Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
@@ -212,6 +277,50 @@ impl Action {
     }
 }
 
+/// Find the project manifest in the current directory.
+fn find_manifest() -> Result<std::path::PathBuf, String> {
+    let cwd = std::env::current_dir().map_err(|e| format!("Failed to get cwd: {}", e))?;
+    project::manifest::find_manifest(&cwd)
+        .ok_or_else(|| "No ana.toml or pixi.toml found in current directory".to_string())
+}
+
+/// Check that a lockfile exists and is not stale relative to the manifest.
+///
+/// At this layer (install-only), there is no solver to regenerate the lockfile,
+/// so we error if the lockfile is out of date.
+fn require_lockfile_current(
+    manifest_path: &std::path::Path,
+    lockfile_path: &std::path::Path,
+) -> Result<(), String> {
+    if project::env::lockfile_is_stale(manifest_path, lockfile_path) {
+        Err("Lockfile is out of date (manifest has been modified). \
+             Please regenerate the lockfile with your lockfile manager (e.g. pixi)."
+            .to_string())
+    } else {
+        Ok(())
+    }
+}
+
+/// Ensure the project environment is installed, auto-installing if needed.
+/// Returns the environment prefix path.
+async fn ensure_env_installed(
+    manifest_path: &std::path::Path,
+    manifest: &project::manifest::Manifest,
+) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    let lockfile_path = manifest
+        .lockfile_path
+        .as_ref()
+        .ok_or("No lockfile (ana.lock or pixi.lock) found")?;
+
+    require_lockfile_current(manifest_path, lockfile_path)?;
+
+    if !project::env::is_installed(manifest_path) {
+        eprintln!("Environment not installed, running install first...");
+        project::env::install(manifest_path, lockfile_path).await?;
+    }
+    Ok(project::env::env_prefix(manifest_path))
+}
+
 /// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
 pub fn parse() -> (Action, LogLevel) {
@@ -222,8 +331,19 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
                 Some(Commands::Config) => Action::ShowConfig,
+                Some(Commands::Install) => Action::Install,
                 Some(Commands::Login) => Action::Login,
                 Some(Commands::Logout) => Action::Logout,
+                Some(Commands::Run { task, args }) => {
+                    if !args.is_empty() {
+                        Action::RunCommand { command: args }
+                    } else if let Some(task) = task {
+                        Action::Run { task }
+                    } else {
+                        Action::ShowHelp
+                    }
+                }
+                Some(Commands::Shell) => Action::Shell,
                 Some(Commands::Whoami) => Action::Whoami,
                 Some(Commands::Auth { command }) => match command {
                     None => Action::ShowSubcommandHelp("auth".to_string()),
@@ -369,11 +489,28 @@ enum Commands {
     /// Show current configuration
     Config,
 
+    /// Install the project environment from lockfile
+    #[command(name = "prepare", alias = "install")]
+    Install,
+
     /// Log in to Anaconda
     Login,
 
     /// Log out from Anaconda
     Logout,
+
+    /// Run a project task or arbitrary command in the project environment
+    Run {
+        /// Task name to run, or use -- to run an arbitrary command
+        task: Option<String>,
+
+        /// Arbitrary command and arguments (after --)
+        #[arg(last = true)]
+        args: Vec<String>,
+    },
+
+    /// Launch a subshell with the project environment active
+    Shell,
 
     /// Display information about the logged-in user
     Whoami,

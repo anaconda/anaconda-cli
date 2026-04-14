@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-13T23:08:31Z<br>
+Generated: 2026-04-14T20:30:09Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 464 (65 platform-specific)<br>
+Packages: 470 (65 platform-specific)<br>
 Platforms: linux, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -46,7 +46,7 @@ Platforms: linux, macos, windows
 | [bisection](https://crates.io/crates/bisection) | 0.1.0 | MIT |  |  |
 | [bit-set](https://crates.io/crates/bit-set) | 0.8.0 | Apache-2.0 OR MIT |  |  |
 | [bit-vec](https://crates.io/crates/bit-vec) | 0.8.0 | Apache-2.0 OR MIT |  |  |
-| [bitflags](https://crates.io/crates/bitflags) | 2.11.0 | MIT OR Apache-2.0 |  |  |
+| [bitflags](https://crates.io/crates/bitflags) | 2.11.1 | MIT OR Apache-2.0 |  |  |
 | [blake2](https://crates.io/crates/blake2) | 0.10.6 | MIT OR Apache-2.0 |  |  |
 | [block-buffer](https://crates.io/crates/block-buffer) | 0.10.4 | MIT OR Apache-2.0 |  |  |
 | [boxcar](https://crates.io/crates/boxcar) | 0.2.14 | MIT |  |  |
@@ -154,7 +154,7 @@ Platforms: linux, macos, windows
 | [httpdate](https://crates.io/crates/httpdate) | 1.0.3 | MIT OR Apache-2.0 |  |  |
 | [humantime](https://crates.io/crates/humantime) | 2.3.0 | MIT OR Apache-2.0 |  |  |
 | [hyper](https://crates.io/crates/hyper) | 1.9.0 | MIT |  |  |
-| [hyper-rustls](https://crates.io/crates/hyper-rustls) | 0.27.8 | Apache-2.0 OR ISC OR MIT |  |  |
+| [hyper-rustls](https://crates.io/crates/hyper-rustls) | 0.27.9 | Apache-2.0 OR ISC OR MIT |  |  |
 | [hyper-tls](https://crates.io/crates/hyper-tls) | 0.6.0 | MIT OR Apache-2.0 |  |  |
 | [hyper-util](https://crates.io/crates/hyper-util) | 0.1.20 | MIT |  |  |
 | [iana-time-zone](https://crates.io/crates/iana-time-zone) | 0.1.65 | MIT OR Apache-2.0 | linux, macos |  |
@@ -274,7 +274,7 @@ Platforms: linux, macos, windows
 | [rattler\_redaction](https://crates.io/crates/rattler_redaction) | 0.1.13 | BSD-3-Clause |  |  |
 | [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.26.8 | BSD-3-Clause |  |  |
 | [rattler\_solve](https://crates.io/crates/rattler_solve) | 5.2.1 | BSD-3-Clause |  |  |
-| [rayon](https://crates.io/crates/rayon) | 1.11.0 | MIT OR Apache-2.0 |  |  |
+| [rayon](https://crates.io/crates/rayon) | 1.12.0 | MIT OR Apache-2.0 |  |  |
 | [rayon-core](https://crates.io/crates/rayon-core) | 1.13.0 | MIT OR Apache-2.0 |  |  |
 | [ref-cast](https://crates.io/crates/ref-cast) | 1.0.25 | MIT OR Apache-2.0 |  |  |
 | [ref-cast-impl](https://crates.io/crates/ref-cast-impl) | 1.0.25 | MIT OR Apache-2.0 |  |  |
@@ -295,7 +295,7 @@ Platforms: linux, macos, windows
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
 | [rustls](https://crates.io/crates/rustls) | 0.23.38 | Apache-2.0 OR ISC OR MIT |  |  |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.14.0 | MIT OR Apache-2.0 |  |  |
-| [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.11 | ISC |  |  |
+| [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.12 | ISC |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
 | [ryu](https://crates.io/crates/ryu) | 1.0.23 | Apache-2.0 OR BSL-1.0 |  |  |
 | [schannel](https://crates.io/crates/schannel) | 0.1.29 | MIT | windows |  |
@@ -323,6 +323,7 @@ Platforms: linux, macos, windows
 | [serde\_derive](https://crates.io/crates/serde_derive) | 1.0.228 | MIT OR Apache-2.0 |  |  |
 | [serde\_json](https://crates.io/crates/serde_json) | 1.0.149 | MIT OR Apache-2.0 |  |  |
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.20 | MIT OR Apache-2.0 |  |  |
+| [serde\_spanned](https://crates.io/crates/serde_spanned) | 0.6.9 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_urlencoded](https://crates.io/crates/serde_urlencoded) | 0.7.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_with](https://crates.io/crates/serde_with) | 3.18.0 | MIT OR Apache-2.0 |  |  |
@@ -374,9 +375,13 @@ Platforms: linux, macos, windows
 | [tokio-rustls](https://crates.io/crates/tokio-rustls) | 0.26.4 | MIT OR Apache-2.0 |  |  |
 | [tokio-stream](https://crates.io/crates/tokio-stream) | 0.1.18 | MIT |  |  |
 | [tokio-util](https://crates.io/crates/tokio-util) | 0.7.18 | MIT |  |  |
+| [toml](https://crates.io/crates/toml) | 0.8.23 | MIT OR Apache-2.0 |  |  |
 | [toml](https://crates.io/crates/toml) | 0.9.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.6.11 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_edit](https://crates.io/crates/toml_edit) | 0.22.27 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_write](https://crates.io/crates/toml_write) | 0.1.2 | MIT OR Apache-2.0 |  |  |
 | [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.5 | MIT |  |  |
 | [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.5 | MIT |  |  |
@@ -467,6 +472,7 @@ Platforms: linux, macos, windows
 | [zerotrie](https://crates.io/crates/zerotrie) | 0.2.4 | Unicode-3.0 |  |  |
 | [zerovec](https://crates.io/crates/zerovec) | 0.11.6 | Unicode-3.0 |  |  |
 | [zerovec-derive](https://crates.io/crates/zerovec-derive) | 0.11.3 | Unicode-3.0 |  |  |
+| [zip](https://crates.io/crates/zip) | 2.4.2 | MIT |  |  |
 | [zip](https://crates.io/crates/zip) | 8.5.1 | MIT |  |  |
 | [zlib-rs](https://crates.io/crates/zlib-rs) | 0.6.3 | Zlib |  |  |
 | [zmij](https://crates.io/crates/zmij) | 1.0.21 | MIT |  |  |
@@ -479,8 +485,8 @@ Platforms: linux, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 251 |
-| MIT | 95 |
+| MIT OR Apache-2.0 | 256 |
+| MIT | 96 |
 | Apache-2.0 OR MIT | 34 |
 | Apache-2.0 | 19 |
 | Unicode-3.0 | 18 |

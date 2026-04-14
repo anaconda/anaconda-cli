@@ -9,6 +9,8 @@ mod help;
 mod http;
 mod input;
 mod paths;
+mod project;
+mod pypi;
 mod qr;
 mod tools;
 mod ua;
