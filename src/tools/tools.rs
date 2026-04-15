@@ -17,6 +17,12 @@ const TOOLS: &[Tool] = &[
         binaries: &["anaconda"],
     },
     Tool {
+        name: "conda",
+        lockfile: include_str!("../../lockfiles/conda/pixi.lock"),
+        binaries: &["conda"],
+        task_prefix: &[],
+    },
+    Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &["pixi"],
