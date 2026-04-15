@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
 
+import pytest
 from conftest import AnaRunner
+
+# Skip tests that require downloading from repo.anaconda.com in CI
+# GitHub Actions runners get 403 Forbidden from the Anaconda repository
+requires_anaconda_repo = pytest.mark.skipif(
+    os.environ.get("CI") == "true",
+    reason="Requires authenticated access to repo.anaconda.com",
+)
 
 
 class TestHelp:
@@ -211,6 +220,13 @@ class TestLogin:
 class TestBootstrap:
     """Tests for 'ana bootstrap' subcommand."""
 
+    def test_help_shows_bootstrap_command(self, run_ana: AnaRunner) -> None:
+        result = run_ana("--help")
+        assert result.returncode == 0
+        assert "bootstrap" in result.stdout
+        assert "Install the Anaconda CLI" in result.stdout
+
+    @requires_anaconda_repo
     def test_bootstrap_installs_anaconda_cli(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
@@ -224,6 +240,7 @@ class TestBootstrap:
         assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
         assert tool_dir.is_dir()
 
+    @requires_anaconda_repo
     def test_bootstrap_creates_symlinked_binary(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
@@ -236,6 +253,7 @@ class TestBootstrap:
         assert bin_path.exists(), f"Binary not found: {bin_path}"
         assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
 
+    @requires_anaconda_repo
     def test_bootstrap_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
@@ -253,6 +271,7 @@ class TestBootstrap:
         assert second_result.returncode == 0
         assert "already installed" in second_result.stderr
 
+    @requires_anaconda_repo
     def test_bootstrap_anaconda_binary_runs(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
