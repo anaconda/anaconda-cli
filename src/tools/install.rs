@@ -53,8 +53,9 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
     }
 
-    // For conda, write a frozen marker to protect the environment (CEP 22)
+    // For conda, write config and frozen marker
     if name == "conda" {
+        write_conda_config(&prefix)?;
         write_frozen_marker(&prefix)?;
     }
 
@@ -348,6 +349,24 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
     std::fs::write(&config_path, content)
         .into_diagnostic()
         .context("failed to write shims.cfg")?;
+
+    Ok(())
+}
+
+/// Write .condarc configuration for the conda environment.
+///
+/// This sets up the default channels (similar to miniconda) and other
+/// ana-specific configuration. The config is stored in lockfiles/conda/.condarc
+/// and compiled into the binary.
+fn write_conda_config(prefix: &Path) -> miette::Result<()> {
+    let condarc_path = prefix.join(".condarc");
+    let contents = include_str!("../../lockfiles/conda/.condarc");
+
+    std::fs::write(&condarc_path, contents)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write .condarc: {}", condarc_path.display()))?;
+
+    eprintln!("   Configured conda channels and settings");
 
     Ok(())
 }
