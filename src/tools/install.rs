@@ -30,13 +30,14 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
         tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = tools::binaries(name).unwrap_or(&[]);
+    let uses_wrapper = tools::uses_wrapper(name);
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(&prefix, &lock_content).await?;
 
     // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, binaries)?;
+    create_bin_symlinks(&prefix, binaries, uses_wrapper)?;
 
     // Tool-specific post-install configuration
     if name == "pixi" {
@@ -122,14 +123,18 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
 }
 
 /// Create symlinks for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[&str]) -> miette::Result<()> {
+fn create_bin_symlinks(prefix: &Path, binaries: &[&str], uses_wrapper: bool) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
     for binary in binaries {
-        create_bin_symlink(&bin_dir, prefix, binary)?;
+        if uses_wrapper {
+            create_wrapper_symlink(&bin_dir, binary)?;
+        } else {
+            create_bin_symlink(&bin_dir, prefix, binary)?;
+        }
     }
 
     Ok(())
@@ -176,6 +181,48 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Re
         "   Linked {} -> {}",
         symlink_path.display(),
         tool_bin.display()
+    );
+
+    Ok(())
+}
+
+/// Create a symlink that points to the ana binary itself.
+///
+/// This is used for tools that ana wraps (like conda), where ana detects
+/// the binary name and acts as a wrapper for the underlying tool.
+fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
+    let symlink_path = bin_dir.join(binary);
+
+    // Get the path to the current ana executable
+    let ana_bin = std::env::current_exe()
+        .into_diagnostic()
+        .context("failed to get current executable path")?;
+
+    // Remove existing symlink if present
+    if symlink_path.exists() || symlink_path.is_symlink() {
+        std::fs::remove_file(&symlink_path)
+            .into_diagnostic()
+            .context("failed to remove existing symlink")?;
+    }
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&ana_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_file(&ana_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    eprintln!(
+        "   Linked {} -> {} (wrapper)",
+        symlink_path.display(),
+        ana_bin.display()
     );
 
     Ok(())

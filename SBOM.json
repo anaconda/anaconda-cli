@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:211fc3aa-3f45-495e-bb3a-3d7236fa4833",
+  "serialNumber": "urn:uuid:1ea8603c-1afc-4d0a-961e-3a1d3a0c338e",
   "metadata": {
-    "timestamp": "2026-04-13T23:08:31Z",
+    "timestamp": "2026-04-16T00:33:18Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -816,6 +816,41 @@
         {
           "type": "vcs",
           "url": "https://github.com/smol-rs/atomic-waker"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14",
+      "author": "softprops <d.tangren@gmail.com>",
+      "name": "atty",
+      "version": "0.2.14",
+      "description": "A simple interface for querying atty",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/atty@0.2.14",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "http://softprops.github.io/atty"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/softprops/atty"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/softprops/atty"
         }
       ]
     },
@@ -14449,6 +14484,7 @@
       "dependsOn": [
         "git+https://github.com/anaconda/anaconda-otel-rs#0.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.89",
+        "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@11.0.1",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.0",
@@ -14740,6 +14776,13 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#atomic-waker@1.1.2",
       "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.185",
+        "registry+https://github.com/rust-lang/crates.io-index#winapi@0.3.9"
+      ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#autocfg@1.5.0",
@@ -18038,6 +18081,74 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#windows_x86_64_msvc@0.52.6",
       "dependsOn": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2026-0098",
+      "description": "Name constraints for URI names were ignored and therefore accepted.\n\nNote this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls-webpki@0.103.11"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0099",
+      "description": "Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.\n\nThis was incorrect because, given a name constraint of `accept.example.com`, `*.example.com` could feasibly allow a name of `reject.example.com` which is outside the constraint.\nThis is very similar to [CVE-2025-61727](https://go.dev/issue/76442).\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-xgp8-3hg3-c2mh](https://github.com/rustls/webpki/security/advisories/GHSA-xgp8-3hg3-c2mh). Thank you to @1seal for the report.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0099.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls-webpki@0.103.11"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2024-0375",
+      "description": "[unmaintained] `atty` is unmaintained",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2024-0375.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2021-0145",
+      "description": "[unsound] Potential unaligned read",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2021-0145.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14"
+        }
+      ]
     }
   ]
 }

@@ -7,6 +7,9 @@ struct Tool {
     name: &'static str,
     lockfile: &'static str,
     binaries: &'static [&'static str],
+    /// If true, the binary in ~/.ana/bin/ should be a link to ana itself,
+    /// which acts as a wrapper for the actual tool binary.
+    uses_wrapper: bool,
 }
 
 /// Embedded tool configurations.
@@ -15,17 +18,19 @@ const TOOLS: &[Tool] = &[
         name: "anaconda-cli",
         lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
         binaries: &["anaconda"],
+        uses_wrapper: false,
     },
     Tool {
         name: "conda",
         lockfile: include_str!("../../lockfiles/conda/pixi.lock"),
         binaries: &["conda"],
-        task_prefix: &[],
+        uses_wrapper: true,
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &["pixi"],
+        uses_wrapper: false,
     },
 ];
 
@@ -54,6 +59,11 @@ pub fn binaries(name: &str) -> Option<&'static [&'static str]> {
 /// Returns all available tool names.
 pub fn all_tools() -> Vec<&'static str> {
     TOOLS.iter().map(|t| t.name).collect()
+}
+
+/// Returns whether a tool uses a wrapper binary (ana acts as the binary).
+pub fn uses_wrapper(name: &str) -> bool {
+    find_tool(name).map(|t| t.uses_wrapper).unwrap_or(false)
 }
 
 #[cfg(test)]

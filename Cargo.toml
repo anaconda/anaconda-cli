@@ -15,6 +15,7 @@ feedback = ["dep:urlencoding"]
 
 [dependencies]
 async-trait = "0.1"
+atty = "0.2"
 base64 = "0.22"
 futures-util = "0.3"
 dirs = "6"

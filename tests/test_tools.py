@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
 from conftest import AnaRunner
 
 
@@ -201,3 +202,133 @@ class TestToolUninstall:
         assert "The following will be removed:" in uninstall_result.stderr
         assert ".ana/bin/pixi" in uninstall_result.stderr
         assert ".ana/tools/pixi" in uninstall_result.stderr
+
+
+class TestToolInstallConda:
+    """Tests for 'ana tool install conda' subcommand."""
+
+    def test_tool_install_conda(self, run_ana: AnaRunner, fake_home: Path) -> None:
+        """Test that tool install conda installs conda to ~/.ana/tools."""
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode == 0
+        assert "conda" in result.stderr
+
+        # Verify the tool directory was created
+        tool_dir = fake_home / ".ana" / "tools" / "conda"
+        assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
+        assert tool_dir.is_dir()
+
+    def test_tool_install_conda_creates_wrapper_symlink(
+        self, run_ana: AnaRunner, fake_home: Path, ana_binary: Path
+    ) -> None:
+        """Test that tool install creates a wrapper symlink that points to ana."""
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode == 0
+        assert "(wrapper)" in result.stderr
+
+        bin_path = fake_home / ".ana" / "bin" / "conda"
+        assert bin_path.exists(), f"Binary not found: {bin_path}"
+        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+
+        # Verify the symlink points to the ana binary, not to the actual conda
+        target = bin_path.resolve()
+        assert target == ana_binary.resolve(), (
+            f"Wrapper symlink should point to ana binary, "
+            f"got {target} instead of {ana_binary.resolve()}"
+        )
+
+
+class TestCondaWrapper:
+    """Tests for conda wrapper functionality."""
+
+    @pytest.fixture
+    def conda_wrapper(self, run_ana: AnaRunner, fake_home: Path) -> Path:
+        """Install conda and return the wrapper binary path."""
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode == 0
+        wrapper = fake_home / ".ana" / "bin" / "conda"
+        assert wrapper.exists()
+        return wrapper
+
+    def test_conda_wrapper_activate_intercepted(
+        self, run_ana: AnaRunner, conda_wrapper: Path, env_isolated: dict[str, str]
+    ) -> None:
+        """Test that conda activate is intercepted with helpful message."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "activate"],
+            capture_output=True,
+            text=True,
+            env=env_isolated,
+        )
+        assert proc.returncode == 1
+        assert "not available via ana" in proc.stderr
+        assert "conda shell" in proc.stderr
+        assert "conda-spawn" in proc.stderr
+
+    def test_conda_wrapper_deactivate_intercepted(
+        self, run_ana: AnaRunner, conda_wrapper: Path, env_isolated: dict[str, str]
+    ) -> None:
+        """Test that conda deactivate is intercepted with helpful message."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "deactivate"],
+            capture_output=True,
+            text=True,
+            env=env_isolated,
+        )
+        assert proc.returncode == 1
+        assert "not available via ana" in proc.stderr
+        assert "conda shell" in proc.stderr
+
+    def test_conda_wrapper_init_intercepted(
+        self, run_ana: AnaRunner, conda_wrapper: Path, env_isolated: dict[str, str]
+    ) -> None:
+        """Test that conda init is intercepted with helpful message."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "init"],
+            capture_output=True,
+            text=True,
+            env=env_isolated,
+        )
+        assert proc.returncode == 1
+        assert "not needed with ana" in proc.stderr
+        assert "~/.ana/bin" in proc.stderr
+
+    def test_conda_wrapper_version_passes_through(
+        self, run_ana: AnaRunner, conda_wrapper: Path, env_isolated: dict[str, str]
+    ) -> None:
+        """Test that conda --version passes through to real conda."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "--version"],
+            capture_output=True,
+            text=True,
+            env=env_isolated,
+        )
+        assert proc.returncode == 0
+        assert "conda" in proc.stdout.lower()
+
+    def test_conda_wrapper_info_passes_through(
+        self, run_ana: AnaRunner, conda_wrapper: Path, env_isolated: dict[str, str]
+    ) -> None:
+        """Test that conda info passes through to real conda."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "info"],
+            capture_output=True,
+            text=True,
+            env=env_isolated,
+        )
+        assert proc.returncode == 0
+        assert "conda version" in proc.stdout.lower()
+
+    def test_conda_wrapper_help_passes_through(
+        self, run_ana: AnaRunner, conda_wrapper: Path, env_isolated: dict[str, str]
+    ) -> None:
+        """Test that conda --help passes through to real conda."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "--help"],
+            capture_output=True,
+            text=True,
+            env=env_isolated,
+        )
+        assert proc.returncode == 0
+        # conda --help outputs to stdout
+        assert "conda" in proc.stdout.lower()
