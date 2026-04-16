@@ -383,3 +383,27 @@ class TestCondaWrapper:
         assert proc.returncode == 0
         # conda --help outputs to stdout
         assert "conda" in proc.stdout.lower()
+
+    def test_conda_environment_is_frozen(
+        self, conda_wrapper: Path, conda_env: dict[str, str], conda_home: Path
+    ) -> None:
+        """Test that the conda environment is frozen and blocks direct installs."""
+        # Verify the frozen marker file exists
+        frozen_path = conda_home / ".ana" / "tools" / "conda" / "conda-meta" / "frozen"
+        assert frozen_path.exists(), "Frozen marker file should exist"
+
+        # Verify it contains the expected message
+        frozen_content = frozen_path.read_text()
+        assert "managed by ana" in frozen_content
+
+        # Test that conda install to base is blocked
+        proc = subprocess.run(
+            [str(conda_wrapper), "install", "-n", "base", "numpy", "-y"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode != 0
+        assert (
+            "frozen" in proc.stderr.lower() or "EnvironmentIsFrozenError" in proc.stderr
+        )
