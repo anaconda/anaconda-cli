@@ -1,0 +1,65 @@
+name: Setup ana
+description: Install the ana CLI and optional tools (pixi, conda, etc.)
+author: Anaconda
+
+branding:
+  icon: package
+  color: green
+
+inputs:
+  ana-version:
+    description: Version of ana to install (e.g., "1.0.0" or "latest")
+    required: false
+    default: latest
+  tools:
+    description: Space or comma-separated list of tools to install (e.g., "pixi" or "pixi, conda")
+    required: false
+    default: ''
+  github-token:
+    description: GitHub token for accessing private repositories
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  ana-version:
+    description: The version of ana that was installed
+    value: ${{ steps.install-ana.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install ana
+      id: install-ana
+      shell: bash
+      env:
+        ANA_VERSION: ${{ inputs.ana-version }}
+        ANA_NO_PATH_UPDATE: '1'
+        ANA_BOOTSTRAP: 'false'
+        ANA_FORCE_INSTALL: '1'
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        # Download and run the install script
+        curl -fsSL https://raw.githubusercontent.com/anaconda/ana-cli/main/scripts/install.sh | sh
+
+        # Add ana to PATH for subsequent steps
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "$HOME/.ana/bin" >> "$GITHUB_PATH"
+
+        # Output the installed version
+        VERSION=$("$HOME/.local/bin/ana" --version | awk '{print $2}')
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Installed ana version: $VERSION"
+
+    - name: Install tools
+      if: inputs.tools != ''
+      shell: bash
+      env:
+        TOOLS_INPUT: ${{ inputs.tools }}
+      run: |
+        # Parse tools input (supports space or comma-separated)
+        TOOLS=$(echo "$TOOLS_INPUT" | tr ',' ' ' | xargs)
+
+        for tool in $TOOLS; do
+          echo "Installing tool: $tool"
+          "$HOME/.local/bin/ana" tool install "$tool"
+        done
