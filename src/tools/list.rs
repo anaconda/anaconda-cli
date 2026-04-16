@@ -1,10 +1,7 @@
 //! List available tools and their installation status.
 
-use comfy_table::{
-    Attribute, Cell, Color, Table, modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL,
-};
-
 use crate::paths;
+use crate::table::{self, Color};
 
 use super::lockfiles;
 
@@ -36,23 +33,16 @@ pub fn list_tools() -> Vec<ToolInfo> {
 pub fn print_tool_list() {
     let tools = list_tools();
 
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
-    table.apply_modifier(UTF8_SOLID_INNER_BORDERS);
-    table.set_header([
-        Cell::new("Name").add_attribute(Attribute::Bold),
-        Cell::new("Installed").add_attribute(Attribute::Bold),
-        Cell::new("Binaries").add_attribute(Attribute::Bold),
-    ]);
+    let mut table = table::new(["Name", "Installed", "Binaries"]);
 
     for tool in tools {
         let status_cell = if tool.installed {
-            Cell::new("✓").fg(Color::Green)
+            table::cell("✓").fg(Color::Green)
         } else {
-            Cell::new("✗").fg(Color::Red)
+            table::cell("✗").fg(Color::Red)
         };
         let binaries = tool.binaries.join(", ");
-        table.add_row([Cell::new(tool.name), status_cell, Cell::new(&binaries)]);
+        table.add_row([table::cell(tool.name), status_cell, table::cell(&binaries)]);
     }
 
     println!("{table}");
