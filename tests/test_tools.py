@@ -407,3 +407,22 @@ class TestCondaWrapper:
         assert (
             "frozen" in proc.stderr.lower() or "EnvironmentIsFrozenError" in proc.stderr
         )
+
+    def test_conda_condarc_configured(
+        self, conda_wrapper: Path, conda_env: dict[str, str], conda_home: Path
+    ) -> None:
+        """Test that .condarc is configured with default channels and permanent packages."""
+        condarc_path = conda_home / ".ana" / "tools" / "conda" / ".condarc"
+        assert condarc_path.exists(), ".condarc file should exist"
+
+        condarc_content = condarc_path.read_text()
+        # Verify default_channels are configured
+        assert "https://repo.anaconda.com/pkgs/main" in condarc_content
+        assert "https://repo.anaconda.com/pkgs/r" in condarc_content
+        # Verify auto_activate_base is disabled
+        assert "auto_activate_base: false" in condarc_content.lower()
+        # Verify permanent packages are configured (for conda self reset)
+        assert "self_permanent_packages" in condarc_content
+        assert "anaconda-anon-usage" in condarc_content
+        assert "anaconda-auth" in condarc_content
+        assert "conda-spawn" in condarc_content
