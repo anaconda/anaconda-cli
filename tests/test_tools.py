@@ -93,3 +93,61 @@ class TestToolInstallPixi:
         result = run_ana("tool", "install", "nonexistent-tool")
         assert result.returncode != 0
         assert "unknown tool" in result.stderr.lower()
+
+
+class TestToolUninstall:
+    """Tests for 'ana tool uninstall' subcommand."""
+
+    def test_tool_uninstall_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "uninstall", "--help")
+        assert result.returncode == 0
+        assert "Uninstall a tool" in result.stdout
+
+    def test_tool_uninstall_unknown_tool(self, run_ana: AnaRunner) -> None:
+        """Test that uninstalling an unknown tool fails with error."""
+        result = run_ana("tool", "uninstall", "nonexistent-tool")
+        assert result.returncode != 0
+        assert "unknown tool" in result.stderr.lower()
+
+    def test_tool_uninstall_not_installed(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that uninstalling a tool that isn't installed is a no-op."""
+        result = run_ana("tool", "uninstall", "pixi", "--yes")
+        assert result.returncode == 0
+        assert "not installed" in result.stderr.lower()
+
+    def test_tool_uninstall_pixi(self, run_ana: AnaRunner, fake_home: Path) -> None:
+        """Test that tool uninstall removes the tool and cleans up."""
+        # First install
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        tool_dir = fake_home / ".ana" / "tools" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        assert tool_dir.exists()
+        assert bin_path.exists()
+
+        # Then uninstall (with --yes to skip prompt)
+        uninstall_result = run_ana("tool", "uninstall", "pixi", "--yes")
+        assert uninstall_result.returncode == 0
+        assert "Successfully uninstalled" in uninstall_result.stderr
+
+        # Verify removal
+        assert not tool_dir.exists(), "Tool directory should be removed"
+        assert not bin_path.exists(), "Symlink should be removed"
+
+    def test_tool_uninstall_shows_what_will_be_removed(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that uninstall shows what will be deleted before prompting."""
+        # First install
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Run uninstall with --yes and check output
+        uninstall_result = run_ana("tool", "uninstall", "pixi", "--yes")
+        assert uninstall_result.returncode == 0
+        assert "The following will be removed:" in uninstall_result.stderr
+        assert ".ana/bin/pixi" in uninstall_result.stderr
+        assert ".ana/tools/pixi" in uninstall_result.stderr

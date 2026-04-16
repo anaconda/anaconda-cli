@@ -119,6 +119,10 @@ pub enum Action {
     ToolInstall {
         name: String,
     },
+    ToolUninstall {
+        name: String,
+        force: bool,
+    },
 }
 
 impl Action {
@@ -140,6 +144,7 @@ impl Action {
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
             Action::ToolInstall { .. } => "tool.install",
+            Action::ToolUninstall { .. } => "tool.uninstall",
         }
     }
 
@@ -191,6 +196,10 @@ impl Action {
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
             Action::ToolInstall { name } => {
                 tools::install::install_tool(&name).await?;
+                Ok(())
+            }
+            Action::ToolUninstall { name, force } => {
+                tools::uninstall::uninstall_tool(&name, force)?;
                 Ok(())
             }
             Action::Login => Ok(auth::login().await?),
@@ -266,6 +275,9 @@ pub fn parse() -> (Action, LogLevel) {
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+                    Some(ToolCommands::Uninstall { name, force }) => {
+                        Action::ToolUninstall { name, force }
+                    }
                 },
             };
             (action, level)
@@ -479,6 +491,16 @@ enum ToolCommands {
     Install {
         /// Name of the tool to install
         name: String,
+    },
+
+    /// Uninstall a tool
+    Uninstall {
+        /// Name of the tool to uninstall
+        name: String,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'y', long = "yes")]
+        force: bool,
     },
 }
 
