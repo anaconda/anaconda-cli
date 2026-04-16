@@ -384,6 +384,21 @@ class TestCondaWrapper:
         # conda --help outputs to stdout
         assert "conda" in proc.stdout.lower()
 
+    def test_conda_wrapper_shell_alias_for_spawn(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda shell is an alias for conda spawn."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "shell", "--help"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 0
+        # Should show spawn help (shell is aliased to spawn)
+        assert "spawn" in proc.stdout.lower()
+        assert "activate conda environments" in proc.stdout.lower()
+
     def test_conda_environment_is_frozen(
         self, conda_wrapper: Path, conda_env: dict[str, str], conda_home: Path
     ) -> None:

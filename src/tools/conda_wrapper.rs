@@ -33,6 +33,13 @@ pub fn run(args: &[String]) -> i32 {
         _ => {}
     }
 
+    // Handle "shell" as an alias for "spawn" (like conda-express)
+    if first_arg == Some("shell") {
+        let mut new_args = args.to_vec();
+        new_args[0] = "spawn".to_string();
+        return hand_off_to_conda(&new_args);
+    }
+
     // Check if this is a create command that needs output filtering
     if should_filter_create_output(args) {
         return run_conda_filtered(args);
