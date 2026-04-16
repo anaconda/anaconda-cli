@@ -100,11 +100,15 @@ fn should_filter_create_output(args: &[String]) -> bool {
 /// Run conda and filter the output for create commands.
 fn run_conda_filtered(args: &[String]) -> i32 {
     let conda_bin = get_conda_bin();
+    let prefix = paths::tool_prefix("conda");
 
     let mut cmd = Command::new(&conda_bin);
     cmd.args(args);
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::inherit());
+
+    // Set CONDA_ROOT_PREFIX so conda knows where its root environment is
+    cmd.env("CONDA_ROOT_PREFIX", &prefix);
 
     let mut child = match cmd.spawn() {
         Ok(c) => c,
@@ -206,8 +210,13 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
         return 1;
     }
 
+    let prefix = paths::tool_prefix("conda");
+
     let mut cmd = Command::new(&conda_bin);
     cmd.args(args);
+
+    // Set CONDA_ROOT_PREFIX so conda knows where its root environment is
+    cmd.env("CONDA_ROOT_PREFIX", &prefix);
 
     // Add ana's bin directory to PATH so our wrapper takes precedence for subcommands
     let bin_dir = paths::bin_dir();
