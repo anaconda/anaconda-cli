@@ -43,7 +43,7 @@ runs:
           -H "Authorization: token $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github.v3.raw" \
           "https://api.github.com/repos/anaconda/ana-cli/contents/scripts/install.sh?ref=main" \
-          | sh -s -- --token "$GITHUB_TOKEN"
+          | sh -s -- --token "$GITHUB_TOKEN" --version "v0.0.8.dev11"
 
         # Add ana to PATH for subsequent steps
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
