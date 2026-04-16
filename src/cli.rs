@@ -123,6 +123,7 @@ pub enum Action {
         name: String,
         force: bool,
     },
+    ToolList,
 }
 
 impl Action {
@@ -145,6 +146,7 @@ impl Action {
             Action::OpenFeedback { .. } => "feedback",
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
+            Action::ToolList => "tool.list",
         }
     }
 
@@ -200,6 +202,10 @@ impl Action {
             }
             Action::ToolUninstall { name, force } => {
                 tools::uninstall::uninstall_tool(&name, force)?;
+                Ok(())
+            }
+            Action::ToolList => {
+                tools::list::print_tool_list();
                 Ok(())
             }
             Action::Login => Ok(auth::login().await?),
@@ -275,6 +281,7 @@ pub fn parse() -> (Action, LogLevel) {
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+                    Some(ToolCommands::List) => Action::ToolList,
                     Some(ToolCommands::Uninstall { name, force }) => {
                         Action::ToolUninstall { name, force }
                     }
@@ -492,6 +499,9 @@ enum ToolCommands {
         /// Name of the tool to install
         name: String,
     },
+
+    /// List available tools
+    List,
 
     /// Uninstall a tool
     Uninstall {

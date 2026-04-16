@@ -95,6 +95,56 @@ class TestToolInstallPixi:
         assert "unknown tool" in result.stderr.lower()
 
 
+class TestToolList:
+    """Tests for 'ana tool list' subcommand."""
+
+    def test_tool_list_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "list", "--help")
+        assert result.returncode == 0
+        assert "List available tools" in result.stdout
+
+    def test_tool_list_shows_tools(self, run_ana: AnaRunner) -> None:
+        """Test that tool list shows available tools."""
+        result = run_ana("tool", "list")
+        assert result.returncode == 0
+        assert "Name" in result.stdout
+        assert "Installed" in result.stdout
+        assert "Binaries" in result.stdout
+        assert "pixi" in result.stdout
+        assert "anaconda-cli" in result.stdout
+
+    def test_tool_list_shows_installed_status(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool list correctly shows installation status."""
+        # Before install, should show ✗
+        result_before = run_ana("tool", "list")
+        assert result_before.returncode == 0
+        # pixi should show as not installed (find line with pixi but not anaconda)
+        lines_before = result_before.stdout.split("\n")
+        pixi_line_before = [
+            line
+            for line in lines_before
+            if "pixi" in line.lower() and "anaconda" not in line.lower()
+        ][0]
+        assert "✗" in pixi_line_before
+
+        # Install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # After install, should show ✓
+        result_after = run_ana("tool", "list")
+        assert result_after.returncode == 0
+        lines_after = result_after.stdout.split("\n")
+        pixi_line_after = [
+            line
+            for line in lines_after
+            if "pixi" in line.lower() and "anaconda" not in line.lower()
+        ][0]
+        assert "✓" in pixi_line_after
+
+
 class TestToolUninstall:
     """Tests for 'ana tool uninstall' subcommand."""
 

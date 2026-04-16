@@ -45,6 +45,11 @@ pub fn binaries(name: &str) -> Option<&'static [&'static str]> {
     find_tool(name).map(|t| t.binaries)
 }
 
+/// Returns all available tool names.
+pub fn all_tools() -> Vec<&'static str> {
+    TOOLS.iter().map(|t| t.name).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
