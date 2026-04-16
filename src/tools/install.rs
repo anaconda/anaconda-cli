@@ -53,6 +53,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
     }
 
+    // For conda, write a frozen marker to protect the environment (CEP 22)
+    if name == "conda" {
+        write_frozen_marker(&prefix)?;
+    }
+
     Ok(())
 }
 
@@ -343,6 +348,38 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
     std::fs::write(&config_path, content)
         .into_diagnostic()
         .context("failed to write shims.cfg")?;
+
+    Ok(())
+}
+
+/// Write a frozen marker file to protect the conda environment (CEP 22).
+///
+/// This prevents users from accidentally modifying the tool's environment
+/// with `conda install`. They should use `conda self install` instead.
+fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
+    let conda_meta = prefix.join("conda-meta");
+    std::fs::create_dir_all(&conda_meta)
+        .into_diagnostic()
+        .context("failed to create conda-meta directory")?;
+
+    let frozen_path = conda_meta.join("frozen");
+    let contents = serde_json::json!({
+        "message": concat!(
+            "This environment is managed by ana.\n",
+            "To install packages, use: conda self install <package>\n",
+            "To update conda, use: conda self update\n",
+            "To override, pass --override-frozen to conda commands."
+        )
+    });
+
+    std::fs::write(
+        &frozen_path,
+        serde_json::to_string_pretty(&contents).unwrap(),
+    )
+    .into_diagnostic()
+    .with_context(|| format!("failed to write frozen marker: {}", frozen_path.display()))?;
+
+    eprintln!("   Froze environment to prevent accidental modifications");
 
     Ok(())
 }
