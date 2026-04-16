@@ -41,8 +41,9 @@ jobs:
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
       - name: Set up ana with pixi
-        uses: ./.github/actions/setup-ana
+        uses: anaconda/github-actions/setup-ana@feat/setup-ana
         with:
+          ana-version: v0.0.8.dev11
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 

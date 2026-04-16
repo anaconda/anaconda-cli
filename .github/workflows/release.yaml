@@ -33,8 +33,9 @@ jobs:
           fetch-depth: 0
 
       - name: Set up ana with pixi
-        uses: ./.github/actions/setup-ana
+        uses: anaconda/github-actions/setup-ana@feat/setup-ana
         with:
+          ana-version: v0.0.8.dev11
           tools: pixi
 
       - name: Get release info
