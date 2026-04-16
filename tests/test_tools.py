@@ -276,9 +276,16 @@ class TestCondaWrapper:
 
     @pytest.fixture(scope="class")
     def conda_wrapper(
-        self, ana_binary: Path, conda_home: Path, conda_env: dict[str, str]
+        self, ana_binary: Path | None, conda_home: Path, conda_env: dict[str, str]
     ) -> Path:
         """Install conda once and return the wrapper binary path."""
+        import sys
+
+        if ana_binary is None:
+            pytest.skip(
+                "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
+            )
+
         result = subprocess.run(
             [str(ana_binary), "tool", "install", "conda"],
             capture_output=True,
@@ -286,8 +293,11 @@ class TestCondaWrapper:
             env=conda_env,
         )
         assert result.returncode == 0, f"Failed to install conda: {result.stderr}"
-        wrapper = conda_home / ".ana" / "bin" / "conda"
-        assert wrapper.exists()
+
+        # On Windows, the wrapper is conda.exe; on Unix it's just conda
+        wrapper_name = "conda.exe" if sys.platform == "win32" else "conda"
+        wrapper = conda_home / ".ana" / "bin" / wrapper_name
+        assert wrapper.exists(), f"Wrapper not found at {wrapper}"
         return wrapper
 
     def test_conda_wrapper_activate_intercepted(

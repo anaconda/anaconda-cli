@@ -59,16 +59,21 @@ def ana_binary() -> Path | None:
 
     Search order:
     1. ANA_BINARY_PATH environment variable
-    2. target/release/ana (release build)
-    3. target/debug/ana (debug build)
+    2. target/release/ana[.exe] (release build)
+    3. target/debug/ana[.exe] (debug build)
     """
+    import sys
+
     if env_path := os.getenv("ANA_BINARY_PATH"):
         path = Path(env_path)
         if path.exists() and path.is_file():
             return path
 
-    for subpath in ["target/release/ana", "target/debug/ana"]:
-        binary = REPO_ROOT / subpath
+    # Use .exe extension on Windows
+    binary_name = "ana.exe" if sys.platform == "win32" else "ana"
+
+    for subdir in ["target/release", "target/debug"]:
+        binary = REPO_ROOT / subdir / binary_name
         if binary.exists():
             return binary
 
