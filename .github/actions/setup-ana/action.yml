@@ -38,8 +38,12 @@ runs:
         ANA_FORCE_INSTALL: '1'
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        # Download and run the install script
-        curl -fsSL https://raw.githubusercontent.com/anaconda/ana-cli/main/scripts/install.sh | sh
+        # Download and run the install script (use GitHub API for private repo support)
+        curl -fsSL \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3.raw" \
+          "https://api.github.com/repos/anaconda/ana-cli/contents/scripts/install.sh?ref=main" \
+          | sh -s -- --token "$GITHUB_TOKEN"
 
         # Add ana to PATH for subsequent steps
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
