@@ -1,12 +1,10 @@
-"""Integration tests for tool management and task running."""
+"""Integration tests for tool management."""
 
 from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from textwrap import dedent
 
-import pytest
 from conftest import AnaRunner
 
 
@@ -95,85 +93,3 @@ class TestToolInstallPixi:
         result = run_ana("tool", "install", "nonexistent-tool")
         assert result.returncode != 0
         assert "unknown tool" in result.stderr.lower()
-
-
-class TestRunHelp:
-    """Tests for run command help."""
-
-    def test_run_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("run", "--help")
-        assert result.returncode == 0
-        assert "Run a task" in result.stdout
-
-
-class TestRunTask:
-    """Tests for 'ana run' command with pixi projects."""
-
-    @pytest.fixture
-    def pixi_project(self, fake_home: Path) -> Path:
-        """Create a minimal pixi project with a hello task."""
-        project_dir = fake_home / "project"
-        project_dir.mkdir()
-
-        pixi_toml = project_dir / "pixi.toml"
-        pixi_toml.write_text(
-            dedent(
-                """\
-                [project]
-                name = "test-project"
-                channels = ["https://repo.anaconda.com/pkgs/main"]
-                platforms = ["osx-arm64", "osx-64", "linux-64"]
-
-                [tasks]
-                hello = "echo 'Hello from pixi!'"
-                """
-            )
-        )
-        return project_dir
-
-    def test_run_auto_installs_tool(
-        self, run_ana: AnaRunner, fake_home: Path, pixi_project: Path
-    ) -> None:
-        """Test that ana run auto-installs pixi if not present."""
-        # Verify pixi is not installed
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
-        assert not bin_path.exists()
-
-        # Run a task - should auto-install pixi
-        run_ana("run", "hello", cwd=pixi_project)
-
-        # Check pixi was installed
-        assert bin_path.exists(), "pixi should be auto-installed"
-
-    def test_run_executes_task(
-        self, run_ana: AnaRunner, fake_home: Path, pixi_project: Path
-    ) -> None:
-        """Test that ana run executes the task and produces output."""
-        result = run_ana("run", "hello", cwd=pixi_project)
-        assert result.returncode == 0
-        assert "Hello from pixi!" in result.stdout
-
-    def test_run_detects_project_type(
-        self, run_ana: AnaRunner, fake_home: Path, pixi_project: Path
-    ) -> None:
-        """Test that ana run detects the pixi project type."""
-        result = run_ana("run", "hello", cwd=pixi_project)
-        assert (
-            "Detected project type" in result.stderr or "pixi" in result.stderr.lower()
-        )
-
-    def test_run_no_project_fails(self, run_ana: AnaRunner, fake_home: Path) -> None:
-        """Test that ana run fails when no project is detected."""
-        empty_dir = fake_home / "empty"
-        empty_dir.mkdir()
-
-        result = run_ana("run", "hello", cwd=empty_dir)
-        assert result.returncode != 0
-        assert "no supported project" in result.stderr.lower()
-
-    def test_run_no_task_fails(
-        self, run_ana: AnaRunner, fake_home: Path, pixi_project: Path
-    ) -> None:
-        """Test that ana run fails when no task is specified."""
-        result = run_ana("run", cwd=pixi_project)
-        assert result.returncode != 0

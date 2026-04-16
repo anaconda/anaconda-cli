@@ -119,10 +119,6 @@ pub enum Action {
     ToolInstall {
         name: String,
     },
-    Run {
-        tool: Option<String>,
-        args: Vec<String>,
-    },
 }
 
 impl Action {
@@ -144,7 +140,6 @@ impl Action {
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
             Action::ToolInstall { .. } => "tool.install",
-            Action::Run { .. } => "run",
         }
     }
 
@@ -196,13 +191,6 @@ impl Action {
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
             Action::ToolInstall { name } => {
                 tools::install::install_tool(&name).await?;
-                Ok(())
-            }
-            Action::Run { tool, args } => {
-                let status = tools::run::run(tool.as_deref(), &args).await?;
-                if !status.success() {
-                    std::process::exit(status.code().unwrap_or(1));
-                }
                 Ok(())
             }
             Action::Login => Ok(auth::login().await?),
@@ -279,7 +267,6 @@ pub fn parse() -> (Action, LogLevel) {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
                 },
-                Some(Commands::Run { tool, args }) => Action::Run { tool, args },
             };
             (action, level)
         }
@@ -435,18 +422,6 @@ enum Commands {
     Tool {
         #[command(subcommand)]
         command: Option<ToolCommands>,
-    },
-
-    /// Run a task (auto-installs tool if needed)
-    #[command(trailing_var_arg = true, override_usage = "ana run <task> [args...]")]
-    Run {
-        /// Tool to use (auto-detected if not specified)
-        #[arg(long)]
-        tool: Option<String>,
-
-        /// Task and arguments
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
     },
 }
 
