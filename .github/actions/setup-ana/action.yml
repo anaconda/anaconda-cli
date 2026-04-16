@@ -49,8 +49,14 @@ runs:
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
         echo "$HOME/.ana/bin" >> "$GITHUB_PATH"
 
+        # Determine binary name (with .exe on Windows)
+        ANA_BIN="$HOME/.local/bin/ana"
+        if [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]] || [[ "$(uname -s)" == CYGWIN* ]]; then
+          ANA_BIN="$HOME/.local/bin/ana.exe"
+        fi
+
         # Output the installed version
-        VERSION=$("$HOME/.local/bin/ana" --version | awk '{print $2}')
+        VERSION=$("$ANA_BIN" --version | awk '{print $2}')
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
         echo "Installed ana version: $VERSION"
 
