@@ -4,7 +4,7 @@ use crate::paths;
 use crate::tools;
 
 pub async fn run_bootstrap() -> Result<(), String> {
-    let anaconda_bin = paths::bin_dir().join("anaconda");
+    let anaconda_bin = paths::bin_path("anaconda");
 
     if anaconda_bin.exists() {
         eprintln!("anaconda-cli is already installed");
@@ -21,7 +21,7 @@ pub async fn run_bootstrap() -> Result<(), String> {
 }
 
 pub fn run_subcommand(subcommand: &str, args: &[String]) -> Result<(), String> {
-    let anaconda_bin = paths::bin_dir().join("anaconda");
+    let anaconda_bin = paths::bin_path("anaconda");
 
     if !anaconda_bin.exists() {
         let msg = format!(

@@ -40,7 +40,7 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
     // Tool-specific post-install configuration
     if name == "pixi" {
-        pixi_config::configure_default_channels(&paths::bin_dir().join("pixi"))?;
+        pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
     }
 
     Ok(())
@@ -137,8 +137,9 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[&str]) -> miette::Result<()> {
 
 /// Create a single symlink for a binary.
 fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Result<()> {
-    let tool_bin = prefix.join("bin").join(binary);
-    let symlink_path = bin_dir.join(binary);
+    let binary_name = paths::binary_name(binary);
+    let tool_bin = prefix.join("bin").join(&binary_name);
+    let symlink_path = bin_dir.join(&binary_name);
 
     // Check if the tool binary exists
     if !tool_bin.exists() {
