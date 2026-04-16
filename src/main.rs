@@ -44,6 +44,13 @@ fn reset_sigpipe() {}
 async fn main() {
     reset_sigpipe();
 
+    // Check if we're being invoked as "conda" (via symlink or hardlink)
+    if tools::conda_wrapper::is_conda_invocation() {
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        let code = tools::conda_wrapper::run(&args);
+        std::process::exit(code);
+    }
+
     let config = config::Config::load();
     let _diagnostics_guard = diagnostics::init(&config);
     cli::execute().await;
