@@ -56,10 +56,13 @@ runs:
       env:
         TOOLS_INPUT: ${{ inputs.tools }}
       run: |
+        # Add ana to PATH for this step (GITHUB_PATH only applies after composite action completes)
+        export PATH="$HOME/.local/bin:$HOME/.ana/bin:$PATH"
+
         # Parse tools input (supports space or comma-separated)
         TOOLS=$(echo "$TOOLS_INPUT" | tr ',' ' ' | xargs)
 
         for tool in $TOOLS; do
           echo "Installing tool: $tool"
-          "$HOME/.local/bin/ana" tool install "$tool"
+          ana tool install "$tool"
         done
