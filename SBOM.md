@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-01T00:03:23Z<br>
+Generated: 2026-06-02T17:32:12Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 444 (67 platform-specific)<br>
+Packages: 445 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 2 (2 INFO) across 1 package**
 
 ## Packages
 
@@ -33,6 +33,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [async-spooled-tempfile](https://crates.io/crates/async-spooled-tempfile) | 0.1.0 | Apache-2.0 OR MIT |  |  |
 | [async-trait](https://crates.io/crates/async-trait) | 0.1.89 | MIT OR Apache-2.0 |  |  |
 | [atomic-waker](https://crates.io/crates/atomic-waker) | 1.1.2 | Apache-2.0 OR MIT |  |  |
+| [atty](https://crates.io/crates/atty) | 0.2.14 | MIT |  | 2 |
 | [autocfg](https://crates.io/crates/autocfg) | 1.5.1 | Apache-2.0 OR MIT |  |  |
 | [backtrace](https://crates.io/crates/backtrace) | 0.3.76 | MIT OR Apache-2.0 |  |  |
 | [backtrace-ext](https://crates.io/crates/backtrace-ext) | 0.2.1 | MIT OR Apache-2.0 |  |  |
@@ -455,12 +456,19 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
 
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| atty | 0.2.14 | [RUSTSEC-2024-0375](https://rustsec.org/advisories/RUSTSEC-2024-0375.html) |  |  | INFO |
+| atty | 0.2.14 | [RUSTSEC-2021-0145](https://rustsec.org/advisories/RUSTSEC-2021-0145.html) |  |  | INFO |
+
 ## License Summary
 
 | License | Count |
 | --- | ---: |
 | MIT OR Apache-2.0 | 243 |
-| MIT | 84 |
+| MIT | 85 |
 | Apache-2.0 OR MIT | 33 |
 | Apache-2.0 | 20 |
 | BSD-3-Clause | 18 |

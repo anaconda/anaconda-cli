@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:f7b75dc5-9ac0-4f4f-a724-cba9c0a0e488",
+  "serialNumber": "urn:uuid:68994aed-f180-43ca-8d3d-8be6a3ee0527",
   "metadata": {
-    "timestamp": "2026-06-01T00:03:23Z",
+    "timestamp": "2026-06-02T17:32:12Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -668,6 +668,41 @@
         {
           "type": "vcs",
           "url": "https://github.com/smol-rs/atomic-waker"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14",
+      "author": "softprops <d.tangren@gmail.com>",
+      "name": "atty",
+      "version": "0.2.14",
+      "description": "A simple interface for querying atty",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/atty@0.2.14",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "http://softprops.github.io/atty"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/softprops/atty"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/softprops/atty"
         }
       ]
     },
@@ -13808,6 +13843,7 @@
         "git+https://github.com/anaconda/anaconda-otel-rs#0.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.89",
+        "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.44",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1",
@@ -14017,6 +14053,13 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#atomic-waker@1.1.2",
       "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.186",
+        "registry+https://github.com/rust-lang/crates.io-index#winapi@0.3.9"
+      ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#autocfg@1.5.1",
@@ -17195,6 +17238,46 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#windows_x86_64_msvc@0.52.6",
       "dependsOn": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2024-0375",
+      "description": "[unmaintained] `atty` is unmaintained",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2024-0375.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2021-0145",
+      "description": "[unsound] Potential unaligned read",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2021-0145.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#atty@0.2.14"
+        }
+      ]
     }
   ]
 }
