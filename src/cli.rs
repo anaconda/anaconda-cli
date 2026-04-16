@@ -13,6 +13,7 @@ use crate::config::{self, Config};
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::help;
+use crate::tools;
 use crate::update;
 
 /// Log level for tracing output.
@@ -115,6 +116,14 @@ pub enum Action {
         feedback_type: Option<FeedbackType>,
         description: Option<String>,
     },
+    ToolInstall {
+        name: String,
+    },
+    ToolUninstall {
+        name: String,
+        force: bool,
+    },
+    ToolList,
 }
 
 impl Action {
@@ -135,6 +144,9 @@ impl Action {
             Action::OrgProxy { .. } => "org",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
+            Action::ToolInstall { .. } => "tool.install",
+            Action::ToolUninstall { .. } => "tool.uninstall",
+            Action::ToolList => "tool.list",
         }
     }
 
@@ -184,6 +196,18 @@ impl Action {
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap().await?),
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
+            Action::ToolInstall { name } => {
+                tools::install::install_tool(&name).await?;
+                Ok(())
+            }
+            Action::ToolUninstall { name, force } => {
+                tools::uninstall::uninstall_tool(&name, force)?;
+                Ok(())
+            }
+            Action::ToolList => {
+                tools::list::print_tool_list();
+                Ok(())
+            }
             Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
@@ -254,6 +278,14 @@ pub fn parse() -> (Action, LogLevel) {
                     }
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
+                Some(Commands::Tool { command }) => match command {
+                    None => Action::ShowSubcommandHelp("tool".to_string()),
+                    Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+                    Some(ToolCommands::List) => Action::ToolList,
+                    Some(ToolCommands::Uninstall { name, force }) => {
+                        Action::ToolUninstall { name, force }
+                    }
+                },
             };
             (action, level)
         }
@@ -399,6 +431,17 @@ enum Commands {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
+
+    /// Manage tools
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana tool <command> [options]"
+    )]
+    Tool {
+        #[command(subcommand)]
+        command: Option<ToolCommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -446,6 +489,28 @@ enum SelfCommands {
         /// List available versions
         #[arg(long, conflicts_with_all = ["yes", "check"])]
         list: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ToolCommands {
+    /// Install a tool
+    Install {
+        /// Name of the tool to install
+        name: String,
+    },
+
+    /// List available tools
+    List,
+
+    /// Uninstall a tool
+    Uninstall {
+        /// Name of the tool to uninstall
+        name: String,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'y', long = "yes")]
+        force: bool,
     },
 }
 

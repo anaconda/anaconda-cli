@@ -42,6 +42,20 @@ pub fn tool_prefix(name: &str) -> PathBuf {
     tools_dir().join(name)
 }
 
+/// Returns the binary name with platform-specific extension (.exe on Windows).
+pub fn binary_name(name: &str) -> String {
+    if cfg!(windows) {
+        format!("{}.exe", name)
+    } else {
+        name.to_string()
+    }
+}
+
+/// Returns the path to a binary in the bin directory, adding .exe on Windows.
+pub fn bin_path(name: &str) -> PathBuf {
+    bin_dir().join(binary_name(name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,6 +110,28 @@ mod tests {
                 tool_prefix("some-tool"),
                 PathBuf::from("/test/ana/tools/some-tool")
             );
+        });
+    }
+
+    #[test]
+    fn test_binary_name() {
+        let name = binary_name("pixi");
+        if cfg!(windows) {
+            assert_eq!(name, "pixi.exe");
+        } else {
+            assert_eq!(name, "pixi");
+        }
+    }
+
+    #[test]
+    fn test_bin_path() {
+        temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
+            let path = bin_path("pixi");
+            if cfg!(windows) {
+                assert_eq!(path, PathBuf::from("/test/ana/bin/pixi.exe"));
+            } else {
+                assert_eq!(path, PathBuf::from("/test/ana/bin/pixi"));
+            }
         });
     }
 }

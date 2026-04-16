@@ -10,11 +10,18 @@ struct Tool {
 }
 
 /// Embedded tool configurations.
-const TOOLS: &[Tool] = &[Tool {
-    name: "anaconda-cli",
-    lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
-    binaries: &["anaconda"],
-}];
+const TOOLS: &[Tool] = &[
+    Tool {
+        name: "anaconda-cli",
+        lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
+        binaries: &["anaconda"],
+    },
+    Tool {
+        name: "pixi",
+        lockfile: include_str!("../../lockfiles/pixi/pixi.lock"),
+        binaries: &["pixi"],
+    },
+];
 
 fn find_tool(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|t| t.name == name)
@@ -36,6 +43,11 @@ pub fn content(name: &str) -> Option<String> {
 /// Returns the binaries to symlink for a tool.
 pub fn binaries(name: &str) -> Option<&'static [&'static str]> {
     find_tool(name).map(|t| t.binaries)
+}
+
+/// Returns all available tool names.
+pub fn all_tools() -> Vec<&'static str> {
+    TOOLS.iter().map(|t| t.name).collect()
 }
 
 #[cfg(test)]

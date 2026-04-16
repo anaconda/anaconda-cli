@@ -32,14 +32,12 @@
 use anaconda_otel_rs::{
     attributes::ResourceAttributes, config::Configuration, signals::initialize_telemetry,
 };
-use comfy_table::{
-    Attribute, Cell, Table, modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL,
-};
 use std::env;
 use std::path::PathBuf;
 
 use crate::VERSION;
 use crate::auth;
+use crate::table;
 
 pub fn setup_telemetry() {
     if !parse_bool_env("ANA_ENABLE_TELEMETRY", true) {
@@ -205,13 +203,7 @@ impl Config {
 impl Config {
     /// Print the configuration as a table.
     pub fn print_table(&self) {
-        let mut table = Table::new();
-        table.load_preset(UTF8_FULL);
-        table.apply_modifier(UTF8_SOLID_INNER_BORDERS);
-        table.set_header([
-            Cell::new("Setting").add_attribute(Attribute::Bold),
-            Cell::new("Value").add_attribute(Attribute::Bold),
-        ]);
+        let mut table = table::new(["Setting", "Value"]);
 
         if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(self) {
             for (key, value) in map {

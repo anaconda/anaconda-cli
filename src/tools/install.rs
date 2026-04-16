@@ -12,7 +12,7 @@ use rattler::{
 use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
-use super::lockfiles;
+use super::{lockfiles, pixi_config};
 use crate::paths;
 
 /// Global progress bar for installation feedback.
@@ -37,6 +37,11 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, binaries)?;
+
+    // Tool-specific post-install configuration
+    if name == "pixi" {
+        pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
+    }
 
     Ok(())
 }
@@ -132,8 +137,9 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[&str]) -> miette::Result<()> {
 
 /// Create a single symlink for a binary.
 fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Result<()> {
-    let tool_bin = prefix.join("bin").join(binary);
-    let symlink_path = bin_dir.join(binary);
+    let binary_name = paths::binary_name(binary);
+    let tool_bin = prefix.join("bin").join(&binary_name);
+    let symlink_path = bin_dir.join(&binary_name);
 
     // Check if the tool binary exists
     if !tool_bin.exists() {

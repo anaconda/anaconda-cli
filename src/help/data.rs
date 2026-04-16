@@ -19,13 +19,14 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     },
     HelpSection {
         name: "TOOLCHAIN",
-        commands: &["bootstrap", "config", "self"],
+        commands: &["tool", "bootstrap", "config", "self"],
     },
 ];
 
 /// Examples for the help output (using real commands)
 pub(super) const HELP_EXAMPLES: &[(&str, &str)] = &[
     ("Log into your Anaconda account", "ana login"),
+    ("Install a tool", "ana tool install pixi"),
     ("Update ana to the latest version", "ana self update"),
 ];
 
