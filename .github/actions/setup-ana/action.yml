@@ -42,7 +42,7 @@ runs:
         curl -fsSL \
           -H "Authorization: token $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github.v3.raw" \
-          "https://api.github.com/repos/anaconda/ana-cli/contents/scripts/install.sh?ref=main" \
+          "https://api.github.com/repos/anaconda/ana-cli/contents/scripts/install.sh?ref=$GITHUB_SHA" \
           | sh -s -- --token "$GITHUB_TOKEN" --version "v0.0.8.dev11"
 
         # Add ana to PATH for subsequent steps
