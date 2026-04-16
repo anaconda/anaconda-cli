@@ -6,6 +6,7 @@
 //! - Passes through all other commands to the real conda binary
 
 use std::io::{BufRead, BufReader, Write};
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, Stdio};
