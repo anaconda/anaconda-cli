@@ -44,8 +44,9 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
     }
 
-    // For conda, write a frozen marker to protect the environment (CEP 22)
+    // For conda, write config and frozen marker
     if name == "conda" {
+        write_conda_config(&prefix)?;
         write_frozen_marker(&prefix)?;
     }
 
@@ -229,6 +230,24 @@ fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
         symlink_path.display(),
         ana_bin.display()
     );
+
+    Ok(())
+}
+
+/// Write .condarc configuration for the conda environment.
+///
+/// This sets up the default channels (similar to miniconda) and other
+/// ana-specific configuration. The config is stored in lockfiles/conda/.condarc
+/// and compiled into the binary.
+fn write_conda_config(prefix: &Path) -> miette::Result<()> {
+    let condarc_path = prefix.join(".condarc");
+    let contents = include_str!("../../lockfiles/conda/.condarc");
+
+    std::fs::write(&condarc_path, contents)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write .condarc: {}", condarc_path.display()))?;
+
+    eprintln!("   Configured conda channels and settings");
 
     Ok(())
 }
