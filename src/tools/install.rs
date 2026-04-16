@@ -197,7 +197,8 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Re
 /// This is used for tools that ana wraps (like conda), where ana detects
 /// the binary name and acts as a wrapper for the underlying tool.
 fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
-    let symlink_path = bin_dir.join(binary);
+    let binary_name = paths::binary_name(binary);
+    let symlink_path = bin_dir.join(&binary_name);
 
     // Get the path to the current ana executable
     let ana_bin = std::env::current_exe()
