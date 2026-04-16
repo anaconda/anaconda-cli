@@ -40,11 +40,11 @@ jobs:
           git config --global --add url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
-      - name: Set up pixi
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
+      - name: Set up ana with pixi
+        uses: ./.github/actions/setup-ana
         with:
-          pixi-version: v0.67.0
-          locked: false
+          tools: pixi
+          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
