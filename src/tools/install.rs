@@ -39,13 +39,14 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = specs::binaries(name).unwrap_or_default();
+    let uses_wrapper = specs::uses_wrapper(name);
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(ctx, &prefix, &lock_content).await?;
 
     // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, &binaries)?;
+    create_bin_symlinks(&prefix, &binaries, uses_wrapper)?;
 
     // Tool-specific post-install configuration
     if name == "pixi" {
@@ -147,17 +148,25 @@ pub async fn install_from_lockfile(
 }
 
 /// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()> {
+fn create_bin_symlinks(
+    prefix: &Path,
+    binaries: &[PathBuf],
+    uses_wrapper: bool,
+) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
     for binary in binaries {
-        #[cfg(unix)]
-        create_bin_symlink(&bin_dir, prefix, binary)?;
-        #[cfg(windows)]
-        create_bin_shim(&bin_dir, prefix, binary)?;
+        if uses_wrapper {
+            create_wrapper_symlink(&bin_dir, binary)?;
+        } else {
+            #[cfg(unix)]
+            create_bin_symlink(&bin_dir, prefix, binary)?;
+            #[cfg(windows)]
+            create_bin_shim(&bin_dir, prefix, binary)?;
+        }
     }
 
     Ok(())
@@ -243,6 +252,48 @@ fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Resu
     Ok(())
 }
 
+/// Create a symlink that points to the ana binary itself.
+///
+/// This is used for tools that ana wraps (like conda), where ana detects
+/// the binary name and acts as a wrapper for the underlying tool.
+fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
+    let symlink_path = bin_dir.join(binary);
+
+    // Get the path to the current ana executable
+    let ana_bin = std::env::current_exe()
+        .into_diagnostic()
+        .context("failed to get current executable path")?;
+
+    // Remove existing symlink if present
+    if symlink_path.exists() || symlink_path.is_symlink() {
+        std::fs::remove_file(&symlink_path)
+            .into_diagnostic()
+            .context("failed to remove existing symlink")?;
+    }
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&ana_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_file(&ana_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    eprintln!(
+        "   Linked {} -> {} (wrapper)",
+        symlink_path.display(),
+        ana_bin.display()
+    );
+
+    Ok(())
+}
+
 #[cfg(windows)]
 /// Update or add an entry in shims.cfg.
 ///
@@ -294,6 +345,13 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
         .context("failed to write shims.cfg")?;
 
     Ok(())
+}
+
+/// Create an HTTP client for downloading packages.
+fn make_download_client() -> reqwest_middleware::ClientWithMiddleware {
+    // TODO: Add AuthenticationMiddleware for private channel support
+    crate::http::build_client(reqwest::Client::builder().no_gzip())
+        .expect("failed to create HTTP client")
 }
 
 #[cfg(test)]

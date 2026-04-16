@@ -9,6 +9,9 @@ struct Tool {
     binaries: &'static [&'static [&'static str]],
     /// If set, the tool is experimental and this message will be shown as a warning.
     experimental: Option<&'static str>,
+    /// If true, the binary in ~/.ana/bin/ should be a link to ana itself,
+    /// which acts as a wrapper for the actual tool binary.
+    uses_wrapper: bool,
 }
 
 /// Embedded tool configurations.
@@ -22,6 +25,7 @@ const TOOLS: &[Tool] = &[
             &[&["Scripts", "anaconda"]]
         },
         experimental: None,
+        uses_wrapper: false,
     },
     #[cfg(unix)]
     Tool {
@@ -29,18 +33,25 @@ const TOOLS: &[Tool] = &[
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
+        uses_wrapper: false,
     },
     Tool {
         name: "conda",
         lockfile: include_str!("../../lockfiles/conda/pixi.lock"),
-        binaries: &["conda"],
-        task_prefix: &[],
+        binaries: if cfg![unix] {
+            &[&["bin", "conda"]]
+        } else {
+            &[&["Scripts", "conda"]]
+        },
+        experimental: None,
+        uses_wrapper: true,
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
         experimental: None,
+        uses_wrapper: false,
     },
 ];
 
@@ -84,6 +95,11 @@ pub fn all_tools() -> Vec<&'static str> {
 /// Returns the experimental warning message for a tool, if any.
 pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
+}
+
+/// Returns whether a tool uses a wrapper binary (ana acts as the binary).
+pub fn uses_wrapper(name: &str) -> bool {
+    find_tool(name).map(|t| t.uses_wrapper).unwrap_or(false)
 }
 
 #[cfg(test)]
