@@ -77,6 +77,7 @@ impl std::fmt::Display for Error {
             Error::UnsupportedPlatform(info) => {
                 write!(f, "Unsupported platform: {}", info)
             }
+            #[cfg(windows)]
             Error::RuntimeError(msg) => {
                 write!(f, "Runtime error: {}", msg)
             }
