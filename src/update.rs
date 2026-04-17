@@ -602,21 +602,33 @@ mod tests {
     fn test_recreate_wrapper_links_recreates_existing_links() {
         use crate::tools::tools::{all_tools, binaries, uses_wrapper};
 
-        let temp_dir = std::env::temp_dir().join("ana-test-wrapper-links");
+        struct CleanupGuard(std::path::PathBuf);
+        impl Drop for CleanupGuard {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+
+        // Use a temp directory on the same volume as the executable, since hard links
+        // cannot span different volumes on Windows.
+        let exe_dir = std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        let temp_dir = exe_dir.join("ana-test-wrapper-links");
         let _ = std::fs::remove_dir_all(&temp_dir);
         std::fs::create_dir_all(&temp_dir).unwrap();
+        let _cleanup = CleanupGuard(temp_dir.clone());
 
         // Find a wrapper tool to test with
         let wrapper_tool = all_tools().iter().find(|t| uses_wrapper(t)).copied();
         if wrapper_tool.is_none() {
-            // No wrapper tools defined, skip test
-            let _ = std::fs::remove_dir_all(&temp_dir);
             return;
         }
         let tool = wrapper_tool.unwrap();
         let tool_binaries = binaries(tool).unwrap_or(&[]);
         if tool_binaries.is_empty() {
-            let _ = std::fs::remove_dir_all(&temp_dir);
             return;
         }
 
@@ -633,8 +645,5 @@ mod tests {
         assert!(link_path.exists());
         let metadata = std::fs::metadata(&link_path).unwrap();
         assert!(metadata.len() > 5); // Should be larger than "dummy"
-
-        // Cleanup
-        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
