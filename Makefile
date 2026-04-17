@@ -30,7 +30,7 @@ conda:  ## Build the conda package
 	pixi run build-conda
 
 lockfiles:  ## Regenerate embedded lockfiles
-	./lockfiles/lock-all.sh
+	./tool-specs/lock-all.sh
 
 sbom:  ## Regenerate Cargo.lock (if needed) and update SBOM
 	pixi run sbom

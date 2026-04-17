@@ -13,12 +13,12 @@ struct Tool {
 const TOOLS: &[Tool] = &[
     Tool {
         name: "anaconda-cli",
-        lockfile: include_str!("../../lockfiles/anaconda-cli/pixi.lock"),
+        lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
         binaries: &["anaconda"],
     },
     Tool {
         name: "pixi",
-        lockfile: include_str!("../../lockfiles/pixi/pixi.lock"),
+        lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &["pixi"],
     },
 ];
