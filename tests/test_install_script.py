@@ -72,13 +72,15 @@ def mock_server(tmp_path_factory: pytest.TempPathFactory) -> Generator[str, None
 
     # Create mock binaries for different platforms
     root = tmp_path_factory.mktemp("mock_server")
+    binary_content = MOCK_BINARY_SCRIPT.encode()
+    checksum = hashlib.sha256(binary_content).hexdigest()
     for platform in SUPPORTED_PLATFORMS:
         suffix = ".exe" if platform.startswith("windows") else ""
         binary = root / f"ana-{platform}{suffix}"
-        binary.write_text(MOCK_BINARY_SCRIPT)
+        # Use write_bytes to avoid line ending conversion on Windows
+        binary.write_bytes(binary_content)
         binary.chmod(EXECUTABLE_MODE)
         # Create corresponding checksum file
-        checksum = hashlib.sha256(MOCK_BINARY_SCRIPT.encode()).hexdigest()
         checksum_file = root / f"ana-{platform}{suffix}.sha256"
         checksum_file.write_text(f"{checksum}  ana-{platform}{suffix}\n")
 
