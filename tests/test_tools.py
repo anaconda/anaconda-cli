@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -255,8 +256,9 @@ class TestCondaWrapper:
         (fish_config / "config.fish").touch()
 
         def cleanup():
-            # Use system rm for faster cleanup of many files (conda installs ~127 packages)
-            subprocess.run(["rm", "-rf", str(home)], check=False)
+            from shutil import rmtree
+
+            rmtree(home, ignore_errors=True)
 
         request.addfinalizer(cleanup)
         return home
@@ -271,7 +273,12 @@ class TestCondaWrapper:
             for key, val in os.environ.copy().items()
             if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
         }
-        env["HOME"] = str(conda_home)
+        if sys.platform == "win32":
+            env["USERPROFILE"] = str(conda_home)
+        else:
+            env["HOME"] = str(conda_home)
+        env["RATTLER_CACHE_DIR"] = str(conda_home / "cache" / "rattler")
+        env["CONDA_PLUGINS_AUTO_ACCEPT_TOS"] = "yes"
         return env
 
     @pytest.fixture(scope="class")
@@ -279,8 +286,6 @@ class TestCondaWrapper:
         self, ana_binary: Path | None, conda_home: Path, conda_env: dict[str, str]
     ) -> Path:
         """Install conda once and return the wrapper binary path."""
-        import sys
-
         if ana_binary is None:
             pytest.skip(
                 "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
