@@ -1,10 +1,29 @@
 //! Tool uninstallation.
 
 use miette::{Context, IntoDiagnostic};
+use std::path::PathBuf;
 
 use super::tools;
 use crate::input::prompt_yes_no;
 use crate::paths;
+
+pub fn gather_installed_links(bin_dir: &PathBuf, name: &str) -> Vec<PathBuf> {
+    let mut links = Vec::new();
+    // Check for links that will be removed
+    if let Some(binaries) = tools::binaries(name) {
+        for binary in binaries {
+            let symlink_path = if cfg!(unix) {
+                bin_dir.join(binary)
+            } else {
+                bin_dir.join(format!("{binary}.exe"))
+            };
+            if symlink_path.exists() || symlink_path.is_symlink() {
+                links.push(symlink_path);
+            }
+        }
+    }
+    links
+}
 
 /// Uninstall a tool.
 ///
@@ -26,26 +45,15 @@ pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     }
 
     // Collect what will be deleted
-    let mut to_delete: Vec<String> = Vec::new();
-
-    // Check for symlinks that will be removed
-    if let Some(binaries) = tools::binaries(name) {
-        for binary in binaries {
-            let symlink_path = bin_dir.join(binary);
-            if symlink_path.exists() || symlink_path.is_symlink() {
-                to_delete.push(format!("  {}", symlink_path.display()));
-            }
-        }
-    }
-
-    // The tool directory itself
-    to_delete.push(format!("  {}", prefix.display()));
+    let installed_links: Vec<PathBuf> = gather_installed_links(&bin_dir, name);
 
     // Show what will be deleted
     eprintln!("The following will be removed:");
-    for item in &to_delete {
-        eprintln!("{}", item);
+    for symlink_path in installed_links.iter() {
+        eprintln!("  {}", symlink_path.display());
     }
+    // The tool directory itself
+    eprintln!("  {}", prefix.display());
     eprintln!();
 
     // Prompt for confirmation unless --force was passed
@@ -57,19 +65,12 @@ pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     eprintln!();
     eprintln!("Uninstalling {}...", name);
 
-    // Remove symlinks from bin directory
-    if let Some(binaries) = tools::binaries(name) {
-        for binary in binaries {
-            let symlink_path = bin_dir.join(binary);
-            if symlink_path.exists() || symlink_path.is_symlink() {
-                std::fs::remove_file(&symlink_path)
-                    .into_diagnostic()
-                    .with_context(|| {
-                        format!("failed to remove symlink: {}", symlink_path.display())
-                    })?;
-                eprintln!("   Removed {}", symlink_path.display());
-            }
-        }
+    // Remove links from bin directory
+    for symlink_path in installed_links.into_iter() {
+        std::fs::remove_file(&symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to remove symlink: {}", symlink_path.display()))?;
+        eprintln!("   Removed {}", symlink_path.display());
     }
 
     // Remove the tool's environment directory
