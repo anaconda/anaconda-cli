@@ -19,13 +19,8 @@ from conftest import REPO_ROOT
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-# Skip all tests in this module on Windows
-pytestmark = pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="install.sh is a shell script that only runs on Linux/macOS",
-)
-
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.sh"
+IS_WINDOWS = sys.platform == "win32"
 
 # Create a simple mock binary script that responds to --version and --help
 MOCK_BINARY_SCRIPT = """\
@@ -37,7 +32,16 @@ case "$1" in
 esac
 """
 EXECUTABLE_MODE = 0o755  # rwxr-xr-x
-SUPPORTED_PLATFORMS = ["darwin-arm64", "darwin-x86_64", "linux-x86_64", "linux-aarch64"]
+SUPPORTED_PLATFORMS = [
+    "darwin-arm64",
+    "darwin-x86_64",
+    "linux-x86_64",
+    "linux-aarch64",
+    "windows-x86_64",
+]
+
+
+BINARY_SUFFIX = ".exe" if IS_WINDOWS else ""
 
 
 @pytest.fixture
@@ -69,13 +73,14 @@ def mock_server(tmp_path_factory: pytest.TempPathFactory) -> Generator[str, None
     # Create mock binaries for different platforms
     root = tmp_path_factory.mktemp("mock_server")
     for platform in SUPPORTED_PLATFORMS:
-        binary = root / f"ana-{platform}"
+        suffix = ".exe" if platform.startswith("windows") else ""
+        binary = root / f"ana-{platform}{suffix}"
         binary.write_text(MOCK_BINARY_SCRIPT)
         binary.chmod(EXECUTABLE_MODE)
         # Create corresponding checksum file
         checksum = hashlib.sha256(MOCK_BINARY_SCRIPT.encode()).hexdigest()
-        checksum_file = root / f"ana-{platform}.sha256"
-        checksum_file.write_text(f"{checksum}  ana-{platform}\n")
+        checksum_file = root / f"ana-{platform}{suffix}.sha256"
+        checksum_file.write_text(f"{checksum}  ana-{platform}{suffix}\n")
 
     class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         """HTTP request handler that suppresses logging."""
@@ -250,7 +255,7 @@ class TestInstallation:
         """Test successful installation of a specific version."""
         result = run_script(env=env_with_mock_server)
 
-        expected_binary = install_dir / "ana"
+        expected_binary = install_dir / f"ana{BINARY_SUFFIX}"
 
         assert result.returncode == 0
         assert "Installing ana for" in result.stdout
@@ -259,7 +264,8 @@ class TestInstallation:
 
         # Verify binary exists and is executable
         assert expected_binary.exists()
-        assert expected_binary.stat().st_mode & stat.S_IXUSR
+        if not IS_WINDOWS:
+            assert expected_binary.stat().st_mode & stat.S_IXUSR
 
     def test_install_with_cli_options(
         self,
@@ -277,7 +283,7 @@ class TestInstallation:
         )
 
         assert result.returncode == 0
-        assert (install_dir / "ana").exists()
+        assert (install_dir / f"ana{BINARY_SUFFIX}").exists()
 
     def test_checksum_verification_disabled_warning(
         self,
@@ -438,6 +444,7 @@ class TestShellProfileUpdate:
 class TestBinaryVerification:
     """Tests to verify the installed mock binary works."""
 
+    @pytest.mark.skipif(IS_WINDOWS, reason="Mock shell script doesn't run as .exe")
     def test_installed_binary_runs(
         self,
         env_with_mock_server: dict[str, str],
@@ -448,7 +455,7 @@ class TestBinaryVerification:
         assert result.returncode == 0
 
         # Run the installed binary
-        binary = install_dir / "ana"
+        binary = install_dir / f"ana{BINARY_SUFFIX}"
         result = subprocess.run(
             [str(binary), "--version"],
             capture_output=True,
@@ -457,6 +464,7 @@ class TestBinaryVerification:
         assert result.returncode == 0
         assert "0.0.0-mock" in result.stdout
 
+    @pytest.mark.skipif(IS_WINDOWS, reason="Mock shell script doesn't run as .exe")
     def test_installed_binary_help(
         self,
         env_with_mock_server: dict[str, str],
@@ -466,7 +474,7 @@ class TestBinaryVerification:
         result = run_script(env=env_with_mock_server)
         assert result.returncode == 0
 
-        binary = install_dir / "ana"
+        binary = install_dir / f"ana{BINARY_SUFFIX}"
         result = subprocess.run(
             [str(binary), "--help"],
             capture_output=True,
