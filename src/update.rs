@@ -41,6 +41,7 @@ pub enum Error {
     MissingToken,
     AssetNotFound(String),
     UnsupportedPlatform(String),
+    #[cfg(windows)]
     RuntimeError(String),
 }
 
