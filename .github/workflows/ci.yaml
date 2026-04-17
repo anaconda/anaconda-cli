@@ -68,10 +68,12 @@ jobs:
           # when the DSN changes (build.rs embeds it at compile time).
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
-      - name: Set up pixi
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
+      - name: Set up ana with pixi
+        uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
         with:
-          pixi-version: v0.67.0
+          ana-version: v0.0.8
+          tools: pixi
+          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - name: Run unit tests
         run: pixi run test-release
