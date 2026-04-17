@@ -206,7 +206,16 @@ fn print_activation_hint(env_name: &Option<String>) {
 
 /// Get the path to the real conda binary.
 fn get_conda_bin() -> std::path::PathBuf {
-    paths::tool_prefix("conda").join("bin").join("conda")
+    #[cfg(unix)]
+    {
+        paths::tool_prefix("conda").join("bin").join("conda")
+    }
+    #[cfg(not(unix))]
+    {
+        paths::tool_prefix("conda")
+            .join("Scripts")
+            .join("conda.exe")
+    }
 }
 
 /// Hand off to conda, replacing the current process (Unix) or spawning and exiting (Windows).
