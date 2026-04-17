@@ -6,6 +6,16 @@ use tokio::io::AsyncWriteExt;
 use crate::config::Config;
 use crate::http::{bearer_header, build_client};
 use crate::input::prompt_yes_no;
+#[cfg(windows)]
+use crate::paths;
+#[cfg(windows)]
+use crate::tools::install::create_wrapper_link;
+#[cfg(windows)]
+use crate::tools::lockfiles::{all_tools, binaries, uses_wrapper};
+#[cfg(windows)]
+use crate::tools::uninstall::gather_installed_links;
+#[cfg(windows)]
+use std::path::Path;
 
 // We track the repo for releases
 const GITHUB_REPO: &str = "anaconda/ana-cli";
@@ -31,6 +41,7 @@ pub enum Error {
     MissingToken,
     AssetNotFound(String),
     UnsupportedPlatform(String),
+    RuntimeError(String),
 }
 
 impl std::fmt::Display for Error {
@@ -51,10 +62,10 @@ impl std::fmt::Display for Error {
                 #[cfg(windows)]
                 {
                     writeln!(f, " Run:")?;
-                    writeln!(f, "   PowerShell: $env:GH_TOKEN=(gh auth token)")?;
+                    writeln!(f, "   PowerShell: $env:GITHUB_TOKEN=(gh auth token)")?;
                     writeln!(
                         f,
-                        "   cmd.exe: for /f %i in ('gh auth token') do set GH_TOKEN=%i"
+                        "   cmd.exe: for /f %i in ('gh auth token') do set GITHUB_TOKEN=%i"
                     )?;
                     writeln!(f, "   git bash: export GITHUB_TOKEN=$(gh auth token)")
                 }
@@ -64,6 +75,9 @@ impl std::fmt::Display for Error {
             }
             Error::UnsupportedPlatform(info) => {
                 write!(f, "Unsupported platform: {}", info)
+            }
+            Error::RuntimeError(msg) => {
+                write!(f, "Runtime error: {}", msg)
             }
         }
     }
@@ -163,6 +177,36 @@ pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
     // Replace the running binary in-place
     self_replace::self_replace(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
 
+    #[cfg(windows)]
+    {
+        // Since Windows uses hardlinks, all wrapper binaries
+        // must be relinked to the new `ana` binary
+        let bin_dir = paths::bin_dir();
+        recreate_wrapper_links(&bin_dir)?;
+    }
+
+    Ok(())
+}
+
+/// Recreate hardlinks for all installed wrapper binaries.
+///
+/// On Windows, wrapper binaries (like conda, mamba) are hardlinks to the ana binary.
+/// After self-replacement, these hardlinks still point to the old binary, so they
+/// must be recreated to point to the new one.
+#[cfg(windows)]
+pub fn recreate_wrapper_links(bin_dir: &Path) -> Result<(), Error> {
+    for tool in all_tools().iter() {
+        if !uses_wrapper(tool) {
+            continue;
+        }
+        if gather_installed_links(&bin_dir.to_path_buf(), tool).is_empty() {
+            continue;
+        }
+        let wrapper_bins = binaries(tool).unwrap_or(&[]);
+        for binary in wrapper_bins {
+            create_wrapper_link(bin_dir, binary).map_err(|e| Error::RuntimeError(e.to_string()))?;
+        }
+    }
     Ok(())
 }
 
@@ -533,5 +577,62 @@ mod tests {
         if get_asset_name().is_ok() {
             assert!(matches!(result, Err(Error::AssetNotFound(_))));
         }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_recreate_wrapper_links_with_no_installed_tools() {
+        // When no wrapper tools are installed, recreate_wrapper_links should succeed
+        // without doing anything
+        let temp_dir = std::env::temp_dir().join("ana-test-empty-bin");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let result = super::recreate_wrapper_links(&temp_dir);
+        assert!(result.is_ok());
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_recreate_wrapper_links_recreates_existing_links() {
+        use crate::tools::lockfiles::{all_tools, binaries, uses_wrapper};
+
+        let temp_dir = std::env::temp_dir().join("ana-test-wrapper-links");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        // Find a wrapper tool to test with
+        let wrapper_tool = all_tools().iter().find(|t| uses_wrapper(t)).copied();
+        if wrapper_tool.is_none() {
+            // No wrapper tools defined, skip test
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return;
+        }
+        let tool = wrapper_tool.unwrap();
+        let tool_binaries = binaries(tool).unwrap_or(&[]);
+        if tool_binaries.is_empty() {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return;
+        }
+
+        // Create a dummy existing link (simulating an installed wrapper)
+        let binary_name = format!("{}.exe", tool_binaries[0]);
+        let link_path = temp_dir.join(&binary_name);
+        std::fs::write(&link_path, b"dummy").unwrap();
+
+        // Run recreate_wrapper_links - it should replace the dummy with a hardlink to ana
+        let result = super::recreate_wrapper_links(&temp_dir);
+        assert!(result.is_ok());
+
+        // Verify the link was recreated (it should now be a hardlink to ana.exe)
+        assert!(link_path.exists());
+        let metadata = std::fs::metadata(&link_path).unwrap();
+        assert!(metadata.len() > 5); // Should be larger than "dummy"
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

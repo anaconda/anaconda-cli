@@ -36,8 +36,8 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
 
     install_from_lockfile(&prefix, &lock_content).await?;
 
-    // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, binaries, uses_wrapper)?;
+    // Create links in bin directory
+    create_bin_links(&prefix, binaries, uses_wrapper)?;
 
     // Tool-specific post-install configuration
     if name == "pixi" {
@@ -128,8 +128,8 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
     Ok(())
 }
 
-/// Create symlinks for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[&str], uses_wrapper: bool) -> miette::Result<()> {
+/// Create links for the tool's binaries in ~/.ana/bin/
+fn create_bin_links(prefix: &Path, binaries: &[&str], uses_wrapper: bool) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
@@ -137,9 +137,9 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[&str], uses_wrapper: bool) -> 
 
     for binary in binaries {
         if uses_wrapper {
-            create_wrapper_symlink(&bin_dir, binary)?;
+            create_wrapper_link(&bin_dir, binary)?;
         } else {
-            create_bin_symlink(&bin_dir, prefix, binary)?;
+            create_bin_link(&bin_dir, prefix, binary)?;
         }
     }
 
@@ -147,7 +147,8 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[&str], uses_wrapper: bool) -> 
 }
 
 /// Create a single symlink for a binary.
-fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Result<()> {
+/// Windows does not support symlinks by default, so hard links are used.
+fn create_bin_link(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Result<()> {
     let binary_name = paths::binary_name(binary);
     let tool_bin = prefix.join("bin").join(&binary_name);
     let symlink_path = bin_dir.join(&binary_name);
@@ -178,7 +179,7 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Re
 
     #[cfg(windows)]
     {
-        std::os::windows::fs::symlink_file(&tool_bin, &symlink_path)
+        std::fs::hard_link(&tool_bin, &symlink_path)
             .into_diagnostic()
             .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
     }
@@ -196,7 +197,8 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Re
 ///
 /// This is used for tools that ana wraps (like conda), where ana detects
 /// the binary name and acts as a wrapper for the underlying tool.
-fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
+/// Windows does not support symlinks by default, so hard links are used.
+pub fn create_wrapper_link(bin_dir: &Path, binary: &str) -> miette::Result<()> {
     let binary_name = paths::binary_name(binary);
     let symlink_path = bin_dir.join(&binary_name);
 
@@ -221,7 +223,7 @@ fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
 
     #[cfg(windows)]
     {
-        std::os::windows::fs::symlink_file(&ana_bin, &symlink_path)
+        std::fs::hard_link(&ana_bin, &symlink_path)
             .into_diagnostic()
             .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
     }
