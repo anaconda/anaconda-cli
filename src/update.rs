@@ -11,7 +11,7 @@ use crate::paths;
 #[cfg(windows)]
 use crate::tools::install::create_wrapper_link;
 #[cfg(windows)]
-use crate::tools::lockfiles::{all_tools, binaries, uses_wrapper};
+use crate::tools::tools::{all_tools, binaries, uses_wrapper};
 #[cfg(windows)]
 use crate::tools::uninstall::gather_installed_links;
 #[cfg(windows)]
@@ -598,7 +598,7 @@ mod tests {
     #[test]
     #[cfg(windows)]
     fn test_recreate_wrapper_links_recreates_existing_links() {
-        use crate::tools::lockfiles::{all_tools, binaries, uses_wrapper};
+        use crate::tools::tools::{all_tools, binaries, uses_wrapper};
 
         let temp_dir = std::env::temp_dir().join("ana-test-wrapper-links");
         let _ = std::fs::remove_dir_all(&temp_dir);

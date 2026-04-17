@@ -267,9 +267,13 @@ pub fn is_conda_invocation() -> bool {
     std::env::args()
         .next()
         .and_then(|arg0| {
-            Path::new(&arg0)
-                .file_stem()
-                .map(|name| name == "conda" || name == "conda.exe")
+            Path::new(&arg0).file_name().map(|name| {
+                if cfg!(windows) {
+                    name == "conda" || name == "conda.exe"
+                } else {
+                    name == "conda"
+                }
+            })
         })
         .unwrap_or(false)
 }
