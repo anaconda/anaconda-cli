@@ -137,11 +137,7 @@ main() {
     # Configuration
     local _version="${ANA_VERSION:-$DEFAULT_VERSION}"
     local _install_dir="${ANA_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
-    local _exe_suffix=""
-    if [ "$_os" = "windows" ]; then
-        _exe_suffix=".exe"
-    fi
-    local _asset_name="ana-${_target}${_exe_suffix}"
+    local _asset_name="ana-${_target}"
 
     # Resolve download URLs
     local _url _checksum_url _auth_header=""
@@ -180,13 +176,13 @@ main() {
 
     verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
 
-    install_binary "$_tmp" "$_install_dir" "$_exe_suffix"
+    install_binary "$_tmp" "$_install_dir"
 
     if [ -z "${ANA_NO_PATH_UPDATE:-}" ]; then
         update_shell_profile "$_install_dir"
     fi
 
-    run_bootstrap "$_install_dir" "$_exe_suffix"
+    run_bootstrap "$_install_dir"
 
     printf "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started.\n"
 }
@@ -195,10 +191,9 @@ detect_os() {
     local _os
     _os="$(uname -s)"
     case "$_os" in
-        Linux)                    echo "linux" ;;
-        Darwin)                   echo "macos" ;;
-        MINGW*|MSYS*|CYGWIN*)     echo "windows" ;;
-        *)                        err "Unsupported operating system: %s" "$_os" ;;
+        Linux)  echo "linux" ;;
+        Darwin) echo "macos" ;;
+        *)      err "Unsupported operating system: %s" "$_os" ;;
     esac
 }
 
@@ -215,12 +210,11 @@ detect_arch() {
 map_target() {
     local _os="$1" _arch="$2"
     case "${_os}-${_arch}" in
-        linux-x86_64)    echo "linux-x86_64" ;;
-        linux-aarch64)   echo "linux-aarch64" ;;
-        macos-x86_64)    echo "darwin-x86_64" ;;
-        macos-aarch64)   echo "darwin-arm64" ;;
-        windows-x86_64)  echo "windows-x86_64" ;;
-        *)               err "No prebuilt binary for %s %s" "$_os" "$_arch" ;;
+        linux-x86_64)   echo "linux-x86_64" ;;
+        linux-aarch64)  echo "linux-aarch64" ;;
+        macos-x86_64)   echo "darwin-x86_64" ;;
+        macos-aarch64)  echo "darwin-arm64" ;;
+        *)              err "No prebuilt binary for %s %s" "$_os" "$_arch" ;;
     esac
 }
 
@@ -355,8 +349,8 @@ verify_checksum() {
 }
 
 install_binary() {
-    local _src="$1" _install_dir="$2" _exe_suffix="${3:-}"
-    local _dest="${_install_dir}/${BINARY_NAME}${_exe_suffix}"
+    local _src="$1" _install_dir="$2"
+    local _dest="${_install_dir}/${BINARY_NAME}"
 
     if [ -f "$_dest" ] && [ -z "${ANA_FORCE_INSTALL:-}" ]; then
         if [ -t 0 ]; then
@@ -380,8 +374,8 @@ install_binary() {
 }
 
 run_bootstrap() {
-    local _install_dir="$1" _exe_suffix="${2:-}"
-    local _ana_bin="${_install_dir}/${BINARY_NAME}${_exe_suffix}"
+    local _install_dir="$1"
+    local _ana_bin="${_install_dir}/${BINARY_NAME}"
     local _bootstrap="${ANA_BOOTSTRAP:-true}"
 
     case "$_bootstrap" in
