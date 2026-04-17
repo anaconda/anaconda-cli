@@ -53,11 +53,11 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/mcp-1.26.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/mdurl-0.1.2-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/ncurses-6.5-h7934f7d_0.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obanalyze-0.2.0-py313_0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obmanage-0.2.0-py313_0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/obmcp-0.2.0-0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/observable-python-0.2.0-0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obview-0.2.0-py313_0_ge5dcb9f.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obanalyze-0.4.0-py313_0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obmanage-0.4.0-py313_0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/obmcp-0.4.0-0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/observable-python-0.4.0-0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obview-0.4.0-py313_0_g2b85bf1.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.6-h1b28b03_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/pthread-stubs-0.3-h0ce48e5_1.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/pycparser-3.0-py313h06a4308_0.conda
@@ -140,11 +140,11 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/mcp-1.26.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/mdurl-0.1.2-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ncurses-6.5-hee39554_0.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obanalyze-0.2.0-py313_0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obmanage-0.2.0-py313_0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/obmcp-0.2.0-0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/observable-python-0.2.0-0_ge5dcb9f.conda
-      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obview-0.2.0-py313_0_ge5dcb9f.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obanalyze-0.4.0-py313_0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obmanage-0.4.0-py313_0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/obmcp-0.4.0-0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/observable-python-0.4.0-0_g2b85bf1.conda
+      - conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obview-0.4.0-py313_0_g2b85bf1.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/openssl-3.5.6-ha0b305a_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/pycparser-3.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/pydantic-2.12.5-py313hca03da5_0.conda
@@ -1174,93 +1174,85 @@ packages:
   license_family: MIT
   size: 906808
   timestamp: 1753947535285
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obanalyze-0.2.0-py313_0_ge5dcb9f.conda
-  sha256: f51683c82fcc5bec035a425f20685d867bf34ed91305568f8e7e1ee4a203b316
-  md5: 824d42a7593ba6bbf5207974ce501a44
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obanalyze-0.4.0-py313_0_g2b85bf1.conda
+  build_number: 0
+  sha256: e4af972fdd7ebb84423ac9dabca9057c1f80a825a828b12251740303923eebb9
+  md5: 266daed2a1a1f6c53d9929c6d44e8875
   depends:
   - obmanage
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: Proprietary
   license_family: Other
-  size: 68705
-  timestamp: 1774302327514
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obanalyze-0.2.0-py313_0_ge5dcb9f.conda
-  sha256: ca433f43d16fc82180499f75541762c34067dee80b5894690b1975f022c90005
-  md5: bdcc5bbb155b3d60aea6759416f30846
+  size: 68803
+  timestamp: 1776455676993
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obanalyze-0.4.0-py313_0_g2b85bf1.conda
+  build_number: 0
+  sha256: 1b094e2139dd6de14b12ff03f7bf6f533c726d56823b843829546172fe6568c7
+  md5: 212cc5a5a65863cc862a0ca3b30a09b8
   depends:
   - obmanage
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: Proprietary
   license_family: Other
-  size: 68716
-  timestamp: 1774302341091
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obmanage-0.2.0-py313_0_ge5dcb9f.conda
-  sha256: b7cfda2334392da9f9dbd308da95b34e38635523237bbc84175b439ebfa9d0e6
-  md5: 47888a95a878e8fb263fe7e6dd035511
+  size: 68845
+  timestamp: 1776455681143
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obmanage-0.4.0-py313_0_g2b85bf1.conda
+  build_number: 0
+  sha256: d45efc7e01232896b5fb84bc1feda5932d375fb5d6ca1ba678f6d08a3cd63a3e
+  md5: 85518bb7b0ee9d4026b6b2b9eba95cfa
   depends:
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   - zstandard >=0.20.0
   license: Proprietary
   license_family: Other
-  size: 2179389
-  timestamp: 1774302151646
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obmanage-0.2.0-py313_0_ge5dcb9f.conda
-  sha256: ad22cd6d73c387e79b8515f6224e2ba8e3bc9c36481008366b871e52a6424085
-  md5: cf3815c49ca69bb1cb00f26fdb844bd6
+  size: 2220854
+  timestamp: 1776455468213
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obmanage-0.4.0-py313_0_g2b85bf1.conda
+  build_number: 0
+  sha256: 8aa36948df639cf0fc146f1390f8d8bb741dbe014c7a34394323241e7d20cf31
+  md5: 91cf69ac14e290f80bd273b55fdfd089
   depends:
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   - zstandard >=0.20.0
   license: Proprietary
   license_family: Other
-  size: 2248324
-  timestamp: 1774302227381
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/obmcp-0.2.0-0_ge5dcb9f.conda
+  size: 2328349
+  timestamp: 1776455502322
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/obmcp-0.4.0-0_g2b85bf1.conda
+  build_number: 0
   noarch: python
-  sha256: 1b5b0ca806290a6139fdadb477b524656ee32b8afcc51234ac791c9b3e47a182
-  md5: 4b33da046aad0eff078851d4baa658ce
+  sha256: 530c6440d580ba4d0b51cb3d370c931ea2fc1f32dadd5973f6cfbf2cc82c8bab
+  md5: 68137c4e3a646cf6ac13d6de45a79307
   depends:
   - mcp >=1.0.0,<2.0.0
   - obanalyze
   - python >=3.11
   license: Proprietary
   license_family: Other
-  size: 25032
-  timestamp: 1774302466768
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/observable-python-0.2.0-0_ge5dcb9f.conda
+  size: 24848
+  timestamp: 1776455809440
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/noarch/observable-python-0.4.0-0_g2b85bf1.conda
+  build_number: 0
   noarch: python
-  sha256: 97019558d9b19bf9e59e615051b809b4f7e0e6596476442a32876d99700fdd02
-  md5: 081f2c5764504cfaf554a40c17a00be1
+  sha256: f29492cdd153def61f3be8bd763f8307e9a0e9e97bf0f3ae4aab05da7fbd9d3f
+  md5: f1fb89e27f39b4a08b8f84ca747bbd18
   depends:
-  - obanalyze
-  - obmanage
-  - obmcp
-  - obview
+  - obanalyze 0.4.0.*
+  - obmanage 0.4.0.*
+  - obmcp 0.4.0.*
+  - obview 0.4.0.*
   license: Proprietary
   license_family: Other
-  size: 4517
-  timestamp: 1774302551283
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obview-0.2.0-py313_0_ge5dcb9f.conda
-  sha256: 558e44e9fa3f69712cea1b93996ed768c1a355a52b480988b438e7ab8a5e4d3c
-  md5: 39b2f2475ab3e7d1a07191214f8c091e
-  depends:
-  - aiosqlite >=0.19.0
-  - fastapi >=0.100.0
-  - obmanage
-  - python >=3.13,<3.14.0a0
-  - python_abi 3.13.* *_cp313
-  - uvicorn >=0.22.0
-  - websockets >=11.0
-  license: Proprietary
-  license_family: Other
-  size: 77088
-  timestamp: 1774302326127
-- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obview-0.2.0-py313_0_ge5dcb9f.conda
-  sha256: f3e22f626adda123226efedc4509bad8ffee2dc2c5751092340c985d1f5be05b
-  md5: e2c3c80d3ee135ff132203e0f60e0119
+  size: 4559
+  timestamp: 1776455896768
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/linux-64/obview-0.4.0-py313_0_g2b85bf1.conda
+  build_number: 0
+  sha256: 3a142ee4fe1ae0cf390af3d7dfebab164ed333c0232df4cb9e7929a4b4193698
+  md5: ab3b7136d36fab4d16d2de8b3237d616
   depends:
   - aiosqlite >=0.19.0
   - fastapi >=0.100.0
@@ -1271,8 +1263,24 @@ packages:
   - websockets >=11.0
   license: Proprietary
   license_family: Other
-  size: 76546
-  timestamp: 1774302384238
+  size: 77407
+  timestamp: 1776455672252
+- conda: https://pkgs.as.anacondaconnect.com/api/repo/enterprise-python/osx-arm64/obview-0.4.0-py313_0_g2b85bf1.conda
+  build_number: 0
+  sha256: d07fa5e6a574c54999d5dc9b710f464574153aa991764b27d79cf7371c9e7ff9
+  md5: 3c4babec247b998cd0a91f8fdfc627f0
+  depends:
+  - aiosqlite >=0.19.0
+  - fastapi >=0.100.0
+  - obmanage
+  - python >=3.13,<3.14.0a0
+  - python_abi 3.13.* *_cp313
+  - uvicorn >=0.22.0
+  - websockets >=11.0
+  license: Proprietary
+  license_family: Other
+  size: 76156
+  timestamp: 1776455739803
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.6-h1b28b03_0.conda
   sha256: 2ab27b5fe0a8d348262386d36a17c50bb688dc83a8443fe39ef561ea5fc09a7d
   md5: 5341b8a62a122529fc2083c6ed4174f6
