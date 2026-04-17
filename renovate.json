@@ -13,6 +13,18 @@
       "matchStrings": [
         "pixi-version:\\s*(?<currentValue>v[\\d.]+)"
       ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "anaconda/ana-cli",
+      "description": "Upgrade ana-version in a GitHub workflow",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "ana-version:\\s*(?<currentValue>v[\\d.]+)"
+      ]
     }
   ],
   "extends": [
