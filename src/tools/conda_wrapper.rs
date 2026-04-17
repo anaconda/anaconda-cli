@@ -266,7 +266,11 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
 pub fn is_conda_invocation() -> bool {
     std::env::args()
         .next()
-        .and_then(|arg0| Path::new(&arg0).file_name().map(|name| name == "conda"))
+        .and_then(|arg0| {
+            Path::new(&arg0)
+                .file_stem()
+                .map(|name| name == "conda" || name == "conda.exe")
+        })
         .unwrap_or(false)
 }
 
