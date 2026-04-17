@@ -12,7 +12,7 @@ use rattler::{
 use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
-use super::{lockfiles, pixi_config};
+use super::{pixi_config, tools};
 use crate::paths;
 
 /// Global progress bar for installation feedback.
@@ -27,9 +27,9 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
     let prefix = paths::tool_prefix(name);
 
     let lock_content =
-        lockfiles::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+        tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
-    let binaries = lockfiles::binaries(name).unwrap_or(&[]);
+    let binaries = tools::binaries(name).unwrap_or(&[]);
 
     eprintln!("Installing {} into {}", name, prefix.display());
 

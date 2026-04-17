@@ -2,7 +2,7 @@
 
 use miette::{Context, IntoDiagnostic};
 
-use super::lockfiles;
+use super::tools;
 use crate::input::prompt_yes_no;
 use crate::paths;
 
@@ -12,7 +12,7 @@ use crate::paths;
 /// Cleans up empty directories afterward.
 pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     // Verify the tool is known
-    if lockfiles::binaries(name).is_none() {
+    if tools::binaries(name).is_none() {
         return Err(miette::miette!("unknown tool: {}", name));
     }
 
@@ -29,7 +29,7 @@ pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     let mut to_delete: Vec<String> = Vec::new();
 
     // Check for symlinks that will be removed
-    if let Some(binaries) = lockfiles::binaries(name) {
+    if let Some(binaries) = tools::binaries(name) {
         for binary in binaries {
             let symlink_path = bin_dir.join(binary);
             if symlink_path.exists() || symlink_path.is_symlink() {
@@ -58,7 +58,7 @@ pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     eprintln!("Uninstalling {}...", name);
 
     // Remove symlinks from bin directory
-    if let Some(binaries) = lockfiles::binaries(name) {
+    if let Some(binaries) = tools::binaries(name) {
         for binary in binaries {
             let symlink_path = bin_dir.join(binary);
             if symlink_path.exists() || symlink_path.is_symlink() {

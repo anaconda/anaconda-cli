@@ -3,7 +3,7 @@
 use crate::paths;
 use crate::table::{self, Color};
 
-use super::lockfiles;
+use super::tools;
 
 /// Information about a tool for display.
 pub struct ToolInfo {
@@ -14,12 +14,12 @@ pub struct ToolInfo {
 
 /// List all available tools with their installation status.
 pub fn list_tools() -> Vec<ToolInfo> {
-    lockfiles::all_tools()
+    tools::all_tools()
         .iter()
         .map(|name| {
             let prefix = paths::tool_prefix(name);
             let installed = prefix.exists();
-            let binaries = lockfiles::binaries(name).unwrap_or(&[]);
+            let binaries = tools::binaries(name).unwrap_or(&[]);
             ToolInfo {
                 name,
                 installed,
