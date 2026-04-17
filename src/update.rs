@@ -191,7 +191,7 @@ pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
 
 /// Recreate hardlinks for all installed wrapper binaries.
 ///
-/// On Windows, wrapper binaries (like conda, mamba) are hardlinks to the ana binary.
+/// On Windows, wrapper binaries (like conda) are hardlinks to the ana binary.
 /// After self-replacement, these hardlinks still point to the old binary, so they
 /// must be recreated to point to the new one.
 #[cfg(windows)]
