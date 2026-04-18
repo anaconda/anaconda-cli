@@ -8,6 +8,7 @@ mod diagnostics;
 mod feedback;
 mod help;
 mod http;
+mod init;
 mod input;
 mod paths;
 mod qr;
