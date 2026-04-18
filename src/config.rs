@@ -220,9 +220,9 @@ impl Config {
     }
 }
 
-/// Get the default keyring path (~/.ana/keyring or $ANA_HOME/keyring).
+/// Get the default keyring path (~/.anaconda/keyring or $ANA_KEYRING_PATH).
 fn default_keyring_path() -> PathBuf {
-    crate::paths::ana_home().join("keyring")
+    crate::paths::home_dir().join(".anaconda").join("keyring")
 }
 
 /// Parse a boolean from a string value.
@@ -400,8 +400,8 @@ mod tests {
     #[test]
     fn test_config_default_keyring_path() {
         let config = Config::load();
-        // Should end with .ana/keyring
-        assert!(config.keyring_path.ends_with(".ana/keyring"));
+        // Should end with .anaconda/keyring
+        assert!(config.keyring_path.ends_with(".anaconda/keyring"));
     }
 
     #[test]
