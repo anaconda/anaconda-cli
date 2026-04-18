@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 from conftest import AnaRunner
+
+ON_WINDOWS = sys.platform == "win32"
+# On Windows, wrappers have the .exe suffix
+EXT = ".exe" if ON_WINDOWS else ""
+
+
+def _is_link(link: Path) -> bool:
+    """Test if binary is a symlink (Unix) or hardlink (Windows)"""
+
+    if ON_WINDOWS:
+        return os.stat(link).st_nlink > 1
+    return link.is_symlink()
 
 
 class TestHelp:
@@ -232,9 +246,9 @@ class TestBootstrap:
         assert result.returncode == 0
 
         # Verify the symlinked binary exists
-        bin_path = fake_home / ".ana" / "bin" / "anaconda"
+        bin_path = fake_home / ".ana" / "bin" / f"anaconda{EXT}"
         assert bin_path.exists(), f"Binary not found: {bin_path}"
-        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+        assert _is_link(bin_path), f"Binary is not a link: {bin_path}"
 
     def test_bootstrap_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
@@ -245,7 +259,7 @@ class TestBootstrap:
         assert first_result.returncode == 0
 
         # Verify installation exists
-        bin_path = fake_home / ".ana" / "bin" / "anaconda"
+        bin_path = fake_home / ".ana" / "bin" / f"anaconda{EXT}"
         assert bin_path.exists()
 
         # Second run should indicate already installed
@@ -261,7 +275,7 @@ class TestBootstrap:
         assert result.returncode == 0
 
         # Run the installed anaconda binary
-        bin_path = fake_home / ".ana" / "bin" / "anaconda"
+        bin_path = fake_home / ".ana" / "bin" / f"anaconda{EXT}"
         assert bin_path.exists()
 
         proc = subprocess.run(

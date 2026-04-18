@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from collections.abc import Callable
 from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 from mock_auth_server import MockAuthServer
+
+ON_WINDOWS = sys.platform == "win32"
 
 
 def _find_repo_root() -> Path:
@@ -49,7 +52,12 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
         for key, val in os.environ.copy().items()
         if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
     }
-    env["HOME"] = str(fake_home)
+    if ON_WINDOWS:
+        env["USERPROFILE"] = str(fake_home)
+        # Rattler does not reliably detect the default cache in PowerShell
+        env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
+    else:
+        env["HOME"] = str(fake_home)
     return env
 
 

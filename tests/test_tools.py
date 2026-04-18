@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 from conftest import AnaRunner
+
+ON_WINDOWS = sys.platform == "win32"
+# On Windows, wrappers have the .exe suffix
+EXT = ".exe" if ON_WINDOWS else ""
+
+
+def _is_link(link: Path) -> bool:
+    """Test if binary is a symlink (Unix) or hardlink (Windows)"""
+
+    if ON_WINDOWS:
+        return os.stat(link).st_nlink > 1
+    return link.is_symlink()
 
 
 class TestToolInstallHelp:
@@ -45,16 +58,16 @@ class TestToolInstallPixi:
         assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
         assert tool_dir.is_dir()
 
-    def test_tool_install_pixi_creates_symlink(
+    def test_tool_install_pixi_creates_link(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
-        """Test that tool install creates a symlinked pixi binary in ~/.ana/bin."""
+        """Test that tool install creates a linked pixi binary in ~/.ana/bin."""
         result = run_ana("tool", "install", "pixi")
         assert result.returncode == 0
 
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / f"pixi{EXT}"
         assert bin_path.exists(), f"Binary not found: {bin_path}"
-        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+        assert _is_link(bin_path), f"Binary is not a link: {bin_path}"
 
     def test_tool_install_pixi_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
@@ -64,7 +77,7 @@ class TestToolInstallPixi:
         first_result = run_ana("tool", "install", "pixi")
         assert first_result.returncode == 0
 
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / f"pixi{EXT}"
         assert bin_path.exists()
 
         # Second run should indicate already up to date
@@ -79,7 +92,7 @@ class TestToolInstallPixi:
         result = run_ana("tool", "install", "pixi")
         assert result.returncode == 0
 
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / f"pixi{EXT}"
         assert bin_path.exists()
 
         proc = subprocess.run(
@@ -176,7 +189,7 @@ class TestToolUninstall:
         assert install_result.returncode == 0
 
         tool_dir = fake_home / ".ana" / "tools" / "pixi"
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / f"pixi{EXT}"
         assert tool_dir.exists()
         assert bin_path.exists()
 
@@ -201,8 +214,8 @@ class TestToolUninstall:
         uninstall_result = run_ana("tool", "uninstall", "pixi", "--yes")
         assert uninstall_result.returncode == 0
         assert "The following will be removed:" in uninstall_result.stderr
-        assert ".ana/bin/pixi" in uninstall_result.stderr
-        assert ".ana/tools/pixi" in uninstall_result.stderr
+        assert str(Path(".ana/bin/pixi")) in uninstall_result.stderr
+        assert str(Path(".ana/tools/pixi")) in uninstall_result.stderr
 
 
 class TestToolInstallConda:
@@ -219,24 +232,29 @@ class TestToolInstallConda:
         assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
         assert tool_dir.is_dir()
 
-    def test_tool_install_conda_creates_wrapper_symlink(
+    def test_tool_install_conda_creates_wrapper_link(
         self, run_ana: AnaRunner, fake_home: Path, ana_binary: Path
     ) -> None:
-        """Test that tool install creates a wrapper symlink that points to ana."""
+        """Test that tool install creates a wrapper link that points to ana."""
         result = run_ana("tool", "install", "conda")
         assert result.returncode == 0
         assert "(wrapper)" in result.stderr
 
-        bin_path = fake_home / ".ana" / "bin" / "conda"
+        bin_path = fake_home / ".ana" / "bin" / f"conda{EXT}"
         assert bin_path.exists(), f"Binary not found: {bin_path}"
-        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+        assert _is_link(bin_path), f"Binary is not a link: {bin_path}"
 
-        # Verify the symlink points to the ana binary, not to the actual conda
-        target = bin_path.resolve()
-        assert target == ana_binary.resolve(), (
-            f"Wrapper symlink should point to ana binary, "
-            f"got {target} instead of {ana_binary.resolve()}"
-        )
+        if not ON_WINDOWS:
+            # Verify the symlink points to the ana binary, not to the actual conda
+            target = bin_path.resolve()
+            assert target == ana_binary.resolve(), (
+                f"Wrapper symlink should point to ana binary, "
+                f"got {target} instead of {ana_binary.resolve()}"
+            )
+        else:
+            assert bin_path.read_bytes() == ana_binary.read_bytes(), (
+                "Wrapper link should be identical to ana binary."
+            )
 
 
 class TestCondaWrapper:
@@ -273,11 +291,12 @@ class TestCondaWrapper:
             for key, val in os.environ.copy().items()
             if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
         }
-        if sys.platform == "win32":
+        if ON_WINDOWS:
             env["USERPROFILE"] = str(conda_home)
+            # Rattler does not reliably detect the default cache in PowerShell
+            env["RATTLER_CACHE_DIR"] = str(conda_home / "cache" / "rattler")
         else:
             env["HOME"] = str(conda_home)
-        env["RATTLER_CACHE_DIR"] = str(conda_home / "cache" / "rattler")
         env["CONDA_PLUGINS_AUTO_ACCEPT_TOS"] = "yes"
         return env
 
@@ -299,9 +318,7 @@ class TestCondaWrapper:
         )
         assert result.returncode == 0, f"Failed to install conda: {result.stderr}"
 
-        # On Windows, the wrapper is conda.exe; on Unix it's just conda
-        wrapper_name = "conda.exe" if sys.platform == "win32" else "conda"
-        wrapper = conda_home / ".ana" / "bin" / wrapper_name
+        wrapper = conda_home / ".ana" / "bin" / f"conda{EXT}"
         assert wrapper.exists(), f"Wrapper not found at {wrapper}"
         return wrapper
 
