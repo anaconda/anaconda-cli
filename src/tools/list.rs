@@ -1,5 +1,7 @@
 //! List available tools and their installation status.
 
+use std::path::PathBuf;
+
 use crate::paths;
 use crate::table::{self, Color};
 
@@ -9,7 +11,7 @@ use super::tools;
 pub struct ToolInfo {
     pub name: &'static str,
     pub installed: bool,
-    pub binaries: &'static [&'static str],
+    pub binaries: Vec<PathBuf>,
 }
 
 /// List all available tools with their installation status.
@@ -19,7 +21,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
         .map(|name| {
             let prefix = paths::tool_prefix(name);
             let installed = prefix.exists();
-            let binaries = tools::binaries(name).unwrap_or(&[]);
+            let binaries = tools::binaries(name).unwrap_or(Vec::new());
             ToolInfo {
                 name,
                 installed,
@@ -41,7 +43,12 @@ pub fn print_tool_list() {
         } else {
             table::cell("✗").fg(Color::Red)
         };
-        let binaries = tool.binaries.join(", ");
+        let binaries = tool
+            .binaries
+            .iter()
+            .filter_map(|b| b.file_stem().and_then(|s| s.to_str()))
+            .collect::<Vec<_>>()
+            .join(", ");
         table.add_row([table::cell(tool.name), status_cell, table::cell(&binaries)]);
     }
 

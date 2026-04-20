@@ -1,6 +1,6 @@
 //! Package installation from lockfiles via rattler.
 
-use std::{path::Path, str::FromStr, time::Instant};
+use std::{path::Path, path::PathBuf, str::FromStr, time::Instant};
 
 use indicatif::{MultiProgress, ProgressDrawTarget};
 use miette::{Context, IntoDiagnostic};
@@ -29,14 +29,14 @@ pub async fn install_tool(name: &str) -> miette::Result<()> {
     let lock_content =
         tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
-    let binaries = tools::binaries(name).unwrap_or(&[]);
+    let binaries = tools::binaries(name).unwrap_or(Vec::new());
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(&prefix, &lock_content).await?;
 
     // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, binaries)?;
+    create_bin_symlinks(&prefix, &binaries)?;
 
     // Tool-specific post-install configuration
     if name == "pixi" {
@@ -122,7 +122,7 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
 }
 
 /// Create symlinks for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[&str]) -> miette::Result<()> {
+fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
@@ -136,16 +136,20 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[&str]) -> miette::Result<()> {
 }
 
 /// Create a single symlink for a binary.
-fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &str) -> miette::Result<()> {
-    let binary_name = paths::binary_name(binary);
-    let tool_bin = prefix.join("bin").join(&binary_name);
+fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
+    let tool_bin = if cfg!(unix) {
+        prefix.join(binary)
+    } else {
+        prefix.join(binary).with_extension("exe")
+    };
+    let binary_name = paths::binary_name(binary.file_stem().and_then(|s| s.to_str()).unwrap());
     let symlink_path = bin_dir.join(&binary_name);
 
     // Check if the tool binary exists
     if !tool_bin.exists() {
         eprintln!(
             "   Warning: binary '{}' not found in {}/bin/",
-            binary,
+            binary.file_stem().and_then(|s| s.to_str()).unwrap(),
             prefix.display()
         );
         return Ok(());

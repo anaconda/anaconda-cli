@@ -6,7 +6,7 @@ use std::path::PathBuf;
 struct Tool {
     name: &'static str,
     lockfile: &'static str,
-    binaries: &'static [&'static str],
+    binaries: &'static [&'static [&'static str]],
 }
 
 /// Embedded tool configurations.
@@ -14,12 +14,16 @@ const TOOLS: &[Tool] = &[
     Tool {
         name: "anaconda-cli",
         lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
-        binaries: &["anaconda"],
+        binaries: if cfg![unix] {
+            &[&["bin", "anaconda"]]
+        } else {
+            &[&["Scripts", "anaconda"]]
+        },
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
-        binaries: &["pixi"],
+        binaries: &[&["bin", "pixi"]],
     },
 ];
 
@@ -41,8 +45,8 @@ pub fn content(name: &str) -> Option<String> {
 }
 
 /// Returns the binaries to symlink for a tool.
-pub fn binaries(name: &str) -> Option<&'static [&'static str]> {
-    find_tool(name).map(|t| t.binaries)
+pub fn binaries(name: &str) -> Option<Vec<PathBuf>> {
+    find_tool(name).map(|t| t.binaries.iter().map(|b| b.iter().collect()).collect())
 }
 
 /// Returns all available tool names.
