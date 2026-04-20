@@ -105,6 +105,7 @@ def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
             [str(ana_binary), *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             env=env,
             input=input,
             cwd=cwd,
