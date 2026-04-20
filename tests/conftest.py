@@ -22,6 +22,7 @@ def _find_repo_root() -> Path:
 
 
 REPO_ROOT = _find_repo_root()
+ON_WINDOWS = os.name == "nt"
 
 
 @pytest.fixture
@@ -67,8 +68,10 @@ def ana_binary() -> Path | None:
         if path.exists() and path.is_file():
             return path
 
-    for subpath in ["target/release/ana", "target/debug/ana"]:
-        binary = REPO_ROOT / subpath
+    ana_bin = "ana.exe" if ON_WINDOWS else "ana"
+
+    for subpath in ["target/release", "target/debug"]:
+        binary = REPO_ROOT / subpath / ana_bin
         if binary.exists():
             return binary
 
