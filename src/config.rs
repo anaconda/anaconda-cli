@@ -65,12 +65,11 @@ fn try_setup_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// TODO(mattkram): Update default to anaconda.com before public release
-const DEFAULT_DOMAIN: &str = "stage.anaconda.com";
+const DEFAULT_DOMAIN: &str = "anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
 const DEFAULT_OPEN_BROWSER: bool = true;
-const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.auth.anacondaconnect.com/v1/metrics";
+const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.anaconda.com/v1/metrics";
 const DEFAULT_METRICS_EXPORT_INTERVAL_MS: i64 = 1000;
 const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
