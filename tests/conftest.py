@@ -50,7 +50,10 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
         for key, val in os.environ.copy().items()
         if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
     }
-    env["HOME"] = str(fake_home)
+    if ON_WINDOWS:
+        env["USERPROFILE"] = str(fake_home)
+    else:
+        env["HOME"] = str(fake_home)
     return env
 
 
