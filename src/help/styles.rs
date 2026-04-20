@@ -1,13 +1,10 @@
-use console::{Color, Style};
+//! Help-specific styles built on top of shared UI styles.
 
-/// Convert a hex color string to a console Color
-fn hex_color(hex: &str) -> Color {
-    let hex = hex.trim_start_matches('#');
-    let r = u8::from_str_radix(&hex[0..2], 16).unwrap();
-    let g = u8::from_str_radix(&hex[2..4], 16).unwrap();
-    let b = u8::from_str_radix(&hex[4..6], 16).unwrap();
-    Color::TrueColor(r, g, b)
-}
+use console::Style;
+
+use crate::ui::styles::{
+    AMBER, BLUE, BOX_BG, BOX_BORDER, BOX_TEXT, DESC, DIM, GREEN, RED, hex_color,
+};
 
 /// Styles for help output matching UX design
 #[allow(dead_code)]
@@ -25,17 +22,17 @@ pub(super) enum HelpStyle {
 
 impl HelpStyle {
     pub fn style(&self) -> Style {
-        let box_bg = hex_color("#161b22");
+        let box_bg = hex_color(BOX_BG);
         match self {
-            Self::Section => Style::new().fg(hex_color("#3fb950")).bold(),
-            Self::Command => Style::new().fg(hex_color("#79c0ff")),
-            Self::Desc => Style::new().fg(hex_color("#8b949e")),
-            Self::Dim => Style::new().fg(hex_color("#6e7681")),
-            Self::Error => Style::new().fg(hex_color("#f85149")),
-            Self::Warning => Style::new().fg(hex_color("#d29922")),
-            Self::BoxBorder => Style::new().fg(hex_color("#30363d")).bg(box_bg),
-            Self::BoxDesc => Style::new().fg(hex_color("#e6edf3")).bg(box_bg),
-            Self::BoxCommand => Style::new().fg(hex_color("#79c0ff")).bg(box_bg).bold(),
+            Self::Section => Style::new().fg(hex_color(GREEN)).bold(),
+            Self::Command => Style::new().fg(hex_color(BLUE)),
+            Self::Desc => Style::new().fg(hex_color(DESC)),
+            Self::Dim => Style::new().fg(hex_color(DIM)),
+            Self::Error => Style::new().fg(hex_color(RED)),
+            Self::Warning => Style::new().fg(hex_color(AMBER)),
+            Self::BoxBorder => Style::new().fg(hex_color(BOX_BORDER)).bg(box_bg),
+            Self::BoxDesc => Style::new().fg(hex_color(BOX_TEXT)).bg(box_bg),
+            Self::BoxCommand => Style::new().fg(hex_color(BLUE)).bg(box_bg).bold(),
         }
     }
 }

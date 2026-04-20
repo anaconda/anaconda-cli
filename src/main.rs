@@ -10,10 +10,10 @@ mod http;
 mod input;
 mod paths;
 mod qr;
-mod status;
 mod table;
 mod tools;
 mod ua;
+mod ui;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
