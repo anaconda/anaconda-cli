@@ -10,6 +10,7 @@ mod http;
 mod input;
 mod paths;
 mod qr;
+mod status;
 mod table;
 mod tools;
 mod ua;
