@@ -122,6 +122,95 @@ struct TokenErrorResponse {
     error_description: Option<String>,
 }
 
+/// Account information from the API.
+#[derive(Debug, Deserialize)]
+struct AccountInfo {
+    email: Option<String>,
+    user: Option<UserInfo>,
+}
+
+/// User information nested in account response.
+#[derive(Debug, Deserialize)]
+struct UserInfo {
+    username: Option<String>,
+}
+
+/// API key information from the API.
+#[derive(Debug, Deserialize)]
+struct ApiKeyInfo {
+    expires_at: Option<String>,
+}
+
+/// Print logged-in user status line.
+///
+/// Example: `✓ Logged in as kford@anaconda.com (anaconda)`
+fn print_logged_in_status(email: &str, org: &str) {
+    status::success(&format!(
+        "Logged in as {} ({})",
+        status::highlight(email),
+        org
+    ));
+}
+
+/// Calculate days from today until a date string (YYYY-MM-DD format).
+fn days_until_date(date_str: &str) -> Option<i64> {
+    let expires = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()?;
+    let today = chrono::Utc::now().date_naive();
+    Some((expires - today).num_days())
+}
+
+/// Print token expiration info.
+///
+/// Example: `  expires    2026-04-09 (365 days)`
+fn print_expiration(expires_at: &str) {
+    // Parse the expiration date and calculate days remaining
+    if let Some(days_remaining) = days_until_date(&expires_at[..10]) {
+        let days_str = if days_remaining == 1 {
+            "1 day".to_string()
+        } else {
+            format!("{} days", days_remaining)
+        };
+        eprintln!(
+            "  {}{}{}",
+            status::dim("expires    "),
+            status::highlight(&expires_at[..10]),
+            status::dim(&format!(" ({days_str})"))
+        );
+    }
+}
+
+/// Combined login information for display.
+struct LoginInfo {
+    email: String,
+    org: String,
+    expires_at: Option<String>,
+}
+
+/// Fetch login info (account + API key expiration) for display after login.
+async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
+    let client = ApiClient::new()?;
+
+    // Fetch account info
+    let account_response = client.get("/api/account").send().await?;
+    let account: AccountInfo = account_response.json().await?;
+
+    let email = account
+        .email
+        .or_else(|| account.user.and_then(|u| u.username))
+        .unwrap_or_else(|| "unknown".to_string());
+
+    // Fetch API key info for expiration
+    let keys_response = client.get("/api/auth/api-keys").send().await?;
+    let keys: Vec<ApiKeyInfo> = keys_response.json().await.unwrap_or_default();
+    let expires_at = keys.first().and_then(|k| k.expires_at.clone());
+
+    Ok(LoginInfo {
+        email,
+        org: config.domain.clone(),
+        expires_at,
+    })
+}
+
 /// Perform the device authorization flow.
 pub async fn login() -> Result<(), AuthError> {
     // We use a new, unauthenticated client instead of ApiClient, since
@@ -277,7 +366,16 @@ pub async fn login() -> Result<(), AuthError> {
 
             // Save to keyring
             save_api_key(&config, &api_key)?;
-            status::success("Token stored in system keyring");
+            status::success("Token stored in keyring");
+
+            // Fetch and display user info
+            if let Ok(login_info) = fetch_login_info(&config).await {
+                print_logged_in_status(&login_info.email, &login_info.org);
+                if let Some(ref expires_at) = login_info.expires_at {
+                    print_expiration(expires_at);
+                }
+            }
+
             return Ok(());
         }
 

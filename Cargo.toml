@@ -16,6 +16,7 @@ feedback = ["dep:urlencoding"]
 [dependencies]
 async-trait = "0.1"
 base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 futures-util = "0.3"
 dirs = "6"
 http = "1"
