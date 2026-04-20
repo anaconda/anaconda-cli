@@ -16,6 +16,13 @@ pub fn success(msg: &str) {
     eprintln!("{} {}", style_for(GREEN).apply_to("✓"), msg);
 }
 
+/// Print an exciting success message with sparkles.
+///
+/// Use for final completion messages. Example output: `✨ You can now install packages!`
+pub fn great_success(msg: &str) {
+    eprintln!("{} {}", style_for(GREEN).apply_to("✨"), msg);
+}
+
 /// Print an error message with red "error:" prefix.
 ///
 /// Example output: `error: not logged in`
