@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from collections.abc import Callable
 from collections.abc import Generator
 from pathlib import Path
@@ -22,7 +23,7 @@ def _find_repo_root() -> Path:
 
 
 REPO_ROOT = _find_repo_root()
-ON_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 
 @pytest.fixture
@@ -50,7 +51,7 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
         for key, val in os.environ.copy().items()
         if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
     }
-    if ON_WINDOWS:
+    if IS_WINDOWS:
         env["USERPROFILE"] = str(fake_home)
     else:
         env["HOME"] = str(fake_home)
@@ -71,7 +72,7 @@ def ana_binary() -> Path | None:
         if path.exists() and path.is_file():
             return path
 
-    ana_bin = "ana.exe" if ON_WINDOWS else "ana"
+    ana_bin = "ana.exe" if IS_WINDOWS else "ana"
 
     for subpath in ["target/release", "target/debug"]:
         binary = REPO_ROOT / subpath / ana_bin
