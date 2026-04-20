@@ -11,16 +11,17 @@ use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
 use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
+use crate::ui::status;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Print a QR code to the terminal with indentation.
 fn print_qr(qr: &str) {
-    println!();
+    status::blank_line();
     for line in qr.lines() {
-        println!("    {}", line);
+        eprintln!("    {}", line);
     }
-    println!();
+    status::blank_line();
 }
 
 /// HTTP client with configuration and optional authentication.
@@ -187,29 +188,40 @@ pub async fn login() -> Result<(), AuthError> {
     let mut qr_shown = false;
     if browser_opened {
         // Browser opened — clean layout, offer QR on demand
-        println!("To authenticate, visit:");
-        println!();
-        println!("  {}", display_uri);
+        status::info(&format!(
+            "Opening {} in your browser...",
+            status::highlight(&config.domain)
+        ));
+        status::blank_line();
+        status::info("To authenticate, visit:");
+        status::blank_line();
+        eprintln!("  {}", status::highlight(display_uri));
         if device_response.verification_uri_complete.is_none() {
-            println!();
-            println!("And enter the code: {}", device_response.user_code);
+            status::blank_line();
+            status::info(&format!(
+                "And enter the code: {}",
+                status::highlight(&device_response.user_code)
+            ));
         }
-        println!();
+        status::blank_line();
         if qr_output.is_some() {
-            println!("Waiting for authentication... (press q for QR code)");
+            status::waiting("Waiting for authentication... (press q for QR code)");
         } else {
-            println!("Waiting for authentication...");
+            status::waiting("Waiting for authentication...");
         }
     } else {
-        println!("To authenticate, scan the QR code or visit:");
-        println!();
-        println!("  {}", display_uri);
+        status::info("To authenticate, scan the QR code or visit:");
+        status::blank_line();
+        eprintln!("  {}", status::highlight(display_uri));
         if device_response.verification_uri_complete.is_none() {
-            println!();
-            println!("And enter the code: {}", device_response.user_code);
+            status::blank_line();
+            status::info(&format!(
+                "And enter the code: {}",
+                status::highlight(&device_response.user_code)
+            ));
         }
-        println!();
-        println!("Waiting for authentication...");
+        status::blank_line();
+        status::waiting("Waiting for authentication...");
 
         // No browser — show QR code immediately
         if let Some(ref qr) = qr_output {
@@ -257,16 +269,15 @@ pub async fn login() -> Result<(), AuthError> {
 
         if response.status().is_success() {
             let token: TokenResponse = response.json().await?;
-            println!();
-            println!("Successfully authenticated!");
+            status::blank_line();
+            status::success("Authentication complete");
 
             // Create API key
-            println!("Creating API key...");
             let api_key = create_api_key(&client, &config, &token.access_token).await?;
 
             // Save to keyring
             save_api_key(&config, &api_key)?;
-            println!("API key saved to {}", config.keyring_path.display());
+            status::success("Token stored in system keyring");
             return Ok(());
         }
 
@@ -302,7 +313,15 @@ pub async fn login() -> Result<(), AuthError> {
 pub fn logout() -> Result<(), AuthError> {
     let config = Config::load();
     delete_api_key(&config)?;
-    println!("Logged out from {}", config.domain);
+    status::success(&format!(
+        "Logged out of {}",
+        status::highlight(&config.domain)
+    ));
+    status::success("Token removed from system keyring");
+    status::warn(&format!(
+        "To fully revoke your token visit {}",
+        status::highlight(&format!("{}/settings/tokens", config.domain))
+    ));
     Ok(())
 }
 
@@ -313,8 +332,11 @@ pub fn show_api_key() -> Result<(), AuthError> {
     match get_api_key(&config)? {
         Some(key) => println!("{}", key),
         None => {
-            println!("Not logged in to {}", config.domain);
-            println!("Run `ana login` to authenticate.");
+            status::error("not logged in");
+            status::info(&format!(
+                "Run {} to authenticate.",
+                status::highlight("ana login")
+            ));
         }
     }
 
@@ -326,20 +348,23 @@ pub async fn whoami() -> Result<(), AuthError> {
     let client = ApiClient::new()?;
 
     if !client.is_authenticated() {
-        println!("Not logged in to {}", client.domain());
-        println!("Run `ana login` to authenticate.");
+        status::error("not logged in");
+        status::info(&format!(
+            "Run {} to authenticate.",
+            status::highlight("ana login")
+        ));
         return Ok(());
     }
 
     let response = client.get("/api/account").send().await?;
 
     if !response.status().is_success() {
-        let status = response.status();
+        let resp_status = response.status();
         let body = response.text().await.unwrap_or_default();
-        tracing::error!("Failed to get account info: {} - {}", status, body);
+        tracing::error!("Failed to get account info: {} - {}", resp_status, body);
         return Err(AuthError::Authorization(format!(
             "Failed to get account info: {} - {}",
-            status, body
+            resp_status, body
         )));
     }
 

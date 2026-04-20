@@ -64,3 +64,8 @@ pub fn highlight(text: &str) -> String {
 pub fn dim(text: &str) -> String {
     style_for(DIM).apply_to(text).to_string()
 }
+
+/// Print a blank line to stderr.
+pub fn blank_line() {
+    eprintln!();
+}
