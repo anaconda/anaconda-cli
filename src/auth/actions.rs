@@ -231,6 +231,18 @@ pub async fn login() -> Result<(), AuthError> {
     // URLs from openid-configuration etc.
     let config = Config::load();
 
+    // Check if already logged in
+    if get_api_key(&config)?.is_some() {
+        status::warn(&format!(
+            "Already logged in to {}",
+            status::highlight(&config.domain)
+        ));
+        if !crate::input::prompt_yes_no("Login again?") {
+            // Return early if user declines to log in again
+            return Ok(());
+        }
+    }
+
     let client = build_client(reqwest::Client::builder().timeout(REQUEST_TIMEOUT))?;
 
     // Fetch OpenID configuration
@@ -422,6 +434,16 @@ pub async fn login() -> Result<(), AuthError> {
 /// Log out by removing the API key for the current domain.
 pub fn logout() -> Result<(), AuthError> {
     let config = Config::load();
+
+    // Check if already logged out
+    if get_api_key(&config)?.is_none() {
+        status::warn(&format!(
+            "Not logged in to {}",
+            status::highlight(&config.domain)
+        ));
+        return Ok(());
+    }
+
     delete_api_key(&config)?;
     status::success(&format!(
         "Logged out of {}",

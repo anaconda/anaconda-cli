@@ -27,7 +27,7 @@ class TestLogin:
         # Message varies based on QR display: "visit:" or "scan the QR code or visit:"
         assert "visit:" in result.stderr
         assert "Authentication complete" in result.stderr
-        assert "Token stored in keyring" in result.stderr
+        assert "API key stored in keyring" in result.stderr
         assert "Logged in as" in result.stderr
         assert "test@example.com" in result.stderr
         assert keyring_path.exists()
@@ -88,10 +88,11 @@ class TestLogout:
         run_ana: AnaRunner,
         auth_env: dict[str, str],
     ) -> None:
-        """Logout when not logged in should succeed silently."""
+        """Logout when not logged in should warn and succeed."""
         result = run_ana("logout", env=auth_env)
 
         assert result.returncode == 0
+        assert "Not logged in" in result.stderr
 
     def test_logout_via_auth_subcommand(
         self,
