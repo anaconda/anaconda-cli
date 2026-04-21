@@ -1,6 +1,6 @@
-//! Main-X channel initialization.
+//! main-x channel initialization.
 //!
-//! Configures conda to use the Anaconda Main-X channel for early access packages.
+//! Configures conda to use the Anaconda main-x channel for early access packages.
 
 use std::path::Path;
 use std::process::Command;
@@ -9,19 +9,23 @@ use miette::{Context, IntoDiagnostic};
 
 use crate::auth;
 use crate::paths;
+use crate::ui::status;
 
 const MAIN_CHANNEL: &str = "https://repo.anaconda.com/pkgs/main";
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
 
-/// Initialize Main-X channel access.
+/// Initialize main-x channel access.
 ///
 /// This command:
 /// 1. Ensures the user is logged in to Anaconda
-/// 2. Adds the Main-X channel to conda configuration (with main channel for fallback)
+/// 2. Adds the main-x channel to conda configuration (with main channel for fallback)
 /// 3. Provides instructions for reverting the changes
 pub async fn init_main_x() -> miette::Result<()> {
-    eprintln!("Initializing Main-X channel access...");
-    eprintln!();
+    status::info(&format!(
+        "Initializing {} channel access...",
+        status::highlight("main-x")
+    ));
+    status::blank_line();
 
     // Step 1: Check login status and prompt if needed
     ensure_logged_in().await?;
@@ -30,31 +34,38 @@ pub async fn init_main_x() -> miette::Result<()> {
     configure_conda_channels()?;
 
     // Step 3: Show success message and undo instructions
-    eprintln!();
-    eprintln!("Main-X channel configured successfully!");
-    eprintln!();
-    eprintln!("You can now install packages from the Main-X channel.");
-    eprintln!();
-    eprintln!("To undo this configuration, run:");
-    eprintln!("  conda config --remove channels {}", MAIN_X_CHANNEL);
+    status::blank_line();
+    status::great_success(&format!(
+        "You can now install packages from the {} channel!",
+        status::highlight("main-x")
+    ));
+    status::blank_line();
+    status::info("To undo this configuration, run:");
+    eprintln!(
+        "  {}",
+        status::highlight(&format!(
+            "conda config --remove channels {}",
+            MAIN_X_CHANNEL
+        ))
+    );
 
     Ok(())
 }
 
 /// Ensure the user is logged in, prompting them to login if not.
 async fn ensure_logged_in() -> miette::Result<()> {
-    eprintln!("Checking authentication status...");
+    status::waiting("Checking authentication status...");
 
     // Try to get API key to check if logged in
     let config = crate::config::Config::load();
     match auth::get_api_key(&config) {
         Ok(Some(_)) => {
-            eprintln!("  Already logged in.");
+            status::success("Already logged in");
             Ok(())
         }
         Ok(None) | Err(_) => {
-            eprintln!("  Not logged in. Starting login flow...");
-            eprintln!();
+            status::info("Not logged in. Starting login flow...");
+            status::blank_line();
             auth::login()
                 .await
                 .map_err(|e| miette::miette!("Login failed: {}", e))?;
@@ -63,14 +74,15 @@ async fn ensure_logged_in() -> miette::Result<()> {
     }
 }
 
-/// Configure conda to use the Main-X channel with main as fallback.
+/// Configure conda to use the main-x channel with main as fallback.
 ///
 /// Ensures that:
 /// - main-x is present in channels
 /// - main is present in channels (for fallback)
 /// - main has higher precedence than main-x (appears earlier in the list)
 fn configure_conda_channels() -> miette::Result<()> {
-    eprintln!("Configuring conda channels...");
+    status::blank_line();
+    status::waiting("Configuring conda channels...");
 
     let conda_bin = find_conda()?;
     let current_channels = get_configured_channels(&conda_bin)?;
@@ -88,7 +100,7 @@ fn configure_conda_channels() -> miette::Result<()> {
     };
 
     if has_main && has_main_x && main_before_main_x {
-        eprintln!("  Channels already configured correctly.");
+        status::success("Channels already configured correctly");
         return Ok(());
     }
 
@@ -96,22 +108,23 @@ fn configure_conda_channels() -> miette::Result<()> {
     // We add main-x first, then main, so main ends up with higher precedence
 
     if !has_main_x {
-        eprintln!("  Adding Main-X channel: {}", MAIN_X_CHANNEL);
+        status::success(&format!("Adding {} channel", status::highlight("main-x")));
         run_conda_config(&conda_bin, &["--add", "channels", MAIN_X_CHANNEL])?;
     }
 
     if !has_main {
-        eprintln!("  Adding main channel: {}", MAIN_CHANNEL);
+        status::success(&format!("Adding {} channel", status::highlight("main")));
         run_conda_config(&conda_bin, &["--add", "channels", MAIN_CHANNEL])?;
     } else if has_main_x && !main_before_main_x {
         // main exists but has lower precedence than main-x, need to fix
-        eprintln!("  Adjusting channel precedence (main should be higher than main-x)...");
+        status::waiting(&format!(
+            "Adjusting channel precedence (main should be higher than {})...",
+            status::highlight("main-x")
+        ));
         // Remove and re-add main to move it to the top
         run_conda_config(&conda_bin, &["--remove", "channels", MAIN_CHANNEL])?;
         run_conda_config(&conda_bin, &["--add", "channels", MAIN_CHANNEL])?;
     }
-
-    eprintln!("  Channels configured successfully.");
 
     Ok(())
 }
