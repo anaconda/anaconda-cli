@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from conftest import REPO_ROOT
+from helpers import REPO_ROOT
 
 if TYPE_CHECKING:
     from collections.abc import Generator

@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 import pytest
-from conftest import AnaRunner
-from conftest import assert_output_contains
+from helpers import AnaRunner
+from helpers import assert_output_contains
 from mock_auth_server import MockAuthServer
 
 

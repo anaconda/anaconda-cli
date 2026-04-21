@@ -6,7 +6,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from conftest import AnaRunner
+from helpers import AnaRunner
 
 
 class TestHelp:

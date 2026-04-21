@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from conftest import AnaRunner
+from helpers import AnaRunner
 
 
 class TestToolInstallHelp:
