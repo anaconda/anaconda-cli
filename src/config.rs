@@ -220,7 +220,7 @@ impl Config {
     }
 }
 
-/// Get the default keyring path (~/.anaconda/keyring or $ANA_KEYRING_PATH).
+/// Get the default keyring path
 fn default_keyring_path() -> PathBuf {
     crate::paths::home_dir().join(".anaconda").join("keyring")
 }
