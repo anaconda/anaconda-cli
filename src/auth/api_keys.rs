@@ -30,9 +30,9 @@ struct JwtPayload {
 /// Extract expiration date from a JWT token.
 ///
 /// Returns the expiration as a YYYY-MM-DD string, or None if parsing fails.
-pub fn extract_jwt_expiration(token: &str) -> Option<String> {
+pub fn get_expiration(api_key: &str) -> Option<String> {
     // JWT format: header.payload.signature
-    let parts: Vec<&str> = token.split('.').collect();
+    let parts: Vec<&str> = api_key.split('.').collect();
     if parts.len() != 3 {
         return None;
     }

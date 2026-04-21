@@ -165,7 +165,7 @@ fn print_token_expiration(expires_at: &str) {
 ///
 /// This is the common "finalize login" logic shared by both device flow and direct API key login.
 async fn save_and_display_login(api_key: &str) -> Result<(), AuthError> {
-    use super::api_keys::extract_jwt_expiration;
+    use super::api_keys::get_expiration;
 
     let config = Config::load();
 
@@ -176,7 +176,7 @@ async fn save_and_display_login(api_key: &str) -> Result<(), AuthError> {
     // Fetch and display user info
     if let Ok(login_info) = fetch_login_info().await {
         print_logged_in_status(&login_info.email);
-        if let Some(expires_at) = extract_jwt_expiration(api_key) {
+        if let Some(expires_at) = get_expiration(api_key) {
             print_token_expiration(&expires_at);
         }
     }
