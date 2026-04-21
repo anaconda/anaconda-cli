@@ -256,7 +256,7 @@ async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthErro
 
     // Save to keyring
     save_api_key(&config, &api_key)?;
-    status::success("Token stored in system keyring");
+    status::success("API key stored in keyring");
 
     // Fetch and display user info
     if let Ok(login_info) = fetch_login_info().await {

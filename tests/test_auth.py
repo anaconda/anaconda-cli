@@ -239,7 +239,7 @@ class TestLoginApiKey:
         # Should show success messages
         assert_output_contains(
             result.stderr,
-            "Token stored in system keyring",
+            "API key stored in keyring",
             "Logged in as",
             "test@example.com",
             "expires",
@@ -280,7 +280,7 @@ class TestLoginApiKey:
         # Should show success messages
         assert_output_contains(
             result.stderr,
-            "Token stored in system keyring",
+            "API key stored in keyring",
             "Logged in as",
             "test@example.com",
             "expires",
@@ -333,7 +333,7 @@ class TestLoginApiKey:
         # Should show success messages
         assert_output_contains(
             result.stderr,
-            "Token stored in system keyring",
+            "API key stored in keyring",
             "Logged in as",
             "test@example.com",
             "expires",
@@ -404,7 +404,7 @@ class TestLoginApiKey:
         # Should show success
         assert_output_contains(
             result.stderr,
-            "Token stored in system keyring",
+            "API key stored in keyring",
             "Logged in as",
         )
 
