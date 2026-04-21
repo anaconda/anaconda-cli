@@ -430,7 +430,7 @@ pub fn logout() -> Result<(), AuthError> {
     status::success("API key removed from system keyring");
     status::warn(&format!(
         "To fully revoke your token visit {}",
-        status::highlight(&format!("{}/app/profile/api-keys", config.domain))
+        status::highlight(&format!("{}/app/profile/api-keys", config.base_url()))
     ));
     Ok(())
 }
