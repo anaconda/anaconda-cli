@@ -44,9 +44,19 @@ pub fn content(name: &str) -> Option<String> {
     }
 }
 
-/// Returns the binaries to symlink for a tool.
+/// Returns the binaries to link for a tool.
 pub fn binaries(name: &str) -> Option<Vec<PathBuf>> {
     find_tool(name).map(|t| t.binaries.iter().map(|b| b.iter().collect()).collect())
+}
+
+/// Returns the binary names to link for a tool.
+pub fn binary_names(name: &str) -> Option<Vec<&'static str>> {
+    find_tool(name).map(|t| {
+        t.binaries
+            .iter()
+            .filter_map(|b| b.last().copied())
+            .collect()
+    })
 }
 
 /// Returns all available tool names.

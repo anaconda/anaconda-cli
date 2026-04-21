@@ -28,12 +28,12 @@ pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     // Collect what will be deleted
     let mut to_delete: Vec<String> = Vec::new();
 
-    // Check for symlinks that will be removed
-    if let Some(binaries) = tools::binaries(name) {
+    // Check for symlinks/shims that will be removed
+    if let Some(binaries) = tools::binary_names(name) {
         for binary in binaries {
-            let symlink_path = bin_dir.join(binary);
-            if symlink_path.exists() || symlink_path.is_symlink() {
-                to_delete.push(format!("  {}", symlink_path.display()));
+            let link_path = paths::bin_path(binary);
+            if link_path.exists() || link_path.is_symlink() {
+                to_delete.push(format!("  {}", link_path.display()));
             }
         }
     }
@@ -57,19 +57,21 @@ pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
     eprintln!();
     eprintln!("Uninstalling {}...", name);
 
-    // Remove symlinks from bin directory
-    if let Some(binaries) = tools::binaries(name) {
-        for binary in binaries {
-            let symlink_path = bin_dir.join(binary);
-            if symlink_path.exists() || symlink_path.is_symlink() {
-                std::fs::remove_file(&symlink_path)
+    // Remove symlinks/shims from bin directory
+    if let Some(binaries) = tools::binary_names(name) {
+        for binary in &binaries {
+            let link_path = paths::bin_path(binary);
+            if link_path.exists() || link_path.is_symlink() {
+                std::fs::remove_file(&link_path)
                     .into_diagnostic()
-                    .with_context(|| {
-                        format!("failed to remove symlink: {}", symlink_path.display())
-                    })?;
-                eprintln!("   Removed {}", symlink_path.display());
+                    .with_context(|| format!("failed to remove: {}", link_path.display()))?;
+                eprintln!("   Removed {}", link_path.display());
             }
         }
+
+        // On Windows, also remove entries from shims.cfg
+        #[cfg(windows)]
+        remove_shims_cfg_entries(&binaries)?;
     }
 
     // Remove the tool's environment directory
@@ -109,4 +111,131 @@ fn cleanup_empty_dir(path: &std::path::Path) -> miette::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(windows)]
+/// Remove entries from shims.cfg for the given binary names.
+fn remove_shims_cfg_entries(binaries: &[&str]) -> miette::Result<()> {
+    let config_path = paths::ana_home().join("tools").join("shims.cfg");
+
+    if !config_path.exists() {
+        return Ok(());
+    }
+
+    let content = std::fs::read_to_string(&config_path)
+        .into_diagnostic()
+        .context("failed to read shims.cfg")?;
+
+    // Filter out entries for the binaries being removed
+    let new_content: String = content
+        .lines()
+        .filter(|line| {
+            if let Some((name, _)) = line.split_once('=') {
+                !binaries.contains(&name)
+            } else {
+                true
+            }
+        })
+        .map(|line| format!("{}\r\n", line))
+        .collect();
+
+    std::fs::write(&config_path, new_content)
+        .into_diagnostic()
+        .context("failed to write shims.cfg")?;
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(windows)]
+    mod windows_tests {
+        use tempfile::TempDir;
+
+        use super::super::remove_shims_cfg_entries;
+
+        #[test]
+        fn test_remove_shims_cfg_entries_removes_single() {
+            let temp = TempDir::new().unwrap();
+            let tools_dir = temp.path().join("tools");
+            std::fs::create_dir_all(&tools_dir).unwrap();
+
+            let config_path = tools_dir.join("shims.cfg");
+            std::fs::write(
+                &config_path,
+                "pixi=pixi\\bin\\pixi.exe\r\nanaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n",
+            )
+            .unwrap();
+
+            temp_env::with_var("ANA_HOME", Some(temp.path().to_str().unwrap()), || {
+                let result = remove_shims_cfg_entries(&["pixi"]);
+                assert!(result.is_ok());
+
+                let content = std::fs::read_to_string(&config_path).unwrap();
+                assert!(!content.contains("pixi="));
+                assert!(content.contains("anaconda=anaconda-cli\\Scripts\\anaconda.exe"));
+            });
+        }
+
+        #[test]
+        fn test_remove_shims_cfg_entries_removes_multiple() {
+            let temp = TempDir::new().unwrap();
+            let tools_dir = temp.path().join("tools");
+            std::fs::create_dir_all(&tools_dir).unwrap();
+
+            let config_path = tools_dir.join("shims.cfg");
+            std::fs::write(
+                &config_path,
+                "pixi=pixi\\bin\\pixi.exe\r\nanaconda=anaconda-cli\\Scripts\\anaconda.exe\r\nother=other\\bin\\other.exe\r\n",
+            )
+            .unwrap();
+
+            temp_env::with_var("ANA_HOME", Some(temp.path().to_str().unwrap()), || {
+                let result = remove_shims_cfg_entries(&["pixi", "anaconda"]);
+                assert!(result.is_ok());
+
+                let content = std::fs::read_to_string(&config_path).unwrap();
+                assert!(!content.contains("pixi="));
+                assert!(!content.contains("anaconda="));
+                assert!(content.contains("other=other\\bin\\other.exe"));
+            });
+        }
+
+        #[test]
+        fn test_remove_shims_cfg_entries_handles_missing_file() {
+            let temp = TempDir::new().unwrap();
+            let tools_dir = temp.path().join("tools");
+            std::fs::create_dir_all(&tools_dir).unwrap();
+
+            temp_env::with_var("ANA_HOME", Some(temp.path().to_str().unwrap()), || {
+                let result = remove_shims_cfg_entries(&["pixi"]);
+                assert!(result.is_ok(), "should succeed when file doesn't exist");
+            });
+        }
+
+        #[test]
+        fn test_remove_shims_cfg_entries_preserves_trailing_newlines() {
+            let temp = TempDir::new().unwrap();
+            let tools_dir = temp.path().join("tools");
+            std::fs::create_dir_all(&tools_dir).unwrap();
+
+            let config_path = tools_dir.join("shims.cfg");
+            std::fs::write(
+                &config_path,
+                "pixi=pixi\\bin\\pixi.exe\r\nanaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n",
+            )
+            .unwrap();
+
+            temp_env::with_var("ANA_HOME", Some(temp.path().to_str().unwrap()), || {
+                let result = remove_shims_cfg_entries(&["pixi"]);
+                assert!(result.is_ok());
+
+                let content = std::fs::read_to_string(&config_path).unwrap();
+                assert!(
+                    content.ends_with("\r\n"),
+                    "should preserve trailing newline"
+                );
+            });
+        }
+    }
 }

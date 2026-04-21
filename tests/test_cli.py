@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 from conftest import AnaRunner
+
+IS_WINDOWS = sys.platform == "win32"
+ANACONDA_BIN = "anaconda.exe" if IS_WINDOWS else "anaconda"
 
 
 class TestHelp:
@@ -232,9 +236,19 @@ class TestBootstrap:
         assert result.returncode == 0
 
         # Verify the symlinked binary exists
-        bin_path = fake_home / ".ana" / "bin" / "anaconda"
+        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
         assert bin_path.exists(), f"Binary not found: {bin_path}"
-        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+        tools_dir = fake_home / ".ana" / "tools"
+        if IS_WINDOWS:
+            shim_cfg = tools_dir / "shims.cfg"
+            assert (
+                "anaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n"
+                in shim_cfg.read_text(newline="")
+            )
+        else:
+            src_file = tools_dir / "anaconda-cli" / "bin" / "anaconda"
+            assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+            assert bin_path.samefile(src_file)
 
     def test_bootstrap_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
@@ -245,7 +259,7 @@ class TestBootstrap:
         assert first_result.returncode == 0
 
         # Verify installation exists
-        bin_path = fake_home / ".ana" / "bin" / "anaconda"
+        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
         assert bin_path.exists()
 
         # Second run should indicate already installed
@@ -261,7 +275,7 @@ class TestBootstrap:
         assert result.returncode == 0
 
         # Run the installed anaconda binary
-        bin_path = fake_home / ".ana" / "bin" / "anaconda"
+        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
         assert bin_path.exists()
 
         proc = subprocess.run(
