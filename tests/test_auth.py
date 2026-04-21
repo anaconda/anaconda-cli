@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from conftest import AnaRunner
 from conftest import assert_output_contains
 from mock_auth_server import MockAuthServer
@@ -13,14 +14,16 @@ from mock_auth_server import MockAuthServer
 class TestLogin:
     """Tests for 'ana login' command."""
 
+    @pytest.mark.parametrize("args", [["login"], ["auth", "login"]])
     def test_login_creates_keyring(
         self,
+        args: list[str],
         run_ana: AnaRunner,
         auth_env: dict[str, str],
         keyring_path: Path,
     ) -> None:
         """Login should create keyring file with API key."""
-        result = run_ana("login", env=auth_env)
+        result = run_ana(*args, env=auth_env)
 
         assert result.returncode == 0
         assert_output_contains(
@@ -47,19 +50,6 @@ class TestLogin:
         keyring_data = json.loads(keyring_path.read_text())
         assert "Anaconda Cloud" in keyring_data
         assert mock_auth_server.domain in keyring_data["Anaconda Cloud"]
-
-    def test_login_via_auth_subcommand(
-        self,
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-        keyring_path: Path,
-    ) -> None:
-        """'ana auth login' should work the same as 'ana login'."""
-        result = run_ana("auth", "login", env=auth_env)
-
-        assert result.returncode == 0
-        assert "Authentication complete" in result.stderr
-        assert keyring_path.exists()
 
 
 class TestLogout:
