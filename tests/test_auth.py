@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from conftest import AnaRunner
-from mock_auth_server import MOCK_API_KEY
 from mock_auth_server import MockAuthServer
 
 
@@ -24,10 +23,13 @@ class TestLogin:
 
         assert result.returncode == 0
 
+        # Status messages go to stderr
         # Message varies based on QR display: "visit:" or "scan the QR code or visit:"
-        assert "visit:" in result.stdout
-        assert "Successfully authenticated!" in result.stdout
-        assert "API key saved to" in result.stdout
+        assert "visit:" in result.stderr
+        assert "Authentication complete" in result.stderr
+        assert "Token stored in keyring" in result.stderr
+        assert "Logged in as" in result.stderr
+        assert "test@example.com" in result.stderr
         assert keyring_path.exists()
 
     def test_login_keyring_format(
@@ -54,7 +56,7 @@ class TestLogin:
         result = run_ana("auth", "login", env=auth_env)
 
         assert result.returncode == 0
-        assert "Successfully authenticated!" in result.stdout
+        assert "Authentication complete" in result.stderr
         assert keyring_path.exists()
 
 
@@ -77,7 +79,7 @@ class TestLogout:
         result = run_ana("logout", env=auth_env)
 
         assert result.returncode == 0
-        assert f"Logged out from {mock_auth_server.domain}" in result.stdout
+        assert f"Logged out of {mock_auth_server.domain}" in result.stderr
         # Keyring should be deleted when empty
         assert not keyring_path.exists()
 
@@ -103,7 +105,7 @@ class TestLogout:
         result = run_ana("auth", "logout", env=auth_env)
 
         assert result.returncode == 0
-        assert f"Logged out from {mock_auth_server.domain}" in result.stdout
+        assert f"Logged out of {mock_auth_server.domain}" in result.stderr
 
 
 class TestApiKey:
@@ -119,7 +121,8 @@ class TestApiKey:
         result = run_ana("auth", "api-key", env=auth_env)
 
         assert result.returncode == 0
-        assert MOCK_API_KEY in result.stdout
+        # API key is a JWT (header.payload.signature format)
+        assert result.stdout.strip().count(".") == 2
 
     def test_api_key_when_not_logged_in(
         self,
@@ -131,8 +134,8 @@ class TestApiKey:
         result = run_ana("auth", "api-key", env=auth_env)
 
         assert result.returncode == 0
-        assert f"Not logged in to {mock_auth_server.domain}" in result.stdout
-        assert "Run `ana login` to authenticate." in result.stdout
+        assert "not logged in" in result.stderr
+        assert "ana login" in result.stderr
 
     def test_api_key_output_is_clean(
         self,
@@ -143,8 +146,11 @@ class TestApiKey:
         run_ana("login", env=auth_env)
         result = run_ana("auth", "api-key", env=auth_env)
 
-        # Should be just the key with a newline
-        assert result.stdout.strip() == MOCK_API_KEY
+        # Should be just the key with a newline (no extra output)
+        lines = result.stdout.strip().split("\n")
+        assert len(lines) == 1
+        # API key is a JWT
+        assert lines[0].count(".") == 2
 
 
 class TestAuthHelp:
@@ -182,9 +188,38 @@ class TestWhoami:
         result = run_ana("whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert f"Your info ({mock_auth_server.domain}):" in result.stdout
-        assert "testuser" in result.stdout
-        assert "test@example.com" in result.stdout
+        assert "ACCOUNT" in result.stderr
+        assert "testuser" in result.stderr
+        assert "test@example.com" in result.stderr
+        assert "Test User" in result.stderr
+
+    def test_whoami_shows_subscriptions(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+    ) -> None:
+        """Whoami should display subscription info."""
+        run_ana("login", env=auth_env)
+        result = run_ana("whoami", env=auth_env)
+
+        assert result.returncode == 0
+        assert "SUBSCRIPTIONS" in result.stderr
+        assert "Test Organization" in result.stderr
+        assert "2030-01-01" in result.stderr
+
+    def test_whoami_shows_token_info(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+    ) -> None:
+        """Whoami should display token info."""
+        run_ana("login", env=auth_env)
+        result = run_ana("whoami", env=auth_env)
+
+        assert result.returncode == 0
+        assert "TOKEN" in result.stderr
+        assert str(keyring_path) in result.stderr
 
     def test_whoami_when_not_logged_in(
         self,
@@ -196,8 +231,8 @@ class TestWhoami:
         result = run_ana("whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert f"Not logged in to {mock_auth_server.domain}" in result.stdout
-        assert "Run `ana login` to authenticate." in result.stdout
+        assert "not logged in" in result.stderr
+        assert "ana login" in result.stderr
 
     def test_whoami_via_auth_subcommand(
         self,
@@ -210,7 +245,24 @@ class TestWhoami:
         result = run_ana("auth", "whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert f"Your info ({mock_auth_server.domain}):" in result.stdout
+        assert "ACCOUNT" in result.stderr
+
+    def test_whoami_json_flag(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+    ) -> None:
+        """Whoami with --json should output raw JSON."""
+        run_ana("login", env=auth_env)
+        result = run_ana("whoami", "--json", env=auth_env)
+
+        assert result.returncode == 0
+        # Should be valid JSON
+        import json
+
+        data = json.loads(result.stdout)
+        assert "passport" in data
+        assert "profile" in data["passport"]
 
 
 class TestMultipleDomains:
