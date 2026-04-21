@@ -101,7 +101,9 @@ pub enum Action {
     Login,
     Logout,
     ShowApiKey,
-    Whoami,
+    Whoami {
+        json: bool,
+    },
     Update {
         force: bool,
     },
@@ -136,7 +138,7 @@ impl Action {
             Action::Login => "login",
             Action::Logout => "logout",
             Action::ShowApiKey => "auth.api-key",
-            Action::Whoami => "whoami",
+            Action::Whoami { .. } => "whoami",
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
@@ -211,7 +213,7 @@ impl Action {
             Action::Login => Ok(auth::login().await?),
             Action::Logout => Ok(auth::logout()?),
             Action::ShowApiKey => Ok(auth::show_api_key()?),
-            Action::Whoami => Ok(auth::whoami().await?),
+            Action::Whoami { json } => Ok(auth::whoami(json).await?),
             Action::Update { force } => {
                 update::run_update(VERSION, force).await;
                 Ok(())
@@ -248,13 +250,13 @@ pub fn parse() -> (Action, LogLevel) {
                 Some(Commands::Config) => Action::ShowConfig,
                 Some(Commands::Login) => Action::Login,
                 Some(Commands::Logout) => Action::Logout,
-                Some(Commands::Whoami) => Action::Whoami,
+                Some(Commands::Whoami { json }) => Action::Whoami { json },
                 Some(Commands::Auth { command }) => match command {
                     None => Action::ShowSubcommandHelp("auth".to_string()),
                     Some(AuthCommands::ApiKey) => Action::ShowApiKey,
                     Some(AuthCommands::Login) => Action::Login,
                     Some(AuthCommands::Logout) => Action::Logout,
-                    Some(AuthCommands::Whoami) => Action::Whoami,
+                    Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSubcommandHelp("self".to_string()),
@@ -408,7 +410,11 @@ enum Commands {
     Logout,
 
     /// Display information about the logged-in user
-    Whoami,
+    Whoami {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
 
     /// Manage the ana installation
     #[command(
@@ -456,7 +462,11 @@ enum AuthCommands {
     Logout,
 
     /// Display information about the logged-in user
-    Whoami,
+    Whoami {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]

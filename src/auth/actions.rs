@@ -124,20 +124,21 @@ struct TokenErrorResponse {
 
 /// Account information from the API.
 #[derive(Debug, Deserialize)]
-struct AccountInfo {
-    email: Option<String>,
+struct AccountResponse {
     user: Option<UserInfo>,
+    subscriptions: Option<Vec<SubscriptionInfo>>,
 }
 
 /// User information nested in account response.
 #[derive(Debug, Deserialize)]
 struct UserInfo {
     username: Option<String>,
+    email: Option<String>,
 }
 
-/// API key information from the API.
+/// Subscription information from the API.
 #[derive(Debug, Deserialize)]
-struct ApiKeyInfo {
+struct SubscriptionInfo {
     expires_at: Option<String>,
 }
 
@@ -192,17 +193,21 @@ async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
 
     // Fetch account info
     let account_response = client.get("/api/account").send().await?;
-    let account: AccountInfo = account_response.json().await?;
+    let account: AccountResponse = account_response.json().await?;
 
     let email = account
-        .email
-        .or_else(|| account.user.and_then(|u| u.username))
+        .user
+        .as_ref()
+        .and_then(|u| u.email.clone())
+        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
         .unwrap_or_else(|| "unknown".to_string());
 
-    // Fetch API key info for expiration
-    let keys_response = client.get("/api/auth/api-keys").send().await?;
-    let keys: Vec<ApiKeyInfo> = keys_response.json().await.unwrap_or_default();
-    let expires_at = keys.first().and_then(|k| k.expires_at.clone());
+    // Get expiration from first subscription
+    let expires_at = account
+        .subscriptions
+        .as_ref()
+        .and_then(|subs| subs.first())
+        .and_then(|s| s.expires_at.clone());
 
     Ok(LoginInfo {
         email,
@@ -441,8 +446,33 @@ pub fn show_api_key() -> Result<(), AuthError> {
     Ok(())
 }
 
+/// Print a labeled key-value line for whoami output.
+///
+/// Example: `  name        Jane Ngo`
+fn print_kv(key: &str, value: &str) {
+    // Pad key to 12 chars (longest key "username" is 8 + 4 spaces = 12)
+    // Pad plain text first, then apply styling (ANSI codes break format padding)
+    eprintln!(
+        "  {}{}",
+        status::dim(&format!("{:<12}", key)),
+        status::highlight(value)
+    );
+}
+
+/// Mask an API key, showing only the prefix.
+///
+/// Example: `pfx_****************************`
+fn mask_api_key(key: &str) -> String {
+    if key.len() > 4 {
+        format!("{}_{}", &key[..3], "*".repeat(28))
+    } else {
+        "*".repeat(32)
+    }
+}
+
 /// Display information about the logged-in user.
-pub async fn whoami() -> Result<(), AuthError> {
+pub async fn whoami(json: bool) -> Result<(), AuthError> {
+    let config = Config::load();
     let client = ApiClient::new()?;
 
     if !client.is_authenticated() {
@@ -467,12 +497,102 @@ pub async fn whoami() -> Result<(), AuthError> {
     }
 
     let data: serde_json::Value = response.json().await?;
-    let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
 
-    println!("Your info ({}):", client.domain());
-    println!("{}", pretty);
+    // JSON output mode
+    if json {
+        let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
+        println!("{}", pretty);
+        return Ok(());
+    }
+
+    // Styled output mode
+    let user = data.get("user");
+
+    // Account section
+    eprintln!("{}", style_section("account"));
+
+    // Build name from first_name + last_name
+    let first = user
+        .and_then(|u| u.get("first_name"))
+        .and_then(|v| v.as_str());
+    let last = user
+        .and_then(|u| u.get("last_name"))
+        .and_then(|v| v.as_str());
+    match (first, last) {
+        (Some(f), Some(l)) => print_kv("name", &format!("{} {}", f, l)),
+        (Some(f), None) => print_kv("name", f),
+        (None, Some(l)) => print_kv("name", l),
+        _ => {}
+    }
+
+    if let Some(username) = user
+        .and_then(|u| u.get("username"))
+        .and_then(|v| v.as_str())
+    {
+        print_kv("username", username);
+    }
+    if let Some(email) = user.and_then(|u| u.get("email")).and_then(|v| v.as_str()) {
+        print_kv("email", email);
+    }
+    print_kv("org", &config.domain);
+
+    // Subscription section (if available)
+    if let Some(subscriptions) = data.get("subscriptions").and_then(|v| v.as_array()) {
+        if let Some(subscription) = subscriptions.first() {
+            status::blank_line();
+            eprintln!("{}", style_section("subscription"));
+            if let Some(plan) = subscription.get("product_code").and_then(|v| v.as_str()) {
+                print_kv("plan", plan);
+            }
+            if let Some(expires) = subscription.get("expires_at").and_then(|v| v.as_str()) {
+                // Handle ISO 8601 format (2035-01-02T00:00:00Z)
+                let date_part = if expires.len() >= 10 {
+                    &expires[..10]
+                } else {
+                    expires
+                };
+                if let Some(days) = days_until_date(date_part) {
+                    let days_str = if days == 1 {
+                        "1 day".to_string()
+                    } else {
+                        format!("{} days", days)
+                    };
+                    eprintln!(
+                        "  {}{}{}",
+                        status::dim(&format!("{:<12}", "expires")),
+                        status::highlight(date_part),
+                        status::dim(&format!(" ({days_str})"))
+                    );
+                } else {
+                    print_kv("expires", date_part);
+                }
+            }
+        }
+    }
+
+    // Token info section
+    status::blank_line();
+    eprintln!("{}", style_section("token"));
+    if let Some(api_key) = get_api_key(&config)? {
+        eprintln!(
+            "  {}{}",
+            status::dim(&format!("{:<12}", "value")),
+            status::dim(&mask_api_key(&api_key))
+        );
+    }
+    eprintln!(
+        "  {}{}",
+        status::dim(&format!("{:<12}", "storage")),
+        status::dim("system keyring")
+    );
 
     Ok(())
+}
+
+/// Style a section header (green, uppercase).
+fn style_section(name: &str) -> String {
+    use crate::ui::styles::{GREEN, style_for};
+    style_for(GREEN).apply_to(name.to_uppercase()).to_string()
 }
 
 #[cfg(test)]
