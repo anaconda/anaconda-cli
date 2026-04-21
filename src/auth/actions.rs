@@ -298,47 +298,6 @@ fn try_read_api_key_from_stdin() -> Option<String> {
     None
 }
 
-/// Perform login - either via API key or device authorization flow.
-pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError> {
-    let config = Config::load();
-
-    // Determine how to get the API key:
-    // 1. --api-key=<value> or --api-key <value>: use provided value
-    // 2. --api-key (empty string from default_missing_value): prompt or read stdin
-    // 3. --api-key - : read from stdin
-    // 4. No --api-key but stdin has data: read from stdin
-    // 5. No --api-key and stdin empty/TTY: device flow
-
-    match api_key {
-        Some(key) if key == "-" => {
-            // Explicit stdin read
-            let api_key = read_api_key_from_stdin()?;
-            login_with_api_key(&config, api_key, force).await
-        }
-        Some(key) if key.is_empty() => {
-            // --api-key without value: prompt or read stdin
-            let api_key = if stdin_is_pipe() {
-                read_api_key_from_stdin()?
-            } else {
-                prompt_api_key()?
-            };
-            login_with_api_key(&config, api_key, force).await
-        }
-        Some(key) => {
-            // --api-key=<value>: use directly
-            login_with_api_key(&config, key, force).await
-        }
-        None => {
-            // No --api-key flag: check if stdin has data piped in
-            if let Some(api_key) = try_read_api_key_from_stdin() {
-                login_with_api_key(&config, api_key, force).await
-            } else {
-                login_device_flow(&config, force).await
-            }
-        }
-    }
-}
-
 /// Perform the device authorization flow.
 async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError> {
     // We use a new, unauthenticated client instead of ApiClient, since
@@ -529,6 +488,47 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
                     .unwrap_or_else(|| error.error.clone());
                 tracing::error!("Authorization error: {}", msg);
                 return Err(AuthError::Authorization(msg));
+            }
+        }
+    }
+}
+
+/// Perform login - either via API key or device authorization flow.
+pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError> {
+    let config = Config::load();
+
+    // Determine how to get the API key:
+    // 1. --api-key=<value> or --api-key <value>: use provided value
+    // 2. --api-key (empty string from default_missing_value): prompt or read stdin
+    // 3. --api-key - : read from stdin
+    // 4. No --api-key but stdin has data: read from stdin
+    // 5. No --api-key and stdin empty/TTY: device flow
+
+    match api_key {
+        Some(key) if key == "-" => {
+            // Explicit stdin read
+            let api_key = read_api_key_from_stdin()?;
+            login_with_api_key(&config, api_key, force).await
+        }
+        Some(key) if key.is_empty() => {
+            // --api-key without value: prompt or read stdin
+            let api_key = if stdin_is_pipe() {
+                read_api_key_from_stdin()?
+            } else {
+                prompt_api_key()?
+            };
+            login_with_api_key(&config, api_key, force).await
+        }
+        Some(key) => {
+            // --api-key=<value>: use directly
+            login_with_api_key(&config, key, force).await
+        }
+        None => {
+            // No --api-key flag: check if stdin has data piped in
+            if let Some(api_key) = try_read_api_key_from_stdin() {
+                login_with_api_key(&config, api_key, force).await
+            } else {
+                login_device_flow(&config, force).await
             }
         }
     }
