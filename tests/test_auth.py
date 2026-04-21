@@ -258,7 +258,14 @@ class TestLoginApiKey:
 
     @pytest.mark.parametrize(
         "args",
-        [["login", "--api-key={}"], ["auth", "login", "--api-key={}"]],
+        [
+            # --api-key=<value> style
+            ["login", "--api-key={}"],
+            ["auth", "login", "--api-key={}"],
+            # --api-key <value> style (space-separated)
+            ["login", "--api-key", "{}"],
+            ["auth", "login", "--api-key", "{}"],
+        ],
     )
     def test_login_api_key_with_value(
         self,
@@ -268,7 +275,7 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """--api-key=<value> should use provided value directly."""
+        """--api-key=<value> and --api-key <value> should use provided value directly."""
         # Insert the API key into the args
         formatted_args = [arg.format(mock_auth_server.api_key) for arg in args]
         result = run_ana(*formatted_args, env=auth_env)
