@@ -50,6 +50,16 @@ impl UiColor {
     pub fn apply_to<D>(&self, val: D) -> StyledObject<D> {
         self.style().apply_to(val)
     }
+
+    /// Get a bold Style with this color as foreground.
+    pub fn bold(&self) -> Style {
+        self.style().bold()
+    }
+
+    /// Get a Style with this color as foreground and another as background.
+    pub fn on(&self, bg: UiColor) -> Style {
+        self.style().bg(bg.color())
+    }
 }
 
 /// Convert a hex color string to a console Color.

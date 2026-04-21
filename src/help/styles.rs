@@ -20,17 +20,16 @@ pub(super) enum HelpStyle {
 
 impl HelpStyle {
     pub fn style(&self) -> Style {
-        let box_bg = UiColor::BoxBg.color();
         match self {
-            Self::Section => Style::new().fg(UiColor::Green.color()).bold(),
-            Self::Command => Style::new().fg(UiColor::Blue.color()),
-            Self::Desc => Style::new().fg(UiColor::Desc.color()),
-            Self::Dim => Style::new().fg(UiColor::Dim.color()),
-            Self::Error => Style::new().fg(UiColor::Red.color()),
-            Self::Warning => Style::new().fg(UiColor::Amber.color()),
-            Self::BoxBorder => Style::new().fg(UiColor::BoxBorder.color()).bg(box_bg),
-            Self::BoxDesc => Style::new().fg(UiColor::BoxText.color()).bg(box_bg),
-            Self::BoxCommand => Style::new().fg(UiColor::Blue.color()).bg(box_bg).bold(),
+            Self::Section => UiColor::Green.bold(),
+            Self::Command => UiColor::Blue.style(),
+            Self::Desc => UiColor::Desc.style(),
+            Self::Dim => UiColor::Dim.style(),
+            Self::Error => UiColor::Red.style(),
+            Self::Warning => UiColor::Amber.style(),
+            Self::BoxBorder => UiColor::BoxBorder.on(UiColor::BoxBg),
+            Self::BoxDesc => UiColor::BoxText.on(UiColor::BoxBg),
+            Self::BoxCommand => UiColor::Blue.on(UiColor::BoxBg).bold(),
         }
     }
 }
