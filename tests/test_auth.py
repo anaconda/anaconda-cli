@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from conftest import AnaRunner
+from conftest import assert_output_contains
 from mock_auth_server import MockAuthServer
 
 
@@ -22,14 +23,15 @@ class TestLogin:
         result = run_ana("login", env=auth_env)
 
         assert result.returncode == 0
-
-        # Status messages go to stderr
-        # Message varies based on QR display: "visit:" or "scan the QR code or visit:"
-        assert "visit:" in result.stderr
-        assert "Authentication complete" in result.stderr
-        assert "API key stored in keyring" in result.stderr
-        assert "Logged in as" in result.stderr
-        assert "test@example.com" in result.stderr
+        assert_output_contains(
+            result.stderr,
+            "visit:",  # Message varies: "visit:" or "scan the QR code or visit:"
+            "Authentication complete",
+            "API key stored in keyring",
+            "Logged in as",
+            "test@example.com",
+            "expires",
+        )
         assert keyring_path.exists()
 
     def test_login_keyring_format(
@@ -189,10 +191,13 @@ class TestWhoami:
         result = run_ana("whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert "ACCOUNT" in result.stderr
-        assert "testuser" in result.stderr
-        assert "test@example.com" in result.stderr
-        assert "Test User" in result.stderr
+        assert_output_contains(
+            result.stderr,
+            "ACCOUNT",
+            "Test User",
+            "testuser",
+            "test@example.com",
+        )
 
     def test_whoami_shows_subscriptions(
         self,
@@ -204,9 +209,13 @@ class TestWhoami:
         result = run_ana("whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert "SUBSCRIPTIONS" in result.stderr
-        assert "Test Organization" in result.stderr
-        assert "2030-01-01" in result.stderr
+        assert_output_contains(
+            result.stderr,
+            "ACCOUNT",
+            "SUBSCRIPTIONS",
+            "Test Organization",
+            "2030-01-01",
+        )
 
     def test_whoami_shows_token_info(
         self,
@@ -219,8 +228,12 @@ class TestWhoami:
         result = run_ana("whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert "TOKEN" in result.stderr
-        assert str(keyring_path) in result.stderr
+        assert_output_contains(
+            result.stderr,
+            "SUBSCRIPTIONS",
+            "TOKEN",
+            str(keyring_path),
+        )
 
     def test_whoami_when_not_logged_in(
         self,
@@ -232,8 +245,11 @@ class TestWhoami:
         result = run_ana("whoami", env=auth_env)
 
         assert result.returncode == 0
-        assert "not logged in" in result.stderr
-        assert "ana login" in result.stderr
+        assert_output_contains(
+            result.stderr,
+            "not logged in",
+            "ana login",
+        )
 
     def test_whoami_via_auth_subcommand(
         self,
