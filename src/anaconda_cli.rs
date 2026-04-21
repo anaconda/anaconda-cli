@@ -21,7 +21,11 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
     Ok(())
 }
 
-pub fn run_subcommand(subcommand: &str, args: &[String], _ctx: &mut CommandContext) -> Result<(), String> {
+pub fn run_subcommand(
+    subcommand: &str,
+    args: &[String],
+    _ctx: &mut CommandContext,
+) -> Result<(), String> {
     let anaconda_bin = paths::bin_path("anaconda");
 
     if !anaconda_bin.exists() {

@@ -19,7 +19,11 @@ pub fn parse_feedback_type(bug: bool, feature: bool) -> Option<FeedbackType> {
     }
 }
 
-pub fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String>, _ctx: &mut CommandContext) {
+pub fn open_feedback(
+    feedback_type: Option<FeedbackType>,
+    description: Option<String>,
+    _ctx: &mut CommandContext,
+) {
     let mut params = vec![("usp", "pp_url".to_string())];
 
     if let Some(ft) = feedback_type {
