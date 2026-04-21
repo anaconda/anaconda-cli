@@ -21,6 +21,9 @@ pub enum AuthError {
 
     #[error("Keyring error: {0}")]
     Keyring(String),
+
+    #[error("Invalid API key: {0}")]
+    InvalidApiKey(String),
 }
 
 impl From<reqwest_middleware::Error> for AuthError {

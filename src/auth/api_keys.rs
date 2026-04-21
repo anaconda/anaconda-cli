@@ -36,7 +36,7 @@ pub struct ApiKeyResult {
 /// Extract expiration date from a JWT token.
 ///
 /// Returns the expiration as a YYYY-MM-DD string, or None if parsing fails.
-fn extract_jwt_expiration(token: &str) -> Option<String> {
+pub fn extract_jwt_expiration(token: &str) -> Option<String> {
     // JWT format: header.payload.signature
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
@@ -50,6 +50,19 @@ fn extract_jwt_expiration(token: &str) -> Option<String> {
     // Convert Unix timestamp to date string
     let datetime = chrono::DateTime::from_timestamp(payload.exp, 0)?;
     Some(datetime.format("%Y-%m-%d").to_string())
+}
+
+/// Validate that a string is a valid JWT token.
+///
+/// Returns true if the token has valid JWT structure (3 parts, decodable payload).
+pub fn is_valid_jwt(token: &str) -> bool {
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return false;
+    }
+
+    // Try to decode the payload
+    BASE64_URL_SAFE_NO_PAD.decode(parts[1]).is_ok()
 }
 
 /// Create a new API key using the access token.

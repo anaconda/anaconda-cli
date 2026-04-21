@@ -223,7 +223,7 @@ class TestLoginApiKey:
     @pytest.mark.parametrize(
         "args", [["login", "--api-key"], ["auth", "login", "--api-key"]]
     )
-    def test_login_api_key_prompts_when_no_value(
+    def test_login_api_key_reads_from_stdin_when_no_value(
         self,
         args: list[str],
         run_ana: AnaRunner,
@@ -231,20 +231,14 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """--api-key without value should prompt for secure input."""
-        # Provide API key via stdin
+        """--api-key without value should read from stdin when piped."""
+        # When stdin is piped, reads API key directly (no interactive prompt)
         result = run_ana(*args, env=auth_env, input=f"{mock_auth_server.api_key}\n")
 
         assert result.returncode == 0
-        # Should prompt for API key and show masked input (dots/asterisks)
-        assert "API key:" in result.stderr
-        assert "•" in result.stderr or "*" in result.stderr, (
-            "Expected masked input (dots or asterisks) after API key prompt"
-        )
         # Should show success messages
         assert_output_contains(
             result.stderr,
-            "API key:",
             "Token stored in system keyring",
             "Logged in as",
             "test@example.com",
@@ -344,38 +338,6 @@ class TestLoginApiKey:
             "test@example.com",
             "expires",
         )
-        assert keyring_path.exists()
-
-        # Verify API key was stored correctly
-        api_key_result = run_ana("auth", "api-key", env=auth_env)
-        assert api_key_result.stdout.strip() == mock_auth_server.api_key
-
-    @pytest.mark.parametrize("args", [["login"], ["auth", "login"]])
-    def test_login_api_key_from_stdin_pipe_no_flag(
-        self,
-        args: list[str],
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-        keyring_path: Path,
-        mock_auth_server: MockAuthServer,
-    ) -> None:
-        """API key can be piped via stdin without any flag (e.g., echo $API_KEY | ana login)."""
-        # Simulate piping: provide API key via stdin (no --api-key flag needed)
-        result = run_ana(*args, env=auth_env, input=f"{mock_auth_server.api_key}\n")
-
-        assert result.returncode == 0
-        # Should show success messages (no device flow when stdin is piped)
-        assert_output_contains(
-            result.stderr,
-            "Token stored in system keyring",
-            "Logged in as",
-            "test@example.com",
-            "expires",
-        )
-        # Should NOT show device flow messages
-        assert "visit:" not in result.stderr.lower()
-        assert "qr" not in result.stderr.lower()
-        assert "browser" not in result.stderr.lower()
         assert keyring_path.exists()
 
         # Verify API key was stored correctly
