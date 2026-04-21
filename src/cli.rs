@@ -154,11 +154,19 @@ impl Action {
         match &result {
             Ok(_) => {
                 increment_counter("cli_command_success", 1, ctx.telemetry.attrs());
-                record_histogram("cli_command_success_duration_ms", duration_ms, ctx.telemetry.into_attrs());
+                record_histogram(
+                    "cli_command_success_duration_ms",
+                    duration_ms,
+                    ctx.telemetry.into_attrs(),
+                );
             }
             Err(_) => {
                 increment_counter("cli_command_failure", 1, ctx.telemetry.attrs());
-                record_histogram("cli_command_failure_duration_ms", duration_ms, ctx.telemetry.into_attrs());
+                record_histogram(
+                    "cli_command_failure_duration_ms",
+                    duration_ms,
+                    ctx.telemetry.into_attrs(),
+                );
             }
         }
 
