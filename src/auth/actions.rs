@@ -259,13 +259,33 @@ async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthErro
     Ok(())
 }
 
+/// Try to read API key from stdin if data is available.
+/// Returns Some(key) if stdin has data, None if empty/EOF.
+fn try_read_api_key_from_stdin() -> Option<String> {
+    if !stdin_is_pipe() {
+        return None;
+    }
+
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    if stdin.lock().read_line(&mut line).ok()? > 0 {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
+        }
+    }
+    None
+}
+
 /// Perform login - either via API key or device authorization flow.
 pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError> {
     // Determine how to get the API key:
     // 1. --api-key=<value> or --api-key <value>: use provided value
     // 2. --api-key (empty string from default_missing_value): prompt or read stdin
     // 3. --api-key - : read from stdin
-    // 4. No --api-key: device flow
+    // 4. No --api-key but stdin has data: read from stdin
+    // 5. No --api-key and stdin empty/TTY: device flow
 
     match api_key {
         Some(key) if key == "-" => {
@@ -287,8 +307,12 @@ pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError
             login_with_api_key(key, force).await
         }
         None => {
-            // No --api-key flag: always use device flow
-            login_device_flow(force).await
+            // No --api-key flag: check if stdin has data piped in
+            if let Some(api_key) = try_read_api_key_from_stdin() {
+                login_with_api_key(api_key, force).await
+            } else {
+                login_device_flow(force).await
+            }
         }
     }
 }
