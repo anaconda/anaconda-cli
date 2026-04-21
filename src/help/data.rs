@@ -31,7 +31,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     },
     HelpSection {
         name: "SETUP",
-        commands: &["init"],
+        commands: &["setup"],
     },
 ];
 

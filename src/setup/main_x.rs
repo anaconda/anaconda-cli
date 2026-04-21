@@ -1,4 +1,4 @@
-//! main-x channel initialization.
+//! main-x channel setup.
 //!
 //! Configures conda to use the Anaconda main-x channel for early access packages.
 
@@ -14,15 +14,15 @@ use crate::ui::status;
 const MAIN_CHANNEL: &str = "https://repo.anaconda.com/pkgs/main";
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
 
-/// Initialize main-x channel access.
+/// Set up main-x channel access.
 ///
 /// This command:
 /// 1. Ensures the user is logged in to Anaconda
 /// 2. Adds the main-x channel to conda configuration (with main channel for fallback)
 /// 3. Provides instructions for reverting the changes
-pub async fn init_main_x() -> miette::Result<()> {
+pub async fn setup_main_x() -> miette::Result<()> {
     status::info(&format!(
-        "Initializing {} channel access...",
+        "Setting up {} channel access...",
         status::highlight("main-x")
     ));
     status::blank_line();

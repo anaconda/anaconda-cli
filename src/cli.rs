@@ -12,7 +12,7 @@ use crate::context::CommandContext;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::help;
-use crate::init;
+use crate::setup;
 use crate::tools;
 use crate::update;
 
@@ -124,7 +124,7 @@ pub enum Action {
         force: bool,
     },
     ToolList,
-    InitMainX,
+    SetupMainX,
 }
 
 impl Action {
@@ -149,7 +149,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
-            Action::InitMainX => "init.main-x",
+            Action::SetupMainX => "setup.main-x",
         }
     }
 
@@ -254,8 +254,8 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
-            Action::InitMainX => {
-                init::init_main_x().await?;
+            Action::SetupMainX => {
+                setup::setup_main_x().await?;
                 Ok(())
             }
         }
@@ -329,9 +329,9 @@ pub fn parse() -> (Action, LogLevel) {
                         Action::ToolUninstall { name, force }
                     }
                 },
-                Some(Commands::Init { command }) => match command {
-                    None => Action::ShowSubcommandHelp("init".to_string()),
-                    Some(InitCommands::MainX) => Action::InitMainX,
+                Some(Commands::Setup { command }) => match command {
+                    None => Action::ShowSubcommandHelp("setup".to_string()),
+                    Some(SetupCommands::MainX) => Action::SetupMainX,
                 },
             };
             (action, level)
@@ -505,15 +505,15 @@ enum Commands {
         command: Option<ToolCommands>,
     },
 
-    /// Initialize Anaconda services
+    /// Set up Anaconda services
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
-        override_usage = "ana init <command> [options]"
+        override_usage = "ana setup <command> [options]"
     )]
-    Init {
+    Setup {
         #[command(subcommand)]
-        command: Option<InitCommands>,
+        command: Option<SetupCommands>,
     },
 }
 
@@ -611,7 +611,7 @@ enum ToolCommands {
 }
 
 #[derive(Subcommand)]
-enum InitCommands {
+enum SetupCommands {
     /// Configure Main-X channel for early access packages
     #[command(name = "main-x")]
     MainX,
