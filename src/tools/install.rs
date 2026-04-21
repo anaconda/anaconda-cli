@@ -13,6 +13,7 @@ use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
 use super::{pixi_config, tools};
+use crate::context::CommandContext;
 use crate::paths;
 
 /// Global progress bar for installation feedback.
@@ -23,7 +24,9 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
 });
 
 /// Install a tool from its lockfile.
-pub async fn install_tool(name: &str) -> miette::Result<()> {
+pub async fn install_tool(name: &str, ctx: &mut CommandContext) -> miette::Result<()> {
+    ctx.telemetry.add("tool_name", name.to_string());
+
     let prefix = paths::tool_prefix(name);
 
     let lock_content =

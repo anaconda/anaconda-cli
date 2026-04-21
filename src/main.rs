@@ -2,6 +2,7 @@ mod anaconda_cli;
 mod auth;
 mod cli;
 mod config;
+mod context;
 mod diagnostics;
 #[cfg(feature = "feedback")]
 mod feedback;

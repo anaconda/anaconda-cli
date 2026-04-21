@@ -9,6 +9,7 @@ use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use crate::config::Config;
+use crate::context::CommandContext;
 use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
 
@@ -122,7 +123,7 @@ struct TokenErrorResponse {
 }
 
 /// Perform the device authorization flow.
-pub async fn login() -> Result<(), AuthError> {
+pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     // We use a new, unauthenticated client instead of ApiClient, since
     // login by definition happens first. It ends up being simpler to do
     // this, at least for now, because the auth flow needs to follow direct
@@ -299,7 +300,7 @@ pub async fn login() -> Result<(), AuthError> {
 }
 
 /// Log out by removing the API key for the current domain.
-pub fn logout() -> Result<(), AuthError> {
+pub fn logout(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let config = Config::load();
     delete_api_key(&config)?;
     println!("Logged out from {}", config.domain);
@@ -307,7 +308,7 @@ pub fn logout() -> Result<(), AuthError> {
 }
 
 /// Display the API key for the current domain.
-pub fn show_api_key() -> Result<(), AuthError> {
+pub fn show_api_key(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let config = Config::load();
 
     match get_api_key(&config)? {
@@ -322,7 +323,7 @@ pub fn show_api_key() -> Result<(), AuthError> {
 }
 
 /// Display information about the logged-in user.
-pub async fn whoami() -> Result<(), AuthError> {
+pub async fn whoami(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let client = ApiClient::new()?;
 
     if !client.is_authenticated() {

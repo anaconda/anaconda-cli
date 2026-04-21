@@ -4,6 +4,7 @@ use std::env;
 use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
+use crate::context::CommandContext;
 use crate::http::{bearer_header, build_client};
 use crate::input::prompt_yes_no;
 
@@ -240,7 +241,7 @@ pub async fn apply_update(release: &Release) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn check_for_update(current_version: &str) {
+pub async fn check_for_update(current_version: &str, _ctx: &mut CommandContext) {
     match check_update(current_version).await {
         Ok(UpdateCheck::Available(release)) => {
             println!(
@@ -261,7 +262,7 @@ pub async fn check_for_update(current_version: &str) {
     }
 }
 
-pub async fn run_update(current_version: &str, force: bool) {
+pub async fn run_update(current_version: &str, force: bool, _ctx: &mut CommandContext) {
     let check = match check_update(current_version).await {
         Ok(c) => c,
         Err(e) => {
@@ -300,7 +301,7 @@ pub async fn run_update(current_version: &str, force: bool) {
     }
 }
 
-pub async fn show_available_versions(current_version: &str) {
+pub async fn show_available_versions(current_version: &str, _ctx: &mut CommandContext) {
     let releases = match fetch_available_releases().await {
         Ok(r) => r,
         Err(e) => {

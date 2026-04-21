@@ -1,9 +1,10 @@
 use std::process::Command;
 
+use crate::context::CommandContext;
 use crate::paths;
 use crate::tools;
 
-pub async fn run_bootstrap() -> Result<(), String> {
+pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
     let anaconda_bin = paths::bin_path("anaconda");
 
     if anaconda_bin.exists() {
@@ -12,7 +13,7 @@ pub async fn run_bootstrap() -> Result<(), String> {
     }
 
     eprintln!("Installing anaconda-cli...");
-    tools::install::install_tool("anaconda-cli")
+    tools::install::install_tool("anaconda-cli", ctx)
         .await
         .map_err(|e| format!("{:?}", e))?;
 
@@ -20,7 +21,7 @@ pub async fn run_bootstrap() -> Result<(), String> {
     Ok(())
 }
 
-pub fn run_subcommand(subcommand: &str, args: &[String]) -> Result<(), String> {
+pub fn run_subcommand(subcommand: &str, args: &[String], _ctx: &mut CommandContext) -> Result<(), String> {
     let anaconda_bin = paths::bin_path("anaconda");
 
     if !anaconda_bin.exists() {

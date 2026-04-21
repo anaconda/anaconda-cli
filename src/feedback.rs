@@ -1,3 +1,5 @@
+use crate::context::CommandContext;
+
 const FEEDBACK_BASE_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSeGd9p7pQSHvjIc6RNShjTQCGmM-5_3xkPNpNfYk102-HZB8Q/viewform";
 
 /// Feedback type for the feedback form
@@ -17,7 +19,7 @@ pub fn parse_feedback_type(bug: bool, feature: bool) -> Option<FeedbackType> {
     }
 }
 
-pub fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String>) {
+pub fn open_feedback(feedback_type: Option<FeedbackType>, description: Option<String>, _ctx: &mut CommandContext) {
     let mut params = vec![("usp", "pp_url".to_string())];
 
     if let Some(ft) = feedback_type {
