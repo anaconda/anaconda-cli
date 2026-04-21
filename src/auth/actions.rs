@@ -160,6 +160,48 @@ fn days_until_date(date_str: &str) -> Option<i64> {
     Some((expires - today).num_days())
 }
 
+/// Format a duration in days as a human-readable string.
+///
+/// Returns (formatted_string, is_expired).
+/// Examples:
+/// - 400 days -> ("1 year, 35 days", false)
+/// - 1 day -> ("1 day", false)
+/// - -30 days -> ("expired", true)
+fn format_duration(days: i64) -> (String, bool) {
+    if days < 0 {
+        return ("expired".to_string(), true);
+    }
+
+    let years = days / 365;
+    let remaining_days = days % 365;
+
+    let s = if years > 0 {
+        if remaining_days == 0 {
+            if years == 1 {
+                "1 year".to_string()
+            } else {
+                format!("{} years", years)
+            }
+        } else if remaining_days == 1 {
+            if years == 1 {
+                "1 year, 1 day".to_string()
+            } else {
+                format!("{} years, 1 day", years)
+            }
+        } else if years == 1 {
+            format!("1 year, {} days", remaining_days)
+        } else {
+            format!("{} years, {} days", years, remaining_days)
+        }
+    } else if days == 1 {
+        "1 day".to_string()
+    } else {
+        format!("{} days", days)
+    };
+
+    (s, false)
+}
+
 /// Print token expiration info.
 ///
 /// Example: `  expires    2026-04-09 (365 days)`
@@ -484,7 +526,7 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let response = client.get("/api/account").send().await?;
+    let response = client.get("/api/auth/sessions/whoami").send().await?;
 
     if !response.status().is_success() {
         let resp_status = response.status();
@@ -506,17 +548,18 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
     }
 
     // Styled output mode
-    let user = data.get("user");
+    // Data is nested under passport.profile for user info
+    let profile = data.get("passport").and_then(|p| p.get("profile"));
 
     // Account section
     eprintln!("{}", style_section("account"));
 
     // Build name from first_name + last_name
-    let first = user
-        .and_then(|u| u.get("first_name"))
+    let first = profile
+        .and_then(|p| p.get("first_name"))
         .and_then(|v| v.as_str());
-    let last = user
-        .and_then(|u| u.get("last_name"))
+    let last = profile
+        .and_then(|p| p.get("last_name"))
         .and_then(|v| v.as_str());
     match (first, last) {
         (Some(f), Some(l)) => print_kv("name", &format!("{} {}", f, l)),
@@ -525,46 +568,87 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
         _ => {}
     }
 
-    if let Some(username) = user
-        .and_then(|u| u.get("username"))
+    if let Some(username) = profile
+        .and_then(|p| p.get("username"))
         .and_then(|v| v.as_str())
     {
         print_kv("username", username);
     }
-    if let Some(email) = user.and_then(|u| u.get("email")).and_then(|v| v.as_str()) {
+    if let Some(email) = profile
+        .and_then(|p| p.get("email"))
+        .and_then(|v| v.as_str())
+    {
         print_kv("email", email);
     }
-    print_kv("org", &config.domain);
 
-    // Subscription section (if available)
-    if let Some(subscriptions) = data.get("subscriptions").and_then(|v| v.as_array()) {
-        if let Some(subscription) = subscriptions.first() {
+    // Organizations section - shows orgs with their subscriptions
+    let organizations = data
+        .get("passport")
+        .and_then(|p| p.get("organizations"))
+        .and_then(|v| v.as_array());
+
+    if let Some(orgs) = organizations {
+        // Filter to orgs that have subscription attributes
+        let orgs_with_subs: Vec<_> = orgs
+            .iter()
+            .filter_map(|org| {
+                let title = org.get("title").and_then(|v| v.as_str())?;
+                let attrs = org.get("attributes").and_then(|v| v.as_array())?;
+                let sub = attrs
+                    .iter()
+                    .find(|a| a.get("group").and_then(|v| v.as_str()) == Some("subscriptions"))?;
+                let sub_id = sub.get("id").and_then(|v| v.as_str())?;
+                let expires = sub
+                    .get("data")
+                    .and_then(|d| d.get("expires_at"))
+                    .and_then(|v| v.as_str())?;
+                Some((title, sub_id, expires))
+            })
+            .collect();
+
+        if !orgs_with_subs.is_empty() {
             status::blank_line();
-            eprintln!("{}", style_section("subscription"));
-            if let Some(plan) = subscription.get("product_code").and_then(|v| v.as_str()) {
-                print_kv("plan", plan);
-            }
-            if let Some(expires) = subscription.get("expires_at").and_then(|v| v.as_str()) {
-                // Handle ISO 8601 format (2035-01-02T00:00:00Z)
-                let date_part = if expires.len() >= 10 {
-                    &expires[..10]
-                } else {
-                    expires
-                };
-                if let Some(days) = days_until_date(date_part) {
-                    let days_str = if days == 1 {
-                        "1 day".to_string()
+            eprintln!("{}", style_section("subscriptions"));
+
+            // Build labels and find max width for alignment
+            let rows: Vec<_> = orgs_with_subs
+                .iter()
+                .map(|(org_title, sub_id, expires)| {
+                    let sub_type = sub_id.split('_').next().unwrap_or(sub_id);
+                    let label = format!("{} ({})", org_title, sub_type);
+                    let date_part = if expires.len() >= 10 {
+                        &expires[..10]
                     } else {
-                        format!("{} days", days)
+                        *expires
+                    };
+                    (label, date_part.to_string())
+                })
+                .collect();
+
+            let max_label_width = rows.iter().map(|(l, _)| l.len()).max().unwrap_or(0);
+            let pad_width = max_label_width + 4; // 4 spaces after longest label
+
+            for (label, date_part) in rows {
+                if let Some(days) = days_until_date(&date_part) {
+                    let (duration_str, is_expired) = format_duration(days);
+                    let suffix = if is_expired {
+                        use crate::ui::styles::{RED, style_for};
+                        format!(" ({})", style_for(RED).apply_to(&duration_str))
+                    } else {
+                        status::dim(&format!(" ({})", duration_str))
                     };
                     eprintln!(
                         "  {}{}{}",
-                        status::dim(&format!("{:<12}", "expires")),
-                        status::highlight(date_part),
-                        status::dim(&format!(" ({days_str})"))
+                        status::dim(&format!("{:<width$}", label, width = pad_width)),
+                        status::highlight(&date_part),
+                        suffix
                     );
                 } else {
-                    print_kv("expires", date_part);
+                    eprintln!(
+                        "  {}{}",
+                        status::dim(&format!("{:<width$}", label, width = pad_width)),
+                        status::highlight(&date_part)
+                    );
                 }
             }
         }
@@ -583,7 +667,7 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
     eprintln!(
         "  {}{}",
         status::dim(&format!("{:<12}", "storage")),
-        status::dim("system keyring")
+        status::dim(&config.keyring_path.display().to_string())
     );
 
     Ok(())
