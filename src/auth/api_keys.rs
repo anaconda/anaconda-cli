@@ -1,5 +1,6 @@
 //! API key management.
 
+use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::errors::AuthError;
@@ -19,12 +20,43 @@ struct ApiKeyResponse {
     api_key: String,
 }
 
+/// JWT payload containing expiration timestamp.
+#[derive(Debug, Deserialize)]
+struct JwtPayload {
+    exp: i64,
+}
+
+/// Result of creating an API key.
+pub struct ApiKeyResult {
+    pub api_key: String,
+    pub expires_at: Option<String>,
+}
+
+/// Extract expiration date from a JWT token.
+///
+/// Returns the expiration as a YYYY-MM-DD string, or None if parsing fails.
+fn extract_jwt_expiration(token: &str) -> Option<String> {
+    // JWT format: header.payload.signature
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+
+    // Decode the payload (middle part) - JWT uses base64url encoding
+    let payload_bytes = BASE64_URL_SAFE_NO_PAD.decode(parts[1]).ok()?;
+    let payload: JwtPayload = serde_json::from_slice(&payload_bytes).ok()?;
+
+    // Convert Unix timestamp to date string
+    let datetime = chrono::DateTime::from_timestamp(payload.exp, 0)?;
+    Some(datetime.format("%Y-%m-%d").to_string())
+}
+
 /// Create a new API key using the access token.
 pub async fn create_api_key(
     client: &reqwest_middleware::ClientWithMiddleware,
     config: &Config,
     access_token: &str,
-) -> Result<String, AuthError> {
+) -> Result<ApiKeyResult, AuthError> {
     let url = format!("{}/api/auth/api-keys", config.base_url());
     let payload = CreateApiKeyRequest {
         scopes: vec![
@@ -53,7 +85,12 @@ pub async fn create_api_key(
     }
 
     let response: ApiKeyResponse = response.json().await?;
-    Ok(response.api_key)
+    let expires_at = extract_jwt_expiration(&response.api_key);
+
+    Ok(ApiKeyResult {
+        api_key: response.api_key,
+        expires_at,
+    })
 }
 
 #[cfg(test)]

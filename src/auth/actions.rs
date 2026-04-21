@@ -119,7 +119,6 @@ struct TokenErrorResponse {
 #[derive(Debug, Deserialize)]
 struct AccountResponse {
     user: Option<UserInfo>,
-    subscriptions: Option<Vec<SubscriptionInfo>>,
 }
 
 /// User information nested in account response.
@@ -129,21 +128,11 @@ struct UserInfo {
     email: Option<String>,
 }
 
-/// Subscription information from the API.
-#[derive(Debug, Deserialize)]
-struct SubscriptionInfo {
-    expires_at: Option<String>,
-}
-
 /// Print logged-in user status line.
 ///
-/// Example: `✓ Logged in as user@example.com (example)`
-fn print_logged_in_status(email: &str, org: &str) {
-    status::success(&format!(
-        "Logged in as {} ({})",
-        status::highlight(email),
-        org
-    ));
+/// Example: `✓ Logged in as user@example.com`
+fn print_logged_in_status(email: &str) {
+    status::success(&format!("Logged in as {}", status::highlight(email)));
 }
 
 /// Calculate days from today until a date string (YYYY-MM-DD format).
@@ -197,20 +186,15 @@ fn format_duration(days: i64) -> (String, bool) {
 
 /// Print token expiration info.
 ///
-/// Example: `  expires    2026-04-09 (365 days)`
-fn print_expiration(expires_at: &str) {
-    // Parse the expiration date and calculate days remaining
-    if let Some(days_remaining) = days_until_date(&expires_at[..10]) {
-        let days_str = if days_remaining == 1 {
-            "1 day".to_string()
-        } else {
-            format!("{} days", days_remaining)
-        };
+/// Example: `  expires    2027-04-20 (1 year)`
+fn print_token_expiration(expires_at: &str) {
+    if let Some(days) = days_until_date(expires_at) {
+        let (duration_str, _) = format_duration(days);
         eprintln!(
             "  {}{}{}",
             status::dim("expires    "),
-            status::highlight(&expires_at[..10]),
-            status::dim(&format!(" ({days_str})"))
+            status::highlight(expires_at),
+            status::dim(&format!(" ({})", duration_str))
         );
     }
 }
@@ -218,12 +202,10 @@ fn print_expiration(expires_at: &str) {
 /// Combined login information for display.
 struct LoginInfo {
     email: String,
-    org: String,
-    expires_at: Option<String>,
 }
 
-/// Fetch login info (account + API key expiration) for display after login.
-async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
+/// Fetch login info for display after login.
+async fn fetch_login_info() -> Result<LoginInfo, AuthError> {
     let client = ApiClient::new()?;
 
     // Fetch account info
@@ -237,18 +219,7 @@ async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
         .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
         .unwrap_or_else(|| "unknown".to_string());
 
-    // Get expiration from first subscription
-    let expires_at = account
-        .subscriptions
-        .as_ref()
-        .and_then(|subs| subs.first())
-        .and_then(|s| s.expires_at.clone());
-
-    Ok(LoginInfo {
-        email,
-        org: config.domain.clone(),
-        expires_at,
-    })
+    Ok(LoginInfo { email })
 }
 
 /// Perform the device authorization flow.
@@ -402,17 +373,17 @@ pub async fn login() -> Result<(), AuthError> {
             status::success("Authentication complete");
 
             // Create API key
-            let api_key = create_api_key(&client, &config, &token.access_token).await?;
+            let api_key_result = create_api_key(&client, &config, &token.access_token).await?;
 
             // Save to keyring
-            save_api_key(&config, &api_key)?;
+            save_api_key(&config, &api_key_result.api_key)?;
             status::success("Token stored in keyring");
 
             // Fetch and display user info
-            if let Ok(login_info) = fetch_login_info(&config).await {
-                print_logged_in_status(&login_info.email, &login_info.org);
-                if let Some(ref expires_at) = login_info.expires_at {
-                    print_expiration(expires_at);
+            if let Ok(login_info) = fetch_login_info().await {
+                print_logged_in_status(&login_info.email);
+                if let Some(ref expires_at) = api_key_result.expires_at {
+                    print_token_expiration(expires_at);
                 }
             }
 
