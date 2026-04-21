@@ -1,6 +1,7 @@
 //! API key management.
 
-use base64::prelude::*;
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 
 use super::errors::AuthError;
