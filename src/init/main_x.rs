@@ -35,7 +35,7 @@ pub async fn init_main_x() -> miette::Result<()> {
 
     // Step 3: Show success message and undo instructions
     status::blank_line();
-    status::success(&format!(
+    status::celebrate(&format!(
         "You can now install packages from the {} channel!",
         status::highlight("main-x")
     ));

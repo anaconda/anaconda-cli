@@ -16,6 +16,13 @@ pub fn success(msg: &str) {
     eprintln!("{} {}", UiColor::Green.apply_to("✓"), msg);
 }
 
+/// Print a celebratory success message with party popper.
+///
+/// Example output: `🎉 You can now install packages from the main-x channel!`
+pub fn celebrate(msg: &str) {
+    eprintln!("{} {}", UiColor::Green.apply_to("🎉"), msg);
+}
+
 /// Print an error message with red "error:" prefix.
 ///
 /// Example output: `error: not logged in`
