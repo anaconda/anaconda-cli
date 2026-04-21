@@ -53,6 +53,8 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
     }
     if IS_WINDOWS:
         env["USERPROFILE"] = str(fake_home)
+        # Rattler does not reliably detect the default cache for Windows tests
+        env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
     else:
         env["HOME"] = str(fake_home)
     return env
