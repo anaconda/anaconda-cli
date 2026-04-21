@@ -4,17 +4,6 @@
 
 use console::{Color, Style, StyledObject};
 
-// Design spec colors (hex values)
-const GREEN: &str = "#3fb950";
-const RED: &str = "#f85149";
-const AMBER: &str = "#e3b341";
-const BLUE: &str = "#79c0ff";
-const DIM: &str = "#6e7681";
-const DESC: &str = "#8b949e";
-const BOX_BG: &str = "#161b22";
-const BOX_BORDER: &str = "#30363d";
-const BOX_TEXT: &str = "#e6edf3";
-
 /// UI colors from the design spec.
 #[derive(Clone, Copy)]
 pub enum UiColor {
@@ -33,15 +22,15 @@ impl UiColor {
     /// Get the hex value for this color.
     fn hex(&self) -> &'static str {
         match self {
-            Self::Green => GREEN,
-            Self::Red => RED,
-            Self::Amber => AMBER,
-            Self::Blue => BLUE,
-            Self::Dim => DIM,
-            Self::Desc => DESC,
-            Self::BoxBg => BOX_BG,
-            Self::BoxBorder => BOX_BORDER,
-            Self::BoxText => BOX_TEXT,
+            Self::Green => "#3fb950",
+            Self::Red => "#f85149",
+            Self::Amber => "#e3b341",
+            Self::Blue => "#79c0ff",
+            Self::Dim => "#6e7681",
+            Self::Desc => "#8b949e",
+            Self::BoxBg => "#161b22",
+            Self::BoxBorder => "#30363d",
+            Self::BoxText => "#e6edf3",
         }
     }
 
