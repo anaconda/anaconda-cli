@@ -34,9 +34,8 @@ pub struct ApiClient {
 
 impl ApiClient {
     /// Create a new API client, loading credentials from the keyring if available.
-    pub fn new() -> Result<Self, AuthError> {
-        let config = Config::load();
-        let api_key = get_api_key(&config)?;
+    pub fn new(config: &Config) -> Result<Self, AuthError> {
+        let api_key = get_api_key(config)?;
 
         let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
         if let Some(ref key) = api_key {
@@ -164,17 +163,15 @@ fn print_token_expiration(expires_at: &str) {
 /// Save API key and display login success information.
 ///
 /// This is the common "finalize login" logic shared by both device flow and direct API key login.
-async fn save_and_display_login(api_key: &str) -> Result<(), AuthError> {
+async fn save_and_display_login(config: &Config, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
 
-    let config = Config::load();
-
     // Save to keyring
-    save_api_key(&config, api_key)?;
+    save_api_key(config, api_key)?;
     status::success("API key stored in keyring");
 
     // Fetch and display user info
-    if let Ok(login_info) = fetch_login_info().await {
+    if let Ok(login_info) = fetch_login_info(config).await {
         print_logged_in_status(&login_info.email);
         if let Some(expires_at) = get_expiration(api_key) {
             print_token_expiration(&expires_at);
@@ -190,8 +187,8 @@ struct LoginInfo {
 }
 
 /// Fetch login info for display after login.
-async fn fetch_login_info() -> Result<LoginInfo, AuthError> {
-    let client = ApiClient::new()?;
+async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
+    let client = ApiClient::new(config)?;
 
     // Fetch account info
     let account_response = client.get("/api/account").send().await?;
@@ -244,10 +241,12 @@ fn prompt_api_key() -> Result<String, AuthError> {
 }
 
 /// Login with a provided API key (bypassing device flow).
-async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthError> {
+async fn login_with_api_key(
+    config: &Config,
+    api_key: String,
+    force: bool,
+) -> Result<(), AuthError> {
     use super::api_keys::is_valid_api_key;
-
-    let config = Config::load();
 
     // Validate the API key format
     if !is_valid_api_key(&api_key) {
@@ -257,7 +256,7 @@ async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthErro
     }
 
     // Check if already logged in
-    if !force && get_api_key(&config)?.is_some() {
+    if !force && get_api_key(config)?.is_some() {
         status::warn(&format!(
             "Already logged in to {}",
             status::highlight(&config.domain)
@@ -277,7 +276,7 @@ async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthErro
         }
     }
 
-    save_and_display_login(&api_key).await
+    save_and_display_login(config, &api_key).await
 }
 
 /// Try to read API key from stdin if data is available.
@@ -301,6 +300,8 @@ fn try_read_api_key_from_stdin() -> Option<String> {
 
 /// Perform login - either via API key or device authorization flow.
 pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError> {
+    let config = Config::load();
+
     // Determine how to get the API key:
     // 1. --api-key=<value> or --api-key <value>: use provided value
     // 2. --api-key (empty string from default_missing_value): prompt or read stdin
@@ -312,7 +313,7 @@ pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError
         Some(key) if key == "-" => {
             // Explicit stdin read
             let api_key = read_api_key_from_stdin()?;
-            login_with_api_key(api_key, force).await
+            login_with_api_key(&config, api_key, force).await
         }
         Some(key) if key.is_empty() => {
             // --api-key without value: prompt or read stdin
@@ -321,33 +322,32 @@ pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError
             } else {
                 prompt_api_key()?
             };
-            login_with_api_key(api_key, force).await
+            login_with_api_key(&config, api_key, force).await
         }
         Some(key) => {
             // --api-key=<value>: use directly
-            login_with_api_key(key, force).await
+            login_with_api_key(&config, key, force).await
         }
         None => {
             // No --api-key flag: check if stdin has data piped in
             if let Some(api_key) = try_read_api_key_from_stdin() {
-                login_with_api_key(api_key, force).await
+                login_with_api_key(&config, api_key, force).await
             } else {
-                login_device_flow(force).await
+                login_device_flow(&config, force).await
             }
         }
     }
 }
 
 /// Perform the device authorization flow.
-async fn login_device_flow(force: bool) -> Result<(), AuthError> {
+async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError> {
     // We use a new, unauthenticated client instead of ApiClient, since
     // login by definition happens first. It ends up being simpler to do
     // this, at least for now, because the auth flow needs to follow direct
     // URLs from openid-configuration etc.
-    let config = Config::load();
 
     // Check if already logged in
-    if !force && get_api_key(&config)?.is_some() {
+    if !force && get_api_key(config)?.is_some() {
         status::warn(&format!(
             "Already logged in to {}",
             status::highlight(&config.domain)
@@ -501,9 +501,9 @@ async fn login_device_flow(force: bool) -> Result<(), AuthError> {
             status::success("Authentication complete");
 
             // Create API key
-            let api_key = create_api_key(&client, &config, &token.access_token).await?;
+            let api_key = create_api_key(&client, config, &token.access_token).await?;
 
-            return save_and_display_login(&api_key).await;
+            return save_and_display_login(config, &api_key).await;
         }
 
         let error: TokenErrorResponse = response.json().await?;
@@ -605,7 +605,7 @@ fn mask_api_key(key: &str) -> String {
 /// Display information about the logged-in user.
 pub async fn whoami(json: bool) -> Result<(), AuthError> {
     let config = Config::load();
-    let client = ApiClient::new()?;
+    let client = ApiClient::new(&config)?;
 
     if !client.is_authenticated() {
         status::error("not logged in");
