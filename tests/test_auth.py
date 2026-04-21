@@ -217,6 +217,194 @@ class TestWhoami:
         assert "profile" in data["passport"]
 
 
+class TestLoginApiKey:
+    """Tests for 'ana login --api-key' option."""
+
+    @pytest.mark.parametrize(
+        "args", [["login", "--api-key"], ["auth", "login", "--api-key"]]
+    )
+    def test_login_api_key_prompts_when_no_value(
+        self,
+        args: list[str],
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """--api-key without value should prompt for secure input."""
+        # Provide API key via stdin
+        result = run_ana(*args, env=auth_env, input=f"{mock_auth_server.api_key}\n")
+
+        assert result.returncode == 0
+        # Should prompt for API key and show masked input (dots/asterisks)
+        assert "API key:" in result.stderr
+        assert "•" in result.stderr or "*" in result.stderr, (
+            "Expected masked input (dots or asterisks) after API key prompt"
+        )
+        # Should show success messages
+        assert_output_contains(
+            result.stderr,
+            "API key:",
+            "Token stored in system keyring",
+            "Logged in as",
+            "test@example.com",
+            "expires",
+        )
+        assert keyring_path.exists()
+
+        # Verify API key was stored correctly
+        api_key_result = run_ana("auth", "api-key", env=auth_env)
+        assert api_key_result.stdout.strip() == mock_auth_server.api_key
+
+    @pytest.mark.parametrize(
+        "args",
+        [["login", "--api-key={}"], ["auth", "login", "--api-key={}"]],
+    )
+    def test_login_api_key_with_value(
+        self,
+        args: list[str],
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """--api-key=<value> should use provided value directly."""
+        # Insert the API key into the args
+        formatted_args = [arg.format(mock_auth_server.api_key) for arg in args]
+        result = run_ana(*formatted_args, env=auth_env)
+
+        assert result.returncode == 0
+        # Should NOT prompt for API key (no "API key:" in output)
+        assert "API key:" not in result.stderr
+        # Should show success messages
+        assert_output_contains(
+            result.stderr,
+            "Token stored in system keyring",
+            "Logged in as",
+            "test@example.com",
+            "expires",
+        )
+        assert keyring_path.exists()
+
+        # Verify API key was stored correctly
+        api_key_result = run_ana("auth", "api-key", env=auth_env)
+        assert api_key_result.stdout.strip() == mock_auth_server.api_key
+
+    def test_login_api_key_stored_correctly(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """API key provided via --api-key should be stored and retrievable."""
+        run_ana("login", f"--api-key={mock_auth_server.api_key}", env=auth_env)
+
+        # Verify API key is retrievable via `ana auth api-key`
+        result = run_ana("auth", "api-key", env=auth_env)
+        assert result.returncode == 0
+        assert result.stdout.strip() == mock_auth_server.api_key
+
+    def test_login_api_key_invalid_token_format(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+    ) -> None:
+        """Malformed API key (not a valid JWT) should show error."""
+        result = run_ana("login", "--api-key=invalid-not-a-jwt", env=auth_env)
+
+        assert result.returncode != 0
+        # Should show some kind of error (exact message depends on implementation)
+        assert "error" in result.stderr.lower() or "invalid" in result.stderr.lower()
+
+    def test_login_api_key_when_already_logged_in_warns(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """--api-key when already logged in should warn and ask for confirmation."""
+        # First login via device flow
+        run_ana("login", env=auth_env)
+
+        # Get the original API key
+        original_key = run_ana("auth", "api-key", env=auth_env).stdout.strip()
+
+        # Try to login with --api-key, decline confirmation
+        result = run_ana(
+            "login", f"--api-key={mock_auth_server.api_key}", env=auth_env, input="n\n"
+        )
+
+        assert result.returncode == 0
+        # Should warn about overwriting
+        assert (
+            "Already logged in" in result.stderr or "overwrite" in result.stderr.lower()
+        )
+        # Original key should still be in place
+        api_key_result = run_ana("auth", "api-key", env=auth_env)
+        assert api_key_result.stdout.strip() == original_key
+
+    def test_login_api_key_when_already_logged_in_confirm(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """--api-key when already logged in should overwrite if confirmed."""
+        # First login via device flow
+        run_ana("login", env=auth_env)
+
+        # Try to login with --api-key, accept confirmation
+        result = run_ana(
+            "login", f"--api-key={mock_auth_server.api_key}", env=auth_env, input="y\n"
+        )
+
+        assert result.returncode == 0
+        # Should show success
+        assert_output_contains(
+            result.stderr,
+            "Token stored in system keyring",
+            "Logged in as",
+        )
+
+        # Verify API key was overwritten
+        api_key_result = run_ana("auth", "api-key", env=auth_env)
+        assert api_key_result.stdout.strip() == mock_auth_server.api_key
+
+    def test_login_api_key_force_skips_confirmation(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        keyring_path: Path,
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """--api-key --force should overwrite without confirmation."""
+        # First login via device flow
+        run_ana("login", env=auth_env)
+
+        # Login with --api-key --force (no stdin input needed)
+        result = run_ana(
+            "login", f"--api-key={mock_auth_server.api_key}", "--force", env=auth_env
+        )
+
+        assert result.returncode == 0
+        # Should NOT prompt for confirmation
+        assert "overwrite" not in result.stderr.lower()
+        assert "[y/N]" not in result.stderr
+        # Should show success
+        assert_output_contains(
+            result.stderr,
+            "Token stored in system keyring",
+            "Logged in as",
+        )
+
+        # Verify API key was overwritten
+        api_key_result = run_ana("auth", "api-key", env=auth_env)
+        assert api_key_result.stdout.strip() == mock_auth_server.api_key
+
+
 class TestMultipleDomains:
     """Tests for multi-domain keyring support."""
 

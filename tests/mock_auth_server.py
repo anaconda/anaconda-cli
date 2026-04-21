@@ -283,3 +283,7 @@ class MockAuthServer:
     @property
     def domain(self) -> str:
         return f"{self.host}:{self.port}"
+
+    @property
+    def api_key(self) -> str:
+        return MOCK_API_KEY
