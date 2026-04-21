@@ -47,7 +47,7 @@ impl UiColor {
     /// Apply this color to text, returning a styled object.
     ///
     /// Shorthand for `UiColor::Red.style().apply_to(text)`.
-    pub fn apply_to<D>(&self, val: D) -> StyledObject<D> {
+    pub fn apply_to<T>(&self, val: T) -> StyledObject<T> {
         self.style().apply_to(val)
     }
 
