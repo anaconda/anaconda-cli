@@ -69,3 +69,10 @@ pub fn dim(text: &str) -> String {
 pub fn blank_line() {
     eprintln!();
 }
+
+/// Return text styled as a section header (green, uppercase).
+///
+/// Use this for section headers like "ACCOUNT", "SUBSCRIPTIONS".
+pub fn section(name: &str) -> String {
+    UiColor::Green.apply_to(name.to_uppercase()).to_string()
+}

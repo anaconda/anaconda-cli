@@ -545,7 +545,7 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
     let profile = data.get("passport").and_then(|p| p.get("profile"));
 
     // Account section
-    eprintln!("{}", style_section("account"));
+    eprintln!("{}", status::section("account"));
 
     // Build name from first_name + last_name
     let first = profile
@@ -601,7 +601,7 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
 
         if !orgs_with_subs.is_empty() {
             status::blank_line();
-            eprintln!("{}", style_section("subscriptions"));
+            eprintln!("{}", status::section("subscriptions"));
 
             // Build labels and find max width for alignment
             let rows: Vec<_> = orgs_with_subs
@@ -649,7 +649,7 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
 
     // Token info section
     status::blank_line();
-    eprintln!("{}", style_section("token"));
+    eprintln!("{}", status::section("token"));
     if let Some(api_key) = get_api_key(&config)? {
         eprintln!(
             "  {}{}",
@@ -664,12 +664,6 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
     );
 
     Ok(())
-}
-
-/// Style a section header (green, uppercase).
-fn style_section(name: &str) -> String {
-    use crate::ui::styles::UiColor;
-    UiColor::Green.apply_to(name.to_uppercase()).to_string()
 }
 
 #[cfg(test)]
