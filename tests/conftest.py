@@ -38,38 +38,39 @@ def assert_output_contains(text: str, *patterns: str) -> None:
 
     for pattern in patterns:
         idx = text.find(pattern, pos)
-        if idx < 0:
-            # Build error message with context
-            lines = text.splitlines()
-            # Find which line we're at
-            chars_seen = 0
-            current_line = 0
-            for i, line in enumerate(lines):
-                if chars_seen + len(line) >= pos:
-                    current_line = i
-                    break
-                chars_seen += len(line) + 1  # +1 for newline
+        if idx >= 0:
+            matched.append(pattern)
+            pos = idx + len(pattern)
+            continue
 
-            # Show context: a few lines before and after current position
-            start_line = max(0, current_line - 2)
-            end_line = min(len(lines), current_line + 5)
-            context_lines = lines[start_line:end_line]
-            context = "\n".join(
-                f"  {'>' if i == current_line - start_line else ' '} {line}"
-                for i, line in enumerate(context_lines)
-            )
+        # Pattern not found - build error message with context
+        lines = text.splitlines()
+        # Find which line we're at
+        chars_seen = 0
+        current_line = 0
+        for i, line in enumerate(lines):
+            if chars_seen + len(line) >= pos:
+                current_line = i
+                break
+            chars_seen += len(line) + 1  # +1 for newline
 
-            matched_str = "\n  - ".join([""] + matched) if matched else " (none)"
-            msg = (
-                f"Pattern not found: {pattern!r}\n\n"
-                f"Already matched:{matched_str}\n\n"
-                f"Searching from line {current_line + 1}:\n{context}\n\n"
-                f"Full output:\n{text}"
-            )
-            raise AssertionError(msg)
+        # Show context: a few lines before and after current position
+        start_line = max(0, current_line - 2)
+        end_line = min(len(lines), current_line + 5)
+        context_lines = lines[start_line:end_line]
+        context = "\n".join(
+            f"  {'>' if i == current_line - start_line else ' '} {line}"
+            for i, line in enumerate(context_lines)
+        )
 
-        matched.append(pattern)
-        pos = idx + len(pattern)
+        matched_str = "\n  - ".join([""] + matched) if matched else " (none)"
+        msg = (
+            f"Pattern not found: {pattern!r}\n\n"
+            f"Already matched:{matched_str}\n\n"
+            f"Searching from line {current_line + 1}:\n{context}\n\n"
+            f"Full output:\n{text}"
+        )
+        raise AssertionError(msg)
 
 
 def _find_repo_root() -> Path:
