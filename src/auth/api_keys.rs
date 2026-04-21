@@ -49,8 +49,8 @@ pub fn get_expiration(api_key: &str) -> Option<String> {
 /// Validate that a string is a valid JWT token.
 ///
 /// Returns true if the token has valid JWT structure (3 parts, decodable payload).
-pub fn is_valid_jwt(token: &str) -> bool {
-    let parts: Vec<&str> = token.split('.').collect();
+pub fn is_valid_api_key(api_key: &str) -> bool {
+    let parts: Vec<&str> = api_key.split('.').collect();
     if parts.len() != 3 {
         return false;
     }

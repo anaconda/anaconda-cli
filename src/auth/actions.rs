@@ -245,12 +245,12 @@ fn prompt_api_key() -> Result<String, AuthError> {
 
 /// Login with a provided API key (bypassing device flow).
 async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthError> {
-    use super::api_keys::is_valid_jwt;
+    use super::api_keys::is_valid_api_key;
 
     let config = Config::load();
 
     // Validate the API key format
-    if !is_valid_jwt(&api_key) {
+    if !is_valid_api_key(&api_key) {
         return Err(AuthError::InvalidApiKey(
             "not a valid JWT token".to_string(),
         ));
