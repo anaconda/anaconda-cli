@@ -93,50 +93,53 @@ fn print_logged_in_status(email: &str) {
     status::success(&format!("Logged in as {}", status::highlight(email)));
 }
 
-/// Calculate days from today until a date string (YYYY-MM-DD format).
-fn days_until_date(date_str: &str) -> Option<i64> {
-    let expires = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()?;
-    let today = chrono::Utc::now().date_naive();
-    Some((expires - today).num_days())
+/// Parse a date string (YYYY-MM-DD format) into a NaiveDate.
+fn parse_date(date_str: &str) -> Option<chrono::NaiveDate> {
+    chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
 }
 
-/// Format a duration in days as a human-readable string.
+/// Format a duration from today to a target date as a human-readable string.
+///
+/// Uses chrono's date arithmetic to correctly handle leap years.
 ///
 /// Returns (formatted_string, is_expired).
 /// Examples:
-/// - 400 days -> ("1 year, 35 days", false)
-/// - 1 day -> ("1 day", false)
-/// - -30 days -> ("expired", true)
-fn format_duration(days: i64) -> (String, bool) {
-    if days < 0 {
+/// - 400 days from now -> ("1 year, 35 days", false)
+/// - 1 day from now -> ("1 day", false)
+/// - past date -> ("expired", true)
+fn format_duration_until(target: chrono::NaiveDate) -> (String, bool) {
+    let today = chrono::Utc::now().date_naive();
+
+    if target < today {
         return ("expired".to_string(), true);
     }
 
-    let years = days / 365;
-    let remaining_days = days % 365;
+    // Calculate years by finding how many full years fit
+    let mut years = 0i32;
+    let mut date_after_years = today;
+    while let Some(next) = date_after_years.checked_add_months(chrono::Months::new(12)) {
+        if next <= target {
+            years += 1;
+            date_after_years = next;
+        } else {
+            break;
+        }
+    }
+
+    // Remaining days after subtracting full years
+    let remaining_days = (target - date_after_years).num_days();
+
+    let year_unit = if years == 1 { "year" } else { "years" };
+    let day_unit = if remaining_days == 1 { "day" } else { "days" };
 
     let s = if years > 0 {
         if remaining_days == 0 {
-            if years == 1 {
-                "1 year".to_string()
-            } else {
-                format!("{} years", years)
-            }
-        } else if remaining_days == 1 {
-            if years == 1 {
-                "1 year, 1 day".to_string()
-            } else {
-                format!("{} years, 1 day", years)
-            }
-        } else if years == 1 {
-            format!("1 year, {} days", remaining_days)
+            format!("{} {}", years, year_unit)
         } else {
-            format!("{} years, {} days", years, remaining_days)
+            format!("{} {}, {} {}", years, year_unit, remaining_days, day_unit)
         }
-    } else if days == 1 {
-        "1 day".to_string()
     } else {
-        format!("{} days", days)
+        format!("{} {}", remaining_days, day_unit)
     };
 
     (s, false)
@@ -146,8 +149,8 @@ fn format_duration(days: i64) -> (String, bool) {
 ///
 /// Example: `  expires      2027-04-20 (1 year)`
 fn print_token_expiration(expires_at: &str) {
-    if let Some(days) = days_until_date(expires_at) {
-        let (duration_str, _) = format_duration(days);
+    if let Some(target_date) = parse_date(expires_at) {
+        let (duration_str, _) = format_duration_until(target_date);
         // "Logged in as " is 13 chars; "  expires" is 9 chars; need 4 more spaces
         eprintln!(
             "  {}{}{}",
@@ -574,8 +577,8 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
             let pad_width = max_label_width + 4; // 4 spaces after longest label
 
             for (label, date_part) in rows {
-                if let Some(days) = days_until_date(&date_part) {
-                    let (duration_str, is_expired) = format_duration(days);
+                if let Some(target_date) = parse_date(&date_part) {
+                    let (duration_str, is_expired) = format_duration_until(target_date);
                     let suffix = if is_expired {
                         use crate::ui::styles::UiColor;
                         format!(" ({})", UiColor::Red.apply_to(&duration_str))
@@ -699,5 +702,72 @@ mod tests {
             response.error_description,
             Some("User denied access".to_string())
         );
+    }
+
+    #[test]
+    fn test_format_duration_until_expired() {
+        let yesterday = chrono::Utc::now().date_naive() - chrono::Duration::days(1);
+        let (s, expired) = format_duration_until(yesterday);
+        assert_eq!(s, "expired");
+        assert!(expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_today() {
+        let today = chrono::Utc::now().date_naive();
+        let (s, expired) = format_duration_until(today);
+        assert_eq!(s, "0 days");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_one_day() {
+        let tomorrow = chrono::Utc::now().date_naive() + chrono::Duration::days(1);
+        let (s, expired) = format_duration_until(tomorrow);
+        assert_eq!(s, "1 day");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_multiple_days() {
+        let future = chrono::Utc::now().date_naive() + chrono::Duration::days(42);
+        let (s, expired) = format_duration_until(future);
+        assert_eq!(s, "42 days");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_one_year() {
+        let today = chrono::Utc::now().date_naive();
+        // Add exactly one year using months to handle leap years correctly
+        let one_year_later = today
+            .checked_add_months(chrono::Months::new(12))
+            .expect("valid date");
+        let (s, expired) = format_duration_until(one_year_later);
+        assert_eq!(s, "1 year");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_year_and_days() {
+        let today = chrono::Utc::now().date_naive();
+        let one_year_later = today
+            .checked_add_months(chrono::Months::new(12))
+            .expect("valid date");
+        let target = one_year_later + chrono::Duration::days(30);
+        let (s, expired) = format_duration_until(target);
+        assert_eq!(s, "1 year, 30 days");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_multiple_years() {
+        let today = chrono::Utc::now().date_naive();
+        let two_years_later = today
+            .checked_add_months(chrono::Months::new(24))
+            .expect("valid date");
+        let (s, expired) = format_duration_until(two_years_later);
+        assert_eq!(s, "2 years");
+        assert!(!expired);
     }
 }
