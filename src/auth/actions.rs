@@ -462,10 +462,10 @@ pub fn logout() -> Result<(), AuthError> {
         "Logged out of {}",
         status::highlight(&config.domain)
     ));
-    status::success("Token removed from system keyring");
+    status::success("API key removed from system keyring");
     status::warn(&format!(
         "To fully revoke your token visit {}",
-        status::highlight(&format!("{}/settings/tokens", config.domain))
+        status::highlight(&format!("{}/app/profile/api-keys", config.domain))
     ));
     Ok(())
 }
