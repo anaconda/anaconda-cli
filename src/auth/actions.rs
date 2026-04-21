@@ -161,6 +161,29 @@ fn print_token_expiration(expires_at: &str) {
     }
 }
 
+/// Save API key and display login success information.
+///
+/// This is the common "finalize login" logic shared by both device flow and direct API key login.
+async fn save_and_display_login(api_key: &str) -> Result<(), AuthError> {
+    use super::api_keys::extract_jwt_expiration;
+
+    let config = Config::load();
+
+    // Save to keyring
+    save_api_key(&config, api_key)?;
+    status::success("API key stored in keyring");
+
+    // Fetch and display user info
+    if let Ok(login_info) = fetch_login_info().await {
+        print_logged_in_status(&login_info.email);
+        if let Some(expires_at) = extract_jwt_expiration(api_key) {
+            print_token_expiration(&expires_at);
+        }
+    }
+
+    Ok(())
+}
+
 /// Combined login information for display.
 struct LoginInfo {
     email: String,
@@ -222,7 +245,7 @@ fn prompt_api_key() -> Result<String, AuthError> {
 
 /// Login with a provided API key (bypassing device flow).
 async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthError> {
-    use super::api_keys::{extract_jwt_expiration, is_valid_jwt};
+    use super::api_keys::is_valid_jwt;
 
     let config = Config::load();
 
@@ -254,19 +277,7 @@ async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthErro
         }
     }
 
-    // Save to keyring
-    save_api_key(&config, &api_key)?;
-    status::success("API key stored in keyring");
-
-    // Fetch and display user info
-    if let Ok(login_info) = fetch_login_info().await {
-        print_logged_in_status(&login_info.email);
-        if let Some(expires_at) = extract_jwt_expiration(&api_key) {
-            print_token_expiration(&expires_at);
-        }
-    }
-
-    Ok(())
+    save_and_display_login(&api_key).await
 }
 
 /// Try to read API key from stdin if data is available.
@@ -490,21 +501,9 @@ async fn login_device_flow(force: bool) -> Result<(), AuthError> {
             status::success("Authentication complete");
 
             // Create API key
-            let api_key_result = create_api_key(&client, &config, &token.access_token).await?;
+            let api_key = create_api_key(&client, &config, &token.access_token).await?;
 
-            // Save to keyring
-            save_api_key(&config, &api_key_result.api_key)?;
-            status::success("API key stored in keyring");
-
-            // Fetch and display user info
-            if let Ok(login_info) = fetch_login_info().await {
-                print_logged_in_status(&login_info.email);
-                if let Some(ref expires_at) = api_key_result.expires_at {
-                    print_token_expiration(expires_at);
-                }
-            }
-
-            return Ok(());
+            return save_and_display_login(&api_key).await;
         }
 
         let error: TokenErrorResponse = response.json().await?;

@@ -27,12 +27,6 @@ struct JwtPayload {
     exp: i64,
 }
 
-/// Result of creating an API key.
-pub struct ApiKeyResult {
-    pub api_key: String,
-    pub expires_at: Option<String>,
-}
-
 /// Extract expiration date from a JWT token.
 ///
 /// Returns the expiration as a YYYY-MM-DD string, or None if parsing fails.
@@ -70,7 +64,7 @@ pub async fn create_api_key(
     client: &reqwest_middleware::ClientWithMiddleware,
     config: &Config,
     access_token: &str,
-) -> Result<ApiKeyResult, AuthError> {
+) -> Result<String, AuthError> {
     let url = format!("{}/api/auth/api-keys", config.base_url());
     let payload = CreateApiKeyRequest {
         scopes: vec![
@@ -99,12 +93,7 @@ pub async fn create_api_key(
     }
 
     let response: ApiKeyResponse = response.json().await?;
-    let expires_at = extract_jwt_expiration(&response.api_key);
-
-    Ok(ApiKeyResult {
-        api_key: response.api_key,
-        expires_at,
-    })
+    Ok(response.api_key)
 }
 
 #[cfg(test)]
