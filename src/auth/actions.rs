@@ -186,13 +186,14 @@ fn format_duration(days: i64) -> (String, bool) {
 
 /// Print token expiration info.
 ///
-/// Example: `  expires    2027-04-20 (1 year)`
+/// Example: `  expires      2027-04-20 (1 year)`
 fn print_token_expiration(expires_at: &str) {
     if let Some(days) = days_until_date(expires_at) {
         let (duration_str, _) = format_duration(days);
+        // "Logged in as " is 13 chars; "  expires" is 9 chars; need 4 more spaces
         eprintln!(
             "  {}{}{}",
-            status::dim("expires    "),
+            status::dim("expires      "),
             status::highlight(expires_at),
             status::dim(&format!(" ({})", duration_str))
         );
@@ -377,7 +378,7 @@ pub async fn login() -> Result<(), AuthError> {
 
             // Save to keyring
             save_api_key(&config, &api_key_result.api_key)?;
-            status::success("Token stored in keyring");
+            status::success("API key stored in keyring");
 
             // Fetch and display user info
             if let Ok(login_info) = fetch_login_info().await {
