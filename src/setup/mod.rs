@@ -2,4 +2,4 @@
 
 mod main_x;
 
-pub use main_x::setup_main_x;
+pub use main_x::{remove_main_x, setup_main_x};

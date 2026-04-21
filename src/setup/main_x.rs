@@ -41,13 +41,44 @@ pub async fn setup_main_x() -> miette::Result<()> {
     ));
     status::blank_line();
     status::info("To undo this configuration, run:");
-    eprintln!(
-        "  {}",
-        status::highlight(&format!(
-            "conda config --remove channels {}",
-            MAIN_X_CHANNEL
-        ))
-    );
+    eprintln!("  {}", status::highlight("ana setup main-x --remove"));
+
+    Ok(())
+}
+
+/// Remove main-x channel configuration.
+///
+/// This command removes the main-x channel from conda configuration.
+pub fn remove_main_x() -> miette::Result<()> {
+    status::info(&format!(
+        "Removing {} channel configuration...",
+        status::highlight("main-x")
+    ));
+    status::blank_line();
+
+    let conda_bin = find_conda()?;
+    let current_channels = get_configured_channels(&conda_bin)?;
+
+    let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
+
+    if !has_main_x {
+        status::success(&format!(
+            "{} channel is not configured",
+            status::highlight("main-x")
+        ));
+        return Ok(());
+    }
+
+    status::waiting(&format!(
+        "Removing {} channel...",
+        status::highlight("main-x")
+    ));
+    run_conda_config(&conda_bin, &["--remove", "channels", MAIN_X_CHANNEL])?;
+    status::success(&format!("Removed {} channel", status::highlight("main-x")));
+
+    status::blank_line();
+    status::info("To restore, run:");
+    eprintln!("  {}", status::highlight("ana setup main-x"));
 
     Ok(())
 }

@@ -124,7 +124,9 @@ pub enum Action {
         force: bool,
     },
     ToolList,
-    SetupMainX,
+    SetupMainX {
+        remove: bool,
+    },
 }
 
 impl Action {
@@ -149,7 +151,13 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
-            Action::SetupMainX => "setup.main-x",
+            Action::SetupMainX { remove } => {
+                if *remove {
+                    "setup.main-x.remove"
+                } else {
+                    "setup.main-x"
+                }
+            }
         }
     }
 
@@ -254,8 +262,12 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
-            Action::SetupMainX => {
-                setup::setup_main_x().await?;
+            Action::SetupMainX { remove } => {
+                if remove {
+                    setup::remove_main_x()?;
+                } else {
+                    setup::setup_main_x().await?;
+                }
                 Ok(())
             }
         }
@@ -331,7 +343,7 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Setup { command }) => match command {
                     None => Action::ShowSubcommandHelp("setup".to_string()),
-                    Some(SetupCommands::MainX) => Action::SetupMainX,
+                    Some(SetupCommands::MainX { remove }) => Action::SetupMainX { remove },
                 },
             };
             (action, level)
@@ -614,7 +626,11 @@ enum ToolCommands {
 enum SetupCommands {
     /// Configure Main-X channel for early access packages
     #[command(name = "main-x")]
-    MainX,
+    MainX {
+        /// Remove the main-x channel configuration
+        #[arg(long)]
+        remove: bool,
+    },
 }
 
 #[cfg(test)]
