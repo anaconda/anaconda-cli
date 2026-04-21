@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from conftest import AnaRunner
+from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
 ANACONDA_BIN = "anaconda.exe" if IS_WINDOWS else "anaconda"

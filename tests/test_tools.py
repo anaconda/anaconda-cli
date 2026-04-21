@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from conftest import AnaRunner
+from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"

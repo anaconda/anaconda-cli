@@ -131,6 +131,12 @@ fn load_keyring(config: &Config) -> Result<Keyring, AuthError> {
     }
 
     let contents = fs::read_to_string(path).map_err(|e| keyring_io_error("read", e))?;
+
+    // Handle empty file as empty keyring
+    if contents.trim().is_empty() {
+        return Ok(Keyring::new());
+    }
+
     let keyring: Keyring =
         serde_json::from_str(&contents).map_err(|e| AuthError::Keyring(e.to_string()))?;
 

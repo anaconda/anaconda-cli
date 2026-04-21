@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-13T23:08:31Z<br>
+Generated: 2026-04-20T22:40:31Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 464 (65 platform-specific)<br>
 Platforms: linux, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 2 across 1 package**
 
 ## Packages
 
@@ -295,7 +295,7 @@ Platforms: linux, macos, windows
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
 | [rustls](https://crates.io/crates/rustls) | 0.23.38 | Apache-2.0 OR ISC OR MIT |  |  |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.14.0 | MIT OR Apache-2.0 |  |  |
-| [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.11 | ISC |  |  |
+| [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.11 | ISC |  | 2 |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
 | [ryu](https://crates.io/crates/ryu) | 1.0.23 | Apache-2.0 OR BSL-1.0 |  |  |
 | [schannel](https://crates.io/crates/schannel) | 0.1.29 | MIT | windows |  |
@@ -474,6 +474,13 @@ Platforms: linux, macos, windows
 | [zstd](https://crates.io/crates/zstd) | 0.13.3 | MIT |  |  |
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
+
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| rustls-webpki | 0.103.11 | [RUSTSEC-2026-0098](https://rustsec.org/advisories/RUSTSEC-2026-0098.html) |  |  |  |
+| rustls-webpki | 0.103.11 | [RUSTSEC-2026-0099](https://rustsec.org/advisories/RUSTSEC-2026-0099.html) |  |  |  |
 
 ## License Summary
 

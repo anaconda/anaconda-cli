@@ -6,10 +6,12 @@ This server mimics the Anaconda authentication endpoints:
 - /oauth/token (token exchange)
 - /api/account (user info)
 - /api/auth/api-keys (API key creation)
+- /api/auth/sessions/whoami (user info with organizations)
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import threading
 import time
@@ -35,7 +37,59 @@ MOCK_USER = {
     "subscriptions": [],
 }
 
-MOCK_API_KEY = "mock-api-key-12345"
+# Whoami response (used by the new styled output)
+MOCK_WHOAMI = {
+    "identity": {"id": "test-user-id"},
+    "passport": {
+        "user_id": "test-user-id",
+        "profile": {
+            "email": "test@example.com",
+            "first_name": "Test",
+            "last_name": "User",
+            "username": "testuser",
+        },
+        "organizations": [
+            {
+                "org_id": "test-org-id",
+                "name": "test-org",
+                "title": "Test Organization",
+                "role": "member",
+                "attributes": [
+                    {
+                        "id": "test_subscription",
+                        "group": "subscriptions",
+                        "data": {"expires_at": "2030-01-01 00:00:00+00:00"},
+                    }
+                ],
+            }
+        ],
+    },
+}
+
+
+def _create_mock_jwt() -> str:
+    """Create a mock JWT with an expiration claim (1 year from now)."""
+    # JWT header
+    header = {"alg": "none", "typ": "JWT"}
+    # JWT payload with exp claim (1 year from now)
+    exp_timestamp = int(time.time()) + 365 * 24 * 60 * 60
+    payload = {
+        "exp": exp_timestamp,
+        "sub": "test-user-id",
+        "scopes": ["cloud:read", "cloud:write", "repo:read"],
+    }
+    # Encode as base64url (no padding)
+    header_b64 = (
+        base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b"=").decode()
+    )
+    payload_b64 = (
+        base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
+    )
+    # Return JWT (no signature for mock)
+    return f"{header_b64}.{payload_b64}."
+
+
+MOCK_API_KEY = _create_mock_jwt()
 MOCK_ACCESS_TOKEN = "mock-access-token-67890"
 MOCK_DEVICE_CODE = "mock-device-code"
 MOCK_USER_CODE = "TEST-1234"
@@ -76,6 +130,8 @@ class MockAuthHandler(BaseHTTPRequestHandler):
             self._handle_openid_config()
         elif self.path == "/api/account":
             self._handle_account()
+        elif self.path == "/api/auth/sessions/whoami":
+            self._handle_whoami()
         else:
             self.send_error(404)
 
@@ -179,6 +235,15 @@ class MockAuthHandler(BaseHTTPRequestHandler):
             return
 
         self._send_json(MOCK_USER)
+
+    def _handle_whoami(self) -> None:
+        """Handle whoami request (new styled output endpoint)."""
+        token = self._get_auth_header()
+        if not token:
+            self._send_error_json("unauthorized", "Missing authorization", 401)
+            return
+
+        self._send_json(MOCK_WHOAMI)
 
     def _handle_create_api_key(self) -> None:
         """Handle API key creation."""

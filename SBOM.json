@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:211fc3aa-3f45-495e-bb3a-3d7236fa4833",
+  "serialNumber": "urn:uuid:2e59e5d5-ff30-466e-ae40-30f9059be427",
   "metadata": {
-    "timestamp": "2026-04-13T23:08:31Z",
+    "timestamp": "2026-04-20T22:40:31Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -14451,6 +14451,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.89",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@11.0.1",
+        "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.44",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.0",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#console@0.16.3",
@@ -18038,6 +18039,36 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#windows_x86_64_msvc@0.52.6",
       "dependsOn": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2026-0098",
+      "description": "Name constraints for URI names were ignored and therefore accepted.\n\nNote this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls-webpki@0.103.11"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0099",
+      "description": "Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.\n\nThis was incorrect because, given a name constraint of `accept.example.com`, `*.example.com` could feasibly allow a name of `reject.example.com` which is outside the constraint.\nThis is very similar to [CVE-2025-61727](https://go.dev/issue/76442).\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-xgp8-3hg3-c2mh](https://github.com/rustls/webpki/security/advisories/GHSA-xgp8-3hg3-c2mh). Thank you to @1seal for the report.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0099.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls-webpki@0.103.11"
+        }
+      ]
     }
   ]
 }

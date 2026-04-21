@@ -4,26 +4,14 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
-from collections.abc import Callable
 from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from helpers import IS_WINDOWS
+from helpers import REPO_ROOT
+from helpers import AnaRunner
 from mock_auth_server import MockAuthServer
-
-
-def _find_repo_root() -> Path:
-    """Find the repository root by looking for .git directory."""
-    path = Path(__file__).resolve()
-    for parent in path.parents:
-        if (parent / ".git").exists():
-            return parent
-    raise RuntimeError("Could not find repository root")
-
-
-REPO_ROOT = _find_repo_root()
-IS_WINDOWS = sys.platform == "win32"
 
 
 @pytest.fixture
@@ -82,9 +70,6 @@ def ana_binary() -> Path | None:
             return binary
 
     return None
-
-
-AnaRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
 @pytest.fixture
