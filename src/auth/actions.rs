@@ -137,7 +137,7 @@ struct SubscriptionInfo {
 
 /// Print logged-in user status line.
 ///
-/// Example: `✓ Logged in as kford@anaconda.com (anaconda)`
+/// Example: `✓ Logged in as user@example.com (example)`
 fn print_logged_in_status(email: &str, org: &str) {
     status::success(&format!(
         "Logged in as {} ({})",
@@ -483,7 +483,7 @@ pub fn show_api_key() -> Result<(), AuthError> {
 
 /// Print a labeled key-value line for whoami output.
 ///
-/// Example: `  name        Jane Ngo`
+/// Example: `  name        Alice Smith`
 fn print_kv(key: &str, value: &str) {
     // Pad key to 12 chars (longest key "username" is 8 + 4 spaces = 12)
     // Pad plain text first, then apply styling (ANSI codes break format padding)
