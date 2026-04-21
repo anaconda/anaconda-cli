@@ -55,8 +55,10 @@ class TestLogin:
 class TestLogout:
     """Tests for 'ana logout' command."""
 
+    @pytest.mark.parametrize("args", [["logout"], ["auth", "logout"]])
     def test_logout_removes_key(
         self,
+        args: list[str],
         run_ana: AnaRunner,
         auth_env: dict[str, str],
         keyring_path: Path,
@@ -68,7 +70,7 @@ class TestLogout:
         assert keyring_path.exists()
 
         # Then logout
-        result = run_ana("logout", env=auth_env)
+        result = run_ana(*args, env=auth_env)
 
         assert result.returncode == 0
         assert f"Logged out of {mock_auth_server.domain}" in result.stderr
@@ -85,20 +87,6 @@ class TestLogout:
 
         assert result.returncode == 0
         assert "Not logged in" in result.stderr
-
-    def test_logout_via_auth_subcommand(
-        self,
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-        keyring_path: Path,
-        mock_auth_server: MockAuthServer,
-    ) -> None:
-        """'ana auth logout' should work the same as 'ana logout'."""
-        run_ana("login", env=auth_env)
-        result = run_ana("auth", "logout", env=auth_env)
-
-        assert result.returncode == 0
-        assert f"Logged out of {mock_auth_server.domain}" in result.stderr
 
 
 class TestApiKey:
@@ -170,15 +158,17 @@ class TestAuthHelp:
 class TestWhoami:
     """Tests for 'ana whoami' command."""
 
+    @pytest.mark.parametrize("args", [["whoami"], ["auth", "whoami"]])
     def test_whoami_when_logged_in(
         self,
+        args: list[str],
         run_ana: AnaRunner,
         auth_env: dict[str, str],
-        mock_auth_server: MockAuthServer,
+        keyring_path: Path,
     ) -> None:
         """Whoami should display user info when logged in."""
         run_ana("login", env=auth_env)
-        result = run_ana("whoami", env=auth_env)
+        result = run_ana(*args, env=auth_env)
 
         assert result.returncode == 0
         assert_output_contains(
@@ -187,40 +177,9 @@ class TestWhoami:
             "Test User",
             "testuser",
             "test@example.com",
-        )
-
-    def test_whoami_shows_subscriptions(
-        self,
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-    ) -> None:
-        """Whoami should display subscription info."""
-        run_ana("login", env=auth_env)
-        result = run_ana("whoami", env=auth_env)
-
-        assert result.returncode == 0
-        assert_output_contains(
-            result.stderr,
-            "ACCOUNT",
             "SUBSCRIPTIONS",
             "Test Organization",
             "2030-01-01",
-        )
-
-    def test_whoami_shows_token_info(
-        self,
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-        keyring_path: Path,
-    ) -> None:
-        """Whoami should display token info."""
-        run_ana("login", env=auth_env)
-        result = run_ana("whoami", env=auth_env)
-
-        assert result.returncode == 0
-        assert_output_contains(
-            result.stderr,
-            "SUBSCRIPTIONS",
             "TOKEN",
             str(keyring_path),
         )
@@ -229,7 +188,6 @@ class TestWhoami:
         self,
         run_ana: AnaRunner,
         auth_env: dict[str, str],
-        mock_auth_server: MockAuthServer,
     ) -> None:
         """Whoami should show helpful message when not logged in."""
         result = run_ana("whoami", env=auth_env)
@@ -240,19 +198,6 @@ class TestWhoami:
             "not logged in",
             "ana login",
         )
-
-    def test_whoami_via_auth_subcommand(
-        self,
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-        mock_auth_server: MockAuthServer,
-    ) -> None:
-        """'ana auth whoami' should work the same as 'ana whoami'."""
-        run_ana("login", env=auth_env)
-        result = run_ana("auth", "whoami", env=auth_env)
-
-        assert result.returncode == 0
-        assert "ACCOUNT" in result.stderr
 
     def test_whoami_json_flag(
         self,
