@@ -2,12 +2,14 @@
 
 use std::time::Duration;
 
-use serde::Deserialize;
 use tokio::time::sleep;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
+use super::responses::{
+    AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
+};
 use crate::config::Config;
 use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
@@ -82,50 +84,6 @@ impl ApiClient {
     pub fn delete(&self, url: &str) -> reqwest_middleware::RequestBuilder {
         self.inner.delete(url)
     }
-}
-
-/// OpenID Connect discovery document.
-#[derive(Debug, Deserialize)]
-struct OpenIdConfig {
-    device_authorization_endpoint: Option<String>,
-    token_endpoint: String,
-}
-
-/// Response from the device authorization endpoint.
-#[derive(Debug, Deserialize)]
-struct DeviceAuthResponse {
-    device_code: String,
-    user_code: String,
-    verification_uri: String,
-    verification_uri_complete: Option<String>,
-    expires_in: u64,
-    interval: Option<u64>,
-}
-
-/// Response from the token endpoint.
-#[derive(Debug, Deserialize)]
-struct TokenResponse {
-    access_token: String,
-}
-
-/// Error response from the token endpoint during polling.
-#[derive(Debug, Deserialize)]
-struct TokenErrorResponse {
-    error: String,
-    error_description: Option<String>,
-}
-
-/// Account information from the API.
-#[derive(Debug, Deserialize)]
-struct AccountResponse {
-    user: Option<UserInfo>,
-}
-
-/// User information nested in account response.
-#[derive(Debug, Deserialize)]
-struct UserInfo {
-    username: Option<String>,
-    email: Option<String>,
 }
 
 /// Print logged-in user status line.
