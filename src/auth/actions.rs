@@ -28,7 +28,6 @@ fn print_qr(qr: &str) {
 pub struct ApiClient {
     inner: Client,
     api_key: Option<String>,
-    domain: String,
 }
 
 impl ApiClient {
@@ -47,18 +46,12 @@ impl ApiClient {
         Ok(Self {
             inner: client,
             api_key,
-            domain: config.domain,
         })
     }
 
     /// Check if the client has valid credentials.
     pub fn is_authenticated(&self) -> bool {
         self.api_key.is_some()
-    }
-
-    /// Get the configured domain.
-    pub fn domain(&self) -> &str {
-        &self.domain
     }
 
     /// GET request.
