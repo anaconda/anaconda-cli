@@ -356,63 +356,32 @@ class TestLoginApiKey:
         # Should show some kind of error (exact message depends on implementation)
         assert "error" in result.stderr.lower() or "invalid" in result.stderr.lower()
 
-    def test_login_api_key_when_already_logged_in_warns(
+    def test_login_api_key_when_already_logged_in_requires_force(
         self,
         run_ana: AnaRunner,
         auth_env: dict[str, str],
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """--api-key when already logged in should warn and ask for confirmation."""
+        """--api-key when already logged in (piped) should require --force."""
         # First login via device flow
         run_ana("login", env=auth_env)
 
         # Get the original API key
         original_key = run_ana("auth", "api-key", env=auth_env).stdout.strip()
 
-        # Try to login with --api-key, decline confirmation
-        result = run_ana(
-            "login", f"--api-key={mock_auth_server.api_key}", env=auth_env, input="n\n"
-        )
+        # Try to login with --api-key (stdin is piped due to subprocess)
+        result = run_ana("login", f"--api-key={mock_auth_server.api_key}", env=auth_env)
 
         assert result.returncode == 0
-        # Should warn about overwriting
-        assert (
-            "Already logged in" in result.stderr or "overwrite" in result.stderr.lower()
-        )
+        # Should warn and tell user to use --force
+        assert "Already logged in" in result.stderr
+        assert "--force" in result.stderr
         # Original key should still be in place
         api_key_result = run_ana("auth", "api-key", env=auth_env)
         assert api_key_result.stdout.strip() == original_key
 
-    def test_login_api_key_when_already_logged_in_confirm(
-        self,
-        run_ana: AnaRunner,
-        auth_env: dict[str, str],
-        keyring_path: Path,
-        mock_auth_server: MockAuthServer,
-    ) -> None:
-        """--api-key when already logged in should overwrite if confirmed."""
-        # First login via device flow
-        run_ana("login", env=auth_env)
-
-        # Try to login with --api-key, accept confirmation
-        result = run_ana(
-            "login", f"--api-key={mock_auth_server.api_key}", env=auth_env, input="y\n"
-        )
-
-        assert result.returncode == 0
-        # Should show success
-        assert_output_contains(
-            result.stderr,
-            "Token stored in system keyring",
-            "Logged in as",
-        )
-
-        # Verify API key was overwritten
-        api_key_result = run_ana("auth", "api-key", env=auth_env)
-        assert api_key_result.stdout.strip() == mock_auth_server.api_key
-
-    def test_login_api_key_force_skips_confirmation(
+    def test_login_api_key_force_overwrites(
         self,
         run_ana: AnaRunner,
         auth_env: dict[str, str],

@@ -239,6 +239,16 @@ async fn login_with_api_key(api_key: String, force: bool) -> Result<(), AuthErro
             "Already logged in to {}",
             status::highlight(&config.domain)
         ));
+
+        // If stdin is a pipe, we can't prompt interactively - require --force
+        if stdin_is_pipe() {
+            status::info(&format!(
+                "Use {} to overwrite existing credentials",
+                status::highlight("--force")
+            ));
+            return Ok(());
+        }
+
         if !crate::input::prompt_yes_no("Overwrite existing credentials?") {
             return Ok(());
         }
