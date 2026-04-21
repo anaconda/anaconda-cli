@@ -8,6 +8,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
 from helpers import AnaRunner
 from mock_auth_server import MockAuthServer
@@ -38,7 +39,12 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
         for key, val in os.environ.copy().items()
         if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
     }
-    env["HOME"] = str(fake_home)
+    if IS_WINDOWS:
+        env["USERPROFILE"] = str(fake_home)
+        # Rattler does not reliably detect the default cache for Windows tests
+        env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
+    else:
+        env["HOME"] = str(fake_home)
     return env
 
 
@@ -56,8 +62,10 @@ def ana_binary() -> Path | None:
         if path.exists() and path.is_file():
             return path
 
-    for subpath in ["target/release/ana", "target/debug/ana"]:
-        binary = REPO_ROOT / subpath
+    ana_bin = "ana.exe" if IS_WINDOWS else "ana"
+
+    for subpath in ["target/release", "target/debug"]:
+        binary = REPO_ROOT / subpath / ana_bin
         if binary.exists():
             return binary
 
@@ -84,6 +92,7 @@ def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
             [str(ana_binary), *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             env=env,
             input=input,
             cwd=cwd,

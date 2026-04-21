@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
+
+IS_WINDOWS = sys.platform == "win32"
 
 
 def _find_repo_root() -> Path:

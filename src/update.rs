@@ -44,7 +44,20 @@ impl std::fmt::Display for Error {
                     f,
                     "GITHUB_TOKEN not set. Required for accessing private repo."
                 )?;
-                writeln!(f, "  Run: export GITHUB_TOKEN=$(gh auth token)")
+                #[cfg(unix)]
+                {
+                    writeln!(f, "  Run: export GITHUB_TOKEN=$(gh auth token)")
+                }
+                #[cfg(windows)]
+                {
+                    writeln!(f, " Run:")?;
+                    writeln!(f, "   PowerShell: $env:GITHUB_TOKEN=(gh auth token)")?;
+                    writeln!(
+                        f,
+                        "   cmd.exe: for /f %i in ('gh auth token') do set GITHUB_TOKEN=%i"
+                    )?;
+                    writeln!(f, "   git bash: export GITHUB_TOKEN=$(gh auth token)")
+                }
             }
             Error::AssetNotFound(platform) => {
                 write!(f, "No release asset found for platform: {}", platform)
