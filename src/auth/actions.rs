@@ -19,11 +19,11 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Print a QR code to the terminal with indentation.
 fn print_qr(qr: &str) {
-    status::blank_line();
+    eprintln!();
     for line in qr.lines() {
         eprintln!("    {}", line);
     }
-    status::blank_line();
+    eprintln!();
 }
 
 /// HTTP client with configuration and optional authentication.
