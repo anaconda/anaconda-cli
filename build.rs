@@ -24,6 +24,38 @@ fn main() {
     let rattler_version =
         extract_dep_version("Cargo.lock", "rattler").unwrap_or_else(|| "unknown".to_string());
     println!("cargo:rustc-env=RATTLER_VERSION={}", rattler_version);
+
+    // On Windows, compile the shim binary and place it in OUT_DIR
+    #[cfg(windows)]
+    build_shim();
+}
+
+#[cfg(windows)]
+fn build_shim() {
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    println!("cargo:rerun-if-changed=src/shim/shim.rs");
+
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let shim_src = PathBuf::from("src/shim/shim.rs");
+    let shim_out = out_dir.join("shim.exe");
+
+    // Use rustc directly to compile the shim as a minimal binary
+    let status = Command::new("rustc")
+        .args([
+            "--edition=2024",
+            "-O", // optimize for size
+            "-o",
+            shim_out.to_str().unwrap(),
+            shim_src.to_str().unwrap(),
+        ])
+        .status()
+        .expect("failed to run rustc for shim");
+
+    if !status.success() {
+        panic!("failed to compile shim binary");
+    }
 }
 
 /// Extract a dependency's resolved version from Cargo.lock.
