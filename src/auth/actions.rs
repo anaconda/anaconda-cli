@@ -632,8 +632,8 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
                 if let Some(days) = days_until_date(&date_part) {
                     let (duration_str, is_expired) = format_duration(days);
                     let suffix = if is_expired {
-                        use crate::ui::styles::{RED, style_for};
-                        format!(" ({})", style_for(RED).apply_to(&duration_str))
+                        use crate::ui::styles::UiColor;
+                        format!(" ({})", UiColor::Red.apply_to(&duration_str))
                     } else {
                         status::dim(&format!(" ({})", duration_str))
                     };
@@ -675,8 +675,8 @@ pub async fn whoami(json: bool) -> Result<(), AuthError> {
 
 /// Style a section header (green, uppercase).
 fn style_section(name: &str) -> String {
-    use crate::ui::styles::{GREEN, style_for};
-    style_for(GREEN).apply_to(name.to_uppercase()).to_string()
+    use crate::ui::styles::UiColor;
+    UiColor::Green.apply_to(name.to_uppercase()).to_string()
 }
 
 #[cfg(test)]

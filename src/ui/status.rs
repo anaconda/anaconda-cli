@@ -7,34 +7,34 @@
 //! - Info: plain text
 //! - Waiting: dim text for in-progress states
 
-use super::styles::{AMBER, BLUE, DIM, GREEN, RED, style_for};
+use super::styles::UiColor;
 
 /// Print a success message with green checkmark.
 ///
 /// Example output: `✓ Authentication complete`
 pub fn success(msg: &str) {
-    eprintln!("{} {}", style_for(GREEN).apply_to("✓"), msg);
+    eprintln!("{} {}", UiColor::Green.apply_to("✓"), msg);
 }
 
 /// Print an exciting success message with sparkles.
 ///
 /// Use for final completion messages. Example output: `✨ You can now install packages!`
 pub fn great_success(msg: &str) {
-    eprintln!("{} {}", style_for(GREEN).apply_to("✨"), msg);
+    eprintln!("{} {}", UiColor::Green.apply_to("✨"), msg);
 }
 
 /// Print an error message with red "error:" prefix.
 ///
 /// Example output: `error: not logged in`
 pub fn error(msg: &str) {
-    eprintln!("{} {}", style_for(RED).apply_to("error:"), msg);
+    eprintln!("{} {}", UiColor::Red.apply_to("error:"), msg);
 }
 
 /// Print a warning message with amber exclamation.
 ///
 /// Example output: `! To fully revoke your token visit anaconda.com/settings/tokens`
 pub fn warn(msg: &str) {
-    eprintln!("{} {}", style_for(AMBER).apply_to("!"), msg);
+    eprintln!("{} {}", UiColor::Amber.apply_to("!"), msg);
 }
 
 /// Print an info message (plain text).
@@ -48,21 +48,21 @@ pub fn info(msg: &str) {
 ///
 /// Example output: `Waiting for authentication...`
 pub fn waiting(msg: &str) {
-    eprintln!("{}", style_for(DIM).apply_to(msg));
+    eprintln!("{}", UiColor::Dim.apply_to(msg));
 }
 
 /// Return text styled as highlighted (blue).
 ///
 /// Use this for values like usernames, emails, commands.
 pub fn highlight(text: &str) -> String {
-    style_for(BLUE).apply_to(text).to_string()
+    UiColor::Blue.apply_to(text).to_string()
 }
 
 /// Return text styled as dim.
 ///
 /// Use this for secondary information, hints.
 pub fn dim(text: &str) -> String {
-    style_for(DIM).apply_to(text).to_string()
+    UiColor::Dim.apply_to(text).to_string()
 }
 
 /// Print a blank line to stderr.

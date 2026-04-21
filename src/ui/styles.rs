@@ -2,21 +2,69 @@
 //!
 //! All colors match the UX design spec.
 
-use console::{Color, Style};
+use console::{Color, Style, StyledObject};
 
-// Design spec colors
-pub const GREEN: &str = "#3fb950";
-pub const RED: &str = "#f85149";
-pub const AMBER: &str = "#e3b341";
-pub const BLUE: &str = "#79c0ff";
-pub const DIM: &str = "#6e7681";
-pub const DESC: &str = "#8b949e";
-pub const BOX_BG: &str = "#161b22";
-pub const BOX_BORDER: &str = "#30363d";
-pub const BOX_TEXT: &str = "#e6edf3";
+// Design spec colors (hex values)
+const GREEN: &str = "#3fb950";
+const RED: &str = "#f85149";
+const AMBER: &str = "#e3b341";
+const BLUE: &str = "#79c0ff";
+const DIM: &str = "#6e7681";
+const DESC: &str = "#8b949e";
+const BOX_BG: &str = "#161b22";
+const BOX_BORDER: &str = "#30363d";
+const BOX_TEXT: &str = "#e6edf3";
+
+/// UI colors from the design spec.
+#[derive(Clone, Copy)]
+pub enum UiColor {
+    Green,
+    Red,
+    Amber,
+    Blue,
+    Dim,
+    Desc,
+    BoxBg,
+    BoxBorder,
+    BoxText,
+}
+
+impl UiColor {
+    /// Get the hex value for this color.
+    fn hex(&self) -> &'static str {
+        match self {
+            Self::Green => GREEN,
+            Self::Red => RED,
+            Self::Amber => AMBER,
+            Self::Blue => BLUE,
+            Self::Dim => DIM,
+            Self::Desc => DESC,
+            Self::BoxBg => BOX_BG,
+            Self::BoxBorder => BOX_BORDER,
+            Self::BoxText => BOX_TEXT,
+        }
+    }
+
+    /// Convert to a console Color.
+    pub fn color(&self) -> Color {
+        hex_to_color(self.hex())
+    }
+
+    /// Get a Style with this color as foreground.
+    pub fn style(&self) -> Style {
+        Style::new().fg(self.color())
+    }
+
+    /// Apply this color to text, returning a styled object.
+    ///
+    /// Shorthand for `UiColor::Red.style().apply_to(text)`.
+    pub fn apply_to<D>(&self, val: D) -> StyledObject<D> {
+        self.style().apply_to(val)
+    }
+}
 
 /// Convert a hex color string to a console Color.
-pub fn hex_color(hex: &str) -> Color {
+fn hex_to_color(hex: &str) -> Color {
     let hex = hex.trim_start_matches('#');
     let r = u8::from_str_radix(&hex[0..2], 16).unwrap();
     let g = u8::from_str_radix(&hex[2..4], 16).unwrap();
@@ -24,18 +72,13 @@ pub fn hex_color(hex: &str) -> Color {
     Color::TrueColor(r, g, b)
 }
 
-/// Get a style for a given hex color.
-pub fn style_for(hex: &str) -> Style {
-    Style::new().fg(hex_color(hex))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_hex_color() {
-        match hex_color("#3fb950") {
+    fn test_ui_color_green() {
+        match UiColor::Green.color() {
             Color::TrueColor(r, g, b) => {
                 assert_eq!((r, g, b), (63, 185, 80));
             }
@@ -44,8 +87,8 @@ mod tests {
     }
 
     #[test]
-    fn test_hex_color_without_hash() {
-        match hex_color("79c0ff") {
+    fn test_ui_color_blue() {
+        match UiColor::Blue.color() {
             Color::TrueColor(r, g, b) => {
                 assert_eq!((r, g, b), (121, 192, 255));
             }
