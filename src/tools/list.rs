@@ -1,5 +1,6 @@
 //! List available tools and their installation status.
 
+use crate::context::CommandContext;
 use std::path::PathBuf;
 
 use crate::paths;
@@ -32,7 +33,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
 }
 
 /// Print the tool list as a formatted table.
-pub fn print_tool_list() {
+pub fn print_tool_list(_ctx: &mut CommandContext) {
     let tools = list_tools();
 
     let mut table = table::new(["Name", "Installed", "Binaries"]);

@@ -3,6 +3,7 @@
 use miette::{Context, IntoDiagnostic};
 
 use super::tools;
+use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
 use crate::paths;
 
@@ -10,7 +11,9 @@ use crate::paths;
 ///
 /// Removes the tool's environment and any symlinks in the bin directory.
 /// Cleans up empty directories afterward.
-pub fn uninstall_tool(name: &str, force: bool) -> miette::Result<()> {
+pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miette::Result<()> {
+    ctx.telemetry.add("tool_name", name.to_string());
+
     // Verify the tool is known
     if tools::binaries(name).is_none() {
         return Err(miette::miette!("unknown tool: {}", name));

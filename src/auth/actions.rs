@@ -11,6 +11,7 @@ use super::responses::{
     AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
 };
 use crate::config::Config;
+use crate::context::CommandContext;
 use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
 use crate::ui::status;
@@ -507,6 +508,7 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
 /// 4. `echo key | ana login` - read from stdin if piped
 /// 5. `ana login` - device flow
 pub async fn login(
+    _ctx: &mut CommandContext,
     api_key: Option<String>,
     prompt_api_key: bool,
     force: bool,
@@ -544,7 +546,7 @@ pub async fn login(
 }
 
 /// Log out by removing the API key for the current domain.
-pub fn logout() -> Result<(), AuthError> {
+pub fn logout(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let config = Config::load();
 
     // Check if already logged out
@@ -570,7 +572,7 @@ pub fn logout() -> Result<(), AuthError> {
 }
 
 /// Display the API key for the current domain.
-pub fn show_api_key() -> Result<(), AuthError> {
+pub fn show_api_key(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let config = Config::load();
 
     match get_api_key(&config)? {
@@ -612,7 +614,7 @@ fn mask_api_key(key: &str) -> String {
 }
 
 /// Display information about the logged-in user.
-pub async fn whoami(json: bool) -> Result<(), AuthError> {
+pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthError> {
     let config = Config::load();
     let client = ApiClient::new(&config)?;
 
