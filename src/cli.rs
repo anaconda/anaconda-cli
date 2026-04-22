@@ -1,15 +1,14 @@
 use std::collections::HashMap;
-use std::env::consts::{ARCH, OS};
 use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{CommandFactory, Parser, Subcommand};
-use opentelemetry::Value;
 
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
+use crate::context::CommandContext;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::help;
@@ -52,15 +51,6 @@ impl LogLevel {
             Self::Trace => "ana=trace,anaconda_otel_rs=off,opentelemetry=off,reqwest=off",
         }
     }
-}
-
-/// Build base telemetry attributes with system information.
-fn system_attrs() -> HashMap<String, Value> {
-    let mut attrs = HashMap::new();
-    attrs.insert("os".to_string(), OS.into());
-    attrs.insert("arch".to_string(), ARCH.into());
-    attrs.insert("version".to_string(), VERSION.into());
-    attrs
 }
 
 pub async fn execute() {
@@ -155,29 +145,37 @@ impl Action {
     /// Execute the action with telemetry middleware
     pub async fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
         let name = self.match_action_name();
-        let mut attrs = system_attrs();
-        attrs.insert("command".to_string(), name.into());
-        increment_counter("cli_command_invoked", 1, attrs.clone());
+        let mut ctx = CommandContext::new();
+        ctx.telemetry.add("command", name);
+        increment_counter("cli_command_invoked", 1, ctx.telemetry.attrs());
 
         let start = Instant::now();
-        let result = self.run().await;
+        let result = self.run(&mut ctx).await;
         let duration_ms = start.elapsed().as_millis() as f64;
 
         match &result {
             Ok(_) => {
-                increment_counter("cli_command_success", 1, attrs.clone());
-                record_histogram("cli_command_success_duration_ms", duration_ms, attrs);
+                increment_counter("cli_command_success", 1, ctx.telemetry.attrs());
+                record_histogram(
+                    "cli_command_success_duration_ms",
+                    duration_ms,
+                    ctx.telemetry.into_attrs(),
+                );
             }
             Err(_) => {
-                increment_counter("cli_command_failure", 1, attrs.clone());
-                record_histogram("cli_command_failure_duration_ms", duration_ms, attrs);
+                increment_counter("cli_command_failure", 1, ctx.telemetry.attrs());
+                record_histogram(
+                    "cli_command_failure_duration_ms",
+                    duration_ms,
+                    ctx.telemetry.into_attrs(),
+                );
             }
         }
 
         result
     }
 
-    async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run(self, ctx: &mut CommandContext) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Action::ShowHelp => {
                 let subcommands = get_subcommand_descriptions();
@@ -196,34 +194,34 @@ impl Action {
                 Config::load().print_table();
                 Ok(())
             }
-            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap().await?),
-            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args)?),
+            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx).await?),
+            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)?),
             Action::ToolInstall { name } => {
-                tools::install::install_tool(&name).await?;
+                tools::install::install_tool(ctx, &name).await?;
                 Ok(())
             }
             Action::ToolUninstall { name, force } => {
-                tools::uninstall::uninstall_tool(&name, force)?;
+                tools::uninstall::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
             Action::ToolList => {
-                tools::list::print_tool_list();
+                tools::list::print_tool_list(ctx);
                 Ok(())
             }
-            Action::Login => Ok(auth::login().await?),
-            Action::Logout => Ok(auth::logout()?),
-            Action::ShowApiKey => Ok(auth::show_api_key()?),
-            Action::Whoami { json } => Ok(auth::whoami(json).await?),
+            Action::Login => Ok(auth::login(ctx).await?),
+            Action::Logout => Ok(auth::logout(ctx)?),
+            Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
+            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
             Action::Update { force } => {
-                update::run_update(VERSION, force).await;
+                update::run_update(ctx, VERSION, force).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
-                update::check_for_update(VERSION).await;
+                update::check_for_update(ctx, VERSION).await;
                 Ok(())
             }
             Action::ShowAvailableVersions => {
-                update::show_available_versions(VERSION).await;
+                update::show_available_versions(ctx, VERSION).await;
                 Ok(())
             }
             #[cfg(feature = "feedback")]
@@ -231,7 +229,7 @@ impl Action {
                 feedback_type,
                 description,
             } => {
-                feedback::open_feedback(feedback_type, description);
+                feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
         }
