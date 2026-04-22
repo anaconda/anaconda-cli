@@ -18,19 +18,32 @@ The repo uses pre-commit hooks. Run `pre-commit install` after cloning.
 When creating a new release:
 
 1. **GitHub Release** - Created automatically via GitHub Actions when a tag is pushed
-2. **Jira Release** - Run the script to sync with Jira:
+2. **Jira Release** - Two-step process with human review:
    ```bash
    source .env  # Contains ATLASSIAN_USER_EMAIL and ATLASSIAN_API_TOKEN
-   pixi run python scripts/create_jira_release.py v0.0.9
+
+   # Step 1: Generate QA notes for review
+   pixi run python scripts/create_jira_release.py v0.0.9 --generate-notes > qa_notes.md
+
+   # Step 2: Edit qa_notes.md - synthesize testing guidance from PR descriptions
+   # Remove the quoted PR descriptions after writing testing notes
+
+   # Step 3: Create Jira release with reviewed notes
+   pixi run python scripts/create_jira_release.py v0.0.9 --notes-file qa_notes.md
    ```
 
 ### What the Jira release script does
-- Creates a Jira release named `ana-cli vX.Y.Z` in the CLI project
-- Links to the GitHub release in the description
-- Finds Jira issue references (e.g., `CLI-123`) in PR descriptions and sets their Fix Version
-- Creates a QA Story with testing notes, including:
-  - Links to each PR (excluding Renovate/bot PRs)
-  - Grouped by type (Features, Bug Fixes, Maintenance)
+- **Step 1 (--generate-notes)**: Fetches GitHub release, extracts PRs, outputs markdown with PR descriptions for review
+- **Step 2 (human review)**: You synthesize testing guidance from PR descriptions, removing the quoted raw descriptions
+- **Step 3 (--notes-file)**: Creates Jira release, updates Fix Versions on linked issues, creates QA Story with your reviewed notes
+
+### Writing good QA notes
+When reviewing the generated markdown:
+- Focus on user-facing behavior changes
+- Synthesize the PR description into clear testing steps
+- Skip internal/CI changes that don't need QA testing
+- Include specific commands to run and expected outcomes
+- Remove the quoted `> PR description` blocks after synthesizing
 
 ### Manual Jira release (if needed)
 If you need to create a Jira release manually or via Claude:

@@ -2,10 +2,16 @@
 """
 Create a Jira release for ana-cli and generate QA testing notes.
 
-Usage:
-    python scripts/create_jira_release.py v0.0.8
+Two-step workflow:
+    1. Generate notes for review:
+       python scripts/create_jira_release.py v0.0.9 --generate-notes > qa_notes.md
 
-Required environment variables:
+    2. Create release with reviewed notes:
+       python scripts/create_jira_release.py v0.0.9 --notes-file qa_notes.md
+       # or via stdin:
+       cat qa_notes.md | python scripts/create_jira_release.py v0.0.9 --notes-stdin
+
+Required environment variables (for step 2 only):
     ATLASSIAN_USER_EMAIL - Your Atlassian account email
     ATLASSIAN_API_TOKEN  - API token from https://id.atlassian.com/manage-profile/security/api-tokens
 
@@ -14,12 +20,14 @@ You can set these in a .env file and source it before running.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
 import subprocess
 import sys
 from dataclasses import dataclass
+from dataclasses import field
 from typing import Any
 
 import requests
@@ -34,6 +42,7 @@ GITHUB_REPO = "anaconda/ana-cli"
 class PullRequest:
     number: int
     title: str
+    body: str
     author: str
     jira_link: str | None
     is_bot: bool
@@ -52,6 +61,21 @@ class PullRequest:
         elif title_lower.startswith(("refac", "chore", "docs", "test", "ci")):
             return "maintenance"
         return "other"
+
+
+@dataclass
+class ReleaseInfo:
+    version: str
+    github_url: str
+    prs: list[PullRequest] = field(default_factory=list)
+
+    @property
+    def version_name(self) -> str:
+        return f"ana-cli {self.version}"
+
+    @property
+    def jira_issues(self) -> list[str]:
+        return [pr.jira_link for pr in self.prs if pr.jira_link]
 
 
 class JiraClient:
@@ -174,11 +198,21 @@ def extract_jira_link(pr_body: str) -> str | None:
     return match.group(0) if match else None
 
 
-def build_pr_list(pr_numbers: list[int]) -> list[PullRequest]:
-    """Fetch details for each PR and build PullRequest objects."""
+def fetch_release_info(version: str, quiet: bool = False) -> ReleaseInfo:
+    """Fetch GitHub release and PR details."""
+    if not quiet:
+        print(f"Fetching GitHub release {version}...", file=sys.stderr)
+    release = get_github_release(version)
+    github_url = release["url"]
+
+    if not quiet:
+        print("Extracting PRs from release notes...", file=sys.stderr)
+    pr_numbers = extract_pr_numbers(release["body"])
+
     prs = []
     for num in pr_numbers:
-        print(f"  Fetching PR #{num}...")
+        if not quiet:
+            print(f"  Fetching PR #{num}...", file=sys.stderr)
         try:
             details = get_pr_details(num)
             author = details.get("author", {}).get("login", "unknown")
@@ -188,19 +222,121 @@ def build_pr_list(pr_numbers: list[int]) -> list[PullRequest]:
                 PullRequest(
                     number=num,
                     title=details.get("title", f"PR #{num}"),
+                    body=details.get("body", ""),
                     author=author,
                     jira_link=extract_jira_link(details.get("body", "")),
                     is_bot=is_bot,
                 )
             )
         except subprocess.CalledProcessError:
-            print(f"    Warning: Could not fetch PR #{num}")
+            if not quiet:
+                print(f"    Warning: Could not fetch PR #{num}", file=sys.stderr)
 
-    return prs
+    return ReleaseInfo(version=version, github_url=github_url, prs=prs)
 
 
-def build_adf_document(github_url: str, prs: list[PullRequest]) -> dict:
-    """Build Atlassian Document Format for QA testing notes."""
+def generate_notes_markdown(release: ReleaseInfo) -> str:
+    """Generate markdown QA notes for human review."""
+    lines = []
+    lines.append(f"# QA Testing Notes for {release.version_name}")
+    lines.append("")
+    lines.append(f"GitHub Release: {release.github_url}")
+    lines.append("")
+
+    non_bot_prs = [pr for pr in release.prs if not pr.is_bot]
+    features = [pr for pr in non_bot_prs if pr.category == "feature"]
+    fixes = [pr for pr in non_bot_prs if pr.category == "fix"]
+    maintenance = [pr for pr in non_bot_prs if pr.category == "maintenance"]
+    other = [pr for pr in non_bot_prs if pr.category == "other"]
+
+    def write_pr_section(prs: list[PullRequest], header: str) -> None:
+        if not prs:
+            return
+        lines.append(f"## {header}")
+        lines.append("")
+        for pr in prs:
+            lines.append(f"### [PR #{pr.number}]({pr.url}) - {pr.title}")
+            lines.append("")
+            lines.append("**Testing notes:**")
+            lines.append("")
+            lines.append(
+                "<!-- Synthesize testing guidance from the PR description below -->"
+            )
+            lines.append(
+                "<!-- Delete the PR description after writing testing notes -->"
+            )
+            lines.append("")
+            if pr.body:
+                for body_line in pr.body.split("\n"):
+                    lines.append(f"> {body_line}")
+            else:
+                lines.append("> (No PR description)")
+            lines.append("")
+
+    write_pr_section(features, "Features")
+    write_pr_section(fixes, "Bug Fixes")
+    write_pr_section(maintenance, "Maintenance (no user-facing testing needed)")
+    write_pr_section(other, "Other Changes")
+
+    if release.jira_issues:
+        lines.append("## Linked Jira Issues")
+        lines.append("")
+        lines.append("The following issues will have their Fix Version updated:")
+        lines.append("")
+        for issue in release.jira_issues:
+            lines.append(f"- [{issue}]({JIRA_BASE_URL}/browse/{issue})")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def parse_notes_markdown(content: str) -> tuple[str, dict[str, str]]:
+    """
+    Parse reviewed markdown notes.
+
+    Returns:
+        tuple of (github_url, {pr_number: testing_notes})
+    """
+    github_url = ""
+    pr_notes: dict[str, str] = {}
+
+    # Extract GitHub URL
+    url_match = re.search(r"GitHub Release: (https://[^\s]+)", content)
+    if url_match:
+        github_url = url_match.group(1)
+
+    # Extract PR sections - look for ### [PR #N] headers followed by testing notes
+    pr_pattern = re.compile(
+        r"### \[PR #(\d+)\][^\n]*\n"
+        r".*?\*\*Testing notes:\*\*\s*\n"
+        r"(.*?)"
+        r"(?=### \[PR #|\n## |$)",
+        re.DOTALL,
+    )
+
+    for match in pr_pattern.finditer(content):
+        pr_num = match.group(1)
+        notes_section = match.group(2).strip()
+
+        # Remove HTML comments and quoted PR description
+        lines = []
+        for line in notes_section.split("\n"):
+            line = line.strip()
+            if line.startswith("<!--") or line.startswith(">"):
+                continue
+            if line:
+                lines.append(line)
+
+        if lines:
+            pr_notes[pr_num] = "\n".join(lines)
+
+    return github_url, pr_notes
+
+
+def build_adf_from_notes(
+    release: ReleaseInfo, pr_notes: dict[str, str]
+) -> dict[str, Any]:
+    """Build Atlassian Document Format from reviewed notes."""
     content: list[dict[str, Any]] = []
 
     # Header
@@ -208,48 +344,55 @@ def build_adf_document(github_url: str, prs: list[PullRequest]) -> dict:
     content.append(
         paragraph(
             text("GitHub Release: "),
-            link("Release Notes", github_url),
+            link("Release Notes", release.github_url),
         )
     )
 
-    # Group PRs by category (excluding bots)
-    non_bot_prs = [pr for pr in prs if not pr.is_bot]
+    non_bot_prs = [pr for pr in release.prs if not pr.is_bot]
     features = [pr for pr in non_bot_prs if pr.category == "feature"]
     fixes = [pr for pr in non_bot_prs if pr.category == "fix"]
     maintenance = [pr for pr in non_bot_prs if pr.category == "maintenance"]
     other = [pr for pr in non_bot_prs if pr.category == "other"]
 
-    def pr_list_item(pr: PullRequest) -> dict:
-        return list_item(
-            paragraph(
-                link(f"PR #{pr.number}", pr.url, bold=True),
-                text(f" - {pr.title}"),
-            )
-        )
+    def build_pr_section(prs: list[PullRequest], header: str) -> None:
+        if not prs:
+            return
+        content.append(heading(header, level=2))
 
-    if features:
-        content.append(heading("Features", level=2))
-        content.append(bullet_list([pr_list_item(pr) for pr in features]))
+        items = []
+        for pr in prs:
+            pr_num_str = str(pr.number)
+            notes = pr_notes.get(pr_num_str, "")
 
-    if fixes:
-        content.append(heading("Bug Fixes", level=2))
-        content.append(bullet_list([pr_list_item(pr) for pr in fixes]))
+            item_content = [
+                paragraph(
+                    link(f"PR #{pr.number}", pr.url, bold=True),
+                    text(f" - {pr.title}"),
+                )
+            ]
 
-    if maintenance:
-        content.append(heading("Maintenance", level=2))
-        content.append(bullet_list([pr_list_item(pr) for pr in maintenance]))
+            if notes:
+                # Add testing notes as sub-content
+                for note_line in notes.split("\n"):
+                    if note_line.strip():
+                        item_content.append(paragraph(text(note_line)))
 
-    if other:
-        content.append(heading("Other Changes", level=2))
-        content.append(bullet_list([pr_list_item(pr) for pr in other]))
+            items.append(list_item(*item_content))
+
+        content.append(bullet_list(items))
+
+    build_pr_section(features, "Features")
+    build_pr_section(fixes, "Bug Fixes")
+    build_pr_section(maintenance, "Maintenance")
+    build_pr_section(other, "Other Changes")
 
     return {"type": "doc", "version": 1, "content": content}
 
 
 # ADF helper functions
 def text(value: str, bold: bool = False, code: bool = False) -> dict:
-    node = {"type": "text", "text": value}
-    marks = []
+    node: dict[str, Any] = {"type": "text", "text": value}
+    marks: list[dict[str, Any]] = []
     if bold:
         marks.append({"type": "strong"})
     if code:
@@ -260,7 +403,7 @@ def text(value: str, bold: bool = False, code: bool = False) -> dict:
 
 
 def link(label: str, url: str, bold: bool = False) -> dict:
-    marks = [{"type": "link", "attrs": {"href": url}}]
+    marks: list[dict[str, Any]] = [{"type": "link", "attrs": {"href": url}}]
     if bold:
         marks.append({"type": "strong"})
     return {"type": "text", "text": label, "marks": marks}
@@ -286,15 +429,15 @@ def bullet_list(items: list[dict]) -> dict:
     return {"type": "bulletList", "content": items}
 
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/create_jira_release.py <version>")
-        print("Example: python scripts/create_jira_release.py v0.0.8")
-        sys.exit(1)
+def cmd_generate_notes(args: argparse.Namespace) -> int:
+    """Generate QA notes markdown for review."""
+    release = fetch_release_info(args.version)
+    print(generate_notes_markdown(release))
+    return 0
 
-    version = sys.argv[1]
-    version_name = f"ana-cli {version}"
 
+def cmd_create_release(args: argparse.Namespace) -> int:
+    """Create Jira release with reviewed notes."""
     # Check environment
     email = os.environ.get("ATLASSIAN_USER_EMAIL")
     token = os.environ.get("ATLASSIAN_API_TOKEN")
@@ -302,48 +445,53 @@ def main():
     if not email or not token:
         print("Error: ATLASSIAN_USER_EMAIL and ATLASSIAN_API_TOKEN must be set")
         print("Create a .env file and source it, or export the variables directly.")
-        sys.exit(1)
+        return 1
+
+    # Read notes
+    if args.notes_stdin:
+        notes_content = sys.stdin.read()
+    elif args.notes_file:
+        with open(args.notes_file) as f:
+            notes_content = f.read()
+    else:
+        print("Error: Must specify --notes-file or --notes-stdin")
+        return 1
+
+    # Parse notes
+    _, pr_notes = parse_notes_markdown(notes_content)
+
+    # Fetch release info
+    release = fetch_release_info(args.version)
 
     jira = JiraClient(email, token)
 
     # Check if version already exists
-    if jira.version_exists(version_name):
-        print(f"Error: Jira version '{version_name}' already exists")
-        sys.exit(1)
-
-    # Get GitHub release
-    print(f"Fetching GitHub release {version}...")
-    release = get_github_release(version)
-    github_url = release["url"]
-
-    # Extract and process PRs
-    print("Extracting PRs from release notes...")
-    pr_numbers = extract_pr_numbers(release["body"])
-    prs = build_pr_list(pr_numbers)
+    if jira.version_exists(release.version_name):
+        print(f"Error: Jira version '{release.version_name}' already exists")
+        return 1
 
     # Create Jira version
-    print(f"Creating Jira release '{version_name}'...")
+    print(f"Creating Jira release '{release.version_name}'...")
     from datetime import date
 
     version_result = jira.create_version(
-        name=version_name,
-        description=f"GitHub Release: {github_url}",
+        name=release.version_name,
+        description=f"GitHub Release: {release.github_url}",
         release_date=date.today().isoformat(),
     )
     version_id = version_result["id"]
     print(f"  Created with ID: {version_id}")
 
     # Update Fix Version on linked Jira issues
-    jira_issues = [pr.jira_link for pr in prs if pr.jira_link]
-    for issue_key in jira_issues:
+    for issue_key in release.jira_issues:
         print(f"Updating Fix Version on {issue_key}...")
         jira.update_issue_fix_version(issue_key, version_id)
 
     # Create QA Story
     print("Creating QA testing story...")
-    qa_description = build_adf_document(github_url, prs)
+    qa_description = build_adf_from_notes(release, pr_notes)
     qa_result = jira.create_issue(
-        summary=f"QA Testing Notes for {version_name}",
+        summary=f"QA Testing Notes for {release.version_name}",
         description=qa_description,
         fix_version_id=version_id,
     )
@@ -354,9 +502,56 @@ def main():
     print("Done!")
     print(f"  Jira Release: {JIRA_BASE_URL}/projects/CLI/versions/{version_id}")
     print(f"  QA Story:     {JIRA_BASE_URL}/browse/{qa_key}")
-    if jira_issues:
-        print(f"  Updated Fix Version on: {', '.join(jira_issues)}")
+    if release.jira_issues:
+        print(f"  Updated Fix Version on: {', '.join(release.jira_issues)}")
+
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Create a Jira release for ana-cli with QA testing notes.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Step 1: Generate notes for review
+  %(prog)s v0.0.9 --generate-notes > qa_notes.md
+
+  # Step 2: Review and edit qa_notes.md, then create the release
+  %(prog)s v0.0.9 --notes-file qa_notes.md
+
+  # Or pipe directly:
+  cat qa_notes.md | %(prog)s v0.0.9 --notes-stdin
+""",
+    )
+    parser.add_argument("version", help="Release version (e.g., v0.0.9)")
+    parser.add_argument(
+        "--generate-notes",
+        action="store_true",
+        help="Generate QA notes markdown for review (stdout)",
+    )
+    parser.add_argument(
+        "--notes-file",
+        metavar="FILE",
+        help="Path to reviewed notes markdown file",
+    )
+    parser.add_argument(
+        "--notes-stdin",
+        action="store_true",
+        help="Read reviewed notes from stdin",
+    )
+
+    args = parser.parse_args()
+
+    if args.generate_notes:
+        return cmd_generate_notes(args)
+    elif args.notes_file or args.notes_stdin:
+        return cmd_create_release(args)
+    else:
+        parser.print_help()
+        print("\nError: Must specify --generate-notes, --notes-file, or --notes-stdin")
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
