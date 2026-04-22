@@ -76,6 +76,8 @@ jobs:
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - name: Run unit tests
+        env:
+          RUST_BACKTRACE: 1
         run: pixi run test-release
 
       - name: Build release binary
@@ -87,6 +89,15 @@ jobs:
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         run: pixi run test-integration
+
+      - name: Run integration tests (PowerShell)
+        if: ${{ runner.os == 'Windows' }}
+        env:
+          ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
+          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        run: pixi run test-integration
+        shell: pwsh
 
       - name: Build conda package
         run: pixi run build-conda

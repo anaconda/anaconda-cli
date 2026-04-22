@@ -2,33 +2,35 @@
 
 use std::time::Duration;
 
-use serde::Deserialize;
 use tokio::time::sleep;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_api_key};
+use super::responses::{
+    AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
+};
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::http::{Client, bearer_header, build_client};
 use crate::input::KeyListener;
+use crate::ui::status;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Print a QR code to the terminal with indentation.
 fn print_qr(qr: &str) {
-    println!();
+    eprintln!();
     for line in qr.lines() {
-        println!("    {}", line);
+        eprintln!("    {}", line);
     }
-    println!();
+    eprintln!();
 }
 
 /// HTTP client with configuration and optional authentication.
 pub struct ApiClient {
     inner: Client,
     api_key: Option<String>,
-    domain: String,
 }
 
 impl ApiClient {
@@ -47,18 +49,12 @@ impl ApiClient {
         Ok(Self {
             inner: client,
             api_key,
-            domain: config.domain,
         })
     }
 
     /// Check if the client has valid credentials.
     pub fn is_authenticated(&self) -> bool {
         self.api_key.is_some()
-    }
-
-    /// Get the configured domain.
-    pub fn domain(&self) -> &str {
-        &self.domain
     }
 
     /// GET request.
@@ -91,35 +87,102 @@ impl ApiClient {
     }
 }
 
-/// OpenID Connect discovery document.
-#[derive(Debug, Deserialize)]
-struct OpenIdConfig {
-    device_authorization_endpoint: Option<String>,
-    token_endpoint: String,
+/// Print logged-in user status line.
+///
+/// Example: `✓ Logged in as user@example.com`
+fn print_logged_in_status(email: &str) {
+    status::success(&format!("Logged in as {}", status::highlight(email)));
 }
 
-/// Response from the device authorization endpoint.
-#[derive(Debug, Deserialize)]
-struct DeviceAuthResponse {
-    device_code: String,
-    user_code: String,
-    verification_uri: String,
-    verification_uri_complete: Option<String>,
-    expires_in: u64,
-    interval: Option<u64>,
+/// Parse a date string (YYYY-MM-DD format) into a NaiveDate.
+fn parse_date(date_str: &str) -> Option<chrono::NaiveDate> {
+    chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
 }
 
-/// Response from the token endpoint.
-#[derive(Debug, Deserialize)]
-struct TokenResponse {
-    access_token: String,
+/// Format a duration from today to a target date as a human-readable string.
+///
+/// Uses chrono's date arithmetic to correctly handle leap years.
+///
+/// Returns (formatted_string, is_expired).
+/// Examples:
+/// - 400 days from now -> ("1 year, 35 days", false)
+/// - 1 day from now -> ("1 day", false)
+/// - past date -> ("expired", true)
+fn format_duration_until(target: chrono::NaiveDate) -> (String, bool) {
+    let today = chrono::Utc::now().date_naive();
+
+    if target < today {
+        return ("expired".to_string(), true);
+    }
+
+    // Calculate years by finding how many full years fit
+    let mut years = 0i32;
+    let mut date_after_years = today;
+    while let Some(next) = date_after_years.checked_add_months(chrono::Months::new(12)) {
+        if next <= target {
+            years += 1;
+            date_after_years = next;
+        } else {
+            break;
+        }
+    }
+
+    // Remaining days after subtracting full years
+    let remaining_days = (target - date_after_years).num_days();
+
+    let year_unit = if years == 1 { "year" } else { "years" };
+    let day_unit = if remaining_days == 1 { "day" } else { "days" };
+
+    let s = if years > 0 {
+        if remaining_days == 0 {
+            format!("{} {}", years, year_unit)
+        } else {
+            format!("{} {}, {} {}", years, year_unit, remaining_days, day_unit)
+        }
+    } else {
+        format!("{} {}", remaining_days, day_unit)
+    };
+
+    (s, false)
 }
 
-/// Error response from the token endpoint during polling.
-#[derive(Debug, Deserialize)]
-struct TokenErrorResponse {
-    error: String,
-    error_description: Option<String>,
+/// Print token expiration info.
+///
+/// Example: `  expires      2027-04-20 (1 year)`
+fn print_token_expiration(expires_at: &str) {
+    if let Some(target_date) = parse_date(expires_at) {
+        let (duration_str, _) = format_duration_until(target_date);
+        // "Logged in as " is 13 chars; "  expires" is 9 chars; need 4 more spaces
+        eprintln!(
+            "  {}{}{}",
+            status::dim("expires      "),
+            status::highlight(expires_at),
+            status::dim(&format!(" ({})", duration_str))
+        );
+    }
+}
+
+/// Combined login information for display.
+struct LoginInfo {
+    email: String,
+}
+
+/// Fetch login info for display after login.
+async fn fetch_login_info() -> Result<LoginInfo, AuthError> {
+    let client = ApiClient::new()?;
+
+    // Fetch account info
+    let account_response = client.get("/api/account").send().await?;
+    let account: AccountResponse = account_response.json().await?;
+
+    let email = account
+        .user
+        .as_ref()
+        .and_then(|u| u.email.clone())
+        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
+        .unwrap_or_else(|| "unknown".to_string());
+
+    Ok(LoginInfo { email })
 }
 
 /// Perform the device authorization flow.
@@ -129,6 +192,18 @@ pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     // this, at least for now, because the auth flow needs to follow direct
     // URLs from openid-configuration etc.
     let config = Config::load();
+
+    // Check if already logged in
+    if get_api_key(&config)?.is_some() {
+        status::warn(&format!(
+            "Already logged in to {}",
+            status::highlight(&config.domain)
+        ));
+        if !crate::input::prompt_yes_no("Login again?") {
+            // Return early if user declines to log in again
+            return Ok(());
+        }
+    }
 
     let client = build_client(reqwest::Client::builder().timeout(REQUEST_TIMEOUT))?;
 
@@ -188,29 +263,40 @@ pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let mut qr_shown = false;
     if browser_opened {
         // Browser opened — clean layout, offer QR on demand
-        println!("To authenticate, visit:");
-        println!();
-        println!("  {}", display_uri);
+        status::info(&format!(
+            "Opening {} in your browser...",
+            status::highlight(&config.domain)
+        ));
+        status::blank_line();
+        status::info("To authenticate, visit:");
+        status::blank_line();
+        eprintln!("  {}", status::highlight(display_uri));
         if device_response.verification_uri_complete.is_none() {
-            println!();
-            println!("And enter the code: {}", device_response.user_code);
+            status::blank_line();
+            status::info(&format!(
+                "And enter the code: {}",
+                status::highlight(&device_response.user_code)
+            ));
         }
-        println!();
+        status::blank_line();
         if qr_output.is_some() {
-            println!("Waiting for authentication... (press q for QR code)");
+            status::waiting("Waiting for authentication... (press q for QR code)");
         } else {
-            println!("Waiting for authentication...");
+            status::waiting("Waiting for authentication...");
         }
     } else {
-        println!("To authenticate, scan the QR code or visit:");
-        println!();
-        println!("  {}", display_uri);
+        status::info("To authenticate, scan the QR code or visit:");
+        status::blank_line();
+        eprintln!("  {}", status::highlight(display_uri));
         if device_response.verification_uri_complete.is_none() {
-            println!();
-            println!("And enter the code: {}", device_response.user_code);
+            status::blank_line();
+            status::info(&format!(
+                "And enter the code: {}",
+                status::highlight(&device_response.user_code)
+            ));
         }
-        println!();
-        println!("Waiting for authentication...");
+        status::blank_line();
+        status::waiting("Waiting for authentication...");
 
         // No browser — show QR code immediately
         if let Some(ref qr) = qr_output {
@@ -258,16 +344,24 @@ pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
 
         if response.status().is_success() {
             let token: TokenResponse = response.json().await?;
-            println!();
-            println!("Successfully authenticated!");
+            status::blank_line();
+            status::success("Authentication complete");
 
             // Create API key
-            println!("Creating API key...");
-            let api_key = create_api_key(&client, &config, &token.access_token).await?;
+            let api_key_result = create_api_key(&client, &config, &token.access_token).await?;
 
             // Save to keyring
-            save_api_key(&config, &api_key)?;
-            println!("API key saved to {}", config.keyring_path.display());
+            save_api_key(&config, &api_key_result.api_key)?;
+            status::success("API key stored in keyring");
+
+            // Fetch and display user info
+            if let Ok(login_info) = fetch_login_info().await {
+                print_logged_in_status(&login_info.email);
+                if let Some(ref expires_at) = api_key_result.expires_at {
+                    print_token_expiration(expires_at);
+                }
+            }
+
             return Ok(());
         }
 
@@ -302,8 +396,26 @@ pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
 /// Log out by removing the API key for the current domain.
 pub fn logout(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     let config = Config::load();
+
+    // Check if already logged out
+    if get_api_key(&config)?.is_none() {
+        status::warn(&format!(
+            "Not logged in to {}",
+            status::highlight(&config.domain)
+        ));
+        return Ok(());
+    }
+
     delete_api_key(&config)?;
-    println!("Logged out from {}", config.domain);
+    status::success(&format!(
+        "Logged out of {}",
+        status::highlight(&config.domain)
+    ));
+    status::success("API key removed from system keyring");
+    status::warn(&format!(
+        "To fully revoke your token visit {}",
+        status::highlight(&format!("{}/app/profile/api-keys", config.base_url()))
+    ));
     Ok(())
 }
 
@@ -314,41 +426,198 @@ pub fn show_api_key(_ctx: &mut CommandContext) -> Result<(), AuthError> {
     match get_api_key(&config)? {
         Some(key) => println!("{}", key),
         None => {
-            println!("Not logged in to {}", config.domain);
-            println!("Run `ana login` to authenticate.");
+            status::error("not logged in");
+            status::info(&format!(
+                "Run {} to authenticate.",
+                status::highlight("ana login")
+            ));
         }
     }
 
     Ok(())
 }
 
+/// Print a labeled key-value line for whoami output.
+///
+/// Example: `  name        Alice Smith`
+fn print_kv(key: &str, value: &str) {
+    // Pad key to 12 chars (longest key "username" is 8 + 4 spaces = 12)
+    // Pad plain text first, then apply styling (ANSI codes break format padding)
+    eprintln!(
+        "  {}{}",
+        status::dim(&format!("{:<12}", key)),
+        status::highlight(value)
+    );
+}
+
+/// Mask an API key, showing only the prefix.
+///
+/// Example: `pfx_****************************`
+fn mask_api_key(key: &str) -> String {
+    if key.len() > 4 {
+        format!("{}_{}", &key[..3], "*".repeat(28))
+    } else {
+        "*".repeat(32)
+    }
+}
+
 /// Display information about the logged-in user.
-pub async fn whoami(_ctx: &mut CommandContext) -> Result<(), AuthError> {
+pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthError> {
+    let config = Config::load();
     let client = ApiClient::new()?;
 
     if !client.is_authenticated() {
-        println!("Not logged in to {}", client.domain());
-        println!("Run `ana login` to authenticate.");
+        status::error("not logged in");
+        status::info(&format!(
+            "Run {} to authenticate.",
+            status::highlight("ana login")
+        ));
         return Ok(());
     }
 
-    let response = client.get("/api/account").send().await?;
+    let response = client.get("/api/auth/sessions/whoami").send().await?;
 
     if !response.status().is_success() {
-        let status = response.status();
+        let resp_status = response.status();
         let body = response.text().await.unwrap_or_default();
-        tracing::error!("Failed to get account info: {} - {}", status, body);
+        tracing::error!("Failed to get account info: {} - {}", resp_status, body);
         return Err(AuthError::Authorization(format!(
             "Failed to get account info: {} - {}",
-            status, body
+            resp_status, body
         )));
     }
 
     let data: serde_json::Value = response.json().await?;
-    let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
 
-    println!("Your info ({}):", client.domain());
-    println!("{}", pretty);
+    // JSON output mode
+    if json {
+        let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
+        println!("{}", pretty);
+        return Ok(());
+    }
+
+    // Styled output mode
+    // Data is nested under passport.profile for user info
+    let profile = data.get("passport").and_then(|p| p.get("profile"));
+
+    // Account section
+    eprintln!("{}", status::section("account"));
+
+    // Build name from first_name + last_name
+    let first = profile
+        .and_then(|p| p.get("first_name"))
+        .and_then(|v| v.as_str());
+    let last = profile
+        .and_then(|p| p.get("last_name"))
+        .and_then(|v| v.as_str());
+    match (first, last) {
+        (Some(f), Some(l)) => print_kv("name", &format!("{} {}", f, l)),
+        (Some(f), None) => print_kv("name", f),
+        (None, Some(l)) => print_kv("name", l),
+        _ => {}
+    }
+
+    if let Some(username) = profile
+        .and_then(|p| p.get("username"))
+        .and_then(|v| v.as_str())
+    {
+        print_kv("username", username);
+    }
+    if let Some(email) = profile
+        .and_then(|p| p.get("email"))
+        .and_then(|v| v.as_str())
+    {
+        print_kv("email", email);
+    }
+
+    // Organizations section - shows orgs with their subscriptions
+    let organizations = data
+        .get("passport")
+        .and_then(|p| p.get("organizations"))
+        .and_then(|v| v.as_array());
+
+    if let Some(orgs) = organizations {
+        // Filter to orgs that have subscription attributes
+        let orgs_with_subs: Vec<_> = orgs
+            .iter()
+            .filter_map(|org| {
+                let title = org.get("title").and_then(|v| v.as_str())?;
+                let attrs = org.get("attributes").and_then(|v| v.as_array())?;
+                let sub = attrs
+                    .iter()
+                    .find(|a| a.get("group").and_then(|v| v.as_str()) == Some("subscriptions"))?;
+                let sub_id = sub.get("id").and_then(|v| v.as_str())?;
+                let expires = sub
+                    .get("data")
+                    .and_then(|d| d.get("expires_at"))
+                    .and_then(|v| v.as_str())?;
+                Some((title, sub_id, expires))
+            })
+            .collect();
+
+        if !orgs_with_subs.is_empty() {
+            status::blank_line();
+            eprintln!("{}", status::section("subscriptions"));
+
+            // Build labels and find max width for alignment
+            let rows: Vec<_> = orgs_with_subs
+                .iter()
+                .map(|(org_title, sub_id, expires)| {
+                    let sub_type = sub_id.split('_').next().unwrap_or(sub_id);
+                    let label = format!("{} ({})", org_title, sub_type);
+                    let date_part = if expires.len() >= 10 {
+                        &expires[..10]
+                    } else {
+                        *expires
+                    };
+                    (label, date_part.to_string())
+                })
+                .collect();
+
+            let max_label_width = rows.iter().map(|(l, _)| l.len()).max().unwrap_or(0);
+            let pad_width = max_label_width + 4; // 4 spaces after longest label
+
+            for (label, date_part) in rows {
+                if let Some(target_date) = parse_date(&date_part) {
+                    let (duration_str, is_expired) = format_duration_until(target_date);
+                    let suffix = if is_expired {
+                        use crate::ui::styles::UiColor;
+                        format!(" ({})", UiColor::Red.apply_to(&duration_str))
+                    } else {
+                        status::dim(&format!(" ({})", duration_str))
+                    };
+                    eprintln!(
+                        "  {}{}{}",
+                        status::dim(&format!("{:<width$}", label, width = pad_width)),
+                        status::highlight(&date_part),
+                        suffix
+                    );
+                } else {
+                    eprintln!(
+                        "  {}{}",
+                        status::dim(&format!("{:<width$}", label, width = pad_width)),
+                        status::highlight(&date_part)
+                    );
+                }
+            }
+        }
+    }
+
+    // Token info section
+    status::blank_line();
+    eprintln!("{}", status::section("token"));
+    if let Some(api_key) = get_api_key(&config)? {
+        eprintln!(
+            "  {}{}",
+            status::dim(&format!("{:<12}", "value")),
+            status::dim(&mask_api_key(&api_key))
+        );
+    }
+    eprintln!(
+        "  {}{}",
+        status::dim(&format!("{:<12}", "storage")),
+        status::dim(&config.keyring_path.display().to_string())
+    );
 
     Ok(())
 }
@@ -434,5 +703,72 @@ mod tests {
             response.error_description,
             Some("User denied access".to_string())
         );
+    }
+
+    #[test]
+    fn test_format_duration_until_expired() {
+        let yesterday = chrono::Utc::now().date_naive() - chrono::Duration::days(1);
+        let (s, expired) = format_duration_until(yesterday);
+        assert_eq!(s, "expired");
+        assert!(expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_today() {
+        let today = chrono::Utc::now().date_naive();
+        let (s, expired) = format_duration_until(today);
+        assert_eq!(s, "0 days");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_one_day() {
+        let tomorrow = chrono::Utc::now().date_naive() + chrono::Duration::days(1);
+        let (s, expired) = format_duration_until(tomorrow);
+        assert_eq!(s, "1 day");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_multiple_days() {
+        let future = chrono::Utc::now().date_naive() + chrono::Duration::days(42);
+        let (s, expired) = format_duration_until(future);
+        assert_eq!(s, "42 days");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_one_year() {
+        let today = chrono::Utc::now().date_naive();
+        // Add exactly one year using months to handle leap years correctly
+        let one_year_later = today
+            .checked_add_months(chrono::Months::new(12))
+            .expect("valid date");
+        let (s, expired) = format_duration_until(one_year_later);
+        assert_eq!(s, "1 year");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_year_and_days() {
+        let today = chrono::Utc::now().date_naive();
+        let one_year_later = today
+            .checked_add_months(chrono::Months::new(12))
+            .expect("valid date");
+        let target = one_year_later + chrono::Duration::days(30);
+        let (s, expired) = format_duration_until(target);
+        assert_eq!(s, "1 year, 30 days");
+        assert!(!expired);
+    }
+
+    #[test]
+    fn test_format_duration_until_multiple_years() {
+        let today = chrono::Utc::now().date_naive();
+        let two_years_later = today
+            .checked_add_months(chrono::Months::new(24))
+            .expect("valid date");
+        let (s, expired) = format_duration_until(two_years_later);
+        assert_eq!(s, "2 years");
+        assert!(!expired);
     }
 }

@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
-from conftest import AnaRunner
+from helpers import AnaRunner
+
+IS_WINDOWS = sys.platform == "win32"
+PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
 
 class TestToolInstallHelp:
@@ -50,9 +54,16 @@ class TestToolInstallPixi:
         result = run_ana("tool", "install", "pixi")
         assert result.returncode == 0
 
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
         assert bin_path.exists(), f"Binary not found: {bin_path}"
-        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+        tools_dir = fake_home / ".ana" / "tools"
+        if IS_WINDOWS:
+            shim_cfg = tools_dir / "shims.cfg"
+            assert "pixi=pixi\\bin\\pixi.exe\r\n" in shim_cfg.read_text(newline="")
+        else:
+            src_file = tools_dir / "pixi" / "bin" / "pixi"
+            assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+            assert bin_path.samefile(src_file)
 
     def test_tool_install_pixi_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
@@ -62,7 +73,7 @@ class TestToolInstallPixi:
         first_result = run_ana("tool", "install", "pixi")
         assert first_result.returncode == 0
 
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
         assert bin_path.exists()
 
         # Second run should indicate already up to date
@@ -77,7 +88,7 @@ class TestToolInstallPixi:
         result = run_ana("tool", "install", "pixi")
         assert result.returncode == 0
 
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
         assert bin_path.exists()
 
         proc = subprocess.run(
@@ -174,7 +185,7 @@ class TestToolUninstall:
         assert install_result.returncode == 0
 
         tool_dir = fake_home / ".ana" / "tools" / "pixi"
-        bin_path = fake_home / ".ana" / "bin" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
         assert tool_dir.exists()
         assert bin_path.exists()
 
@@ -199,5 +210,5 @@ class TestToolUninstall:
         uninstall_result = run_ana("tool", "uninstall", "pixi", "--yes")
         assert uninstall_result.returncode == 0
         assert "The following will be removed:" in uninstall_result.stderr
-        assert ".ana/bin/pixi" in uninstall_result.stderr
-        assert ".ana/tools/pixi" in uninstall_result.stderr
+        assert str(Path(".ana/bin/pixi")) in uninstall_result.stderr
+        assert str(Path(".ana/tools/pixi")) in uninstall_result.stderr

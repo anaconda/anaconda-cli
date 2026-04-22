@@ -14,6 +14,7 @@ mod qr;
 mod table;
 mod tools;
 mod ua;
+mod ui;
 mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");

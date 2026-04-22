@@ -4,23 +4,26 @@ from __future__ import annotations
 
 import http.server
 import os
+import shutil
 import socketserver
 import stat
 import subprocess
-import sys
 import threading
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from conftest import REPO_ROOT
+from helpers import IS_WINDOWS
+from helpers import REPO_ROOT
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.sh"
-IS_WINDOWS = sys.platform == "win32"
+
+if IS_WINDOWS and not shutil.which("sh"):
+    pytest.skip("Tests only work in bash shell on Windows.", allow_module_level=True)
 
 # Create a simple mock binary script that responds to --version and --help
 MOCK_BINARY_SCRIPT = """\
