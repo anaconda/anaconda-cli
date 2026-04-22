@@ -211,7 +211,7 @@ impl Action {
             Action::Login => Ok(auth::login(ctx).await?),
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
-            Action::Whoami { json } => Ok(auth::whoami(ctx).await?),
+            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
             Action::Update { force } => {
                 update::run_update(VERSION, force, ctx).await;
                 Ok(())
