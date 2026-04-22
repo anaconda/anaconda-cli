@@ -8,19 +8,63 @@ use std::process::Command;
 use miette::{Context, IntoDiagnostic};
 
 use crate::auth;
+use crate::input::prompt_yes_no;
 use crate::paths;
 use crate::ui::status;
 
-const MAIN_CHANNEL: &str = "https://repo.anaconda.com/pkgs/main";
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
+
+/// Represents a channel configuration action to be executed.
+enum ChannelAction {
+    AddMainX,
+}
+
+impl ChannelAction {
+    /// Returns the conda commands that will be executed for this action.
+    fn commands(&self) -> Vec<(&'static str, &'static str)> {
+        match self {
+            ChannelAction::AddMainX => {
+                vec![("--add", MAIN_X_CHANNEL)]
+            }
+        }
+    }
+
+    /// Execute the action, showing status for each command.
+    fn execute_with_status(&self, conda_bin: &Path) -> miette::Result<()> {
+        for (flag, channel) in self.commands() {
+            let cmd = format!("conda config {} channels {}", flag, channel);
+            status::running(&format!("Running {}", status::highlight(&cmd)));
+            run_conda_config(conda_bin, &[flag, "channels", channel])?;
+            status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
+        }
+        Ok(())
+    }
+}
+
+/// Plan the actions needed to set up main-x channel.
+fn plan_setup_actions(current_channels: &[String]) -> Vec<ChannelAction> {
+    let mut actions = Vec::new();
+
+    let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
+
+    // Only need to add main-x if not already present.
+    // We don't need to add main explicitly - "defaults" includes main,
+    // and most users will already have defaults configured.
+    if !has_main_x {
+        actions.push(ChannelAction::AddMainX);
+    }
+
+    actions
+}
 
 /// Set up main-x channel access.
 ///
 /// This command:
 /// 1. Ensures the user is logged in to Anaconda
-/// 2. Adds the main-x channel to conda configuration (with main channel for fallback)
-/// 3. Provides instructions for reverting the changes
-pub async fn setup_main_x() -> miette::Result<()> {
+/// 2. Shows planned changes and prompts for confirmation
+/// 3. Adds the main-x channel to conda configuration (with main channel for fallback)
+/// 4. Provides instructions for reverting the changes
+pub async fn setup_main_x(force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Setting up {} channel access...",
         status::highlight("main-x")
@@ -30,10 +74,40 @@ pub async fn setup_main_x() -> miette::Result<()> {
     // Step 1: Check login status and prompt if needed
     ensure_logged_in().await?;
 
-    // Step 2: Configure conda channels
-    configure_conda_channels()?;
+    // Step 2: Determine what changes need to be made
+    let conda_bin = find_conda()?;
+    let current_channels = get_configured_channels(&conda_bin)?;
+    let actions = plan_setup_actions(&current_channels);
 
-    // Step 3: Show success message and undo instructions
+    if actions.is_empty() {
+        status::success("Channels already configured correctly");
+        return Ok(());
+    }
+
+    // Step 3: Show planned changes
+    status::blank_line();
+    status::info("The following commands will be run:");
+    for action in &actions {
+        for (flag, channel) in action.commands() {
+            let cmd = format!("conda config {} channels {}", flag, channel);
+            eprintln!("  {}", status::highlight(&cmd));
+        }
+    }
+    status::blank_line();
+
+    // Step 4: Prompt for confirmation unless --force
+    if !force && !prompt_yes_no("Proceed?") {
+        eprintln!("Aborted.");
+        return Ok(());
+    }
+
+    // Step 5: Execute the changes
+    status::blank_line();
+    for action in &actions {
+        action.execute_with_status(&conda_bin)?;
+    }
+
+    // Step 6: Show success message and undo instructions
     status::blank_line();
     status::celebrate(&format!(
         "You can now install packages from the {} channel!",
@@ -49,7 +123,7 @@ pub async fn setup_main_x() -> miette::Result<()> {
 /// Remove main-x channel configuration.
 ///
 /// This command removes the main-x channel from conda configuration.
-pub fn remove_main_x() -> miette::Result<()> {
+pub fn remove_main_x(force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Removing {} channel configuration...",
         status::highlight("main-x")
@@ -69,12 +143,22 @@ pub fn remove_main_x() -> miette::Result<()> {
         return Ok(());
     }
 
-    status::waiting(&format!(
-        "Removing {} channel...",
-        status::highlight("main-x")
-    ));
+    // Show planned changes
+    let remove_cmd = format!("conda config --remove channels {}", MAIN_X_CHANNEL);
+    status::info("The following commands will be run:");
+    eprintln!("  {}", status::highlight(&remove_cmd));
+    status::blank_line();
+
+    // Prompt for confirmation unless --force
+    if !force && !prompt_yes_no("Proceed?") {
+        eprintln!("Aborted.");
+        return Ok(());
+    }
+
+    status::blank_line();
+    status::running(&format!("Running {}", status::highlight(&remove_cmd)));
     run_conda_config(&conda_bin, &["--remove", "channels", MAIN_X_CHANNEL])?;
-    status::success(&format!("Removed {} channel", status::highlight("main-x")));
+    status::finish_running(&format!("Ran {}", status::highlight(&remove_cmd)));
 
     status::blank_line();
     status::info("To restore, run:");
@@ -103,61 +187,6 @@ async fn ensure_logged_in() -> miette::Result<()> {
             Ok(())
         }
     }
-}
-
-/// Configure conda to use the main-x channel with main as fallback.
-///
-/// Ensures that:
-/// - main-x is present in channels
-/// - main is present in channels (for fallback)
-/// - main has higher precedence than main-x (appears earlier in the list)
-fn configure_conda_channels() -> miette::Result<()> {
-    status::blank_line();
-    status::waiting("Configuring conda channels...");
-
-    let conda_bin = find_conda()?;
-    let current_channels = get_configured_channels(&conda_bin)?;
-
-    let has_main = current_channels.iter().any(|c| c == MAIN_CHANNEL);
-    let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
-
-    // Check if main comes before main-x (correct precedence)
-    let main_before_main_x = if has_main && has_main_x {
-        let main_pos = current_channels.iter().position(|c| c == MAIN_CHANNEL);
-        let main_x_pos = current_channels.iter().position(|c| c == MAIN_X_CHANNEL);
-        main_pos < main_x_pos
-    } else {
-        true // Will be configured correctly below
-    };
-
-    if has_main && has_main_x && main_before_main_x {
-        status::success("Channels already configured correctly");
-        return Ok(());
-    }
-
-    // Add channels as needed, using --add (prepend) to set precedence
-    // We add main-x first, then main, so main ends up with higher precedence
-
-    if !has_main_x {
-        status::success(&format!("Adding {} channel", status::highlight("main-x")));
-        run_conda_config(&conda_bin, &["--add", "channels", MAIN_X_CHANNEL])?;
-    }
-
-    if !has_main {
-        status::success(&format!("Adding {} channel", status::highlight("main")));
-        run_conda_config(&conda_bin, &["--add", "channels", MAIN_CHANNEL])?;
-    } else if has_main_x && !main_before_main_x {
-        // main exists but has lower precedence than main-x, need to fix
-        status::waiting(&format!(
-            "Adjusting channel precedence (main should be higher than {})...",
-            status::highlight("main-x")
-        ));
-        // Remove and re-add main to move it to the top
-        run_conda_config(&conda_bin, &["--remove", "channels", MAIN_CHANNEL])?;
-        run_conda_config(&conda_bin, &["--add", "channels", MAIN_CHANNEL])?;
-    }
-
-    Ok(())
 }
 
 /// Run a conda config command.
@@ -249,7 +278,6 @@ mod tests {
 
     #[test]
     fn test_channel_constants() {
-        assert_eq!(MAIN_CHANNEL, "https://repo.anaconda.com/pkgs/main");
         assert_eq!(MAIN_X_CHANNEL, "https://repo.anaconda.cloud/repo/main-x");
     }
 

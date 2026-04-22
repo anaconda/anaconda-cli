@@ -126,6 +126,7 @@ pub enum Action {
     ToolList,
     SetupMainX {
         remove: bool,
+        force: bool,
     },
 }
 
@@ -151,7 +152,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
-            Action::SetupMainX { remove } => {
+            Action::SetupMainX { remove, .. } => {
                 if *remove {
                     "setup.main-x.remove"
                 } else {
@@ -262,11 +263,11 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
-            Action::SetupMainX { remove } => {
+            Action::SetupMainX { remove, force } => {
                 if remove {
-                    setup::remove_main_x()?;
+                    setup::remove_main_x(force)?;
                 } else {
-                    setup::setup_main_x().await?;
+                    setup::setup_main_x(force).await?;
                 }
                 Ok(())
             }
@@ -343,7 +344,9 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Setup { command }) => match command {
                     None => Action::ShowSubcommandHelp("setup".to_string()),
-                    Some(SetupCommands::MainX { remove }) => Action::SetupMainX { remove },
+                    Some(SetupCommands::MainX { remove, force }) => {
+                        Action::SetupMainX { remove, force }
+                    }
                 },
             };
             (action, level)
@@ -630,6 +633,10 @@ enum SetupCommands {
         /// Remove the main-x channel configuration
         #[arg(long)]
         remove: bool,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'f', long)]
+        force: bool,
     },
 }
 

@@ -70,6 +70,25 @@ pub fn blank_line() {
     eprintln!();
 }
 
+/// Print a running message (amber, no newline) that can be updated in place.
+///
+/// Use `finish_running()` to complete the line with a success message.
+pub fn running(msg: &str) {
+    use std::io::Write;
+    eprint!("{} {}", UiColor::Amber.apply_to("●"), msg);
+    std::io::stderr().flush().unwrap();
+}
+
+/// Finish a running line by clearing it and printing a success message.
+///
+/// Should be called after `running()` to replace the line.
+pub fn finish_running(msg: &str) {
+    // Clear current line and move cursor to start
+    eprint!("\r\x1b[K");
+    // Print success message with newline
+    eprintln!("{} {}", UiColor::Green.apply_to("✓"), msg);
+}
+
 /// Return text styled as a section header (green, uppercase).
 ///
 /// Use this for section headers like "ACCOUNT", "SUBSCRIPTIONS".
