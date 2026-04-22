@@ -253,12 +253,9 @@ class TestLoginApiKey:
     @pytest.mark.parametrize(
         "args",
         [
-            # --api-key=<value> style
-            ["login", "--api-key={}"],
-            ["auth", "login", "--api-key={}"],
-            # --api-key <value> style (space-separated)
-            ["login", "--api-key", "{}"],
-            ["auth", "login", "--api-key", "{}"],
+            # Positional argument style: ana login <key>
+            ["login", "{}"],
+            ["auth", "login", "{}"],
         ],
     )
     def test_login_api_key_with_value(
@@ -269,7 +266,7 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """--api-key=<value> and --api-key <value> should use provided value directly."""
+        """Positional API key argument should use provided value directly."""
         # Insert the API key into the args
         formatted_args = [arg.format(mock_auth_server.api_key) for arg in args]
         result = run_ana(*formatted_args, env=auth_env)
@@ -298,8 +295,8 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """API key provided via --api-key should be stored and retrievable."""
-        run_ana("login", f"--api-key={mock_auth_server.api_key}", env=auth_env)
+        """API key provided as positional argument should be stored and retrievable."""
+        run_ana("login", mock_auth_server.api_key, env=auth_env)
 
         # Verify API key is retrievable via `ana auth api-key`
         result = run_ana("auth", "api-key", env=auth_env)
@@ -309,12 +306,12 @@ class TestLoginApiKey:
     @pytest.mark.parametrize(
         "args",
         [
-            # --api-key without value reads from stdin
+            # --api-key flag reads from stdin
             ["login", "--api-key"],
             ["auth", "login", "--api-key"],
-            # --api-key - explicitly reads from stdin (Unix convention)
-            ["login", "--api-key", "-"],
-            ["auth", "login", "--api-key", "-"],
+            # - positional explicitly reads from stdin (Unix convention)
+            ["login", "-"],
+            ["auth", "login", "-"],
         ],
     )
     def test_login_api_key_from_stdin_with_flag(
@@ -325,7 +322,7 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """API key can be piped via stdin with --api-key flag."""
+        """API key can be piped via stdin with --api-key flag or - positional."""
         # Simulate piping: provide API key via stdin
         result = run_ana(*args, env=auth_env, input=f"{mock_auth_server.api_key}\n")
 
@@ -350,7 +347,7 @@ class TestLoginApiKey:
         auth_env: dict[str, str],
     ) -> None:
         """Malformed API key (not a valid JWT) should show error."""
-        result = run_ana("login", "--api-key=invalid-not-a-jwt", env=auth_env)
+        result = run_ana("login", "invalid-not-a-jwt", env=auth_env)
 
         assert result.returncode != 0
         # Should show some kind of error (exact message depends on implementation)
@@ -363,15 +360,15 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """--api-key when already logged in (piped) should require --force."""
+        """Positional API key when already logged in (piped) should require --force."""
         # First login via device flow
         run_ana("login", env=auth_env)
 
         # Get the original API key
         original_key = run_ana("auth", "api-key", env=auth_env).stdout.strip()
 
-        # Try to login with --api-key (stdin is piped due to subprocess)
-        result = run_ana("login", f"--api-key={mock_auth_server.api_key}", env=auth_env)
+        # Try to login with positional API key (stdin is piped due to subprocess)
+        result = run_ana("login", mock_auth_server.api_key, env=auth_env)
 
         assert result.returncode == 0
         # Should warn and tell user to use --force
@@ -388,14 +385,12 @@ class TestLoginApiKey:
         keyring_path: Path,
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """--api-key --force should overwrite without confirmation."""
+        """Positional API key with --force should overwrite without confirmation."""
         # First login via device flow
         run_ana("login", env=auth_env)
 
-        # Login with --api-key --force (no stdin input needed)
-        result = run_ana(
-            "login", f"--api-key={mock_auth_server.api_key}", "--force", env=auth_env
-        )
+        # Login with positional API key and --force (no stdin input needed)
+        result = run_ana("login", mock_auth_server.api_key, "--force", env=auth_env)
 
         assert result.returncode == 0
         # Should NOT prompt for confirmation
