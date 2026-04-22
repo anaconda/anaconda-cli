@@ -11,7 +11,7 @@ use crate::paths;
 ///
 /// Removes the tool's environment and any symlinks in the bin directory.
 /// Cleans up empty directories afterward.
-pub fn uninstall_tool(name: &str, force: bool, ctx: &mut CommandContext) -> miette::Result<()> {
+pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
     // Verify the tool is known

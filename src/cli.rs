@@ -195,13 +195,13 @@ impl Action {
                 Ok(())
             }
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx).await?),
-            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand("org", &args, ctx)?),
+            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)?),
             Action::ToolInstall { name } => {
-                tools::install::install_tool(&name, ctx).await?;
+                tools::install::install_tool(ctx, &name).await?;
                 Ok(())
             }
             Action::ToolUninstall { name, force } => {
-                tools::uninstall::uninstall_tool(&name, force, ctx)?;
+                tools::uninstall::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
             Action::ToolList => {
@@ -213,15 +213,15 @@ impl Action {
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
             Action::Update { force } => {
-                update::run_update(VERSION, force, ctx).await;
+                update::run_update(ctx, VERSION, force).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
-                update::check_for_update(VERSION, ctx).await;
+                update::check_for_update(ctx, VERSION).await;
                 Ok(())
             }
             Action::ShowAvailableVersions => {
-                update::show_available_versions(VERSION, ctx).await;
+                update::show_available_versions(ctx, VERSION).await;
                 Ok(())
             }
             #[cfg(feature = "feedback")]
@@ -229,7 +229,7 @@ impl Action {
                 feedback_type,
                 description,
             } => {
-                feedback::open_feedback(feedback_type, description, ctx);
+                feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
         }

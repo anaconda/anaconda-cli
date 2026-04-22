@@ -24,7 +24,7 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
 });
 
 /// Install a tool from its lockfile.
-pub async fn install_tool(name: &str, ctx: &mut CommandContext) -> miette::Result<()> {
+pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
     let prefix = paths::tool_prefix(name);

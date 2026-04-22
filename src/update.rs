@@ -254,7 +254,7 @@ pub async fn apply_update(release: &Release) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn check_for_update(current_version: &str, _ctx: &mut CommandContext) {
+pub async fn check_for_update(_ctx: &mut CommandContext, current_version: &str) {
     match check_update(current_version).await {
         Ok(UpdateCheck::Available(release)) => {
             println!(
@@ -275,7 +275,7 @@ pub async fn check_for_update(current_version: &str, _ctx: &mut CommandContext) 
     }
 }
 
-pub async fn run_update(current_version: &str, force: bool, _ctx: &mut CommandContext) {
+pub async fn run_update(_ctx: &mut CommandContext, current_version: &str, force: bool) {
     let check = match check_update(current_version).await {
         Ok(c) => c,
         Err(e) => {
@@ -314,7 +314,7 @@ pub async fn run_update(current_version: &str, force: bool, _ctx: &mut CommandCo
     }
 }
 
-pub async fn show_available_versions(current_version: &str, _ctx: &mut CommandContext) {
+pub async fn show_available_versions(_ctx: &mut CommandContext, current_version: &str) {
     let releases = match fetch_available_releases().await {
         Ok(r) => r,
         Err(e) => {

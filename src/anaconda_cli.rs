@@ -13,7 +13,7 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
     }
 
     eprintln!("Installing anaconda-cli...");
-    tools::install::install_tool("anaconda-cli", ctx)
+    tools::install::install_tool(ctx, "anaconda-cli")
         .await
         .map_err(|e| format!("{:?}", e))?;
 
@@ -22,9 +22,9 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
 }
 
 pub fn run_subcommand(
+    _ctx: &mut CommandContext,
     subcommand: &str,
     args: &[String],
-    _ctx: &mut CommandContext,
 ) -> Result<(), String> {
     let anaconda_bin = paths::bin_path("anaconda");
 
