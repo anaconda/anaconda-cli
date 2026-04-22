@@ -223,7 +223,7 @@ fn read_api_key_from_stdin() -> Result<String, AuthError> {
 }
 
 /// Prompt user for API key with secure (hidden) input.
-fn prompt_api_key() -> Result<String, AuthError> {
+fn prompt_api_key_hidden() -> Result<String, AuthError> {
     use std::io::Write;
     eprint!("{} ", status::dim("API key:"));
     std::io::stderr().flush().unwrap();
@@ -494,37 +494,46 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
 }
 
 /// Perform login - either via API key or device authorization flow.
-pub async fn login(api_key: Option<String>, force: bool) -> Result<(), AuthError> {
+///
+/// Arguments:
+/// - `api_key`: Positional API key value. Use "-" to read from stdin.
+/// - `prompt_api_key`: If true (--api-key flag), prompt for API key with hidden input.
+/// - `force`: Overwrite existing credentials without confirmation.
+///
+/// Precedence:
+/// 1. `ana login <key>` - use provided key directly
+/// 2. `ana login -` - read from stdin explicitly
+/// 3. `ana login --api-key` - prompt for API key (hidden input)
+/// 4. `echo key | ana login` - read from stdin if piped
+/// 5. `ana login` - device flow
+pub async fn login(
+    api_key: Option<String>,
+    prompt_api_key: bool,
+    force: bool,
+) -> Result<(), AuthError> {
     let config = Config::load();
-
-    // Determine how to get the API key:
-    // 1. --api-key=<value> or --api-key <value>: use provided value
-    // 2. --api-key (empty string from default_missing_value): prompt or read stdin
-    // 3. --api-key - : read from stdin
-    // 4. No --api-key but stdin has data: read from stdin
-    // 5. No --api-key and stdin empty/TTY: device flow
 
     match api_key {
         Some(key) if key == "-" => {
-            // Explicit stdin read
+            // Explicit stdin read: `ana login -`
             let api_key = read_api_key_from_stdin()?;
             login_with_api_key(&config, api_key, force).await
         }
-        Some(key) if key.is_empty() => {
-            // --api-key without value: prompt or read stdin
+        Some(key) => {
+            // Positional argument: `ana login <key>`
+            login_with_api_key(&config, key, force).await
+        }
+        None if prompt_api_key => {
+            // --api-key flag: prompt for API key (or read stdin if piped)
             let api_key = if stdin_is_pipe() {
                 read_api_key_from_stdin()?
             } else {
-                prompt_api_key()?
+                prompt_api_key_hidden()?
             };
             login_with_api_key(&config, api_key, force).await
         }
-        Some(key) => {
-            // --api-key=<value>: use directly
-            login_with_api_key(&config, key, force).await
-        }
         None => {
-            // No --api-key flag: check if stdin has data piped in
+            // No args: check if stdin has data piped in, otherwise device flow
             if let Some(api_key) = try_read_api_key_from_stdin() {
                 login_with_api_key(&config, api_key, force).await
             } else {
