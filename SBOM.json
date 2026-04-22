@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:2e59e5d5-ff30-466e-ae40-30f9059be427",
+  "serialNumber": "urn:uuid:f7f96c17-2596-48c7-9d4b-a194488dc315",
   "metadata": {
-    "timestamp": "2026-04-20T22:40:31Z",
+    "timestamp": "2026-04-21T17:24:03Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -8189,6 +8189,68 @@
     },
     {
       "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#rpassword@7.4.0",
+      "author": "Conrad Kleinespel <conradk@conradk.com>",
+      "name": "rpassword",
+      "version": "7.4.0",
+      "description": "Read passwords in console applications.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "66d4c8b64f049c6721ec8ccec37ddfc3d641c4a7fca57e8f2a89de509c73df39"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/rpassword@7.4.0",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/rpassword/"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/conradkleinespel/rpassword"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/conradkleinespel/rpassword"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#rtoolbox@0.0.5",
+      "author": "Conrad Kleinespel <conradk@conradk.com>",
+      "name": "rtoolbox",
+      "version": "0.0.5",
+      "description": "Utility functions for other crates, no backwards compatibility guarantees.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "50a0e551c1e27e1731aba276dbeaeac73f53c7cd34d1bda485d02bd1e0f36844"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/rtoolbox@0.0.5",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/conradkleinespel/rtoolbox"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#rustc-demangle@0.1.27",
       "author": "Alex Crichton <alex@alexcrichton.com>",
       "name": "rustc-demangle",
@@ -14468,6 +14530,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#rattler_lock@0.27.6",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest-middleware@0.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.12.28",
+        "registry+https://github.com/rust-lang/crates.io-index#rpassword@7.4.0",
         "registry+https://github.com/rust-lang/crates.io-index#self-replace@1.5.0",
         "registry+https://github.com/rust-lang/crates.io-index#semver@1.0.28",
         "registry+https://github.com/rust-lang/crates.io-index#sentry@0.47.0",
@@ -16659,6 +16722,21 @@
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.2.17",
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.185",
         "registry+https://github.com/rust-lang/crates.io-index#untrusted@0.9.0"
+      ]
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#rpassword@7.4.0",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.185",
+        "registry+https://github.com/rust-lang/crates.io-index#rtoolbox@0.0.5",
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
+      ]
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#rtoolbox@0.0.5",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.185",
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {

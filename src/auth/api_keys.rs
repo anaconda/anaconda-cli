@@ -27,18 +27,12 @@ struct JwtPayload {
     exp: i64,
 }
 
-/// Result of creating an API key.
-pub struct ApiKeyResult {
-    pub api_key: String,
-    pub expires_at: Option<String>,
-}
-
 /// Extract expiration date from a JWT token.
 ///
 /// Returns the expiration as a YYYY-MM-DD string, or None if parsing fails.
-fn extract_jwt_expiration(token: &str) -> Option<String> {
+pub fn get_expiration(api_key: &str) -> Option<String> {
     // JWT format: header.payload.signature
-    let parts: Vec<&str> = token.split('.').collect();
+    let parts: Vec<&str> = api_key.split('.').collect();
     if parts.len() != 3 {
         return None;
     }
@@ -52,12 +46,25 @@ fn extract_jwt_expiration(token: &str) -> Option<String> {
     Some(datetime.format("%Y-%m-%d").to_string())
 }
 
+/// Validate that a string is a valid JWT token.
+///
+/// Returns true if the token has valid JWT structure (3 parts, decodable payload).
+pub fn is_valid_api_key(api_key: &str) -> bool {
+    let parts: Vec<&str> = api_key.split('.').collect();
+    if parts.len() != 3 {
+        return false;
+    }
+
+    // Try to decode the payload
+    BASE64_URL_SAFE_NO_PAD.decode(parts[1]).is_ok()
+}
+
 /// Create a new API key using the access token.
 pub async fn create_api_key(
     client: &reqwest_middleware::ClientWithMiddleware,
     config: &Config,
     access_token: &str,
-) -> Result<ApiKeyResult, AuthError> {
+) -> Result<String, AuthError> {
     let url = format!("{}/api/auth/api-keys", config.base_url());
     let payload = CreateApiKeyRequest {
         scopes: vec![
@@ -86,12 +93,7 @@ pub async fn create_api_key(
     }
 
     let response: ApiKeyResponse = response.json().await?;
-    let expires_at = extract_jwt_expiration(&response.api_key);
-
-    Ok(ApiKeyResult {
-        api_key: response.api_key,
-        expires_at,
-    })
+    Ok(response.api_key)
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-20T22:40:31Z<br>
+Generated: 2026-04-21T17:24:03Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 464 (65 platform-specific)<br>
+Packages: 466 (65 platform-specific)<br>
 Platforms: linux, macos, windows
 <br>**[Security advisories](#security-advisories): 2 across 1 package**
 
@@ -288,6 +288,8 @@ Platforms: linux, macos, windows
 | [reqwest-middleware](https://crates.io/crates/reqwest-middleware) | 0.4.2 | MIT OR Apache-2.0 |  |  |
 | [retry-policies](https://crates.io/crates/retry-policies) | 0.5.1 | MIT OR Apache-2.0 |  |  |
 | [ring](https://crates.io/crates/ring) | 0.17.14 | Apache-2.0 AND ISC |  |  |
+| [rpassword](https://crates.io/crates/rpassword) | 7.4.0 | Apache-2.0 |  |  |
+| [rtoolbox](https://crates.io/crates/rtoolbox) | 0.0.5 | Apache-2.0 |  |  |
 | [rustc-demangle](https://crates.io/crates/rustc-demangle) | 0.1.27 | MIT OR Apache-2.0 |  |  |
 | [rustc-hash](https://crates.io/crates/rustc-hash) | 2.1.2 | Apache-2.0 OR MIT |  |  |
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
@@ -489,7 +491,7 @@ Platforms: linux, macos, windows
 | MIT OR Apache-2.0 | 251 |
 | MIT | 95 |
 | Apache-2.0 OR MIT | 34 |
-| Apache-2.0 | 19 |
+| Apache-2.0 | 21 |
 | Unicode-3.0 | 18 |
 | BSD-3-Clause | 17 |
 | ISC | 3 |

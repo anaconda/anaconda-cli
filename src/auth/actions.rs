@@ -35,9 +35,8 @@ pub struct ApiClient {
 
 impl ApiClient {
     /// Create a new API client, loading credentials from the keyring if available.
-    pub fn new() -> Result<Self, AuthError> {
-        let config = Config::load();
-        let api_key = get_api_key(&config)?;
+    pub fn new(config: &Config) -> Result<Self, AuthError> {
+        let api_key = get_api_key(config)?;
 
         let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
         if let Some(ref key) = api_key {
@@ -162,14 +161,35 @@ fn print_token_expiration(expires_at: &str) {
     }
 }
 
+/// Save API key and display login success information.
+///
+/// This is the common "finalize login" logic shared by both device flow and direct API key login.
+async fn save_and_display_login(config: &Config, api_key: &str) -> Result<(), AuthError> {
+    use super::api_keys::get_expiration;
+
+    // Save to keyring
+    save_api_key(config, api_key)?;
+    status::success("API key stored in keyring");
+
+    // Fetch and display user info
+    if let Ok(login_info) = fetch_login_info(config).await {
+        print_logged_in_status(&login_info.email);
+        if let Some(expires_at) = get_expiration(api_key) {
+            print_token_expiration(&expires_at);
+        }
+    }
+
+    Ok(())
+}
+
 /// Combined login information for display.
 struct LoginInfo {
     email: String,
 }
 
 /// Fetch login info for display after login.
-async fn fetch_login_info() -> Result<LoginInfo, AuthError> {
-    let client = ApiClient::new()?;
+async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
+    let client = ApiClient::new(config)?;
 
     // Fetch account info
     let account_response = client.get("/api/account").send().await?;
@@ -185,16 +205,109 @@ async fn fetch_login_info() -> Result<LoginInfo, AuthError> {
     Ok(LoginInfo { email })
 }
 
+/// Check if stdin is a pipe (non-TTY).
+fn stdin_is_pipe() -> bool {
+    use std::io::IsTerminal;
+    !std::io::stdin().is_terminal()
+}
+
+/// Read API key from stdin (for piped input).
+fn read_api_key_from_stdin() -> Result<String, AuthError> {
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    stdin
+        .lock()
+        .read_line(&mut line)
+        .map_err(|e| AuthError::InvalidApiKey(format!("Failed to read from stdin: {}", e)))?;
+    Ok(line.trim().to_string())
+}
+
+/// Prompt user for API key with secure (hidden) input.
+fn prompt_api_key_hidden() -> Result<String, AuthError> {
+    use std::io::Write;
+    eprint!("{} ", status::dim("API key:"));
+    std::io::stderr().flush().unwrap();
+
+    let api_key = rpassword::read_password()
+        .map_err(|e| AuthError::InvalidApiKey(format!("Failed to read API key: {}", e)))?;
+
+    // Show masked feedback on the same line as prompt
+    // Move cursor up one line, clear it, then reprint with mask
+    let mask = "•".repeat(api_key.len().min(32));
+    eprint!("\x1b[1A\x1b[2K"); // ANSI: move up, clear line
+    eprintln!("{} {}", status::dim("API key:"), status::dim(&mask));
+
+    Ok(api_key.trim().to_string())
+}
+
+/// Login with a provided API key (bypassing device flow).
+async fn login_with_api_key(
+    config: &Config,
+    api_key: String,
+    force: bool,
+) -> Result<(), AuthError> {
+    use super::api_keys::is_valid_api_key;
+
+    // Validate the API key format
+    if !is_valid_api_key(&api_key) {
+        return Err(AuthError::InvalidApiKey(
+            "not a valid JWT token".to_string(),
+        ));
+    }
+
+    // Check if already logged in
+    if !force && get_api_key(config)?.is_some() {
+        status::warn(&format!(
+            "Already logged in to {}",
+            status::highlight(&config.domain)
+        ));
+
+        // If stdin is a pipe, we can't prompt interactively - require --force
+        if stdin_is_pipe() {
+            status::info(&format!(
+                "Use {} to overwrite existing credentials",
+                status::highlight("--force")
+            ));
+            return Ok(());
+        }
+
+        if !crate::input::prompt_yes_no("Overwrite existing credentials?") {
+            return Ok(());
+        }
+    }
+
+    save_and_display_login(config, &api_key).await
+}
+
+/// Try to read API key from stdin if data is available.
+/// Returns Some(key) if stdin has data, None if empty/EOF.
+fn try_read_api_key_from_stdin() -> Option<String> {
+    if !stdin_is_pipe() {
+        return None;
+    }
+
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    if stdin.lock().read_line(&mut line).ok()? > 0 {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
+        }
+    }
+    None
+}
+
 /// Perform the device authorization flow.
-pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
+async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError> {
     // We use a new, unauthenticated client instead of ApiClient, since
     // login by definition happens first. It ends up being simpler to do
     // this, at least for now, because the auth flow needs to follow direct
     // URLs from openid-configuration etc.
-    let config = Config::load();
 
     // Check if already logged in
-    if get_api_key(&config)?.is_some() {
+    if !force && get_api_key(config)?.is_some() {
         status::warn(&format!(
             "Already logged in to {}",
             status::highlight(&config.domain)
@@ -348,21 +461,9 @@ pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
             status::success("Authentication complete");
 
             // Create API key
-            let api_key_result = create_api_key(&client, &config, &token.access_token).await?;
+            let api_key = create_api_key(&client, config, &token.access_token).await?;
 
-            // Save to keyring
-            save_api_key(&config, &api_key_result.api_key)?;
-            status::success("API key stored in keyring");
-
-            // Fetch and display user info
-            if let Ok(login_info) = fetch_login_info().await {
-                print_logged_in_status(&login_info.email);
-                if let Some(ref expires_at) = api_key_result.expires_at {
-                    print_token_expiration(expires_at);
-                }
-            }
-
-            return Ok(());
+            return save_and_display_login(config, &api_key).await;
         }
 
         let error: TokenErrorResponse = response.json().await?;
@@ -388,6 +489,57 @@ pub async fn login(_ctx: &mut CommandContext) -> Result<(), AuthError> {
                     .unwrap_or_else(|| error.error.clone());
                 tracing::error!("Authorization error: {}", msg);
                 return Err(AuthError::Authorization(msg));
+            }
+        }
+    }
+}
+
+/// Perform login - either via API key or device authorization flow.
+///
+/// Arguments:
+/// - `api_key`: Positional API key value. Use "-" to read from stdin.
+/// - `prompt_api_key`: If true (--api-key flag), prompt for API key with hidden input.
+/// - `force`: Overwrite existing credentials without confirmation.
+///
+/// Precedence:
+/// 1. `ana login <key>` - use provided key directly
+/// 2. `ana login -` - read from stdin explicitly
+/// 3. `ana login --api-key` - prompt for API key (hidden input)
+/// 4. `echo key | ana login` - read from stdin if piped
+/// 5. `ana login` - device flow
+pub async fn login(
+    _ctx: &mut CommandContext,
+    api_key: Option<String>,
+    prompt_api_key: bool,
+    force: bool,
+) -> Result<(), AuthError> {
+    let config = Config::load();
+
+    match api_key {
+        Some(key) if key == "-" => {
+            // Explicit stdin read: `ana login -`
+            let api_key = read_api_key_from_stdin()?;
+            login_with_api_key(&config, api_key, force).await
+        }
+        Some(key) => {
+            // Positional argument: `ana login <key>`
+            login_with_api_key(&config, key, force).await
+        }
+        None if prompt_api_key => {
+            // --api-key flag: prompt for API key (or read stdin if piped)
+            let api_key = if stdin_is_pipe() {
+                read_api_key_from_stdin()?
+            } else {
+                prompt_api_key_hidden()?
+            };
+            login_with_api_key(&config, api_key, force).await
+        }
+        None => {
+            // No args: check if stdin has data piped in, otherwise device flow
+            if let Some(api_key) = try_read_api_key_from_stdin() {
+                login_with_api_key(&config, api_key, force).await
+            } else {
+                login_device_flow(&config, force).await
             }
         }
     }
@@ -464,7 +616,7 @@ fn mask_api_key(key: &str) -> String {
 /// Display information about the logged-in user.
 pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthError> {
     let config = Config::load();
-    let client = ApiClient::new()?;
+    let client = ApiClient::new(&config)?;
 
     if !client.is_authenticated() {
         status::error("not logged in");

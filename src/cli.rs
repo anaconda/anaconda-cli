@@ -88,7 +88,11 @@ pub enum Action {
     ShowSubcommandHelp(String),
     ShowVersion,
     ShowConfig,
-    Login,
+    Login {
+        api_key: Option<String>,
+        prompt_api_key: bool,
+        force: bool,
+    },
     Logout,
     ShowApiKey,
     Whoami {
@@ -125,7 +129,7 @@ impl Action {
             Action::ShowSubcommandHelp(_) => "subcommand.help",
             Action::ShowVersion => "version",
             Action::ShowConfig => "config",
-            Action::Login => "login",
+            Action::Login { .. } => "login",
             Action::Logout => "logout",
             Action::ShowApiKey => "auth.api-key",
             Action::Whoami { .. } => "whoami",
@@ -208,7 +212,11 @@ impl Action {
                 tools::list::print_tool_list(ctx);
                 Ok(())
             }
-            Action::Login => Ok(auth::login(ctx).await?),
+            Action::Login {
+                api_key,
+                prompt_api_key,
+                force,
+            } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
@@ -246,13 +254,29 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
                 Some(Commands::Config) => Action::ShowConfig,
-                Some(Commands::Login) => Action::Login,
+                Some(Commands::Login {
+                    api_key,
+                    prompt_api_key,
+                    force,
+                }) => Action::Login {
+                    api_key,
+                    prompt_api_key,
+                    force,
+                },
                 Some(Commands::Logout) => Action::Logout,
                 Some(Commands::Whoami { json }) => Action::Whoami { json },
                 Some(Commands::Auth { command }) => match command {
                     None => Action::ShowSubcommandHelp("auth".to_string()),
                     Some(AuthCommands::ApiKey) => Action::ShowApiKey,
-                    Some(AuthCommands::Login) => Action::Login,
+                    Some(AuthCommands::Login {
+                        api_key,
+                        prompt_api_key,
+                        force,
+                    }) => Action::Login {
+                        api_key,
+                        prompt_api_key,
+                        force,
+                    },
                     Some(AuthCommands::Logout) => Action::Logout,
                     Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
                 },
@@ -402,7 +426,18 @@ enum Commands {
     Config,
 
     /// Log in to Anaconda
-    Login,
+    Login {
+        /// API key to use directly (bypasses device flow). Use '-' to read from stdin.
+        api_key: Option<String>,
+
+        /// Prompt for API key (hidden input) instead of using device flow
+        #[arg(long = "api-key")]
+        prompt_api_key: bool,
+
+        /// Overwrite existing credentials without confirmation
+        #[arg(long, short = 'f')]
+        force: bool,
+    },
 
     /// Log out from Anaconda
     Logout,
@@ -454,7 +489,18 @@ enum AuthCommands {
     ApiKey,
 
     /// Log in to Anaconda
-    Login,
+    Login {
+        /// API key to use directly (bypasses device flow). Use '-' to read from stdin.
+        api_key: Option<String>,
+
+        /// Prompt for API key (hidden input) instead of using device flow
+        #[arg(long = "api-key")]
+        prompt_api_key: bool,
+
+        /// Overwrite existing credentials without confirmation
+        #[arg(long, short = 'f')]
+        force: bool,
+    },
 
     /// Log out from Anaconda
     Logout,
