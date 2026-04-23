@@ -97,7 +97,7 @@ jobs:
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         run: pixi run test-integration
-        shell: pwsh
+        shell: powershell
 
       - name: Build conda package
         run: pixi run build-conda
