@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-23T17:13:53Z<br>
+Generated: 2026-04-23T18:32:32Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 469 (67 platform-specific)<br>
 Platforms: linux, macos, windows
@@ -61,9 +61,9 @@ Platforms: linux, macos, windows
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.1 | MIT |  |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.0 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.44 | MIT OR Apache-2.0 |  |  |
-| [clap](https://crates.io/crates/clap) | 4.6.0 | MIT OR Apache-2.0 |  |  |
+| [clap](https://crates.io/crates/clap) | 4.6.1 | MIT OR Apache-2.0 |  |  |
 | [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.0 | MIT OR Apache-2.0 |  |  |
-| [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.0 | MIT OR Apache-2.0 |  |  |
+| [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.1 | MIT OR Apache-2.0 |  |  |
 | [clap\_lex](https://crates.io/crates/clap_lex) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [colorchoice](https://crates.io/crates/colorchoice) | 1.0.5 | MIT OR Apache-2.0 |  |  |
 | [comfy-table](https://crates.io/crates/comfy-table) | 7.2.2 | MIT |  |  |
