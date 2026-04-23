@@ -15,7 +15,7 @@
       GITHUB_TOKEN             Same as -Token
 
 .PARAMETER InstallDir
-    Installation directory (default: ${env:USERPROFILE}\.local\bin).
+    Installation directory (default: ${env:USERPROFILE}\.local\bin (Windows) or ${env:HOME}/.local/bin).
 
 .PARAMETER Version
     Version to installi (default: latest).
@@ -63,7 +63,7 @@
 [CmdletBinding()]
 param(
     [switch] $Force,
-    [string] $InstallDir = "${env:USERPROFILE}\.local\bin",
+    [string] $InstallDir = $(if ($env:USERPROFILE) { "${env:USERPROFILE}\.local\bin" } else { "${env:HOME}/.local/bin" }),
     [switch] $NoBootstrap,
     [switch] $NoPathUpdate,
     [switch] $NoVerifyChecksum,
@@ -296,13 +296,14 @@ function Update-Path {
 
     Write-Host "> Adding ana installation to PATH" -ForegroundColor Green
     $os = Get-OS
-    # Must use pipe for PowerShell 5 compatibility
-    $anaBinDir = Join-Path -Path $env:USERPROFILE ".ana" | Join-Path -ChildPath "bin"
 
     if ($os -eq "Windows") {
+        # Must use pipe for PowerShell 5 compatibility
+        $anaBinDir = Join-Path -Path $env:USERPROFILE ".ana" | Join-Path -ChildPath "bin"
         Add-ToUserPath -Directory $InstallDir
         Add-ToUserPath -Directory $anaBinDir
     } else {
+        $anaBinDir = Join-Path $env:HOME ".ana" "bin"
         Add-ToShellProfile -Directory $InstallDir
         Add-ToShellProfile -Directory $anaBinDir
     }
