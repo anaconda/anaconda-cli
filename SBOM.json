@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:6da1caaf-dd15-42c9-9707-ac663668738d",
+  "serialNumber": "urn:uuid:bcd38331-517f-4f4e-b338-b12e2a60b326",
   "metadata": {
-    "timestamp": "2026-04-23T15:20:05Z",
+    "timestamp": "2026-04-23T17:13:53Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -443,15 +443,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0-pre.7",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0-pre.9",
       "name": "anaconda-anon-usage",
-      "version": "0.8.0-pre.7",
+      "version": "0.8.0-pre.9",
       "description": "Anaconda Anonymous Usage token generation for the conda ecosystem",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "bf1c82231bb46889a6cdc047098c92326ebb09077c75103de52b40c3d5d6549c"
+          "content": "0030cb9f42b9c64556cc7eae9f0992e62db9238e40967cff78ed3159b81b076a"
         }
       ],
       "licenses": [
@@ -459,7 +459,7 @@
           "expression": "BSD-3-Clause"
         }
       ],
-      "purl": "pkg:cargo/anaconda-anon-usage@0.8.0-pre.7",
+      "purl": "pkg:cargo/anaconda-anon-usage@0.8.0-pre.9",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1371,37 +1371,6 @@
         }
       ],
       "purl": "pkg:cargo/cargo-lock@10.1.0",
-      "externalReferences": [
-        {
-          "type": "website",
-          "url": "https://rustsec.org"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/rustsec/rustsec"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@11.0.1",
-      "author": "Tony Arcieri <bascule@gmail.com>",
-      "name": "cargo-lock",
-      "version": "11.0.1",
-      "description": "Self-contained Cargo.lock parser with optional dependency graph analysis",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "63585cdf8572aa7adf0e30a253f988f2b77233bfac1973d52efb6dd53a75920e"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "Apache-2.0 OR MIT"
-        }
-      ],
-      "purl": "pkg:cargo/cargo-lock@11.0.1",
       "externalReferences": [
         {
           "type": "website",
@@ -9433,32 +9402,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
-      "name": "serde_spanned",
-      "version": "1.1.1",
-      "description": "Serde-compatible spanned Value",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "purl": "pkg:cargo/serde_spanned@1.1.1",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/toml-rs/toml"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#serde_urlencoded@0.7.1",
       "author": "Anthony Ramine <n.oxyde@gmail.com>",
       "name": "serde_urlencoded",
@@ -11053,32 +10996,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml@0.9.12+spec-1.1.0",
-      "name": "toml",
-      "version": "0.9.12+spec-1.1.0",
-      "description": "A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures. ",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "cf92845e79fc2e2def6a5d828f0801e29a2f8acc037becc5ab08595c7d5e9863"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "purl": "pkg:cargo/toml@0.9.12+spec-1.1.0",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/toml-rs/toml"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.6.11",
       "name": "toml_datetime",
       "version": "0.6.11",
@@ -11096,32 +11013,6 @@
         }
       ],
       "purl": "pkg:cargo/toml_datetime@0.6.11",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/toml-rs/toml"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.7.5+spec-1.1.0",
-      "name": "toml_datetime",
-      "version": "0.7.5+spec-1.1.0",
-      "description": "A TOML-compatible datetime type",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "92e1cfed4a3038bc5a127e35a2d360f145e1f4b971b551a2ba5fd7aedf7e1347"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "purl": "pkg:cargo/toml_datetime@0.7.5+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -11157,32 +11048,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
-      "name": "toml_parser",
-      "version": "1.1.2+spec-1.1.0",
-      "description": "Yet another format-preserving TOML parser.",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "purl": "pkg:cargo/toml_parser@1.1.2+spec-1.1.0",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/toml-rs/toml"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_write@0.1.2",
       "name": "toml_write",
       "version": "0.1.2",
@@ -11200,32 +11065,6 @@
         }
       ],
       "purl": "pkg:cargo/toml_write@0.1.2",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/toml-rs/toml"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.1+spec-1.1.0",
-      "name": "toml_writer",
-      "version": "1.1.1+spec-1.1.0",
-      "description": "A low-level interface for writing out TOML ",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "purl": "pkg:cargo/toml_writer@1.1.1+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -12729,32 +12568,6 @@
         }
       ],
       "purl": "pkg:cargo/winnow@0.7.15",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/winnow-rs/winnow"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.1",
-      "name": "winnow",
-      "version": "1.0.1",
-      "description": "A byte-oriented, zero-copy, parser combinators library",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "09dac053f1cd375980747450bfc7250c264eaae0583872e845c0c7cd578872b5"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ],
-      "purl": "pkg:cargo/winnow@1.0.1",
       "externalReferences": [
         {
           "type": "vcs",
@@ -14790,10 +14603,9 @@
       "ref": "path+file:///tmp/ana-cli#ana@0.0.0",
       "dependsOn": [
         "git+https://github.com/anaconda/anaconda-otel-rs#0.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0-pre.7",
+        "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0-pre.9",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.89",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
-        "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@11.0.1",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.44",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.0",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
@@ -14981,7 +14793,7 @@
       "dependsOn": []
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0-pre.7",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0-pre.9",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@10.1.0",
@@ -15191,15 +15003,6 @@
         "registry+https://github.com/rust-lang/crates.io-index#semver@1.0.28",
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228",
         "registry+https://github.com/rust-lang/crates.io-index#toml@0.8.23",
-        "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8"
-      ]
-    },
-    {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@11.0.1",
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#semver@1.0.28",
-        "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228",
-        "registry+https://github.com/rust-lang/crates.io-index#toml@0.9.12+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8"
       ]
     },
@@ -17330,12 +17133,6 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.228"
-      ]
-    },
-    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#serde_urlencoded@0.7.1",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#form_urlencoded@1.2.2",
@@ -17707,27 +17504,9 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml@0.9.12+spec-1.1.0",
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
-        "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.228",
-        "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.7.5+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.1+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#winnow@0.7.15"
-      ]
-    },
-    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.6.11",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228"
-      ]
-    },
-    {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.7.5+spec-1.1.0",
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.228"
       ]
     },
     {
@@ -17742,17 +17521,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.1"
-      ]
-    },
-    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_write@0.1.2",
-      "dependsOn": []
-    },
-    {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.1+spec-1.1.0",
       "dependsOn": []
     },
     {
@@ -18071,10 +17840,6 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#memchr@2.8.0"
       ]
-    },
-    {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.1",
-      "dependsOn": []
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#writeable@0.6.3",
@@ -18487,11 +18252,11 @@
   ],
   "vulnerabilities": [
     {
-      "id": "RUSTSEC-2026-0098",
-      "description": "Name constraints for URI names were ignored and therefore accepted.\n\nNote this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.",
+      "id": "RUSTSEC-2026-0104",
+      "description": "A panic was reachable when parsing certificate revocation lists via [`BorrowedCertRevocationList::from_der`]\nor [`OwnedCertRevocationList::from_der`].  This was the result of mishandling a syntactically valid empty\n`BIT STRING` appearing in the `onlySomeReasons` element of a `IssuingDistributionPoint` CRL extension.\n\nThis panic is reachable prior to a CRL's signature being verified.\n\nApplications that do not use CRLs are not affected.\n\nThank you to @tynus3 for the report.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0104.html"
       },
       "ratings": [],
       "affects": [
@@ -18501,11 +18266,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0104",
-      "description": "A panic was reachable when parsing certificate revocation lists via [`BorrowedCertRevocationList::from_der`]\nor [`OwnedCertRevocationList::from_der`].  This was the result of mishandling a syntactically valid empty\n`BIT STRING` appearing in the `onlySomeReasons` element of a `IssuingDistributionPoint` CRL extension.\n\nThis panic is reachable prior to a CRL's signature being verified.\n\nApplications that do not use CRLs are not affected.\n\nThank you to @tynus3 for the report.",
+      "id": "RUSTSEC-2026-0098",
+      "description": "Name constraints for URI names were ignored and therefore accepted.\n\nNote this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0104.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html"
       },
       "ratings": [],
       "affects": [

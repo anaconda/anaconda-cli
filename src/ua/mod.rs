@@ -1,19 +1,16 @@
 //! User-agent string construction for ana HTTP requests.
 //!
-//! Combines platform identification with AAU (Anaconda Anonymous Usage)
-//! telemetry tokens from the `anaconda-anon-usage` crate.
+//! Delegates platform detection and `rattler`/`reqwest` version harvesting to
+//! the `anaconda-anon-usage` crate (via its `rattler` and `reqwest` features).
+//! We only supply the `ana/{version}` prefix.
 //!
-//! Format: `ana/{version} {platform} rattler/{version} {aau_tokens}`
+//! Format: `ana/{version} reqwest/{version} {platform} rattler/{version} {aau_tokens}`
 //!
-//! Example (macOS): `ana/0.1.0 Darwin/25.2.0 OSX/26.2 rattler/0.40.3 aau/0.7.6 c/... s/...`
-
-mod platform;
+//! Example (macOS): `ana/0.1.0 reqwest/0.12.28 Darwin/25.2.0 OSX/26.2 rattler/0.40.5 aau/0.8.0 c/... s/...`
 
 use std::sync::{LazyLock, OnceLock};
 
 use crate::VERSION;
-
-const RATTLER_VERSION: &str = env!("RATTLER_VERSION");
 
 /// Global environment prefix for AAU token generation.
 ///
@@ -53,21 +50,17 @@ fn aau_config() -> anaconda_anon_usage::Config {
         anaconda_jwt: jwt,
         prefix: Some(base_user_agent().to_string()),
         platform: true,
-        rattler_version: Some(RATTLER_VERSION.to_string()),
+        rattler_version: None,
         reqwest_version: None,
     }
 }
 
-/// Return the base user-agent string (without AAU tokens).
+/// Return the base user-agent string (just `ana/{version}`).
+///
+/// Platform, rattler, and reqwest versions are appended by the
+/// `anaconda-anon-usage` crate via its feature flags.
 fn base_user_agent() -> &'static str {
-    static USER_AGENT: LazyLock<String> = LazyLock::new(|| {
-        format!(
-            "ana/{} {} rattler/{}",
-            VERSION,
-            platform::platform_string(),
-            RATTLER_VERSION
-        )
-    });
+    static USER_AGENT: LazyLock<String> = LazyLock::new(|| format!("ana/{}", VERSION));
     &USER_AGENT
 }
 
@@ -79,8 +72,6 @@ fn base_user_agent() -> &'static str {
 ///
 /// The result is cached after first call — the user-agent is immutable
 /// for the lifetime of the process.
-///
-/// Format: `ana/{version} {platform} rattler/{version} {aau_tokens}`
 pub fn user_agent() -> &'static str {
     static UA: OnceLock<String> = OnceLock::new();
     UA.get_or_init(|| anaconda_anon_usage::token_string(&aau_config()))
@@ -99,23 +90,6 @@ mod tests {
     fn test_base_user_agent_starts_with_ana() {
         let ua = base_user_agent();
         assert!(ua.starts_with("ana/"), "expected ana/ prefix, got: {}", ua);
-    }
-
-    #[test]
-    fn test_base_user_agent_contains_rattler() {
-        let ua = base_user_agent();
-        assert!(
-            ua.contains("rattler/"),
-            "expected rattler/ in UA, got: {}",
-            ua
-        );
-    }
-
-    #[test]
-    fn test_base_user_agent_print() {
-        let ua = base_user_agent();
-        eprintln!("User-Agent: {}", ua);
-        assert!(!ua.is_empty());
     }
 
     #[test]
@@ -143,9 +117,15 @@ mod tests {
     }
 
     #[test]
-    fn user_agent_contains_platform_info() {
+    fn user_agent_contains_rattler_version() {
         let ua = user_agent();
-        assert!(ua.contains("rattler/"), "expected rattler in UA: {}", ua);
+        assert!(ua.contains("rattler/"), "expected rattler/ in UA: {}", ua);
+    }
+
+    #[test]
+    fn user_agent_contains_reqwest_version() {
+        let ua = user_agent();
+        assert!(ua.contains("reqwest/"), "expected reqwest/ in UA: {}", ua);
     }
 
     #[test]

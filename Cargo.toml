@@ -14,7 +14,7 @@ diagnostics = ["dep:sentry"]
 feedback = ["dep:urlencoding"]
 
 [dependencies]
-anaconda-anon-usage = "0.8.0-pre.3"
+anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }
 async-trait = "0.1"
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
@@ -47,9 +47,6 @@ webbrowser = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 opentelemetry = "0.31.0"
-
-[build-dependencies]
-cargo-lock = "11"
 
 [dev-dependencies]
 temp-env = "0.3"
