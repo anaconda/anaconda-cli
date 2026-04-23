@@ -273,7 +273,8 @@ function Install-Binary {
     )
 
     if ((Test-Path $AnaBin) -and -not $Force) {
-        $reply = Read-Host "  $AnaBin already exists. Overwrite? [y/N]"
+        Write-Host "  $AnaBin already exists. Overwrite? [y/N] " -NoNewline
+        $reply = Read-Host
         if ($reply -notmatch "^[Yy]") {
             throw "Installation cancelled."
         }
