@@ -43,3 +43,4 @@ audit.raw.json
 
 # local dev config
 .claude/
+.env
