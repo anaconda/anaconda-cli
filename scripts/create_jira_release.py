@@ -28,6 +28,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import date
+from datetime import datetime
 from typing import Any
 
 import requests
@@ -67,6 +69,7 @@ class PullRequest:
 class ReleaseInfo:
     version: str
     github_url: str
+    published_at: date
     prs: list[PullRequest] = field(default_factory=list)
 
     @property
@@ -166,7 +169,13 @@ def gh(*args: str) -> str:
 
 def get_github_release(version: str) -> dict:
     output = gh(
-        "release", "view", version, "--repo", GITHUB_REPO, "--json", "tagName,body,url"
+        "release",
+        "view",
+        version,
+        "--repo",
+        GITHUB_REPO,
+        "--json",
+        "tagName,body,url,publishedAt",
     )
     return json.loads(output)
 
@@ -204,6 +213,9 @@ def fetch_release_info(version: str, quiet: bool = False) -> ReleaseInfo:
         print(f"Fetching GitHub release {version}...", file=sys.stderr)
     release = get_github_release(version)
     github_url = release["url"]
+    published_at = datetime.fromisoformat(
+        release["publishedAt"].replace("Z", "+00:00")
+    ).date()
 
     if not quiet:
         print("Extracting PRs from release notes...", file=sys.stderr)
@@ -232,7 +244,12 @@ def fetch_release_info(version: str, quiet: bool = False) -> ReleaseInfo:
             if not quiet:
                 print(f"    Warning: Could not fetch PR #{num}", file=sys.stderr)
 
-    return ReleaseInfo(version=version, github_url=github_url, prs=prs)
+    return ReleaseInfo(
+        version=version,
+        github_url=github_url,
+        published_at=published_at,
+        prs=prs,
+    )
 
 
 def generate_notes_markdown(release: ReleaseInfo) -> str:
@@ -472,12 +489,10 @@ def cmd_create_release(args: argparse.Namespace) -> int:
 
     # Create Jira version
     print(f"Creating Jira release '{release.version_name}'...")
-    from datetime import date
-
     version_result = jira.create_version(
         name=release.version_name,
         description=f"GitHub Release: {release.github_url}",
-        release_date=date.today().isoformat(),
+        release_date=release.published_at.isoformat(),
     )
     version_id = version_result["id"]
     print(f"  Created with ID: {version_id}")
