@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-21T17:24:03Z<br>
+Generated: 2026-04-23T15:20:05Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 466 (65 platform-specific)<br>
+Packages: 476 (67 platform-specific)<br>
 Platforms: linux, macos, windows
-<br>**[Security advisories](#security-advisories): 2 across 1 package**
+<br>**[Security advisories](#security-advisories): 3 across 1 package**
 
 ## Packages
 
@@ -23,6 +23,7 @@ Platforms: linux, macos, windows
 | [ahash](https://crates.io/crates/ahash) | 0.8.12 | MIT OR Apache-2.0 |  |  |
 | [aho-corasick](https://crates.io/crates/aho-corasick) | 1.1.4 | Unlicense OR MIT |  |  |
 | [allocator-api2](https://crates.io/crates/allocator-api2) | 0.2.21 | MIT OR Apache-2.0 |  |  |
+| [anaconda-anon-usage](https://crates.io/crates/anaconda-anon-usage) | 0.8.0-pre.7 | BSD-3-Clause |  |  |
 | [anaconda-otel-rs](https://crates.io/crates/anaconda-otel-rs) | 0.1.0 | NOASSERTION |  |  |
 | [anstream](https://crates.io/crates/anstream) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [anstyle](https://crates.io/crates/anstyle) | 1.0.14 | MIT OR Apache-2.0 |  |  |
@@ -54,6 +55,7 @@ Platforms: linux, macos, windows
 | [bytes](https://crates.io/crates/bytes) | 1.11.1 | MIT |  |  |
 | [bytestring](https://crates.io/crates/bytestring) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [bzip2](https://crates.io/crates/bzip2) | 0.6.1 | MIT OR Apache-2.0 |  |  |
+| [cargo-lock](https://crates.io/crates/cargo-lock) | 10.1.0 | Apache-2.0 OR MIT |  |  |
 | [cargo-lock](https://crates.io/crates/cargo-lock) | 11.0.1 | Apache-2.0 OR MIT |  |  |
 | [cc](https://crates.io/crates/cc) | 1.2.60 | MIT OR Apache-2.0 |  |  |
 | [cfg-if](https://crates.io/crates/cfg-if) | 1.0.4 | MIT OR Apache-2.0 |  |  |
@@ -193,10 +195,12 @@ Platforms: linux, macos, windows
 | [local-waker](https://crates.io/crates/local-waker) | 0.1.4 | MIT OR Apache-2.0 |  |  |
 | [lock\_api](https://crates.io/crates/lock_api) | 0.4.14 | MIT OR Apache-2.0 |  |  |
 | [log](https://crates.io/crates/log) | 0.4.29 | MIT OR Apache-2.0 |  |  |
+| [mac\_address](https://crates.io/crates/mac_address) | 1.1.8 | MIT OR Apache-2.0 |  |  |
 | [matchers](https://crates.io/crates/matchers) | 0.2.0 | MIT |  |  |
 | [md-5](https://crates.io/crates/md-5) | 0.10.6 | MIT OR Apache-2.0 |  |  |
 | [memchr](https://crates.io/crates/memchr) | 2.8.0 | Unlicense OR MIT |  |  |
 | [memmap2](https://crates.io/crates/memmap2) | 0.9.10 | MIT OR Apache-2.0 |  |  |
+| [memoffset](https://crates.io/crates/memoffset) | 0.9.1 | MIT | linux, macos |  |
 | [miette](https://crates.io/crates/miette) | 7.6.0 | Apache-2.0 |  |  |
 | [miette-derive](https://crates.io/crates/miette-derive) | 7.6.0 | Apache-2.0 |  |  |
 | [mime](https://crates.io/crates/mime) | 0.3.17 | MIT OR Apache-2.0 |  |  |
@@ -204,6 +208,7 @@ Platforms: linux, macos, windows
 | [miniz\_oxide](https://crates.io/crates/miniz_oxide) | 0.8.9 | MIT OR Zlib OR Apache-2.0 |  |  |
 | [mio](https://crates.io/crates/mio) | 1.2.0 | MIT |  |  |
 | [native-tls](https://crates.io/crates/native-tls) | 0.2.18 | MIT OR Apache-2.0 |  |  |
+| [nix](https://crates.io/crates/nix) | 0.29.0 | MIT | linux, macos |  |
 | [nix](https://crates.io/crates/nix) | 0.30.1 | MIT | linux, macos |  |
 | [nom](https://crates.io/crates/nom) | 8.0.0 | MIT |  |  |
 | [nom-language](https://crates.io/crates/nom-language) | 0.1.0 | MIT |  |  |
@@ -297,7 +302,7 @@ Platforms: linux, macos, windows
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
 | [rustls](https://crates.io/crates/rustls) | 0.23.38 | Apache-2.0 OR ISC OR MIT |  |  |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.14.0 | MIT OR Apache-2.0 |  |  |
-| [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.11 | ISC |  | 2 |
+| [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.11 | ISC |  | 3 |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
 | [ryu](https://crates.io/crates/ryu) | 1.0.23 | Apache-2.0 OR BSL-1.0 |  |  |
 | [schannel](https://crates.io/crates/schannel) | 0.1.29 | MIT | windows |  |
@@ -325,6 +330,7 @@ Platforms: linux, macos, windows
 | [serde\_derive](https://crates.io/crates/serde_derive) | 1.0.228 | MIT OR Apache-2.0 |  |  |
 | [serde\_json](https://crates.io/crates/serde_json) | 1.0.149 | MIT OR Apache-2.0 |  |  |
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.20 | MIT OR Apache-2.0 |  |  |
+| [serde\_spanned](https://crates.io/crates/serde_spanned) | 0.6.9 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_urlencoded](https://crates.io/crates/serde_urlencoded) | 0.7.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_with](https://crates.io/crates/serde_with) | 3.18.0 | MIT OR Apache-2.0 |  |  |
@@ -376,9 +382,13 @@ Platforms: linux, macos, windows
 | [tokio-rustls](https://crates.io/crates/tokio-rustls) | 0.26.4 | MIT OR Apache-2.0 |  |  |
 | [tokio-stream](https://crates.io/crates/tokio-stream) | 0.1.18 | MIT |  |  |
 | [tokio-util](https://crates.io/crates/tokio-util) | 0.7.18 | MIT |  |  |
+| [toml](https://crates.io/crates/toml) | 0.8.23 | MIT OR Apache-2.0 |  |  |
 | [toml](https://crates.io/crates/toml) | 0.9.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.6.11 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_edit](https://crates.io/crates/toml_edit) | 0.22.27 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_write](https://crates.io/crates/toml_write) | 0.1.2 | MIT OR Apache-2.0 |  |  |
 | [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.5 | MIT |  |  |
 | [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.5 | MIT |  |  |
@@ -482,18 +492,19 @@ Platforms: linux, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | rustls-webpki | 0.103.11 | [RUSTSEC-2026-0098](https://rustsec.org/advisories/RUSTSEC-2026-0098.html) |  |  |  |
+| rustls-webpki | 0.103.11 | [RUSTSEC-2026-0104](https://rustsec.org/advisories/RUSTSEC-2026-0104.html) |  |  |  |
 | rustls-webpki | 0.103.11 | [RUSTSEC-2026-0099](https://rustsec.org/advisories/RUSTSEC-2026-0099.html) |  |  |  |
 
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 251 |
-| MIT | 95 |
-| Apache-2.0 OR MIT | 34 |
+| MIT OR Apache-2.0 | 257 |
+| MIT | 97 |
+| Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
+| BSD-3-Clause | 18 |
 | Unicode-3.0 | 18 |
-| BSD-3-Clause | 17 |
 | ISC | 3 |
 | Zlib | 3 |
 | Apache-2.0 OR BSD-2-Clause | 2 |

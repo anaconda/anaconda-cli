@@ -187,8 +187,16 @@ mod tests {
         // Verify the user-agent contains AAU tokens
         let ua = crate::ua::user_agent();
         assert!(ua.contains("aau/"), "User-Agent missing aau/: {}", ua);
-        assert!(ua.contains(" c/"), "User-Agent missing client token: {}", ua);
-        assert!(ua.contains(" s/"), "User-Agent missing session token: {}", ua);
+        assert!(
+            ua.contains(" c/"),
+            "User-Agent missing client token: {}",
+            ua
+        );
+        assert!(
+            ua.contains(" s/"),
+            "User-Agent missing session token: {}",
+            ua
+        );
 
         // Verify we can create a request
         let _request = client.get("https://example.com/test");
@@ -206,11 +214,7 @@ mod tests {
 
         // Each token after aau/ should be in format: single_char/base64url_value
         for part in &parts[aau_idx.unwrap() + 1..] {
-            assert!(
-                part.contains('/'),
-                "Token should contain '/': {}",
-                part
-            );
+            assert!(part.contains('/'), "Token should contain '/': {}", part);
 
             let (prefix, value) = part.split_once('/').unwrap();
             assert_eq!(
@@ -226,7 +230,9 @@ mod tests {
             );
             // Base64url characters only
             assert!(
-                value.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'),
+                value
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'),
                 "Token value should be base64url: {}",
                 part
             );
