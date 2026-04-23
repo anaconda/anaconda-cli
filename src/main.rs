@@ -26,6 +26,13 @@ async fn main() {
     let config = config::Config::load();
     let _diagnostics_guard = diagnostics::init(&config);
     cli::execute().await;
+
+    // Flush any AAU tokens that were deferred because their target
+    // directory didn't exist yet (e.g. environment tokens for a newly
+    // created conda environment).
+    if let Err(e) = ua::finalize_deferred_writes() {
+        tracing::error!("Failed to flush deferred AAU token writes: {}", e);
+    }
 }
 
 #[cfg(test)]
