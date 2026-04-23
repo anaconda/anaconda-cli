@@ -145,7 +145,12 @@ def ana_install_env_isolated(fake_home: Path) -> dict[str, str]:
         key: val for key, val in os.environ.copy().items() if not key.startswith("ANA_")
     }
 
-    env["HOME"] = str(fake_home)
+    if IS_WINDOWS:
+        env["USERPROFILE"] = str(fake_home)
+        # Rattler does not reliably detect the default cache for Windows tests
+        env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
+    else:
+        env["HOME"] = str(fake_home)
     env["ANA_INSTALL_DIR"] = str(fake_home / "local" / "bin")
     env["ANA_NO_PATH_UPDATE"] = "1"  # Extra safety
     return env
