@@ -425,6 +425,9 @@ function Main {
             -Source $tempFile `
             -AnaBin $anaBin `
             -Force $forceInstall
+        if ((Get-OS) -ne "Windows") {
+            chmod u+x "$AnaBin"
+        }
     } finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
     }
