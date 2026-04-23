@@ -79,7 +79,7 @@ ANA_VERSION=1.0.0 ./install.sh
 
 ### PowerShell
 
-```bash
+```powershell
 # Install a specific version
 & .\install.ps1 -Version '1.0.0'
 
