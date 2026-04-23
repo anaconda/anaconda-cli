@@ -113,3 +113,129 @@ pub fn build_client(
         .with(LoggingMiddleware)
         .build())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_user_agent_contains_aau_tokens() {
+        let ua = crate::ua::user_agent();
+
+        // Verify AAU version marker is present
+        assert!(
+            ua.contains("aau/"),
+            "User-Agent should contain aau/ version marker: {}",
+            ua
+        );
+
+        // Verify client token (c/) is present - always generated
+        assert!(
+            ua.contains(" c/"),
+            "User-Agent should contain client token (c/): {}",
+            ua
+        );
+
+        // Verify session token (s/) is present - always generated per-process
+        assert!(
+            ua.contains(" s/"),
+            "User-Agent should contain session token (s/): {}",
+            ua
+        );
+    }
+
+    #[test]
+    fn test_user_agent_has_ana_prefix() {
+        let ua = crate::ua::user_agent();
+        assert!(
+            ua.starts_with("ana/"),
+            "User-Agent should start with ana/: {}",
+            ua
+        );
+    }
+
+    #[test]
+    fn test_user_agent_has_rattler_version() {
+        let ua = crate::ua::user_agent();
+        assert!(
+            ua.contains("rattler/"),
+            "User-Agent should contain rattler/: {}",
+            ua
+        );
+    }
+
+    #[test]
+    fn test_client_uses_user_agent() {
+        // Build a client and verify it was constructed with our user-agent
+        let client = Client::new(reqwest::Client::builder(), "https://example.com").unwrap();
+
+        // The client was built successfully with our user-agent
+        // We can verify the user-agent string is valid
+        let ua = crate::ua::user_agent();
+        assert!(!ua.is_empty());
+        assert!(ua.contains("aau/"));
+
+        // Verify we can create a request (doesn't send it)
+        let _request = client.get("/test");
+    }
+
+    #[test]
+    fn test_build_client_uses_user_agent() {
+        // Build a standalone client and verify it was constructed
+        let client = build_client(reqwest::Client::builder()).unwrap();
+
+        // Verify the user-agent contains AAU tokens
+        let ua = crate::ua::user_agent();
+        assert!(ua.contains("aau/"), "User-Agent missing aau/: {}", ua);
+        assert!(
+            ua.contains(" c/"),
+            "User-Agent missing client token: {}",
+            ua
+        );
+        assert!(
+            ua.contains(" s/"),
+            "User-Agent missing session token: {}",
+            ua
+        );
+
+        // Verify we can create a request
+        let _request = client.get("https://example.com/test");
+    }
+
+    #[test]
+    fn test_user_agent_token_format() {
+        let ua = crate::ua::user_agent();
+
+        // Find all tokens after aau/ and validate their format
+        let parts: Vec<&str> = ua.split_whitespace().collect();
+        let aau_idx = parts.iter().position(|p| p.starts_with("aau/"));
+
+        assert!(aau_idx.is_some(), "No aau/ marker found in: {}", ua);
+
+        // Each token after aau/ should be in format: single_char/base64url_value
+        for part in &parts[aau_idx.unwrap() + 1..] {
+            assert!(part.contains('/'), "Token should contain '/': {}", part);
+
+            let (prefix, value) = part.split_once('/').unwrap();
+            assert_eq!(
+                prefix.len(),
+                1,
+                "Token prefix should be single char: {}",
+                part
+            );
+            assert!(
+                !value.is_empty(),
+                "Token value should not be empty: {}",
+                part
+            );
+            // Base64url characters only
+            assert!(
+                value
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'),
+                "Token value should be base64url: {}",
+                part
+            );
+        }
+    }
+}

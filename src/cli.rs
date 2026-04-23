@@ -107,6 +107,9 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
+    UserAgent {
+        prefix: Option<String>,
+    },
     #[cfg(feature = "feedback")]
     OpenFeedback {
         feedback_type: Option<FeedbackType>,
@@ -138,6 +141,7 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -232,6 +236,13 @@ impl Action {
                 update::show_available_versions(ctx, VERSION).await;
                 Ok(())
             }
+            Action::UserAgent { prefix } => {
+                if let Some(p) = prefix {
+                    crate::ua::set_env_prefix(p);
+                }
+                println!("{}", crate::ua::user_agent());
+                Ok(())
+            }
             #[cfg(feature = "feedback")]
             Action::OpenFeedback {
                 feedback_type,
@@ -300,6 +311,7 @@ pub fn parse() -> (Action, LogLevel) {
                             Action::Update { force: yes }
                         }
                     }
+                    Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
                 Some(Commands::Tool { command }) => match command {
@@ -543,6 +555,14 @@ enum SelfCommands {
         /// List available versions
         #[arg(long, conflicts_with_all = ["yes", "check"])]
         list: bool,
+    },
+
+    /// Display the user-agent string
+    #[command(name = "user-agent")]
+    UserAgent {
+        /// Optional conda prefix to use for AAU tokens
+        #[arg(long)]
+        prefix: Option<String>,
     },
 }
 
