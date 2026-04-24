@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "search")]
@@ -300,18 +300,19 @@ pub struct GetSearchContextSearchContextGetArgs {
     pub limit: Option<i32>,
 }
 
-pub struct SearchClient<'a> {
-    client: &'a ApiClient,
+pub struct SearchClient {
+    base_path: String,
 }
 
-impl<'a> SearchClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl SearchClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn expanded_search_get(&self, query: String, include_deleted: Option<bool>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/";
-        let mut request = self.client.get(&url);
+    pub async fn expanded_search_get(&self, ctx: &CommandContext, query: String, include_deleted: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &include_deleted { request = request.query(&[("include_deleted", v)]); }
         let response = request.send().await?;
@@ -319,18 +320,20 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn autocomplete_autocomplete_get(&self, query: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/autocomplete";
-        let mut request = self.client.get(&url);
+    pub async fn autocomplete_autocomplete_get(&self, ctx: &CommandContext, query: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/autocomplete", self.base_path);
+        let mut request = client.get(&url);
         if let Some(v) = &query { request = request.query(&[("query", v)]); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn search_collections_and_files_collections_and_files_get(&self, query: String, page: Option<i32>, page_size: Option<i32>, collections_limit: Option<i32>, collection_files_limit: Option<i32>, include_deleted: Option<bool>, min_file_size: Option<String>, max_file_size: Option<String>, created_date_range: Option<String>, created_date: Option<String>, updated_date_range: Option<String>, updated_date: Option<String>, ownership: Option<String>, file_extensions: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/collections_and_files";
-        let mut request = self.client.get(&url);
+    pub async fn search_collections_and_files_collections_and_files_get(&self, ctx: &CommandContext, query: String, page: Option<i32>, page_size: Option<i32>, collections_limit: Option<i32>, collection_files_limit: Option<i32>, include_deleted: Option<bool>, min_file_size: Option<String>, max_file_size: Option<String>, created_date_range: Option<String>, created_date: Option<String>, updated_date_range: Option<String>, updated_date: Option<String>, ownership: Option<String>, file_extensions: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/collections_and_files", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &page { request = request.query(&[("page", v)]); }
         if let Some(v) = &page_size { request = request.query(&[("page_size", v)]); }
@@ -350,9 +353,10 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn documentation_documentation_get(&self, query: String, page: Option<i32>, page_size: Option<i32>, types: Option<String>, keywords: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/documentation";
-        let mut request = self.client.get(&url);
+    pub async fn documentation_documentation_get(&self, ctx: &CommandContext, query: String, page: Option<i32>, page_size: Option<i32>, types: Option<String>, keywords: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/documentation", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &page { request = request.query(&[("page", v)]); }
         if let Some(v) = &page_size { request = request.query(&[("page_size", v)]); }
@@ -363,9 +367,10 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn search_environments_environments_get(&self, query: String, page: Option<i32>, page_size: Option<i32>, include_deleted: Option<bool>, platforms: Option<String>, status: Option<String>, username: Option<String>, created_date_range: Option<String>, created_date: Option<String>, updated_date_range: Option<String>, updated_date: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/environments";
-        let mut request = self.client.get(&url);
+    pub async fn search_environments_environments_get(&self, ctx: &CommandContext, query: String, page: Option<i32>, page_size: Option<i32>, include_deleted: Option<bool>, platforms: Option<String>, status: Option<String>, username: Option<String>, created_date_range: Option<String>, created_date: Option<String>, updated_date_range: Option<String>, updated_date: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/environments", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &page { request = request.query(&[("page", v)]); }
         if let Some(v) = &page_size { request = request.query(&[("page_size", v)]); }
@@ -382,9 +387,10 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn search_environment_usernames_environments_usernames_get(&self, query: String, include_deleted: Option<bool>, platforms: Option<String>, status: Option<String>, created_date_range: Option<String>, created_date: Option<String>, updated_date_range: Option<String>, updated_date: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/environments/usernames";
-        let mut request = self.client.get(&url);
+    pub async fn search_environment_usernames_environments_usernames_get(&self, ctx: &CommandContext, query: String, include_deleted: Option<bool>, platforms: Option<String>, status: Option<String>, created_date_range: Option<String>, created_date: Option<String>, updated_date_range: Option<String>, updated_date: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/environments/usernames", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &include_deleted { request = request.query(&[("include_deleted", v)]); }
         if let Some(v) = &platforms { request = request.query(&[("platforms", v)]); }
@@ -398,9 +404,10 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn forum_search_forum_get(&self, query: String, page: Option<i32>, page_size: Option<i32>, replies: Option<String>, last_updated_after: Option<String>, views: Option<String>, types: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/forum";
-        let mut request = self.client.get(&url);
+    pub async fn forum_search_forum_get(&self, ctx: &CommandContext, query: String, page: Option<i32>, page_size: Option<i32>, replies: Option<String>, last_updated_after: Option<String>, views: Option<String>, types: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/forum", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &page { request = request.query(&[("page", v)]); }
         if let Some(v) = &page_size { request = request.query(&[("page_size", v)]); }
@@ -413,35 +420,39 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_search_history_history_get(&self, limit: Option<i32>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/history";
-        let mut request = self.client.get(&url);
+    pub async fn get_search_history_history_get(&self, ctx: &CommandContext, limit: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/history", self.base_path);
+        let mut request = client.get(&url);
         if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_search_history_history_delete(&self, query: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/history";
-        let mut request = self.client.delete(&url);
+    pub async fn delete_search_history_history_delete(&self, ctx: &CommandContext, query: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/history", self.base_path);
+        let mut request = client.delete(&url);
         request = request.query(&[("query", &query)]);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn ai_models_models_get(&self, query: String, page: Option<i32>, page_size: Option<i32>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/models";
-        let mut request = self.client.get(&url);
+    pub async fn ai_models_models_get(&self, ctx: &CommandContext, query: String, page: Option<i32>, page_size: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/models", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &page { request = request.query(&[("page", v)]); }
         if let Some(v) = &page_size { request = request.query(&[("page_size", v)]); }
@@ -450,9 +461,10 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn search_public_packages_packages_get(&self, query: String, page: Option<i32>, page_size: Option<i32>, group_top_n: Option<i32>, sort_key: Option<String>, sort_key_reverse: Option<bool>, include_wheels: Option<bool>, include_repocore_channels: Option<Vec<String>>, channels: Option<Vec<String>>, licenses: Option<Vec<String>>, platforms: Option<Vec<String>>, package_types: Option<Vec<String>>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/packages";
-        let mut request = self.client.get(&url);
+    pub async fn search_public_packages_packages_get(&self, ctx: &CommandContext, query: String, page: Option<i32>, page_size: Option<i32>, group_top_n: Option<i32>, sort_key: Option<String>, sort_key_reverse: Option<bool>, include_wheels: Option<bool>, include_repocore_channels: Option<Vec<String>>, channels: Option<Vec<String>>, licenses: Option<Vec<String>>, platforms: Option<Vec<String>>, package_types: Option<Vec<String>>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/packages", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("query", &query)]);
         if let Some(v) = &page { request = request.query(&[("page", v)]); }
         if let Some(v) = &page_size { request = request.query(&[("page_size", v)]); }
@@ -470,9 +482,10 @@ impl<'a> SearchClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_search_context_search_context_get(&self, query: Option<String>, limit: Option<i32>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/search_context";
-        let mut request = self.client.get(&url);
+    pub async fn get_search_context_search_context_get(&self, ctx: &CommandContext, query: Option<String>, limit: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/search_context", self.base_path);
+        let mut request = client.get(&url);
         if let Some(v) = &query { request = request.query(&[("query", v)]); }
         if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
         let response = request.send().await?;

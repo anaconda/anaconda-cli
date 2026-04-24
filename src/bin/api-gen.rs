@@ -552,7 +552,7 @@ fn generate_cli_code(app_name: &str, spec: &OpenApiSpec, commands: &[GeneratedCo
 #![allow(unused_variables)]
 
 use clap::{{Parser, Subcommand}};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 "#,
         spec.info.title, app_name, spec.info.version
@@ -621,13 +621,13 @@ pub enum {struct_prefix}Commands {{
 
     // Generate API client struct
     code.push_str(&format!(
-        r#"pub struct {struct_prefix}Client<'a> {{
-    client: &'a ApiClient,
+        r#"pub struct {struct_prefix}Client {{
+    base_path: String,
 }}
 
-impl<'a> {struct_prefix}Client<'a> {{
-    pub fn new(client: &'a ApiClient) -> Self {{
-        Self {{ client }}
+impl {struct_prefix}Client {{
+    pub fn new(base_path: &str) -> Self {{
+        Self {{ base_path: base_path.to_string() }}
     }}
 
 "#
@@ -642,8 +642,8 @@ impl<'a> {struct_prefix}Client<'a> {{
         let path_param_names: Vec<String> = extract_path_params(&cmd.path);
         let mut seen_params: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-        // Build function signature - start with path params from URL
-        let mut params: Vec<String> = vec!["&self".to_string()];
+        // Build function signature - start with &self and ctx
+        let mut params: Vec<String> = vec!["&self".to_string(), "ctx: &CommandContext".to_string()];
         for param_name in &path_param_names {
             let rust_name = escape_keyword(&to_snake_case(param_name));
             if !seen_params.contains(&rust_name) {
@@ -670,17 +670,18 @@ impl<'a> {struct_prefix}Client<'a> {{
         }
 
         code.push_str(&format!(
-            "    pub async fn {method_name}({}) -> Result<serde_json::Value, reqwest_middleware::Error> {{\n",
+            "    pub async fn {method_name}({}) -> Result<serde_json::Value, Box<dyn std::error::Error>> {{\n",
             params.join(", ")
         ));
+        code.push_str("        let client = ctx.client.as_ref().ok_or(\"Not logged in\")?;\n");
 
         // Extract path parameters directly from the URL pattern
         let path_param_names: Vec<String> = extract_path_params(&cmd.path);
 
         if path_param_names.is_empty() {
-            code.push_str(&format!("        let url = \"{}\";\n", cmd.path));
+            code.push_str(&format!("        let url = format!(\"{{}}{}\", self.base_path);\n", cmd.path));
         } else {
-            let mut url_expr = format!("let url = format!(\"{}\"", cmd.path);
+            let mut url_expr = format!("let url = format!(\"{{}}{}\", self.base_path", cmd.path);
             for param_name in &path_param_names {
                 let rust_name = escape_keyword(&to_snake_case(param_name));
                 url_expr.push_str(&format!(", {} = {}", param_name, rust_name));
@@ -701,11 +702,11 @@ impl<'a> {struct_prefix}Client<'a> {{
         // Start building request
         if needs_mut {
             code.push_str(&format!(
-                "        let mut request = self.client.{http_method}(&url);\n"
+                "        let mut request = client.{http_method}(&url);\n"
             ));
         } else {
             code.push_str(&format!(
-                "        let request = self.client.{http_method}(&url);\n"
+                "        let request = client.{http_method}(&url);\n"
             ));
         }
 
@@ -829,8 +830,6 @@ fn generate_api_rs(modules: &[ModuleInfo]) -> String {
     code.push_str("//! Executes generated API commands against platform services.\n\n");
 
     // Imports
-    code.push_str("use crate::auth::ApiClient;\n");
-    code.push_str("use crate::config::Config;\n");
     code.push_str("use crate::context::CommandContext;\n");
     code.push_str("use crate::generated::ApiCommands;\n");
 
@@ -843,10 +842,10 @@ fn generate_api_rs(modules: &[ModuleInfo]) -> String {
     // Main execute function
     code.push_str(r#"/// Execute an API command
 pub async fn execute(
-    _ctx: &mut CommandContext,
+    ctx: &CommandContext,
     command: ApiCommands,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let result = execute_command(command).await?;
+    let result = execute_command(ctx, command).await?;
 
     // Try to pretty print as JSON, otherwise print as-is
     match serde_json::to_string_pretty(&result) {
@@ -860,6 +859,7 @@ pub async fn execute(
 
     // execute_command function
     code.push_str("async fn execute_command(\n");
+    code.push_str("    ctx: &CommandContext,\n");
     code.push_str("    command: ApiCommands,\n");
     code.push_str(") -> Result<serde_json::Value, Box<dyn std::error::Error>> {\n");
     code.push_str("    match command {\n");
@@ -868,7 +868,7 @@ pub async fn execute(
         let variant_name = to_pascal_case(&m.module_name);
         let func_name = format!("execute_{}", m.module_name);
         code.push_str(&format!(
-            "        ApiCommands::{} {{ command }} => {}(command).await,\n",
+            "        ApiCommands::{} {{ command }} => {}(ctx, command).await,\n",
             variant_name, func_name
         ));
     }
@@ -887,20 +887,17 @@ pub async fn execute(
         let service_name = to_kebab_case(module_name);
 
         code.push_str(&format!(
-            "async fn {}(\n    command: {},\n) -> Result<serde_json::Value, Box<dyn std::error::Error>> {{\n",
+            "async fn {}(\n    ctx: &CommandContext,\n    command: {},\n) -> Result<serde_json::Value, Box<dyn std::error::Error>> {{\n",
             func_name, commands_type
         ));
-        code.push_str("    let config = Config::load();\n");
-        code.push_str(&format!("    let base_url = format!(\"{{}}/api/{}\", config.base_url());\n", service_name));
-        code.push_str("    let client = ApiClient::with_base_url(&config, &base_url)?;\n");
-        code.push_str(&format!("    let api = {}::new(&client);\n\n", client_type));
+        code.push_str(&format!("    let api = {}::new(\"/api/{}\");\n\n", client_type, service_name));
         code.push_str("    match command {\n");
 
         for cmd in &m.commands {
             let variant_name = to_pascal_case(&cmd.name);
             let method_name = &cmd.name;
 
-            // Build the argument list for the API call
+            // Build the argument list for the API call - ctx is always first
             let path_params: Vec<String> = extract_path_params(&cmd.path);
 
             // Determine if we need to destructure args
@@ -912,11 +909,11 @@ pub async fn execute(
                     commands_type, variant_name
                 ));
 
-                // Build API call arguments
-                let mut call_args: Vec<String> = Vec::new();
+                // Build API call arguments - ctx first
+                let mut call_args: Vec<String> = vec!["ctx".to_string()];
                 let mut seen_args: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-                // Path params first
+                // Path params
                 for param_name in &path_params {
                     let rust_name = escape_keyword(&to_snake_case(param_name));
                     if !seen_args.contains(&rust_name) {
@@ -947,7 +944,7 @@ pub async fn execute(
                 code.push_str("        }\n");
             } else {
                 code.push_str(&format!(
-                    "        {}::{}(_) => Ok(api.{}().await?),\n",
+                    "        {}::{}(_) => Ok(api.{}(ctx).await?),\n",
                     commands_type, variant_name, method_name
                 ));
             }

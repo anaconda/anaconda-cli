@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "usernames")]
@@ -63,51 +63,56 @@ pub struct UpdateUsernameDataUsernamePatchArgs {
     pub json: Option<String>,
 }
 
-pub struct UsernamesClient<'a> {
-    client: &'a ApiClient,
+pub struct UsernamesClient {
+    base_path: String,
 }
 
-impl<'a> UsernamesClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl UsernamesClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn create_username_put(&self, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/";
-        let mut request = self.client.put(&url);
+    pub async fn create_username_put(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/", self.base_path);
+        let mut request = client.put(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_username_username_get(&self, username: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/{username}", username = username);
-        let request = self.client.get(&url);
+    pub async fn get_username_username_get(&self, ctx: &CommandContext, username: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/{username}", self.base_path, username = username);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_username_username_delete(&self, username: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/{username}", username = username);
-        let request = self.client.delete(&url);
+    pub async fn delete_username_username_delete(&self, ctx: &CommandContext, username: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/{username}", self.base_path, username = username);
+        let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_username_data_username_patch(&self, username: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/{username}", username = username);
-        let mut request = self.client.patch(&url);
+    pub async fn update_username_data_username_patch(&self, ctx: &CommandContext, username: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/{username}", self.base_path, username = username);
+        let mut request = client.patch(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;

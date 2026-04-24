@@ -8,6 +8,7 @@ use std::env::consts::{ARCH, OS};
 
 use opentelemetry::Value;
 
+use crate::auth::ApiClient;
 use crate::VERSION;
 
 /// Telemetry context for collecting command-specific attributes.
@@ -43,17 +44,20 @@ impl TelemetryContext {
 }
 
 /// Command execution context passed through the call stack.
-#[derive(Debug)]
 pub struct CommandContext {
     /// Telemetry attributes collector.
     pub telemetry: TelemetryContext,
+    /// HTTP client with authentication.
+    pub client: Option<ApiClient>,
 }
 
 impl CommandContext {
     /// Create a new command context.
     pub fn new() -> Self {
+        let client = ApiClient::new().ok();
         Self {
             telemetry: TelemetryContext::new(),
+            client,
         }
     }
 }

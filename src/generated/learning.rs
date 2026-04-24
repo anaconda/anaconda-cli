@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "learning")]
@@ -33,26 +33,28 @@ pub struct HealthCheckHealthzGetArgs {
 pub struct IsUserReturningIsReturnerGetArgs {
 }
 
-pub struct LearningClient<'a> {
-    client: &'a ApiClient,
+pub struct LearningClient {
+    base_path: String,
 }
 
-impl<'a> LearningClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl LearningClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn health_check_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn is_user_returning_is_returner_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/is-returner";
-        let request = self.client.get(&url);
+    pub async fn is_user_returning_is_returner_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/is-returner", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))

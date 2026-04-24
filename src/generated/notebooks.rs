@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "notebooks")]
@@ -91,76 +91,84 @@ pub struct GetPreviewDeprecatedV1PreviewPreviewIdGetArgs {
     pub preview_id: String,
 }
 
-pub struct NotebooksClient<'a> {
-    client: &'a ApiClient,
+pub struct NotebooksClient {
+    base_path: String,
 }
 
-impl<'a> NotebooksClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl NotebooksClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn notebook_configs_configs_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/configs";
-        let request = self.client.get(&url);
+    pub async fn notebook_configs_configs_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/configs", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn healthcheck_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn healthcheck_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_preview_preview_post(&self, x_a_p_i_version: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/preview";
-        let mut request = self.client.post(&url);
+    pub async fn create_preview_preview_post(&self, ctx: &CommandContext, x_a_p_i_version: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/preview", self.base_path);
+        let mut request = client.post(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_blob_preview_blob_preview_id_get(&self, preview_id: String, x_a_p_i_version: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/preview/blob/{preview_id}", preview_id = preview_id);
-        let request = self.client.get(&url);
+    pub async fn get_preview_blob_preview_blob_preview_id_get(&self, ctx: &CommandContext, preview_id: String, x_a_p_i_version: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/preview/blob/{preview_id}", self.base_path, preview_id = preview_id);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_preview_preview_id_get(&self, preview_id: String, x_a_p_i_version: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/preview/{preview_id}", preview_id = preview_id);
-        let request = self.client.get(&url);
+    pub async fn get_preview_preview_preview_id_get(&self, ctx: &CommandContext, preview_id: String, x_a_p_i_version: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/preview/{preview_id}", self.base_path, preview_id = preview_id);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_preview_deprecated_v1_preview_post(&self, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/v1/preview";
-        let mut request = self.client.post(&url);
+    pub async fn create_preview_deprecated_v1_preview_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/v1/preview", self.base_path);
+        let mut request = client.post(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_blob_deprecated_v1_preview_blob_preview_id_get(&self, preview_id: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/v1/preview/blob/{preview_id}", preview_id = preview_id);
-        let request = self.client.get(&url);
+    pub async fn get_preview_blob_deprecated_v1_preview_blob_preview_id_get(&self, ctx: &CommandContext, preview_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/v1/preview/blob/{preview_id}", self.base_path, preview_id = preview_id);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_deprecated_v1_preview_preview_id_get(&self, preview_id: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/v1/preview/{preview_id}", preview_id = preview_id);
-        let request = self.client.get(&url);
+    pub async fn get_preview_deprecated_v1_preview_preview_id_get(&self, ctx: &CommandContext, preview_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/v1/preview/{preview_id}", self.base_path, preview_id = preview_id);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))

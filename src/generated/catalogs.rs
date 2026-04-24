@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "catalogs")]
@@ -62,52 +62,57 @@ pub struct GetExampleCatalogsExamplesGetArgs {
 pub struct HealthCheckHealthzGetArgs {
 }
 
-pub struct CatalogsClient<'a> {
-    client: &'a ApiClient,
+pub struct CatalogsClient {
+    base_path: String,
 }
 
-impl<'a> CatalogsClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl CatalogsClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn create_catalog_post(&self, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/";
-        let mut request = self.client.post(&url);
+    pub async fn create_catalog_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/", self.base_path);
+        let mut request = client.post(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_catalog_by_cid_cid_id_get(&self, id: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/cid/{id}", id = id);
-        let request = self.client.get(&url);
+    pub async fn get_catalog_by_cid_cid_id_get(&self, ctx: &CommandContext, id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/cid/{id}", self.base_path, id = id);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn patch_catalog_metadata_cid_id_metadata_patch(&self, id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/cid/{id}/metadata", id = id);
-        let mut request = self.client.patch(&url);
+    pub async fn patch_catalog_metadata_cid_id_metadata_patch(&self, ctx: &CommandContext, id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/cid/{id}/metadata", self.base_path, id = id);
+        let mut request = client.patch(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_example_catalogs_examples_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/examples";
-        let request = self.client.get(&url);
+    pub async fn get_example_catalogs_examples_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/examples", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))

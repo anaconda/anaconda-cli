@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "nbserve")]
@@ -81,35 +81,38 @@ pub struct ToolboxCreateNotebookToolboxCreateNotebookGetArgs {
 pub struct ToolboxCreateProjectToolboxCreateProjectGetArgs {
 }
 
-pub struct NbserveClient<'a> {
-    client: &'a ApiClient,
+pub struct NbserveClient {
+    base_path: String,
 }
 
-impl<'a> NbserveClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl NbserveClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn get_catalog_by_cid_example_catalog_get(&self, catalog_id: String) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/example-catalog";
-        let mut request = self.client.get(&url);
+    pub async fn get_catalog_by_cid_example_catalog_get(&self, ctx: &CommandContext, catalog_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/example-catalog", self.base_path);
+        let mut request = client.get(&url);
         request = request.query(&[("catalog_id", &catalog_id)]);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_launch_notebook_launch_notebook_get(&self, nb_url: Option<String>, cid: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/launch_notebook";
-        let mut request = self.client.get(&url);
+    pub async fn get_launch_notebook_launch_notebook_get(&self, ctx: &CommandContext, nb_url: Option<String>, cid: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/launch_notebook", self.base_path);
+        let mut request = client.get(&url);
         if let Some(v) = &nb_url { request = request.query(&[("nb_url", v)]); }
         if let Some(v) = &cid { request = request.query(&[("cid", v)]); }
         let response = request.send().await?;
@@ -117,18 +120,20 @@ impl<'a> NbserveClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn open_data_catalog_open_data_catalog_get(&self, cid: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/open_data_catalog";
-        let mut request = self.client.get(&url);
+    pub async fn open_data_catalog_open_data_catalog_get(&self, ctx: &CommandContext, cid: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/open_data_catalog", self.base_path);
+        let mut request = client.get(&url);
         if let Some(v) = &cid { request = request.query(&[("cid", v)]); }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn open_lms_open_lms_get(&self, category_title: Option<String>, course_title: Option<String>, notebook_title: Option<String>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/open_lms";
-        let mut request = self.client.get(&url);
+    pub async fn open_lms_open_lms_get(&self, ctx: &CommandContext, category_title: Option<String>, course_title: Option<String>, notebook_title: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/open_lms", self.base_path);
+        let mut request = client.get(&url);
         if let Some(v) = &category_title { request = request.query(&[("category_title", v)]); }
         if let Some(v) = &course_title { request = request.query(&[("course_title", v)]); }
         if let Some(v) = &notebook_title { request = request.query(&[("notebook_title", v)]); }
@@ -137,17 +142,19 @@ impl<'a> NbserveClient<'a> {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn toolbox_create_notebook_toolbox_create_notebook_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/toolbox_create_notebook";
-        let request = self.client.get(&url);
+    pub async fn toolbox_create_notebook_toolbox_create_notebook_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/toolbox_create_notebook", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn toolbox_create_project_toolbox_create_project_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/toolbox_create_project";
-        let request = self.client.get(&url);
+    pub async fn toolbox_create_project_toolbox_create_project_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/toolbox_create_project", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))

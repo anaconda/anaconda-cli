@@ -34,21 +34,17 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
-    /// Create a new API client, loading credentials from the keyring if available.
-    pub fn new(config: &Config) -> Result<Self, AuthError> {
-        Self::with_base_url(config, &config.base_url())
-    }
-
-    /// Create a new API client with a custom base URL.
-    pub fn with_base_url(config: &Config, base_url: &str) -> Result<Self, AuthError> {
-        let api_key = get_api_key(config)?;
+    /// Create a new API client, loading config and credentials automatically.
+    pub fn new() -> Result<Self, AuthError> {
+        let config = Config::load();
+        let api_key = get_api_key(&config)?;
 
         let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
         if let Some(ref key) = api_key {
             builder = builder.default_headers(bearer_header(key));
         }
 
-        let client = Client::new(builder, base_url)?;
+        let client = Client::new(builder, config.base_url())?;
 
         Ok(Self {
             inner: client,
@@ -193,8 +189,8 @@ struct LoginInfo {
 }
 
 /// Fetch login info for display after login.
-async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
-    let client = ApiClient::new(config)?;
+async fn fetch_login_info(_config: &Config) -> Result<LoginInfo, AuthError> {
+    let client = ApiClient::new()?;
 
     // Fetch account info
     let account_response = client.get("/api/account").send().await?;
@@ -621,7 +617,7 @@ fn mask_api_key(key: &str) -> String {
 /// Display information about the logged-in user.
 pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthError> {
     let config = Config::load();
-    let client = ApiClient::new(&config)?;
+    let client = ApiClient::new()?;
 
     if !client.is_authenticated() {
         status::error("not logged in");

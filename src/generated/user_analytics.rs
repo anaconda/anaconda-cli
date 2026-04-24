@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use clap::{Parser, Subcommand};
-use crate::auth::ApiClient;
+use crate::context::CommandContext;
 
 #[derive(Parser)]
 #[command(name = "user_analytics")]
@@ -37,26 +37,28 @@ pub struct GetOrganizationUserDownloadsOrganizationsOrgNamePostArgs {
     pub json: Option<String>,
 }
 
-pub struct UserAnalyticsClient<'a> {
-    client: &'a ApiClient,
+pub struct UserAnalyticsClient {
+    base_path: String,
 }
 
-impl<'a> UserAnalyticsClient<'a> {
-    pub fn new(client: &'a ApiClient) -> Self {
-        Self { client }
+impl UserAnalyticsClient {
+    pub fn new(base_path: &str) -> Self {
+        Self { base_path: base_path.to_string() }
     }
 
-    pub async fn health_check_healthz_get(&self) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = "/healthz";
-        let request = self.client.get(&url);
+    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/healthz", self.base_path);
+        let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_user_downloads_organizations_org_name_post(&self, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, reqwest_middleware::Error> {
-        let url = format!("/organizations/{org_name}", org_name = org_name);
-        let mut request = self.client.post(&url);
+    pub async fn get_organization_user_downloads_organizations_org_name_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let client = ctx.client.as_ref().ok_or("Not logged in")?;
+        let url = format!("{}/organizations/{org_name}", self.base_path, org_name = org_name);
+        let mut request = client.post(&url);
         if let Some(j) = json { request = request.json(&j); }
         let response = request.send().await?;
         let text = response.text().await?;
