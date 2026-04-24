@@ -8,6 +8,8 @@
 //!   api auth login --username foo --password bar
 //!   api catalogs get-catalog-by-cid --id abc123
 
+#![allow(unused_imports)]
+
 use clap::{Parser, Subcommand};
 
 /// Auth Service API
