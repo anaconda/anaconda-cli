@@ -30,8 +30,8 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         commands: &["login", "logout", "whoami", "auth"],
     },
     HelpSection {
-        name: "SETUP",
-        commands: &["setup"],
+        name: "FEATURES",
+        commands: &["feature"],
     },
 ];
 

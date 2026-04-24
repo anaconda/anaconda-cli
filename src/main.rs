@@ -4,6 +4,7 @@ mod cli;
 mod config;
 mod context;
 mod diagnostics;
+mod feature;
 #[cfg(feature = "feedback")]
 mod feedback;
 mod help;
@@ -11,7 +12,6 @@ mod http;
 mod input;
 mod paths;
 mod qr;
-mod setup;
 mod table;
 mod tools;
 mod ua;

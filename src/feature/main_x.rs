@@ -1,4 +1,4 @@
-//! main-x channel setup.
+//! main-x feature.
 //!
 //! Configures conda to use the Anaconda main-x channel for early access packages.
 
@@ -8,6 +8,7 @@ use std::process::Command;
 use miette::{Context, IntoDiagnostic};
 
 use crate::auth;
+use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
 use crate::paths;
 use crate::ui::status;
@@ -41,8 +42,8 @@ impl ChannelAction {
     }
 }
 
-/// Plan the actions needed to set up main-x channel.
-fn plan_setup_actions(current_channels: &[String]) -> Vec<ChannelAction> {
+/// Plan the actions needed to enable main-x channel.
+fn plan_enable_actions(current_channels: &[String]) -> Vec<ChannelAction> {
     let mut actions = Vec::new();
 
     let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
@@ -57,30 +58,30 @@ fn plan_setup_actions(current_channels: &[String]) -> Vec<ChannelAction> {
     actions
 }
 
-/// Set up main-x channel access.
+/// Enable main-x channel access.
 ///
 /// This command:
 /// 1. Ensures the user is logged in to Anaconda
 /// 2. Shows planned changes and prompts for confirmation
 /// 3. Adds the main-x channel to conda configuration (with main channel for fallback)
 /// 4. Provides instructions for reverting the changes
-pub async fn setup_main_x(force: bool) -> miette::Result<()> {
+pub async fn enable_main_x(ctx: &mut CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
-        "Setting up {} channel access...",
+        "Enabling {} feature...",
         status::highlight("main-x")
     ));
     status::blank_line();
 
     // Step 1: Check login status and prompt if needed
-    ensure_logged_in().await?;
+    ensure_logged_in(ctx).await?;
 
     // Step 2: Determine what changes need to be made
     let conda_bin = find_conda()?;
     let current_channels = get_configured_channels(&conda_bin)?;
-    let actions = plan_setup_actions(&current_channels);
+    let actions = plan_enable_actions(&current_channels);
 
     if actions.is_empty() {
-        status::success("Channels already configured correctly");
+        status::success("Feature already enabled");
         return Ok(());
     }
 
@@ -114,18 +115,18 @@ pub async fn setup_main_x(force: bool) -> miette::Result<()> {
         status::highlight("main-x")
     ));
     status::blank_line();
-    status::info("To undo this configuration, run:");
-    eprintln!("  {}", status::highlight("ana setup main-x --remove"));
+    status::info("To disable this feature, run:");
+    eprintln!("  {}", status::highlight("ana feature disable main-x"));
 
     Ok(())
 }
 
-/// Remove main-x channel configuration.
+/// Disable main-x channel configuration.
 ///
 /// This command removes the main-x channel from conda configuration.
-pub fn remove_main_x(force: bool) -> miette::Result<()> {
+pub fn disable_main_x(force: bool) -> miette::Result<()> {
     status::info(&format!(
-        "Removing {} channel configuration...",
+        "Disabling {} feature...",
         status::highlight("main-x")
     ));
     status::blank_line();
@@ -137,7 +138,7 @@ pub fn remove_main_x(force: bool) -> miette::Result<()> {
 
     if !has_main_x {
         status::success(&format!(
-            "{} channel is not configured",
+            "{} feature is not enabled",
             status::highlight("main-x")
         ));
         return Ok(());
@@ -161,14 +162,14 @@ pub fn remove_main_x(force: bool) -> miette::Result<()> {
     status::finish_running(&format!("Ran {}", status::highlight(&remove_cmd)));
 
     status::blank_line();
-    status::info("To restore, run:");
-    eprintln!("  {}", status::highlight("ana setup main-x"));
+    status::info("To re-enable, run:");
+    eprintln!("  {}", status::highlight("ana feature enable main-x"));
 
     Ok(())
 }
 
 /// Ensure the user is logged in, prompting them to login if not.
-async fn ensure_logged_in() -> miette::Result<()> {
+async fn ensure_logged_in(ctx: &mut CommandContext) -> miette::Result<()> {
     status::waiting("Checking authentication status...");
 
     // Try to get API key to check if logged in
@@ -181,7 +182,7 @@ async fn ensure_logged_in() -> miette::Result<()> {
         Ok(None) | Err(_) => {
             status::info("Not logged in. Starting login flow...");
             status::blank_line();
-            auth::login()
+            auth::login(ctx, None, false, false)
                 .await
                 .map_err(|e| miette::miette!("Login failed: {}", e))?;
             Ok(())
