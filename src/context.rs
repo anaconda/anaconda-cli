@@ -8,8 +8,8 @@ use std::env::consts::{ARCH, OS};
 
 use opentelemetry::Value;
 
-use crate::auth::ApiClient;
 use crate::VERSION;
+use crate::auth::ApiClient;
 
 /// Telemetry context for collecting command-specific attributes.
 #[derive(Debug, Default)]

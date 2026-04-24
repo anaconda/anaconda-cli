@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "projects")]
@@ -49,19 +49,29 @@ pub enum ProjectsCommands {
     GetFileTreeProjectIdFileTreeGet(GetFileTreeProjectIdFileTreeGetArgs),
     /// Get Folder File Tree
     #[command(name = "get-folder-file-tree-project-id-file-tree-file-path-prefix-get")]
-    GetFolderFileTreeProjectIdFileTreeFilePathPrefixGet(GetFolderFileTreeProjectIdFileTreeFilePathPrefixGetArgs),
+    GetFolderFileTreeProjectIdFileTreeFilePathPrefixGet(
+        GetFolderFileTreeProjectIdFileTreeFilePathPrefixGetArgs,
+    ),
     /// List File Versions
     #[command(name = "list-file-versions-project-id-file-versions-file-path-get")]
-    ListFileVersionsProjectIdFileVersionsFilePathGet(ListFileVersionsProjectIdFileVersionsFilePathGetArgs),
+    ListFileVersionsProjectIdFileVersionsFilePathGet(
+        ListFileVersionsProjectIdFileVersionsFilePathGetArgs,
+    ),
     /// Get File Version
     #[command(name = "get-file-version-project-id-file-versions-file-version-id-get")]
-    GetFileVersionProjectIdFileVersionsFileVersionIdGet(GetFileVersionProjectIdFileVersionsFileVersionIdGetArgs),
+    GetFileVersionProjectIdFileVersionsFileVersionIdGet(
+        GetFileVersionProjectIdFileVersionsFileVersionIdGetArgs,
+    ),
     /// Delete File Version
     #[command(name = "delete-file-version-project-id-file-versions-file-version-id-delete")]
-    DeleteFileVersionProjectIdFileVersionsFileVersionIdDelete(DeleteFileVersionProjectIdFileVersionsFileVersionIdDeleteArgs),
+    DeleteFileVersionProjectIdFileVersionsFileVersionIdDelete(
+        DeleteFileVersionProjectIdFileVersionsFileVersionIdDeleteArgs,
+    ),
     /// Commit File Version
     #[command(name = "commit-file-version-project-id-file-versions-file-version-id-patch")]
-    CommitFileVersionProjectIdFileVersionsFileVersionIdPatch(CommitFileVersionProjectIdFileVersionsFileVersionIdPatchArgs),
+    CommitFileVersionProjectIdFileVersionsFileVersionIdPatch(
+        CommitFileVersionProjectIdFileVersionsFileVersionIdPatchArgs,
+    ),
     /// List Files
     #[command(name = "list-files-project-id-files-get")]
     ListFilesProjectIdFilesGet(ListFilesProjectIdFilesGetArgs),
@@ -76,16 +86,24 @@ pub enum ProjectsCommands {
     DeleteFileProjectIdFilesFilenameDelete(DeleteFileProjectIdFilesFilenameDeleteArgs),
     /// Update File Metadata
     #[command(name = "update-file-metadata-project-id-files-filename-patch")]
-    UpdateFileMetadataProjectIdFilesFilenamePatch(UpdateFileMetadataProjectIdFilesFilenamePatchArgs),
+    UpdateFileMetadataProjectIdFilesFilenamePatch(
+        UpdateFileMetadataProjectIdFilesFilenamePatchArgs,
+    ),
     /// List Project Permissions
     #[command(name = "list-project-permissions-project-id-permissions-get")]
-    ListProjectPermissionsProjectIdPermissionsGet(ListProjectPermissionsProjectIdPermissionsGetArgs),
+    ListProjectPermissionsProjectIdPermissionsGet(
+        ListProjectPermissionsProjectIdPermissionsGetArgs,
+    ),
     /// Set Project Permissions
     #[command(name = "set-project-permissions-project-id-permissions-post")]
-    SetProjectPermissionsProjectIdPermissionsPost(SetProjectPermissionsProjectIdPermissionsPostArgs),
+    SetProjectPermissionsProjectIdPermissionsPost(
+        SetProjectPermissionsProjectIdPermissionsPostArgs,
+    ),
     /// List User Permissions For Project
     #[command(name = "list-user-permissions-for-project-project-id-permissions-my-get")]
-    ListUserPermissionsForProjectProjectIdPermissionsMyGet(ListUserPermissionsForProjectProjectIdPermissionsMyGetArgs),
+    ListUserPermissionsForProjectProjectIdPermissionsMyGet(
+        ListUserPermissionsForProjectProjectIdPermissionsMyGetArgs,
+    ),
     /// List Project Checkpoints
     #[command(name = "list-project-checkpoints-project-id-versions-get")]
     ListProjectCheckpointsProjectIdVersionsGet(ListProjectCheckpointsProjectIdVersionsGetArgs),
@@ -94,10 +112,16 @@ pub enum ProjectsCommands {
     CreateCheckpointProjectIdVersionsPost(CreateCheckpointProjectIdVersionsPostArgs),
     /// List Files At Checkpoint
     #[command(name = "list-files-at-checkpoint-project-id-versions-version-id-files-get")]
-    ListFilesAtCheckpointProjectIdVersionsVersionIdFilesGet(ListFilesAtCheckpointProjectIdVersionsVersionIdFilesGetArgs),
+    ListFilesAtCheckpointProjectIdVersionsVersionIdFilesGet(
+        ListFilesAtCheckpointProjectIdVersionsVersionIdFilesGetArgs,
+    ),
     /// Download File At Checkpoint
-    #[command(name = "download-file-at-checkpoint-project-id-versions-version-id-files-filename-get")]
-    DownloadFileAtCheckpointProjectIdVersionsVersionIdFilesFilenameGet(DownloadFileAtCheckpointProjectIdVersionsVersionIdFilesFilenameGetArgs),
+    #[command(
+        name = "download-file-at-checkpoint-project-id-versions-version-id-files-filename-get"
+    )]
+    DownloadFileAtCheckpointProjectIdVersionsVersionIdFilesFilenameGet(
+        DownloadFileAtCheckpointProjectIdVersionsVersionIdFilesFilenameGetArgs,
+    ),
 }
 
 #[derive(Parser)]
@@ -130,8 +154,7 @@ pub struct CreateProjectPostArgs {
 }
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct GetProjectProjectIdGetArgs {
@@ -321,35 +344,67 @@ pub struct ProjectsClient {
 
 impl ProjectsClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn get_projects_list_get(&self, ctx: &CommandContext, owner: Option<String>, owner_type: Option<String>, tag: Option<String>, user_client: Option<String>, name: Option<String>, limit: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_projects_list_get(
+        &self,
+        ctx: &CommandContext,
+        owner: Option<String>,
+        owner_type: Option<String>,
+        tag: Option<String>,
+        user_client: Option<String>,
+        name: Option<String>,
+        limit: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &owner { request = request.query(&[("owner", v)]); }
-        if let Some(v) = &owner_type { request = request.query(&[("owner_type", v)]); }
-        if let Some(v) = &tag { request = request.query(&[("tag", v)]); }
-        if let Some(v) = &user_client { request = request.query(&[("user_client", v)]); }
-        if let Some(v) = &name { request = request.query(&[("name", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
+        if let Some(v) = &owner {
+            request = request.query(&[("owner", v)]);
+        }
+        if let Some(v) = &owner_type {
+            request = request.query(&[("owner_type", v)]);
+        }
+        if let Some(v) = &tag {
+            request = request.query(&[("tag", v)]);
+        }
+        if let Some(v) = &user_client {
+            request = request.query(&[("user_client", v)]);
+        }
+        if let Some(v) = &name {
+            request = request.query(&[("name", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_project_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_project_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -358,7 +413,11 @@ impl ProjectsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_project_project_id_get(&self, ctx: &CommandContext, project_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_project_project_id_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/{project_id}", self.base_path, project_id = project_id);
         let request = client.get(&url);
@@ -367,7 +426,11 @@ impl ProjectsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_project_project_id_delete(&self, ctx: &CommandContext, project_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_project_project_id_delete(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/{project_id}", self.base_path, project_id = project_id);
         let request = client.delete(&url);
@@ -376,223 +439,483 @@ impl ProjectsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_project_project_id_patch(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_project_project_id_patch(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/{project_id}", self.base_path, project_id = project_id);
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn copy_file_project_id_actions_copy_file_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn copy_file_project_id_actions_copy_file_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/actions/copy-file", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/actions/copy-file",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn move_file_project_id_actions_move_file_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn move_file_project_id_actions_move_file_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/actions/move-file", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/actions/move-file",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn preload_file_project_id_file_preload_filename_put(&self, ctx: &CommandContext, project_id: String, filename: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn preload_file_project_id_file_preload_filename_put(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        filename: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-preload/{filename}", self.base_path, project_id = project_id, filename = filename);
+        let url = format!(
+            "{}/{project_id}/file-preload/{filename}",
+            self.base_path,
+            project_id = project_id,
+            filename = filename
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_file_tree_project_id_file_tree_get(&self, ctx: &CommandContext, project_id: String, include_deleted: Option<bool>, depth: Option<String>, folders_first: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_file_tree_project_id_file_tree_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        include_deleted: Option<bool>,
+        depth: Option<String>,
+        folders_first: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-tree", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/file-tree",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &include_deleted { request = request.query(&[("include_deleted", v)]); }
-        if let Some(v) = &depth { request = request.query(&[("depth", v)]); }
-        if let Some(v) = &folders_first { request = request.query(&[("folders_first", v)]); }
+        if let Some(v) = &include_deleted {
+            request = request.query(&[("include_deleted", v)]);
+        }
+        if let Some(v) = &depth {
+            request = request.query(&[("depth", v)]);
+        }
+        if let Some(v) = &folders_first {
+            request = request.query(&[("folders_first", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_folder_file_tree_project_id_file_tree_file_path_prefix_get(&self, ctx: &CommandContext, project_id: String, file_path_prefix: String, include_deleted: Option<bool>, depth: Option<String>, folders_first: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_folder_file_tree_project_id_file_tree_file_path_prefix_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        file_path_prefix: String,
+        include_deleted: Option<bool>,
+        depth: Option<String>,
+        folders_first: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-tree/{file_path_prefix}", self.base_path, project_id = project_id, file_path_prefix = file_path_prefix);
+        let url = format!(
+            "{}/{project_id}/file-tree/{file_path_prefix}",
+            self.base_path,
+            project_id = project_id,
+            file_path_prefix = file_path_prefix
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &include_deleted { request = request.query(&[("include_deleted", v)]); }
-        if let Some(v) = &depth { request = request.query(&[("depth", v)]); }
-        if let Some(v) = &folders_first { request = request.query(&[("folders_first", v)]); }
+        if let Some(v) = &include_deleted {
+            request = request.query(&[("include_deleted", v)]);
+        }
+        if let Some(v) = &depth {
+            request = request.query(&[("depth", v)]);
+        }
+        if let Some(v) = &folders_first {
+            request = request.query(&[("folders_first", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_file_versions_project_id_file_versions_file_path_get(&self, ctx: &CommandContext, project_id: String, path: String, latest: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_file_versions_project_id_file_versions_file_path_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        path: String,
+        latest: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-versions/file/{path}", self.base_path, project_id = project_id, path = path);
+        let url = format!(
+            "{}/{project_id}/file-versions/file/{path}",
+            self.base_path,
+            project_id = project_id,
+            path = path
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &latest { request = request.query(&[("latest", v)]); }
+        if let Some(v) = &latest {
+            request = request.query(&[("latest", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_file_version_project_id_file_versions_file_version_id_get(&self, ctx: &CommandContext, project_id: String, file_version_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_file_version_project_id_file_versions_file_version_id_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        file_version_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-versions/{file_version_id}", self.base_path, project_id = project_id, file_version_id = file_version_id);
+        let url = format!(
+            "{}/{project_id}/file-versions/{file_version_id}",
+            self.base_path,
+            project_id = project_id,
+            file_version_id = file_version_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_file_version_project_id_file_versions_file_version_id_delete(&self, ctx: &CommandContext, project_id: String, file_version_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_file_version_project_id_file_versions_file_version_id_delete(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        file_version_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-versions/{file_version_id}", self.base_path, project_id = project_id, file_version_id = file_version_id);
+        let url = format!(
+            "{}/{project_id}/file-versions/{file_version_id}",
+            self.base_path,
+            project_id = project_id,
+            file_version_id = file_version_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn commit_file_version_project_id_file_versions_file_version_id_patch(&self, ctx: &CommandContext, project_id: String, file_version_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn commit_file_version_project_id_file_versions_file_version_id_patch(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        file_version_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/file-versions/{file_version_id}", self.base_path, project_id = project_id, file_version_id = file_version_id);
+        let url = format!(
+            "{}/{project_id}/file-versions/{file_version_id}",
+            self.base_path,
+            project_id = project_id,
+            file_version_id = file_version_id
+        );
         let request = client.patch(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_files_project_id_files_get(&self, ctx: &CommandContext, project_id: String, include_deleted: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_files_project_id_files_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        include_deleted: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/files", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/files",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &include_deleted { request = request.query(&[("include_deleted", v)]); }
+        if let Some(v) = &include_deleted {
+            request = request.query(&[("include_deleted", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn download_file_project_id_files_filename_get(&self, ctx: &CommandContext, project_id: String, filename: String, version: Option<String>, redirect: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn download_file_project_id_files_filename_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        filename: String,
+        version: Option<String>,
+        redirect: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/files/{filename}", self.base_path, project_id = project_id, filename = filename);
+        let url = format!(
+            "{}/{project_id}/files/{filename}",
+            self.base_path,
+            project_id = project_id,
+            filename = filename
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &version { request = request.query(&[("version", v)]); }
-        if let Some(v) = &redirect { request = request.query(&[("redirect", v)]); }
+        if let Some(v) = &version {
+            request = request.query(&[("version", v)]);
+        }
+        if let Some(v) = &redirect {
+            request = request.query(&[("redirect", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn write_file_project_id_files_filename_put(&self, ctx: &CommandContext, project_id: String, filename: String, redirect: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn write_file_project_id_files_filename_put(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        filename: String,
+        redirect: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/files/{filename}", self.base_path, project_id = project_id, filename = filename);
+        let url = format!(
+            "{}/{project_id}/files/{filename}",
+            self.base_path,
+            project_id = project_id,
+            filename = filename
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &redirect { request = request.query(&[("redirect", v)]); }
+        if let Some(v) = &redirect {
+            request = request.query(&[("redirect", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_file_project_id_files_filename_delete(&self, ctx: &CommandContext, project_id: String, filename: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_file_project_id_files_filename_delete(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        filename: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/files/{filename}", self.base_path, project_id = project_id, filename = filename);
+        let url = format!(
+            "{}/{project_id}/files/{filename}",
+            self.base_path,
+            project_id = project_id,
+            filename = filename
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_file_metadata_project_id_files_filename_patch(&self, ctx: &CommandContext, project_id: String, filename: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_file_metadata_project_id_files_filename_patch(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        filename: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/files/{filename}", self.base_path, project_id = project_id, filename = filename);
+        let url = format!(
+            "{}/{project_id}/files/{filename}",
+            self.base_path,
+            project_id = project_id,
+            filename = filename
+        );
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_project_permissions_project_id_permissions_get(&self, ctx: &CommandContext, project_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_project_permissions_project_id_permissions_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/permissions", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/permissions",
+            self.base_path,
+            project_id = project_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn set_project_permissions_project_id_permissions_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn set_project_permissions_project_id_permissions_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/permissions", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/permissions",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_user_permissions_for_project_project_id_permissions_my_get(&self, ctx: &CommandContext, project_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_user_permissions_for_project_project_id_permissions_my_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/permissions/my", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/permissions/my",
+            self.base_path,
+            project_id = project_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_project_checkpoints_project_id_versions_get(&self, ctx: &CommandContext, project_id: String, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_project_checkpoints_project_id_versions_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/versions", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/versions",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_checkpoint_project_id_versions_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_checkpoint_project_id_versions_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/versions", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/{project_id}/versions",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_files_at_checkpoint_project_id_versions_version_id_files_get(&self, ctx: &CommandContext, project_id: String, version_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_files_at_checkpoint_project_id_versions_version_id_files_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        version_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/versions/{version_id}/files", self.base_path, project_id = project_id, version_id = version_id);
+        let url = format!(
+            "{}/{project_id}/versions/{version_id}/files",
+            self.base_path,
+            project_id = project_id,
+            version_id = version_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn download_file_at_checkpoint_project_id_versions_version_id_files_filename_get(&self, ctx: &CommandContext, project_id: String, version_id: String, filename: String, redirect: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn download_file_at_checkpoint_project_id_versions_version_id_files_filename_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        version_id: String,
+        filename: String,
+        redirect: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{project_id}/versions/{version_id}/files/{filename}", self.base_path, project_id = project_id, version_id = version_id, filename = filename);
+        let url = format!(
+            "{}/{project_id}/versions/{version_id}/files/{filename}",
+            self.base_path,
+            project_id = project_id,
+            version_id = version_id,
+            filename = filename
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &redirect { request = request.query(&[("redirect", v)]); }
+        if let Some(v) = &redirect {
+            request = request.query(&[("redirect", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

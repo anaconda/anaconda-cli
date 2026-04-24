@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "notebooks")]
@@ -37,19 +37,19 @@ pub enum NotebooksCommands {
     CreatePreviewDeprecatedV1PreviewPost(CreatePreviewDeprecatedV1PreviewPostArgs),
     /// Get a preview blob by ID v1
     #[command(name = "get-preview-blob-deprecated-v1-preview-blob-preview-id-get")]
-    GetPreviewBlobDeprecatedV1PreviewBlobPreviewIdGet(GetPreviewBlobDeprecatedV1PreviewBlobPreviewIdGetArgs),
+    GetPreviewBlobDeprecatedV1PreviewBlobPreviewIdGet(
+        GetPreviewBlobDeprecatedV1PreviewBlobPreviewIdGetArgs,
+    ),
     /// Get a preview by ID v1
     #[command(name = "get-preview-deprecated-v1-preview-preview-id-get")]
     GetPreviewDeprecatedV1PreviewPreviewIdGet(GetPreviewDeprecatedV1PreviewPreviewIdGetArgs),
 }
 
 #[derive(Parser)]
-pub struct NotebookConfigsConfigsGetArgs {
-}
+pub struct NotebookConfigsConfigsGetArgs {}
 
 #[derive(Parser)]
-pub struct HealthcheckHealthzGetArgs {
-}
+pub struct HealthcheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct CreatePreviewPreviewPostArgs {
@@ -97,10 +97,15 @@ pub struct NotebooksClient {
 
 impl NotebooksClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn notebook_configs_configs_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn notebook_configs_configs_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/configs", self.base_path);
         let request = client.get(&url);
@@ -109,7 +114,10 @@ impl NotebooksClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn healthcheck_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn healthcheck_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -118,60 +126,106 @@ impl NotebooksClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_preview_preview_post(&self, ctx: &CommandContext, x_a_p_i_version: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_preview_preview_post(
+        &self,
+        ctx: &CommandContext,
+        x_a_p_i_version: Option<String>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/preview", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_blob_preview_blob_preview_id_get(&self, ctx: &CommandContext, preview_id: String, x_a_p_i_version: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_preview_blob_preview_blob_preview_id_get(
+        &self,
+        ctx: &CommandContext,
+        preview_id: String,
+        x_a_p_i_version: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/preview/blob/{preview_id}", self.base_path, preview_id = preview_id);
+        let url = format!(
+            "{}/preview/blob/{preview_id}",
+            self.base_path,
+            preview_id = preview_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_preview_preview_id_get(&self, ctx: &CommandContext, preview_id: String, x_a_p_i_version: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_preview_preview_preview_id_get(
+        &self,
+        ctx: &CommandContext,
+        preview_id: String,
+        x_a_p_i_version: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/preview/{preview_id}", self.base_path, preview_id = preview_id);
+        let url = format!(
+            "{}/preview/{preview_id}",
+            self.base_path,
+            preview_id = preview_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_preview_deprecated_v1_preview_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_preview_deprecated_v1_preview_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/v1/preview", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_blob_deprecated_v1_preview_blob_preview_id_get(&self, ctx: &CommandContext, preview_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_preview_blob_deprecated_v1_preview_blob_preview_id_get(
+        &self,
+        ctx: &CommandContext,
+        preview_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/preview/blob/{preview_id}", self.base_path, preview_id = preview_id);
+        let url = format!(
+            "{}/v1/preview/blob/{preview_id}",
+            self.base_path,
+            preview_id = preview_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_preview_deprecated_v1_preview_preview_id_get(&self, ctx: &CommandContext, preview_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_preview_deprecated_v1_preview_preview_id_get(
+        &self,
+        ctx: &CommandContext,
+        preview_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/preview/{preview_id}", self.base_path, preview_id = preview_id);
+        let url = format!(
+            "{}/v1/preview/{preview_id}",
+            self.base_path,
+            preview_id = preview_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

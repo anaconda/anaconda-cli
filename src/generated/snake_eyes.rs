@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "snake_eyes")]
@@ -45,27 +45,40 @@ pub struct SnakeEyesClient {
 
 impl SnakeEyesClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn note_note_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn note_note_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/note", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn record_record_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn record_record_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/record", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

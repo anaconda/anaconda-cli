@@ -257,9 +257,7 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
-            Action::Api { command } => {
-                api::execute(ctx, command).await
-            }
+            Action::Api { command } => api::execute(ctx, command).await,
         }
     }
 }

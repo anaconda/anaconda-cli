@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "package_analytics")]
@@ -19,16 +19,24 @@ pub struct PackageAnalyticsCli {
 pub enum PackageAnalyticsCommands {
     /// Get Channel Download Stats
     #[command(name = "get-channel-download-stats-channels-channel-name-download-stats-get")]
-    GetChannelDownloadStatsChannelsChannelNameDownloadStatsGet(GetChannelDownloadStatsChannelsChannelNameDownloadStatsGetArgs),
+    GetChannelDownloadStatsChannelsChannelNameDownloadStatsGet(
+        GetChannelDownloadStatsChannelsChannelNameDownloadStatsGetArgs,
+    ),
     /// Health Check
     #[command(name = "health-check-healthz-get")]
     HealthCheckHealthzGet(HealthCheckHealthzGetArgs),
     /// Get Package Download Stats
-    #[command(name = "get-package-download-stats-package-package-name-channel-channel-name-download-stats-get")]
-    GetPackageDownloadStatsPackagePackageNameChannelChannelNameDownloadStatsGet(GetPackageDownloadStatsPackagePackageNameChannelChannelNameDownloadStatsGetArgs),
+    #[command(
+        name = "get-package-download-stats-package-package-name-channel-channel-name-download-stats-get"
+    )]
+    GetPackageDownloadStatsPackagePackageNameChannelChannelNameDownloadStatsGet(
+        GetPackageDownloadStatsPackagePackageNameChannelChannelNameDownloadStatsGetArgs,
+    ),
     /// Get Package Versions
     #[command(name = "get-package-versions-package-package-name-channel-channel-name-versions-get")]
-    GetPackageVersionsPackagePackageNameChannelChannelNameVersionsGet(GetPackageVersionsPackagePackageNameChannelChannelNameVersionsGetArgs),
+    GetPackageVersionsPackagePackageNameChannelChannelNameVersionsGet(
+        GetPackageVersionsPackagePackageNameChannelChannelNameVersionsGetArgs,
+    ),
 }
 
 #[derive(Parser)]
@@ -39,8 +47,7 @@ pub struct GetChannelDownloadStatsChannelsChannelNameDownloadStatsGetArgs {
 }
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct GetPackageDownloadStatsPackagePackageNameChannelChannelNameDownloadStatsGetArgs {
@@ -67,20 +74,36 @@ pub struct PackageAnalyticsClient {
 
 impl PackageAnalyticsClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn get_channel_download_stats_channels_channel_name_download_stats_get(&self, ctx: &CommandContext, channel_name: String, period: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_download_stats_channels_channel_name_download_stats_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        period: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/channels/{channel_name}/download-stats", self.base_path, channel_name = channel_name);
+        let url = format!(
+            "{}/channels/{channel_name}/download-stats",
+            self.base_path,
+            channel_name = channel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &period { request = request.query(&[("period", v)]); }
+        if let Some(v) = &period {
+            request = request.query(&[("period", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -89,25 +112,53 @@ impl PackageAnalyticsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_package_download_stats_package_package_name_channel_channel_name_download_stats_get(&self, ctx: &CommandContext, package_name: String, channel_name: String, versions: Option<String>, period: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_package_download_stats_package_package_name_channel_channel_name_download_stats_get(
+        &self,
+        ctx: &CommandContext,
+        package_name: String,
+        channel_name: String,
+        versions: Option<String>,
+        period: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/package/{package_name}/channel/{channel_name}/download-stats", self.base_path, package_name = package_name, channel_name = channel_name);
+        let url = format!(
+            "{}/package/{package_name}/channel/{channel_name}/download-stats",
+            self.base_path,
+            package_name = package_name,
+            channel_name = channel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &versions { request = request.query(&[("versions", v)]); }
-        if let Some(v) = &period { request = request.query(&[("period", v)]); }
+        if let Some(v) = &versions {
+            request = request.query(&[("versions", v)]);
+        }
+        if let Some(v) = &period {
+            request = request.query(&[("period", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_package_versions_package_package_name_channel_channel_name_versions_get(&self, ctx: &CommandContext, package_name: String, channel_name: String, period: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_package_versions_package_package_name_channel_channel_name_versions_get(
+        &self,
+        ctx: &CommandContext,
+        package_name: String,
+        channel_name: String,
+        period: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/package/{package_name}/channel/{channel_name}/versions", self.base_path, package_name = package_name, channel_name = channel_name);
+        let url = format!(
+            "{}/package/{package_name}/channel/{channel_name}/versions",
+            self.base_path,
+            package_name = package_name,
+            channel_name = channel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &period { request = request.query(&[("period", v)]); }
+        if let Some(v) = &period {
+            request = request.query(&[("period", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

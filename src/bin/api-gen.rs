@@ -148,7 +148,10 @@ impl GitHubClient {
         }
     }
 
-    async fn list_directory(&self, path: &str) -> Result<Vec<GitHubContent>, Box<dyn std::error::Error>> {
+    async fn list_directory(
+        &self,
+        path: &str,
+    ) -> Result<Vec<GitHubContent>, Box<dyn std::error::Error>> {
         let url = format!(
             "https://api.github.com/repos/{}/{}/contents/{}?ref={}",
             self.owner, self.repo, path, self.branch
@@ -224,7 +227,9 @@ const SWAGGER_FILE_NAMES: &[&str] = &[
     "openapi.json",
 ];
 
-async fn discover_specs(github: &GitHubClient) -> Result<Vec<DiscoveredSpec>, Box<dyn std::error::Error>> {
+async fn discover_specs(
+    github: &GitHubClient,
+) -> Result<Vec<DiscoveredSpec>, Box<dyn std::error::Error>> {
     let mut specs = Vec::new();
 
     // List /apps directory
@@ -242,8 +247,15 @@ async fn discover_specs(github: &GitHubClient) -> Result<Vec<DiscoveredSpec>, Bo
         .filter(|c| c.content_type == "dir")
         .collect();
 
-    eprintln!("Found {} apps: {}", app_dirs.len(),
-        app_dirs.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join(", "));
+    eprintln!(
+        "Found {} apps: {}",
+        app_dirs.len(),
+        app_dirs
+            .iter()
+            .map(|a| a.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
 
     // Check each app's /docs directory
     for app in app_dirs {
@@ -355,11 +367,10 @@ fn to_pascal_case(s: &str) -> String {
 
 /// Rust reserved keywords that need escaping with r#
 const RUST_KEYWORDS: &[&str] = &[
-    "type", "fn", "let", "mut", "ref", "self", "Self", "super", "crate",
-    "const", "static", "struct", "enum", "trait", "impl", "for", "loop",
-    "while", "if", "else", "match", "return", "break", "continue", "move",
-    "async", "await", "dyn", "pub", "mod", "use", "extern", "unsafe", "where",
-    "true", "false", "in", "as", "box", "priv", "final", "override", "abstract",
+    "type", "fn", "let", "mut", "ref", "self", "Self", "super", "crate", "const", "static",
+    "struct", "enum", "trait", "impl", "for", "loop", "while", "if", "else", "match", "return",
+    "break", "continue", "move", "async", "await", "dyn", "pub", "mod", "use", "extern", "unsafe",
+    "where", "true", "false", "in", "as", "box", "priv", "final", "override", "abstract",
 ];
 
 fn escape_keyword(name: &str) -> String {
@@ -442,7 +453,8 @@ fn schema_to_rust_type(schema: &Option<Schema>) -> String {
 
 fn extract_commands(spec: &OpenApiSpec) -> Vec<GeneratedCommand> {
     let mut commands = Vec::new();
-    let mut name_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut name_counts: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
 
     for (path, path_item) in &spec.paths {
         // Skip admin endpoints
@@ -466,7 +478,8 @@ fn extract_commands(spec: &OpenApiSpec) -> Vec<GeneratedCommand> {
                     .unwrap_or_else(|| format!("{method}_{}", path.replace('/', "_")));
 
                 let parameters: Vec<GeneratedParam> = {
-                    let mut seen_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+                    let mut seen_names: std::collections::HashSet<String> =
+                        std::collections::HashSet::new();
                     let mut params: Vec<GeneratedParam> = Vec::new();
 
                     // First, add path parameters extracted from the URL
@@ -679,7 +692,10 @@ impl {struct_prefix}Client {{
         let path_param_names: Vec<String> = extract_path_params(&cmd.path);
 
         if path_param_names.is_empty() {
-            code.push_str(&format!("        let url = format!(\"{{}}{}\", self.base_path);\n", cmd.path));
+            code.push_str(&format!(
+                "        let url = format!(\"{{}}{}\", self.base_path);\n",
+                cmd.path
+            ));
         } else {
             let mut url_expr = format!("let url = format!(\"{{}}{}\", self.base_path", cmd.path);
             for param_name in &path_param_names {
@@ -799,7 +815,10 @@ fn generate_mod_rs(modules: &[(String, String)]) -> String {
         code.push_str(&format!("    #[command(name = \"{}\")]\n", kebab_name));
         code.push_str(&format!("    {variant_name} {{\n"));
         code.push_str("        #[command(subcommand)]\n");
-        code.push_str(&format!("        command: {}::{},\n", module_name, commands_type));
+        code.push_str(&format!(
+            "        command: {}::{},\n",
+            module_name, commands_type
+        ));
         code.push_str("    },\n");
     }
 
@@ -840,7 +859,8 @@ fn generate_api_rs(modules: &[ModuleInfo]) -> String {
     code.push_str("\n");
 
     // Main execute function
-    code.push_str(r#"/// Execute an API command
+    code.push_str(
+        r#"/// Execute an API command
 pub async fn execute(
     ctx: &CommandContext,
     command: ApiCommands,
@@ -855,7 +875,8 @@ pub async fn execute(
     Ok(())
 }
 
-"#);
+"#,
+    );
 
     // execute_command function
     code.push_str("async fn execute_command(\n");
@@ -890,7 +911,10 @@ pub async fn execute(
             "async fn {}(\n    ctx: &CommandContext,\n    command: {},\n) -> Result<serde_json::Value, Box<dyn std::error::Error>> {{\n",
             func_name, commands_type
         ));
-        code.push_str(&format!("    let api = {}::new(\"/api/{}\");\n\n", client_type, service_name));
+        code.push_str(&format!(
+            "    let api = {}::new(\"/api/{}\");\n\n",
+            client_type, service_name
+        ));
         code.push_str("    match command {\n");
 
         for cmd in &m.commands {
@@ -911,7 +935,8 @@ pub async fn execute(
 
                 // Build API call arguments - ctx first
                 let mut call_args: Vec<String> = vec!["ctx".to_string()];
-                let mut seen_args: std::collections::HashSet<String> = std::collections::HashSet::new();
+                let mut seen_args: std::collections::HashSet<String> =
+                    std::collections::HashSet::new();
 
                 // Path params
                 for param_name in &path_params {
@@ -1049,7 +1074,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Process each spec
     for discovered in &specs {
-        eprintln!("\nProcessing: {} ({})", discovered.app_name, discovered.file_path);
+        eprintln!(
+            "\nProcessing: {} ({})",
+            discovered.app_name, discovered.file_path
+        );
 
         let spec: OpenApiSpec = if discovered.file_path.ends_with(".json") {
             serde_json::from_str(&discovered.content)?
@@ -1085,9 +1113,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 });
             }
             None => {
-                println!("// ============================================================================");
+                println!(
+                    "// ============================================================================"
+                );
                 println!("// {} ({})", discovered.app_name, discovered.file_path);
-                println!("// ============================================================================\n");
+                println!(
+                    "// ============================================================================\n"
+                );
                 println!("{code}");
             }
         }

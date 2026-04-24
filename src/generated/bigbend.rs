@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "bigbend")]
@@ -506,24 +506,19 @@ pub enum BigbendCommands {
 }
 
 #[derive(Parser)]
-pub struct AccountApiAccountGetArgs {
-}
+pub struct AccountApiAccountGetArgs {}
 
 #[derive(Parser)]
-pub struct GetFeatureForUserApiAccountFeaturesGetArgs {
-}
+pub struct GetFeatureForUserApiAccountFeaturesGetArgs {}
 
 #[derive(Parser)]
-pub struct GetLmsUserinfoApiAccountLmsGetArgs {
-}
+pub struct GetLmsUserinfoApiAccountLmsGetArgs {}
 
 #[derive(Parser)]
-pub struct GetNotebooksUserinfoApiAccountNotebooksGetArgs {
-}
+pub struct GetNotebooksUserinfoApiAccountNotebooksGetArgs {}
 
 #[derive(Parser)]
-pub struct GetNotebookPythonanywhereApiKeyApiAccountNotebooksPythonanywhereApiKeyGetArgs {
-}
+pub struct GetNotebookPythonanywhereApiKeyApiAccountNotebooksPythonanywhereApiKeyGetArgs {}
 
 #[derive(Parser)]
 pub struct CreateTokenApiCeCurrentTokenPostArgs {
@@ -617,27 +612,16 @@ pub struct GetOrganizationsTopPackagesApiCePackagesOrganizationsOrgNameTopGetArg
 }
 
 #[derive(Parser)]
-pub struct GetChannelArtifactDetailsApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameGetArgs {
+pub struct GetChannelArtifactDetailsApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameGetArgs
+{
     pub channel_name: String,
     pub artifact_family: String,
     pub artifact_name: String,
 }
 
 #[derive(Parser)]
-pub struct GetArtifactDependantsApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameDependantsGetArgs {
-    pub channel_name: String,
-    pub artifact_family: String,
-    pub artifact_name: String,
-    /// Result offset from which to return files
-    #[arg(long)]
-    pub offset: Option<String>,
-    /// How many items to return
-    #[arg(long)]
-    pub limit: Option<String>,
-}
-
-#[derive(Parser)]
-pub struct GetArtifactDependenciesApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameDependenciesGetArgs {
+pub struct GetArtifactDependantsApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameDependantsGetArgs
+{
     pub channel_name: String,
     pub artifact_family: String,
     pub artifact_name: String,
@@ -650,7 +634,22 @@ pub struct GetArtifactDependenciesApiCePackagesChannelNameArtifactsArtifactFamil
 }
 
 #[derive(Parser)]
-pub struct GetChannelArtifactFilesApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs {
+pub struct GetArtifactDependenciesApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameDependenciesGetArgs
+{
+    pub channel_name: String,
+    pub artifact_family: String,
+    pub artifact_name: String,
+    /// Result offset from which to return files
+    #[arg(long)]
+    pub offset: Option<String>,
+    /// How many items to return
+    #[arg(long)]
+    pub limit: Option<String>,
+}
+
+#[derive(Parser)]
+pub struct GetChannelArtifactFilesApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs
+{
     pub channel_name: String,
     pub artifact_family: String,
     pub artifact_name: String,
@@ -666,7 +665,8 @@ pub struct GetChannelArtifactFilesApiCePackagesChannelNameArtifactsArtifactFamil
 }
 
 #[derive(Parser)]
-pub struct GetChannelArtifactFileCvesApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameFilesFilenameCvesGetArgs {
+pub struct GetChannelArtifactFileCvesApiCePackagesChannelNameArtifactsArtifactFamilyArtifactNameFilesFilenameCvesGetArgs
+{
     pub channel_name: String,
     pub artifact_family: String,
     pub artifact_name: String,
@@ -703,7 +703,8 @@ pub struct GetChannelArtifactFileCvesApiCePackagesChannelNameArtifactsArtifactFa
 }
 
 #[derive(Parser)]
-pub struct GetSubChannelArtifactDetailsApiCePackagesChannelNameSubchannelsSubchannelNameArtifactsArtifactFamilyArtifactNameGetArgs {
+pub struct GetSubChannelArtifactDetailsApiCePackagesChannelNameSubchannelsSubchannelNameArtifactsArtifactFamilyArtifactNameGetArgs
+{
     pub channel_name: String,
     pub subchannel_name: String,
     pub artifact_family: String,
@@ -713,7 +714,8 @@ pub struct GetSubChannelArtifactDetailsApiCePackagesChannelNameSubchannelsSubcha
 }
 
 #[derive(Parser)]
-pub struct GetSubChannelArtifactFilesApiCePackagesChannelNameSubchannelsSubchannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs {
+pub struct GetSubChannelArtifactFilesApiCePackagesChannelNameSubchannelsSubchannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs
+{
     pub channel_name: String,
     pub subchannel_name: String,
     pub artifact_family: String,
@@ -846,8 +848,7 @@ pub struct EvaluateApiFeatureFlagsEvaluateFeatureFlagNamespaceFeatureFlagNamePos
 }
 
 #[derive(Parser)]
-pub struct HealthzApiFeatureFlagsHealthzGetArgs {
-}
+pub struct HealthzApiFeatureFlagsHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct CreateOrganizationApiOrganizationsPostArgs {
@@ -868,8 +869,7 @@ pub struct CreateOrganizationApiOrganizationsPost2Args {
 }
 
 #[derive(Parser)]
-pub struct GetMyOrganizationsApiOrganizationsMyGetArgs {
-}
+pub struct GetMyOrganizationsApiOrganizationsMyGetArgs {}
 
 #[derive(Parser)]
 pub struct GetOrganizationApiOrganizationsOrgNameGetArgs {
@@ -1011,7 +1011,8 @@ pub struct UnassignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameCurren
 }
 
 #[derive(Parser)]
-pub struct GetChannelPolicyDeltaPackageCountsApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameChannelPolicyDeltasGetArgs {
+pub struct GetChannelPolicyDeltaPackageCountsApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameChannelPolicyDeltasGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1032,7 +1033,8 @@ pub struct GetChannelPolicyDeltaPackageCountsApiOrganizationsOrgNameChannelPolic
 }
 
 #[derive(Parser)]
-pub struct GetChannelPolicyDeltaExclusionsApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameChannelPolicyDeltasDetailsChannelPolicyDeltaIdGetArgs {
+pub struct GetChannelPolicyDeltaExclusionsApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameChannelPolicyDeltasDetailsChannelPolicyDeltaIdGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1044,7 +1046,8 @@ pub struct GetChannelPolicyDeltaExclusionsApiOrganizationsOrgNameChannelPolicies
 }
 
 #[derive(Parser)]
-pub struct GetChannelCsvPolicyReportApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCsvPolicyReportGetArgs {
+pub struct GetChannelCsvPolicyReportApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCsvPolicyReportGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1053,7 +1056,8 @@ pub struct GetChannelCsvPolicyReportApiOrganizationsOrgNameChannelPoliciesChanne
 }
 
 #[derive(Parser)]
-pub struct GetChannelCsvPolicyDeltaApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCsvPolicyReportDeltaGetArgs {
+pub struct GetChannelCsvPolicyDeltaApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCsvPolicyReportDeltaGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1062,7 +1066,8 @@ pub struct GetChannelCsvPolicyDeltaApiOrganizationsOrgNameChannelPoliciesChannel
 }
 
 #[derive(Parser)]
-pub struct GetCurrentPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentGetArgs {
+pub struct GetCurrentPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1074,7 +1079,8 @@ pub struct GetCurrentPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubc
 }
 
 #[derive(Parser)]
-pub struct AssignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentPostArgs {
+pub struct AssignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentPostArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1086,7 +1092,8 @@ pub struct AssignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchann
 }
 
 #[derive(Parser)]
-pub struct TriggerPolicyJobApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentPutArgs {
+pub struct TriggerPolicyJobApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentPutArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1095,7 +1102,8 @@ pub struct TriggerPolicyJobApiOrganizationsOrgNameChannelPoliciesChannelNameSubc
 }
 
 #[derive(Parser)]
-pub struct UnassignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentDeleteArgs {
+pub struct UnassignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubchannelNameCurrentDeleteArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1104,7 +1112,8 @@ pub struct UnassignPolicyApiOrganizationsOrgNameChannelPoliciesChannelNameSubcha
 }
 
 #[derive(Parser)]
-pub struct GetChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsGetArgs {
+pub struct GetChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsGetArgs
+{
     pub org_name: String,
     #[arg(long)]
     pub q: Option<String>,
@@ -1115,7 +1124,8 @@ pub struct GetChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolic
 }
 
 #[derive(Parser)]
-pub struct CreateChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsChannelNamePostArgs {
+pub struct CreateChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsChannelNamePostArgs
+{
     pub org_name: String,
     pub channel_name: String,
     #[arg(long)]
@@ -1128,7 +1138,8 @@ pub struct CreateChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPo
 }
 
 #[derive(Parser)]
-pub struct CreateChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsChannelNameSubchannelNamePostArgs {
+pub struct CreateChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsChannelNameSubchannelNamePostArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1140,7 +1151,8 @@ pub struct CreateChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPo
 }
 
 #[derive(Parser)]
-pub struct DeleteChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsSubscriptionIdDeleteArgs {
+pub struct DeleteChannelPolicyDeltaSubscriptionsApiOrganizationsOrgNameChannelPolicyDeltasSubscriptionsSubscriptionIdDeleteArgs
+{
     pub org_name: String,
     pub subscription_id: String,
     #[arg(long)]
@@ -1183,7 +1195,8 @@ pub struct GetOrgChannelArtifactsApiOrganizationsOrgNameChannelsChannelNameArtif
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactDetailsApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameGetArgs {
+pub struct GetOrgChannelArtifactDetailsApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub artifact_family: String,
@@ -1193,7 +1206,8 @@ pub struct GetOrgChannelArtifactDetailsApiOrganizationsOrgNameChannelsChannelNam
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactCvesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameCvesGetArgs {
+pub struct GetOrgChannelArtifactCvesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameCvesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub artifact_family: String,
@@ -1203,7 +1217,8 @@ pub struct GetOrgChannelArtifactCvesApiOrganizationsOrgNameChannelsChannelNameAr
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactDependantsApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameDependantsGetArgs {
+pub struct GetOrgChannelArtifactDependantsApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameDependantsGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub artifact_family: String,
@@ -1213,7 +1228,8 @@ pub struct GetOrgChannelArtifactDependantsApiOrganizationsOrgNameChannelsChannel
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactDependenciesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameDependenciesGetArgs {
+pub struct GetOrgChannelArtifactDependenciesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameDependenciesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub artifact_family: String,
@@ -1223,7 +1239,8 @@ pub struct GetOrgChannelArtifactDependenciesApiOrganizationsOrgNameChannelsChann
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactFilesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs {
+pub struct GetOrgChannelArtifactFilesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub artifact_family: String,
@@ -1235,7 +1252,8 @@ pub struct GetOrgChannelArtifactFilesApiOrganizationsOrgNameChannelsChannelNameA
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactFileCvesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameFilesFilenameCvesGetArgs {
+pub struct GetOrgChannelArtifactFileCvesApiOrganizationsOrgNameChannelsChannelNameArtifactsArtifactFamilyArtifactNameFilesFilenameCvesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub artifact_family: String,
@@ -1280,7 +1298,8 @@ pub struct DeleteNonBaseChannelApiOrganizationsOrgNameChannelsChannelNameSubchan
 }
 
 #[derive(Parser)]
-pub struct UpdateOrganizationChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNamePatchArgs {
+pub struct UpdateOrganizationChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNamePatchArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1290,23 +1309,16 @@ pub struct UpdateOrganizationChannelApiOrganizationsOrgNameChannelsChannelNameSu
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsGetArgs {
+pub struct GetOrgChannelArtifactsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactDetailsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameGetArgs {
-    pub org_name: String,
-    pub channel_name: String,
-    pub subchannel_name: String,
-    pub artifact_family: String,
-    pub artifact_name: String,
-}
-
-#[derive(Parser)]
-pub struct GetOrgChannelArtifactCvesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameCvesGetArgs {
+pub struct GetOrgChannelArtifactDetailsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1315,7 +1327,8 @@ pub struct GetOrgChannelArtifactCvesApiOrganizationsOrgNameChannelsChannelNameSu
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactDependantsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameDependantsGetArgs {
+pub struct GetOrgChannelArtifactCvesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameCvesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1324,7 +1337,8 @@ pub struct GetOrgChannelArtifactDependantsApiOrganizationsOrgNameChannelsChannel
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactDependenciesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameDependenciesGetArgs {
+pub struct GetOrgChannelArtifactDependantsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameDependantsGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1333,7 +1347,18 @@ pub struct GetOrgChannelArtifactDependenciesApiOrganizationsOrgNameChannelsChann
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactFilesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs {
+pub struct GetOrgChannelArtifactDependenciesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameDependenciesGetArgs
+{
+    pub org_name: String,
+    pub channel_name: String,
+    pub subchannel_name: String,
+    pub artifact_family: String,
+    pub artifact_name: String,
+}
+
+#[derive(Parser)]
+pub struct GetOrgChannelArtifactFilesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameFilesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1344,7 +1369,8 @@ pub struct GetOrgChannelArtifactFilesApiOrganizationsOrgNameChannelsChannelNameS
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactFileCvesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameFilesFilenameCvesGetArgs {
+pub struct GetOrgChannelArtifactFileCvesApiOrganizationsOrgNameChannelsChannelNameSubchannelNameArtifactsArtifactFamilyArtifactNameFilesFilenameCvesGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1388,21 +1414,24 @@ pub struct GetChannelCvesApiOrganizationsOrgNameChannelsChannelNameSubchannelNam
 }
 
 #[derive(Parser)]
-pub struct GetOrganizationChannelDetailApiOrganizationsOrgNameChannelsChannelNameSubchannelNameDetailsGetArgs {
+pub struct GetOrganizationChannelDetailApiOrganizationsOrgNameChannelsChannelNameSubchannelNameDetailsGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
 }
 
 #[derive(Parser)]
-pub struct GetUserGroupsAssignedToChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNameGroupsGetArgs {
+pub struct GetUserGroupsAssignedToChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNameGroupsGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
 }
 
 #[derive(Parser)]
-pub struct AssignUserGroupToChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNameGroupsPostArgs {
+pub struct AssignUserGroupToChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNameGroupsPostArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1412,7 +1441,8 @@ pub struct AssignUserGroupToChannelApiOrganizationsOrgNameChannelsChannelNameSub
 }
 
 #[derive(Parser)]
-pub struct RemoveUserGroupFromChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNameGroupsGroupIdDeleteArgs {
+pub struct RemoveUserGroupFromChannelApiOrganizationsOrgNameChannelsChannelNameSubchannelNameGroupsGroupIdDeleteArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1420,14 +1450,16 @@ pub struct RemoveUserGroupFromChannelApiOrganizationsOrgNameChannelsChannelNameS
 }
 
 #[derive(Parser)]
-pub struct GetChannelMirrorDetailsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameMirrorDetailsGetArgs {
+pub struct GetChannelMirrorDetailsApiOrganizationsOrgNameChannelsChannelNameSubchannelNameMirrorDetailsGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
 }
 
 #[derive(Parser)]
-pub struct GetOrgChannelArtifactFileSbomApiOrganizationsOrgNameChannelsChannelNameSubchannelNamePlatformFileNameSbomGetArgs {
+pub struct GetOrgChannelArtifactFileSbomApiOrganizationsOrgNameChannelsChannelNameSubchannelNamePlatformFileNameSbomGetArgs
+{
     pub org_name: String,
     pub channel_name: String,
     pub subchannel_name: String,
@@ -1436,7 +1468,8 @@ pub struct GetOrgChannelArtifactFileSbomApiOrganizationsOrgNameChannelsChannelNa
 }
 
 #[derive(Parser)]
-pub struct GetOrganizationTermsOfServiceRecordsApiOrganizationsOrgNameFeatureTermsOfServiceFeatureGetArgs {
+pub struct GetOrganizationTermsOfServiceRecordsApiOrganizationsOrgNameFeatureTermsOfServiceFeatureGetArgs
+{
     pub org_name: String,
     pub feature: String,
 }
@@ -1539,7 +1572,8 @@ pub struct AddUserToOrganizationGroupApiOrganizationsOrgNameGroupsGroupIdUsersPo
 }
 
 #[derive(Parser)]
-pub struct RemoveUserFromOrganizationGroupApiOrganizationsOrgNameGroupsGroupIdUsersUserIdDeleteArgs {
+pub struct RemoveUserFromOrganizationGroupApiOrganizationsOrgNameGroupsGroupIdUsersUserIdDeleteArgs
+{
     pub org_name: String,
     pub group_id: String,
     pub user_id: String,
@@ -1783,7 +1817,8 @@ pub struct DeletePolicyApiOrganizationsOrgNameRepoPoliciesPolicyIdDeleteArgs {
 }
 
 #[derive(Parser)]
-pub struct DownloadOrganizationUsersTelemetryReportApiOrganizationsOrgNameReportsPackageDownloadsGetArgs {
+pub struct DownloadOrganizationUsersTelemetryReportApiOrganizationsOrgNameReportsPackageDownloadsGetArgs
+{
     pub org_name: String,
     #[arg(long)]
     pub format: Option<String>,
@@ -1903,8 +1938,7 @@ pub struct RevokeLicenseApiOrganizationsOrgNameUsersUserIdProductsProductCodeDel
 }
 
 #[derive(Parser)]
-pub struct GetRoleMappingsApiRolesMappingsGetArgs {
-}
+pub struct GetRoleMappingsApiRolesMappingsGetArgs {}
 
 #[derive(Parser)]
 pub struct GetRoleMappingApiRolesMappingsUserIdGetArgs {
@@ -1935,12 +1969,10 @@ pub struct DeleteRoleMappingApiRolesMappingsUserIdDeleteArgs {
 }
 
 #[derive(Parser)]
-pub struct GetCurrentUserMappingApiRolesMeGetArgs {
-}
+pub struct GetCurrentUserMappingApiRolesMeGetArgs {}
 
 #[derive(Parser)]
-pub struct GetRolesApiRolesRolesGetArgs {
-}
+pub struct GetRolesApiRolesRolesGetArgs {}
 
 #[derive(Parser)]
 pub struct CreateUserApiUsersPostArgs {
@@ -1961,8 +1993,7 @@ pub struct FixUsersApiUsersFixUsersPostArgs {
 }
 
 #[derive(Parser)]
-pub struct HealthcheckApiUsersHealthzGetArgs {
-}
+pub struct HealthcheckApiUsersHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct DeleteMyUserApiUsersMeDeleteArgs {
@@ -2004,10 +2035,15 @@ pub struct BigbendClient {
 
 impl BigbendClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn account_api_account_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn account_api_account_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/account", self.base_path);
         let request = client.get(&url);
@@ -2016,7 +2052,10 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_feature_for_user_api_account_features_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_feature_for_user_api_account_features_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/account/features", self.base_path);
         let request = client.get(&url);
@@ -2025,7 +2064,10 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_lms_userinfo_api_account_lms_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_lms_userinfo_api_account_lms_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/account/lms", self.base_path);
         let request = client.get(&url);
@@ -2034,7 +2076,10 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_notebooks_userinfo_api_account_notebooks_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_notebooks_userinfo_api_account_notebooks_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/account/notebooks", self.base_path);
         let request = client.get(&url);
@@ -2043,314 +2088,718 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_notebook_pythonanywhere_api_key_api_account_notebooks_pythonanywhere_api_key_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_notebook_pythonanywhere_api_key_api_account_notebooks_pythonanywhere_api_key_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/account/notebooks/pythonanywhere/api-key", self.base_path);
+        let url = format!(
+            "{}/api/account/notebooks/pythonanywhere/api-key",
+            self.base_path
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_token_api_ce_current_token_post(&self, ctx: &CommandContext, strict: Option<bool>, org_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_token_api_ce_current_token_post(
+        &self,
+        ctx: &CommandContext,
+        strict: Option<bool>,
+        org_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/ce/current-token", self.base_path);
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(v) = &org_name { request = request.query(&[("org_name", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(v) = &org_name {
+            request = request.query(&[("org_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn reissue_token_api_ce_current_token_put(&self, ctx: &CommandContext, strict: Option<bool>, org_name: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn reissue_token_api_ce_current_token_put(
+        &self,
+        ctx: &CommandContext,
+        strict: Option<bool>,
+        org_name: Option<String>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/ce/current-token", self.base_path);
         let mut request = client.put(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(v) = &org_name { request = request.query(&[("org_name", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(v) = &org_name {
+            request = request.query(&[("org_name", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_cves_api_ce_cves_get(&self, ctx: &CommandContext, q: Option<String>, sort: Option<String>, offset: Option<String>, limit: Option<String>, min_packages_count: Option<String>, min_score: Option<String>, status: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_cves_api_ce_cves_get(
+        &self,
+        ctx: &CommandContext,
+        q: Option<String>,
+        sort: Option<String>,
+        offset: Option<String>,
+        limit: Option<String>,
+        min_packages_count: Option<String>,
+        min_score: Option<String>,
+        status: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/ce/cves/", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &min_packages_count { request = request.query(&[("min_packages_count", v)]); }
-        if let Some(v) = &min_score { request = request.query(&[("min_score", v)]); }
-        if let Some(v) = &status { request = request.query(&[("status", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &min_packages_count {
+            request = request.query(&[("min_packages_count", v)]);
+        }
+        if let Some(v) = &min_score {
+            request = request.query(&[("min_score", v)]);
+        }
+        if let Some(v) = &status {
+            request = request.query(&[("status", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_cve_detail_api_ce_cves_cve_id_get(&self, ctx: &CommandContext, cve_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_cve_detail_api_ce_cves_cve_id_get(
+        &self,
+        ctx: &CommandContext,
+        cve_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/ce/cves/{cve_id}", self.base_path, cve_id = cve_id);
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_cve_files_api_ce_cves_cve_id_files_get(&self, ctx: &CommandContext, cve_id: String, offset: Option<String>, limit: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_cve_files_api_ce_cves_cve_id_files_get(
+        &self,
+        ctx: &CommandContext,
+        cve_id: String,
+        offset: Option<String>,
+        limit: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/cves/{cve_id}/files", self.base_path, cve_id = cve_id);
+        let url = format!(
+            "{}/api/ce/cves/{cve_id}/files",
+            self.base_path,
+            cve_id = cve_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn search_packages_api_ce_packages_get(&self, ctx: &CommandContext, q: Option<String>, offset: Option<i32>, limit: Option<i32>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn search_packages_api_ce_packages_get(
+        &self,
+        ctx: &CommandContext,
+        q: Option<String>,
+        offset: Option<i32>,
+        limit: Option<i32>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/ce/packages", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_main_artifact_info_api_ce_packages_main_artifacts_get(&self, ctx: &CommandContext, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_main_artifact_info_api_ce_packages_main_artifacts_get(
+        &self,
+        ctx: &CommandContext,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/ce/packages/main/artifacts", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organizations_top_packages_api_ce_packages_organizations_org_name_top_get(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organizations_top_packages_api_ce_packages_organizations_org_name_top_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/organizations/{org_name}/top", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/ce/packages/organizations/{org_name}/top",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_artifact_details_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_get(&self, ctx: &CommandContext, channel_name: String, artifact_family: String, artifact_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_artifact_details_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}", self.base_path, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}",
+            self.base_path,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_artifact_dependants_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_dependants_get(&self, ctx: &CommandContext, channel_name: String, artifact_family: String, artifact_name: String, offset: Option<String>, limit: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_artifact_dependants_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_dependants_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        offset: Option<String>,
+        limit: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependants", self.base_path, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependants",
+            self.base_path,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_artifact_dependencies_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_dependencies_get(&self, ctx: &CommandContext, channel_name: String, artifact_family: String, artifact_name: String, offset: Option<String>, limit: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_artifact_dependencies_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_dependencies_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        offset: Option<String>,
+        limit: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependencies", self.base_path, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependencies",
+            self.base_path,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_artifact_files_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_files_get(&self, ctx: &CommandContext, channel_name: String, artifact_family: String, artifact_name: String, offset: Option<String>, limit: Option<String>, sort: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_artifact_files_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_files_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        offset: Option<String>,
+        limit: Option<String>,
+        sort: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files", self.base_path, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files",
+            self.base_path,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_artifact_file_cves_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_files_filename_cves_get(&self, ctx: &CommandContext, channel_name: String, artifact_family: String, artifact_name: String, filename: String, search_query: Option<String>, sort: Option<String>, min_score: Option<String>, max_score: Option<String>, status: Option<String>, with_cve_counts_by_severity: Option<String>, with_cve_counts_by_status: Option<String>, limit: Option<String>, offset: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_artifact_file_cves_api_ce_packages_channel_name_artifacts_artifact_family_artifact_name_files_filename_cves_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        filename: String,
+        search_query: Option<String>,
+        sort: Option<String>,
+        min_score: Option<String>,
+        max_score: Option<String>,
+        status: Option<String>,
+        with_cve_counts_by_severity: Option<String>,
+        with_cve_counts_by_status: Option<String>,
+        limit: Option<String>,
+        offset: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files/{filename}/cves", self.base_path, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name, filename = filename);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files/{filename}/cves",
+            self.base_path,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name,
+            filename = filename
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &search_query { request = request.query(&[("search_query", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &min_score { request = request.query(&[("min_score", v)]); }
-        if let Some(v) = &max_score { request = request.query(&[("max_score", v)]); }
-        if let Some(v) = &status { request = request.query(&[("status", v)]); }
-        if let Some(v) = &with_cve_counts_by_severity { request = request.query(&[("with_cve_counts_by_severity", v)]); }
-        if let Some(v) = &with_cve_counts_by_status { request = request.query(&[("with_cve_counts_by_status", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &search_query {
+            request = request.query(&[("search_query", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &min_score {
+            request = request.query(&[("min_score", v)]);
+        }
+        if let Some(v) = &max_score {
+            request = request.query(&[("max_score", v)]);
+        }
+        if let Some(v) = &status {
+            request = request.query(&[("status", v)]);
+        }
+        if let Some(v) = &with_cve_counts_by_severity {
+            request = request.query(&[("with_cve_counts_by_severity", v)]);
+        }
+        if let Some(v) = &with_cve_counts_by_status {
+            request = request.query(&[("with_cve_counts_by_status", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_sub_channel_artifact_details_api_ce_packages_channel_name_subchannels_subchannel_name_artifacts_artifact_family_artifact_name_get(&self, ctx: &CommandContext, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_sub_channel_artifact_details_api_ce_packages_channel_name_subchannels_subchannel_name_artifacts_artifact_family_artifact_name_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/subchannels/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}", self.base_path, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/subchannels/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}",
+            self.base_path,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_sub_channel_artifact_files_api_ce_packages_channel_name_subchannels_subchannel_name_artifacts_artifact_family_artifact_name_files_get(&self, ctx: &CommandContext, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String, offset: Option<String>, limit: Option<String>, sort: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_sub_channel_artifact_files_api_ce_packages_channel_name_subchannels_subchannel_name_artifacts_artifact_family_artifact_name_files_get(
+        &self,
+        ctx: &CommandContext,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        offset: Option<String>,
+        limit: Option<String>,
+        sort: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/ce/packages/{channel_name}/subchannels/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/files", self.base_path, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/ce/packages/{channel_name}/subchannels/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/files",
+            self.base_path,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_cves_api_cves_get(&self, ctx: &CommandContext, q: Option<String>, sort: Option<String>, offset: Option<String>, limit: Option<String>, min_packages_count: Option<String>, min_score: Option<String>, status: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_cves_api_cves_get(
+        &self,
+        ctx: &CommandContext,
+        q: Option<String>,
+        sort: Option<String>,
+        offset: Option<String>,
+        limit: Option<String>,
+        min_packages_count: Option<String>,
+        min_score: Option<String>,
+        status: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/cves/", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &min_packages_count { request = request.query(&[("min_packages_count", v)]); }
-        if let Some(v) = &min_score { request = request.query(&[("min_score", v)]); }
-        if let Some(v) = &status { request = request.query(&[("status", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &min_packages_count {
+            request = request.query(&[("min_packages_count", v)]);
+        }
+        if let Some(v) = &min_score {
+            request = request.query(&[("min_score", v)]);
+        }
+        if let Some(v) = &status {
+            request = request.query(&[("status", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_cve_detail_api_cves_cve_id_get(&self, ctx: &CommandContext, cve_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_cve_detail_api_cves_cve_id_get(
+        &self,
+        ctx: &CommandContext,
+        cve_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/cves/{cve_id}", self.base_path, cve_id = cve_id);
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_cve_files_api_cves_cve_id_files_get(&self, ctx: &CommandContext, cve_id: String, offset: Option<String>, limit: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_cve_files_api_cves_cve_id_files_get(
+        &self,
+        ctx: &CommandContext,
+        cve_id: String,
+        offset: Option<String>,
+        limit: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/cves/{cve_id}/files", self.base_path, cve_id = cve_id);
+        let url = format!(
+            "{}/api/cves/{cve_id}/files",
+            self.base_path,
+            cve_id = cve_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_my_environments_api_environments_my_get(&self, ctx: &CommandContext, offset: Option<i32>, limit: Option<i32>, sort: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_my_environments_api_environments_my_get(
+        &self,
+        ctx: &CommandContext,
+        offset: Option<i32>,
+        limit: Option<i32>,
+        sort: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/environments/my", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_environment_api_environments_my_post(&self, ctx: &CommandContext, user_agent: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_environment_api_environments_my_post(
+        &self,
+        ctx: &CommandContext,
+        user_agent: Option<String>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/environments/my", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_environment_by_name_api_environments_my_environment_name_put(&self, ctx: &CommandContext, environment_name: String, user_agent: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_environment_by_name_api_environments_my_environment_name_put(
+        &self,
+        ctx: &CommandContext,
+        environment_name: String,
+        user_agent: Option<String>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/environments/my/{environment_name}", self.base_path, environment_name = environment_name);
+        let url = format!(
+            "{}/api/environments/my/{environment_name}",
+            self.base_path,
+            environment_name = environment_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_environment_by_name_api_environments_my_environment_name_delete(&self, ctx: &CommandContext, environment_name: String, user_agent: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_environment_by_name_api_environments_my_environment_name_delete(
+        &self,
+        ctx: &CommandContext,
+        environment_name: String,
+        user_agent: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/environments/my/{environment_name}", self.base_path, environment_name = environment_name);
+        let url = format!(
+            "{}/api/environments/my/{environment_name}",
+            self.base_path,
+            environment_name = environment_name
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn download_environment_by_name_api_environments_my_environment_name_yml_get(&self, ctx: &CommandContext, environment_name: String, user_agent: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn download_environment_by_name_api_environments_my_environment_name_yml_get(
+        &self,
+        ctx: &CommandContext,
+        environment_name: String,
+        user_agent: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/environments/my/{environment_name}.yml", self.base_path, environment_name = environment_name);
+        let url = format!(
+            "{}/api/environments/my/{environment_name}.yml",
+            self.base_path,
+            environment_name = environment_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_environment_cve_status_api_environments_my_environment_name_cve_status_html_get(&self, ctx: &CommandContext, environment_name: String, user_agent: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_environment_cve_status_api_environments_my_environment_name_cve_status_html_get(
+        &self,
+        ctx: &CommandContext,
+        environment_name: String,
+        user_agent: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/environments/my/{environment_name}/cve_status.html", self.base_path, environment_name = environment_name);
+        let url = format!(
+            "{}/api/environments/my/{environment_name}/cve_status.html",
+            self.base_path,
+            environment_name = environment_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn public_evaluate_api_feature_flags_evaluate_public_feature_flag_namespace_feature_flag_name_post(&self, ctx: &CommandContext, feature_flag_namespace: String, feature_flag_name: String, feature_flag_default: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn public_evaluate_api_feature_flags_evaluate_public_feature_flag_namespace_feature_flag_name_post(
+        &self,
+        ctx: &CommandContext,
+        feature_flag_namespace: String,
+        feature_flag_name: String,
+        feature_flag_default: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/feature-flags/evaluate/public/{feature_flag_namespace}/{feature_flag_name}", self.base_path, feature_flag_namespace = feature_flag_namespace, feature_flag_name = feature_flag_name);
+        let url = format!(
+            "{}/api/feature-flags/evaluate/public/{feature_flag_namespace}/{feature_flag_name}",
+            self.base_path,
+            feature_flag_namespace = feature_flag_namespace,
+            feature_flag_name = feature_flag_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &feature_flag_default { request = request.query(&[("feature_flag_default", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &feature_flag_default {
+            request = request.query(&[("feature_flag_default", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn evaluate_api_feature_flags_evaluate_feature_flag_namespace_feature_flag_name_post(&self, ctx: &CommandContext, feature_flag_namespace: String, feature_flag_name: String, feature_flag_default: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn evaluate_api_feature_flags_evaluate_feature_flag_namespace_feature_flag_name_post(
+        &self,
+        ctx: &CommandContext,
+        feature_flag_namespace: String,
+        feature_flag_name: String,
+        feature_flag_default: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/feature-flags/evaluate/{feature_flag_namespace}/{feature_flag_name}", self.base_path, feature_flag_namespace = feature_flag_namespace, feature_flag_name = feature_flag_name);
+        let url = format!(
+            "{}/api/feature-flags/evaluate/{feature_flag_namespace}/{feature_flag_name}",
+            self.base_path,
+            feature_flag_namespace = feature_flag_namespace,
+            feature_flag_name = feature_flag_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &feature_flag_default { request = request.query(&[("feature_flag_default", v)]); }
+        if let Some(v) = &feature_flag_default {
+            request = request.query(&[("feature_flag_default", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn healthz_api_feature_flags_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn healthz_api_feature_flags_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/feature-flags/healthz", self.base_path);
         let request = client.get(&url);
@@ -2359,29 +2808,50 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_organization_api_organizations_post(&self, ctx: &CommandContext, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_organization_api_organizations_post(
+        &self,
+        ctx: &CommandContext,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/organizations", self.base_path);
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_organization_api_organizations_post_2(&self, ctx: &CommandContext, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_organization_api_organizations_post_2(
+        &self,
+        ctx: &CommandContext,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/organizations/", self.base_path);
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_my_organizations_api_organizations_my_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_my_organizations_api_organizations_my_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/organizations/my", self.base_path);
         let request = client.get(&url);
@@ -2390,1165 +2860,2756 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_api_organizations_org_name_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_api_organizations_org_name_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_organization_api_organizations_org_name_put(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_organization_api_organizations_org_name_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_organization_api_organizations_org_name_delete(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_organization_api_organizations_org_name_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_api_organizations_org_name_get_2(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_api_organizations_org_name_get_2(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_organization_api_organizations_org_name_put_2(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_organization_api_organizations_org_name_put_2(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_organization_api_organizations_org_name_delete_2(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_organization_api_organizations_org_name_delete_2(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_available_filter_options_api_organizations_org_name_available_filter_options_get(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_available_filter_options_api_organizations_org_name_available_filter_options_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/available-filter-options", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/available-filter-options",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_list_of_available_license_families_api_organizations_org_name_available_license_families_get(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_list_of_available_license_families_api_organizations_org_name_available_license_families_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/available_license_families", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/available_license_families",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_token_api_organizations_org_name_ce_current_token_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_token_api_organizations_org_name_ce_current_token_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/current-token", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/current-token",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_token_api_organizations_org_name_ce_current_token_post(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_token_api_organizations_org_name_ce_current_token_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/current-token", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/current-token",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.post(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn reissue_token_api_organizations_org_name_ce_current_token_put(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn reissue_token_api_organizations_org_name_ce_current_token_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/current-token", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/current-token",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn synchronize_token_api_organizations_org_name_ce_current_token_sync_put(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn synchronize_token_api_organizations_org_name_ce_current_token_sync_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/current-token/sync", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/current-token/sync",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.put(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_site_token_info_api_organizations_org_name_ce_site_token_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_site_token_info_api_organizations_org_name_ce_site_token_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/site-token", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/site-token",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_site_token_api_organizations_org_name_ce_site_token_post(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_site_token_api_organizations_org_name_ce_site_token_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/site-token", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/site-token",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.post(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn reissue_site_token_info_api_organizations_org_name_ce_site_token_put(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn reissue_site_token_info_api_organizations_org_name_ce_site_token_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/site-token", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/site-token",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.put(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn synchronize_site_token_api_organizations_org_name_ce_site_token_sync_put(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn synchronize_site_token_api_organizations_org_name_ce_site_token_sync_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/ce/site-token/sync", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/ce/site-token/sync",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.put(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_current_policy_api_organizations_org_name_channel_policies_channel_name_current_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: Option<String>, with_logs: Option<bool>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_current_policy_api_organizations_org_name_channel_policies_channel_name_current_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: Option<String>,
+        with_logs: Option<bool>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
-        if let Some(v) = &with_logs { request = request.query(&[("with_logs", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
+        if let Some(v) = &with_logs {
+            request = request.query(&[("with_logs", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn assign_policy_api_organizations_org_name_channel_policies_channel_name_current_post(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: Option<String>, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn assign_policy_api_organizations_org_name_channel_policies_channel_name_current_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: Option<String>,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn trigger_policy_job_api_organizations_org_name_channel_policies_channel_name_current_put(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn trigger_policy_job_api_organizations_org_name_channel_policies_channel_name_current_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn unassign_policy_api_organizations_org_name_channel_policies_channel_name_current_delete(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn unassign_policy_api_organizations_org_name_channel_policies_channel_name_current_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_policy_delta_package_counts_api_organizations_org_name_channel_policies_channel_name_subchannel_name_channel_policy_deltas_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, limit: Option<i32>, offset: Option<i32>, start_date: Option<String>, end_date: Option<String>, only_packages_added: Option<String>, only_packages_removed: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_policy_delta_package_counts_api_organizations_org_name_channel_policies_channel_name_subchannel_name_channel_policy_deltas_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        start_date: Option<String>,
+        end_date: Option<String>,
+        only_packages_added: Option<String>,
+        only_packages_removed: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/channel-policy-deltas", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/channel-policy-deltas",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &start_date { request = request.query(&[("start_date", v)]); }
-        if let Some(v) = &end_date { request = request.query(&[("end_date", v)]); }
-        if let Some(v) = &only_packages_added { request = request.query(&[("only_packages_added", v)]); }
-        if let Some(v) = &only_packages_removed { request = request.query(&[("only_packages_removed", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &start_date {
+            request = request.query(&[("start_date", v)]);
+        }
+        if let Some(v) = &end_date {
+            request = request.query(&[("end_date", v)]);
+        }
+        if let Some(v) = &only_packages_added {
+            request = request.query(&[("only_packages_added", v)]);
+        }
+        if let Some(v) = &only_packages_removed {
+            request = request.query(&[("only_packages_removed", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_policy_delta_exclusions_api_organizations_org_name_channel_policies_channel_name_subchannel_name_channel_policy_deltas_details_channel_policy_delta_id_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, channel_policy_delta_id: String, added: Option<bool>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_policy_delta_exclusions_api_organizations_org_name_channel_policies_channel_name_subchannel_name_channel_policy_deltas_details_channel_policy_delta_id_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        channel_policy_delta_id: String,
+        added: Option<bool>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/channel-policy-deltas/details/{channel_policy_delta_id}", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, channel_policy_delta_id = channel_policy_delta_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/channel-policy-deltas/details/{channel_policy_delta_id}",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            channel_policy_delta_id = channel_policy_delta_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &added { request = request.query(&[("added", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &added {
+            request = request.query(&[("added", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_csv_policy_report_api_organizations_org_name_channel_policies_channel_name_subchannel_name_csv_policy_report_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_csv_policy_report_api_organizations_org_name_channel_policies_channel_name_subchannel_name_csv_policy_report_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/csv-policy-report", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/csv-policy-report",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_csv_policy_delta_api_organizations_org_name_channel_policies_channel_name_subchannel_name_csv_policy_report_delta_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_csv_policy_delta_api_organizations_org_name_channel_policies_channel_name_subchannel_name_csv_policy_report_delta_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/csv-policy-report-delta", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/csv-policy-report-delta",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_current_policy_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, with_logs: Option<bool>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_current_policy_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        with_logs: Option<bool>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &with_logs { request = request.query(&[("with_logs", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &with_logs {
+            request = request.query(&[("with_logs", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn assign_policy_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_post(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn assign_policy_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn trigger_policy_job_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_put(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn trigger_policy_job_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn unassign_policy_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_delete(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn unassign_policy_api_organizations_org_name_channel_policies_channel_name_subchannel_name_current_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policies/{channel_name}/{subchannel_name}/current",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_get(&self, ctx: &CommandContext, org_name: String, q: Option<String>, sort: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        sort: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_channel_name_post(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: Option<String>, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_channel_name_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: Option<String>,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions/{channel_name}/", self.base_path, org_name = org_name, channel_name = channel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions/{channel_name}/",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_channel_name_subchannel_name_post(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_channel_name_subchannel_name_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions/{channel_name}/{subchannel_name}/", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions/{channel_name}/{subchannel_name}/",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_subscription_id_delete(&self, ctx: &CommandContext, org_name: String, subscription_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_channel_policy_delta_subscriptions_api_organizations_org_name_channel_policy_deltas_subscriptions_subscription_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        subscription_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions/{subscription_id}", self.base_path, org_name = org_name, subscription_id = subscription_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channel-policy-deltas/subscriptions/{subscription_id}",
+            self.base_path,
+            org_name = org_name,
+            subscription_id = subscription_id
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_channels_list_api_organizations_org_name_channels_get(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_channels_list_api_organizations_org_name_channels_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_organization_channel_api_organizations_org_name_channels_post(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_organization_channel_api_organizations_org_name_channels_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn verify_organization_channel_source_api_organizations_org_name_channels_sourcecheck_post(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn verify_organization_channel_source_api_organizations_org_name_channels_sourcecheck_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/sourcecheck", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/sourcecheck",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifacts_api_organizations_org_name_channels_channel_name_artifacts_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifacts_api_organizations_org_name_channels_channel_name_artifacts_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts", self.base_path, org_name = org_name, channel_name = channel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_details_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, artifact_family: String, artifact_name: String, subchannel_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_details_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        subchannel_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}", self.base_path, org_name = org_name, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_cves_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_cves_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, artifact_family: String, artifact_name: String, subchannel_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_cves_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_cves_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        subchannel_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/cves", self.base_path, org_name = org_name, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/cves",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_dependants_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_dependants_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, artifact_family: String, artifact_name: String, subchannel_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_dependants_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_dependants_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        subchannel_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependants", self.base_path, org_name = org_name, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependants",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_dependencies_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_dependencies_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, artifact_family: String, artifact_name: String, subchannel_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_dependencies_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_dependencies_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        subchannel_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependencies", self.base_path, org_name = org_name, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/dependencies",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_files_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_files_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, artifact_family: String, artifact_name: String, q: Option<String>, subchannel_name: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_files_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_files_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        q: Option<String>,
+        subchannel_name: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files", self.base_path, org_name = org_name, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_file_cves_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_files_filename_cves_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, artifact_family: String, artifact_name: String, filename: String, subchannel_name: Option<String>, search_query: Option<String>, sort: Option<String>, min_score: Option<String>, max_score: Option<String>, status: Option<String>, with_cve_counts_by_severity: Option<String>, with_cve_counts_by_status: Option<String>, limit: Option<String>, offset: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_file_cves_api_organizations_org_name_channels_channel_name_artifacts_artifact_family_artifact_name_files_filename_cves_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        filename: String,
+        subchannel_name: Option<String>,
+        search_query: Option<String>,
+        sort: Option<String>,
+        min_score: Option<String>,
+        max_score: Option<String>,
+        status: Option<String>,
+        with_cve_counts_by_severity: Option<String>,
+        with_cve_counts_by_status: Option<String>,
+        limit: Option<String>,
+        offset: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files/{filename}/cves", self.base_path, org_name = org_name, channel_name = channel_name, artifact_family = artifact_family, artifact_name = artifact_name, filename = filename);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/artifacts/{artifact_family}/{artifact_name}/files/{filename}/cves",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name,
+            filename = filename
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &subchannel_name { request = request.query(&[("subchannel_name", v)]); }
-        if let Some(v) = &search_query { request = request.query(&[("search_query", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &min_score { request = request.query(&[("min_score", v)]); }
-        if let Some(v) = &max_score { request = request.query(&[("max_score", v)]); }
-        if let Some(v) = &status { request = request.query(&[("status", v)]); }
-        if let Some(v) = &with_cve_counts_by_severity { request = request.query(&[("with_cve_counts_by_severity", v)]); }
-        if let Some(v) = &with_cve_counts_by_status { request = request.query(&[("with_cve_counts_by_status", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &subchannel_name {
+            request = request.query(&[("subchannel_name", v)]);
+        }
+        if let Some(v) = &search_query {
+            request = request.query(&[("search_query", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &min_score {
+            request = request.query(&[("min_score", v)]);
+        }
+        if let Some(v) = &max_score {
+            request = request.query(&[("max_score", v)]);
+        }
+        if let Some(v) = &status {
+            request = request.query(&[("status", v)]);
+        }
+        if let Some(v) = &with_cve_counts_by_severity {
+            request = request.query(&[("with_cve_counts_by_severity", v)]);
+        }
+        if let Some(v) = &with_cve_counts_by_status {
+            request = request.query(&[("with_cve_counts_by_status", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_non_base_channel_api_organizations_org_name_channels_channel_name_subchannel_name_delete(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_non_base_channel_api_organizations_org_name_channels_channel_name_subchannel_name_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_organization_channel_api_organizations_org_name_channels_channel_name_subchannel_name_patch(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_organization_channel_api_organizations_org_name_channels_channel_name_subchannel_name_patch(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifacts_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifacts_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_details_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_details_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_cves_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_cves_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_cves_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_cves_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/cves", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/cves",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_dependants_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_dependants_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_dependants_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_dependants_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/dependants", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/dependants",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_dependencies_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_dependencies_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_dependencies_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_dependencies_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/dependencies", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/dependencies",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_files_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_files_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String, q: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_files_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_files_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        q: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/files", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/files",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_file_cves_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_files_filename_cves_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, artifact_family: String, artifact_name: String, filename: String, search_query: Option<String>, sort: Option<String>, min_score: Option<String>, max_score: Option<String>, status: Option<String>, with_cve_counts_by_severity: Option<String>, with_cve_counts_by_status: Option<String>, limit: Option<String>, offset: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_file_cves_api_organizations_org_name_channels_channel_name_subchannel_name_artifacts_artifact_family_artifact_name_files_filename_cves_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        artifact_family: String,
+        artifact_name: String,
+        filename: String,
+        search_query: Option<String>,
+        sort: Option<String>,
+        min_score: Option<String>,
+        max_score: Option<String>,
+        status: Option<String>,
+        with_cve_counts_by_severity: Option<String>,
+        with_cve_counts_by_status: Option<String>,
+        limit: Option<String>,
+        offset: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/files/{filename}/cves", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, artifact_family = artifact_family, artifact_name = artifact_name, filename = filename);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/artifacts/{artifact_family}/{artifact_name}/files/{filename}/cves",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            artifact_family = artifact_family,
+            artifact_name = artifact_name,
+            filename = filename
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &search_query { request = request.query(&[("search_query", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &min_score { request = request.query(&[("min_score", v)]); }
-        if let Some(v) = &max_score { request = request.query(&[("max_score", v)]); }
-        if let Some(v) = &status { request = request.query(&[("status", v)]); }
-        if let Some(v) = &with_cve_counts_by_severity { request = request.query(&[("with_cve_counts_by_severity", v)]); }
-        if let Some(v) = &with_cve_counts_by_status { request = request.query(&[("with_cve_counts_by_status", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &search_query {
+            request = request.query(&[("search_query", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &min_score {
+            request = request.query(&[("min_score", v)]);
+        }
+        if let Some(v) = &max_score {
+            request = request.query(&[("max_score", v)]);
+        }
+        if let Some(v) = &status {
+            request = request.query(&[("status", v)]);
+        }
+        if let Some(v) = &with_cve_counts_by_severity {
+            request = request.query(&[("with_cve_counts_by_severity", v)]);
+        }
+        if let Some(v) = &with_cve_counts_by_status {
+            request = request.query(&[("with_cve_counts_by_status", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_cves_api_organizations_org_name_channels_channel_name_subchannel_name_cves_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_cves_api_organizations_org_name_channels_channel_name_subchannel_name_cves_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/cves", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/cves",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_channel_detail_api_organizations_org_name_channels_channel_name_subchannel_name_details_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_channel_detail_api_organizations_org_name_channels_channel_name_subchannel_name_details_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/details", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/details",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_user_groups_assigned_to_channel_api_organizations_org_name_channels_channel_name_subchannel_name_groups_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_user_groups_assigned_to_channel_api_organizations_org_name_channels_channel_name_subchannel_name_groups_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/groups", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/groups",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn assign_user_group_to_channel_api_organizations_org_name_channels_channel_name_subchannel_name_groups_post(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn assign_user_group_to_channel_api_organizations_org_name_channels_channel_name_subchannel_name_groups_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/groups", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/groups",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn remove_user_group_from_channel_api_organizations_org_name_channels_channel_name_subchannel_name_groups_group_id_delete(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, group_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn remove_user_group_from_channel_api_organizations_org_name_channels_channel_name_subchannel_name_groups_group_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        group_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/groups/{group_id}", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/groups/{group_id}",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            group_id = group_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_channel_mirror_details_api_organizations_org_name_channels_channel_name_subchannel_name_mirror_details_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_channel_mirror_details_api_organizations_org_name_channels_channel_name_subchannel_name_mirror_details_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/mirror_details", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/mirror_details",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_org_channel_artifact_file_sbom_api_organizations_org_name_channels_channel_name_subchannel_name_platform_file_name_sbom_get(&self, ctx: &CommandContext, org_name: String, channel_name: String, subchannel_name: String, platform: String, file_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_org_channel_artifact_file_sbom_api_organizations_org_name_channels_channel_name_subchannel_name_platform_file_name_sbom_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        channel_name: String,
+        subchannel_name: String,
+        platform: String,
+        file_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/{platform}/{file_name}/sbom", self.base_path, org_name = org_name, channel_name = channel_name, subchannel_name = subchannel_name, platform = platform, file_name = file_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/channels/{channel_name}/{subchannel_name}/{platform}/{file_name}/sbom",
+            self.base_path,
+            org_name = org_name,
+            channel_name = channel_name,
+            subchannel_name = subchannel_name,
+            platform = platform,
+            file_name = file_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_terms_of_service_records_api_organizations_org_name_feature_terms_of_service_feature_get(&self, ctx: &CommandContext, org_name: String, feature: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_terms_of_service_records_api_organizations_org_name_feature_terms_of_service_feature_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        feature: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/feature-terms-of-service/{feature}", self.base_path, org_name = org_name, feature = feature);
+        let url = format!(
+            "{}/api/organizations/{org_name}/feature-terms-of-service/{feature}",
+            self.base_path,
+            org_name = org_name,
+            feature = feature
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_features_api_organizations_org_name_features_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_features_api_organizations_org_name_features_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/features", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/features",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn set_feature_for_org_api_organizations_org_name_features_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn set_feature_for_org_api_organizations_org_name_features_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/features", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/features",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn set_features_for_org_api_organizations_org_name_features_batch_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn set_features_for_org_api_organizations_org_name_features_batch_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/features/batch", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/features/batch",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_groups_api_organizations_org_name_groups_get(&self, ctx: &CommandContext, org_name: String, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_groups_api_organizations_org_name_groups_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_organization_group_api_organizations_org_name_groups_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_organization_group_api_organizations_org_name_groups_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_groups_for_user_api_organizations_org_name_groups_my_get(&self, ctx: &CommandContext, org_name: String, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_groups_for_user_api_organizations_org_name_groups_my_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/my", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/my",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_group_by_id_api_organizations_org_name_groups_group_id_get(&self, ctx: &CommandContext, org_name: String, group_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_group_by_id_api_organizations_org_name_groups_group_id_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}", self.base_path, org_name = org_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_group_api_organizations_org_name_groups_group_id_delete(&self, ctx: &CommandContext, org_name: String, group_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_group_api_organizations_org_name_groups_group_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}", self.base_path, org_name = org_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_group_api_organizations_org_name_groups_group_id_patch(&self, ctx: &CommandContext, org_name: String, group_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_group_api_organizations_org_name_groups_group_id_patch(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}", self.base_path, org_name = org_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id
+        );
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_group_channels_api_organizations_org_name_groups_group_id_channels_get(&self, ctx: &CommandContext, org_name: String, group_id: String, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_group_channels_api_organizations_org_name_groups_group_id_channels_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}/channels", self.base_path, org_name = org_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}/channels",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_group_users_api_organizations_org_name_groups_group_id_users_get(&self, ctx: &CommandContext, org_name: String, group_id: String, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_group_users_api_organizations_org_name_groups_group_id_users_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}/users", self.base_path, org_name = org_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}/users",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn add_user_to_organization_group_api_organizations_org_name_groups_group_id_users_post(&self, ctx: &CommandContext, org_name: String, group_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn add_user_to_organization_group_api_organizations_org_name_groups_group_id_users_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}/users", self.base_path, org_name = org_name, group_id = group_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}/users",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn remove_user_from_organization_group_api_organizations_org_name_groups_group_id_users_user_id_delete(&self, ctx: &CommandContext, org_name: String, group_id: String, user_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn remove_user_from_organization_group_api_organizations_org_name_groups_group_id_users_user_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        group_id: String,
+        user_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/groups/{group_id}/users/{user_id}", self.base_path, org_name = org_name, group_id = group_id, user_id = user_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/groups/{group_id}/users/{user_id}",
+            self.base_path,
+            org_name = org_name,
+            group_id = group_id,
+            user_id = user_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn view_invitation_api_organizations_org_name_invitation_codes_code_get(&self, ctx: &CommandContext, org_name: String, code: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn view_invitation_api_organizations_org_name_invitation_codes_code_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        code: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitation-codes/{code}", self.base_path, org_name = org_name, code = code);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitation-codes/{code}",
+            self.base_path,
+            org_name = org_name,
+            code = code
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn accept_invitation_api_organizations_org_name_invitation_codes_code_put(&self, ctx: &CommandContext, org_name: String, code: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn accept_invitation_api_organizations_org_name_invitation_codes_code_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        code: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitation-codes/{code}", self.base_path, org_name = org_name, code = code);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitation-codes/{code}",
+            self.base_path,
+            org_name = org_name,
+            code = code
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn remove_invitation_api_organizations_org_name_invitation_codes_code_delete(&self, ctx: &CommandContext, org_name: String, code: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn remove_invitation_api_organizations_org_name_invitation_codes_code_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        code: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitation-codes/{code}", self.base_path, org_name = org_name, code = code);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitation-codes/{code}",
+            self.base_path,
+            org_name = org_name,
+            code = code
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_invitations_api_organizations_org_name_invitations_get(&self, ctx: &CommandContext, org_name: String, q: Option<String>, sort: Option<Vec<String>>, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_invitations_api_organizations_org_name_invitations_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        sort: Option<Vec<String>>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitations", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitations",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_invitation_api_organizations_org_name_invitations_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_invitation_api_organizations_org_name_invitations_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitations", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitations",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_invitations_api_organizations_org_name_invitations_get_2(&self, ctx: &CommandContext, org_name: String, q: Option<String>, sort: Option<Vec<String>>, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_invitations_api_organizations_org_name_invitations_get_2(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        sort: Option<Vec<String>>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitations/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitations/",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_invitation_api_organizations_org_name_invitations_post_2(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_invitation_api_organizations_org_name_invitations_post_2(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitations/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitations/",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn resend_invitation_api_organizations_org_name_invitations_email_put(&self, ctx: &CommandContext, org_name: String, email: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn resend_invitation_api_organizations_org_name_invitations_email_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        email: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/invitations/{email}", self.base_path, org_name = org_name, email = email);
+        let url = format!(
+            "{}/api/organizations/{org_name}/invitations/{email}",
+            self.base_path,
+            org_name = org_name,
+            email = email
+        );
         let request = client.put(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_current_organization_user_api_organizations_org_name_me_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_current_organization_user_api_organizations_org_name_me_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/me", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/me",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn remove_invitations_api_organizations_org_name_remove_invitations_put(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn remove_invitations_api_organizations_org_name_remove_invitations_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/remove-invitations/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/remove-invitations/",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_policies_api_organizations_org_name_repo_policies_get(&self, ctx: &CommandContext, org_name: String, q: Option<String>, include_channels_applied_to: Option<String>, limit: Option<i32>, offset: Option<i32>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_policies_api_organizations_org_name_repo_policies_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        include_channels_applied_to: Option<String>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &include_channels_applied_to { request = request.query(&[("include_channels_applied_to", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &include_channels_applied_to {
+            request = request.query(&[("include_channels_applied_to", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_policy_api_organizations_org_name_repo_policies_post(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_policy_api_organizations_org_name_repo_policies_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_policies_api_organizations_org_name_repo_policies_v1_get(&self, ctx: &CommandContext, org_name: String, q: Option<String>, include_channels_applied_to: Option<String>, limit: Option<i32>, offset: Option<i32>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_policies_api_organizations_org_name_repo_policies_v1_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        include_channels_applied_to: Option<String>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v1", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v1",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &include_channels_applied_to { request = request.query(&[("include_channels_applied_to", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &include_channels_applied_to {
+            request = request.query(&[("include_channels_applied_to", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_policy_api_organizations_org_name_repo_policies_v1_post(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_policy_api_organizations_org_name_repo_policies_v1_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v1", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v1",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_policy_api_organizations_org_name_repo_policies_v1_policy_id_get(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_policy_api_organizations_org_name_repo_policies_v1_policy_id_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v1/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v1/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_policy_api_organizations_org_name_repo_policies_v1_policy_id_put(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_policy_api_organizations_org_name_repo_policies_v1_policy_id_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v1/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v1/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_policy_api_organizations_org_name_repo_policies_v1_policy_id_delete(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_policy_api_organizations_org_name_repo_policies_v1_policy_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v1/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v1/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_policies_api_organizations_org_name_repo_policies_v2_get(&self, ctx: &CommandContext, org_name: String, q: Option<String>, include_channels_applied_to: Option<String>, limit: Option<i32>, offset: Option<i32>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_policies_api_organizations_org_name_repo_policies_v2_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        include_channels_applied_to: Option<String>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v2", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v2",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &include_channels_applied_to { request = request.query(&[("include_channels_applied_to", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &include_channels_applied_to {
+            request = request.query(&[("include_channels_applied_to", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_v2_policy_api_organizations_org_name_repo_policies_v2_post(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_v2_policy_api_organizations_org_name_repo_policies_v2_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v2", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v2",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_policy_v2_api_organizations_org_name_repo_policies_v2_policy_id_get(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_policy_v2_api_organizations_org_name_repo_policies_v2_policy_id_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v2/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v2/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_policy_v2_api_organizations_org_name_repo_policies_v2_policy_id_put(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_policy_v2_api_organizations_org_name_repo_policies_v2_policy_id_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v2/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v2/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_policy_api_organizations_org_name_repo_policies_v2_policy_id_delete(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_policy_api_organizations_org_name_repo_policies_v2_policy_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/v2/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/v2/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_policy_api_organizations_org_name_repo_policies_policy_id_get(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_policy_api_organizations_org_name_repo_policies_policy_id_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_policy_api_organizations_org_name_repo_policies_policy_id_put(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_policy_api_organizations_org_name_repo_policies_policy_id_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.put(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_policy_api_organizations_org_name_repo_policies_policy_id_delete(&self, ctx: &CommandContext, org_name: String, policy_id: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_policy_api_organizations_org_name_repo_policies_policy_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        policy_id: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/repo-policies/{policy_id}", self.base_path, org_name = org_name, policy_id = policy_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/repo-policies/{policy_id}",
+            self.base_path,
+            org_name = org_name,
+            policy_id = policy_id
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn download_organization_users_telemetry_report_api_organizations_org_name_reports_package_downloads_get(&self, ctx: &CommandContext, org_name: String, format: Option<String>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn download_organization_users_telemetry_report_api_organizations_org_name_reports_package_downloads_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        format: Option<String>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/reports/package-downloads", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/reports/package-downloads",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &format { request = request.query(&[("format", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &format {
+            request = request.query(&[("format", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn telemetry_files_in_org_api_organizations_org_name_reports_telemetry_get(&self, ctx: &CommandContext, org_name: String, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn telemetry_files_in_org_api_organizations_org_name_reports_telemetry_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/reports/telemetry", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/reports/telemetry",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn resend_invitations_api_organizations_org_name_resend_invitations_put(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn resend_invitations_api_organizations_org_name_resend_invitations_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/resend-invitations/", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/resend-invitations/",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_seat_count_api_organizations_org_name_seats_stats_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_seat_count_api_organizations_org_name_seats_stats_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/seats/stats", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/seats/stats",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn set_env_feature_for_org_api_organizations_org_name_set_environments_feature_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn set_env_feature_for_org_api_organizations_org_name_set_environments_feature_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/set-environments-feature", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/set-environments-feature",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_subscriptions_api_organizations_org_name_subscriptions_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_subscriptions_api_organizations_org_name_subscriptions_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/subscriptions", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/subscriptions",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_users_api_organizations_org_name_users_get(&self, ctx: &CommandContext, org_name: String, q: Option<String>, sort: Option<Vec<String>>, role: Option<String>, is_without_seat: Option<String>, include_site_token_user: Option<String>, include_groups: Option<bool>, as_csv: Option<bool>, limit: Option<i32>, offset: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_users_api_organizations_org_name_users_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        q: Option<String>,
+        sort: Option<Vec<String>>,
+        role: Option<String>,
+        is_without_seat: Option<String>,
+        include_site_token_user: Option<String>,
+        include_groups: Option<bool>,
+        as_csv: Option<bool>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &q { request = request.query(&[("q", v)]); }
-        if let Some(v) = &sort { request = request.query(&[("sort", v)]); }
-        if let Some(v) = &role { request = request.query(&[("role", v)]); }
-        if let Some(v) = &is_without_seat { request = request.query(&[("is_without_seat", v)]); }
-        if let Some(v) = &include_site_token_user { request = request.query(&[("include_site_token_user", v)]); }
-        if let Some(v) = &include_groups { request = request.query(&[("include_groups", v)]); }
-        if let Some(v) = &as_csv { request = request.query(&[("as_csv", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
+        if let Some(v) = &q {
+            request = request.query(&[("q", v)]);
+        }
+        if let Some(v) = &sort {
+            request = request.query(&[("sort", v)]);
+        }
+        if let Some(v) = &role {
+            request = request.query(&[("role", v)]);
+        }
+        if let Some(v) = &is_without_seat {
+            request = request.query(&[("is_without_seat", v)]);
+        }
+        if let Some(v) = &include_site_token_user {
+            request = request.query(&[("include_site_token_user", v)]);
+        }
+        if let Some(v) = &include_groups {
+            request = request.query(&[("include_groups", v)]);
+        }
+        if let Some(v) = &as_csv {
+            request = request.query(&[("as_csv", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn remove_organization_user_me_api_organizations_org_name_users_me_delete(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn remove_organization_user_me_api_organizations_org_name_users_me_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/me", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/me",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_my_products_in_organization_api_organizations_org_name_users_me_products_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_my_products_in_organization_api_organizations_org_name_users_me_products_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/me/products", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/me/products",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn assign_licenses_api_organizations_org_name_users_products_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn assign_licenses_api_organizations_org_name_users_products_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/products", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/products",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn revoke_licenses_api_organizations_org_name_users_products_product_code_put(&self, ctx: &CommandContext, org_name: String, product_code: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn revoke_licenses_api_organizations_org_name_users_products_product_code_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        product_code: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/products/{product_code}", self.base_path, org_name = org_name, product_code = product_code);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/products/{product_code}",
+            self.base_path,
+            org_name = org_name,
+            product_code = product_code
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_organization_user_permission_api_organizations_org_name_users_user_id_put(&self, ctx: &CommandContext, org_name: String, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_organization_user_permission_api_organizations_org_name_users_user_id_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/{user_id}", self.base_path, org_name = org_name, user_id = user_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/{user_id}",
+            self.base_path,
+            org_name = org_name,
+            user_id = user_id
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn remove_organization_user_api_organizations_org_name_users_user_id_delete(&self, ctx: &CommandContext, org_name: String, user_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn remove_organization_user_api_organizations_org_name_users_user_id_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        user_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/{user_id}", self.base_path, org_name = org_name, user_id = user_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/{user_id}",
+            self.base_path,
+            org_name = org_name,
+            user_id = user_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn assign_license_api_organizations_org_name_users_user_id_products_post(&self, ctx: &CommandContext, org_name: String, user_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn assign_license_api_organizations_org_name_users_user_id_products_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        user_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/{user_id}/products", self.base_path, org_name = org_name, user_id = user_id);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/{user_id}/products",
+            self.base_path,
+            org_name = org_name,
+            user_id = user_id
+        );
         let request = client.post(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn revoke_license_api_organizations_org_name_users_user_id_products_product_code_delete(&self, ctx: &CommandContext, org_name: String, user_id: String, product_code: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn revoke_license_api_organizations_org_name_users_user_id_products_product_code_delete(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        user_id: String,
+        product_code: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/organizations/{org_name}/users/{user_id}/products/{product_code}", self.base_path, org_name = org_name, user_id = user_id, product_code = product_code);
+        let url = format!(
+            "{}/api/organizations/{org_name}/users/{user_id}/products/{product_code}",
+            self.base_path,
+            org_name = org_name,
+            user_id = user_id,
+            product_code = product_code
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_role_mappings_api_roles_mappings_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_role_mappings_api_roles_mappings_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/roles/mappings", self.base_path);
         let request = client.get(&url);
@@ -3557,46 +5618,90 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_role_mapping_api_roles_mappings_user_id_get(&self, ctx: &CommandContext, user_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_role_mapping_api_roles_mappings_user_id_get(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/api/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_role_mapping_api_roles_mappings_user_id_post(&self, ctx: &CommandContext, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_role_mapping_api_roles_mappings_user_id_post(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/api/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_role_mapping_api_roles_mappings_user_id_put(&self, ctx: &CommandContext, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_role_mapping_api_roles_mappings_user_id_put(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/api/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_role_mapping_api_roles_mappings_user_id_delete(&self, ctx: &CommandContext, user_id: String, role: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_role_mapping_api_roles_mappings_user_id_delete(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        role: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/api/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/api/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &role { request = request.query(&[("role", v)]); }
+        if let Some(v) = &role {
+            request = request.query(&[("role", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_current_user_mapping_api_roles_me_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_current_user_mapping_api_roles_me_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/roles/me", self.base_path);
         let request = client.get(&url);
@@ -3605,7 +5710,10 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_roles_api_roles_roles_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_roles_api_roles_roles_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/roles/roles", self.base_path);
         let request = client.get(&url);
@@ -3614,27 +5722,44 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_user_api_users_post(&self, ctx: &CommandContext, x_nucleus_recaptcha_token: Option<String>, x_nucleus_recaptcha_type: Option<String>, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_user_api_users_post(
+        &self,
+        ctx: &CommandContext,
+        x_nucleus_recaptcha_token: Option<String>,
+        x_nucleus_recaptcha_type: Option<String>,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn fix_users_api_users_fix_users_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn fix_users_api_users_fix_users_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/fix_users", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn healthcheck_api_users_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn healthcheck_api_users_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/healthz", self.base_path);
         let request = client.get(&url);
@@ -3643,18 +5768,31 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_my_user_api_users_me_delete(&self, ctx: &CommandContext, hard: Option<bool>, strict: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_my_user_api_users_me_delete(
+        &self,
+        ctx: &CommandContext,
+        hard: Option<bool>,
+        strict: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/me", self.base_path);
         let mut request = client.delete(&url);
-        if let Some(v) = &hard { request = request.query(&[("hard", v)]); }
-        if let Some(v) = &strict { request = request.query(&[("strict", v)]); }
+        if let Some(v) = &hard {
+            request = request.query(&[("hard", v)]);
+        }
+        if let Some(v) = &strict {
+            request = request.query(&[("strict", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_user_api_users_user_id_get(&self, ctx: &CommandContext, user_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_user_api_users_user_id_get(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/{user_id}/", self.base_path, user_id = user_id);
         let request = client.get(&url);
@@ -3663,27 +5801,46 @@ impl BigbendClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_user_api_users_user_id_put(&self, ctx: &CommandContext, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_user_api_users_user_id_put(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/{user_id}/", self.base_path, user_id = user_id);
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_user_api_users_user_id_delete(&self, ctx: &CommandContext, user_id: String, hard: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_user_api_users_user_id_delete(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        hard: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/users/{user_id}/", self.base_path, user_id = user_id);
         let mut request = client.delete(&url);
-        if let Some(v) = &hard { request = request.query(&[("hard", v)]); }
+        if let Some(v) = &hard {
+            request = request.query(&[("hard", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn user_events_api_webhooks_discourse_userevents_post(&self, ctx: &CommandContext, x_discourse_event: String, x_discourse_event_type: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn user_events_api_webhooks_discourse_userevents_post(
+        &self,
+        ctx: &CommandContext,
+        x_discourse_event: String,
+        x_discourse_event_type: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/api/webhooks/discourse/userevents", self.base_path);
         let request = client.post(&url);
@@ -3691,5 +5848,4 @@ impl BigbendClient {
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

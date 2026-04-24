@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "notebook_panels")]
@@ -25,13 +25,19 @@ pub enum NotebookPanelsCommands {
     AuthV1AuthTestGet(AuthV1AuthTestGetArgs),
     /// Publish Deployment
     #[command(name = "publish-deployment-v1-deployment-domain-publish-post")]
-    PublishDeploymentV1DeploymentDomainPublishPost(PublishDeploymentV1DeploymentDomainPublishPostArgs),
+    PublishDeploymentV1DeploymentDomainPublishPost(
+        PublishDeploymentV1DeploymentDomainPublishPostArgs,
+    ),
     /// Restart Deployment
     #[command(name = "restart-deployment-v1-deployment-domain-restart-post")]
-    RestartDeploymentV1DeploymentDomainRestartPost(RestartDeploymentV1DeploymentDomainRestartPostArgs),
+    RestartDeploymentV1DeploymentDomainRestartPost(
+        RestartDeploymentV1DeploymentDomainRestartPostArgs,
+    ),
     /// Unpublish Deployment
     #[command(name = "unpublish-deployment-v1-deployment-domain-unpublish-post")]
-    UnpublishDeploymentV1DeploymentDomainUnpublishPost(UnpublishDeploymentV1DeploymentDomainUnpublishPostArgs),
+    UnpublishDeploymentV1DeploymentDomainUnpublishPost(
+        UnpublishDeploymentV1DeploymentDomainUnpublishPostArgs,
+    ),
     /// Create Project
     #[command(name = "create-project-v1-project-post")]
     CreateProjectV1ProjectPost(CreateProjectV1ProjectPostArgs),
@@ -46,19 +52,29 @@ pub enum NotebookPanelsCommands {
     UpdateProjectV1ProjectProjectIdPatch(UpdateProjectV1ProjectProjectIdPatchArgs),
     /// Archive Upload
     #[command(name = "archive-upload-v1-project-project-id-archive-upload-post")]
-    ArchiveUploadV1ProjectProjectIdArchiveUploadPost(ArchiveUploadV1ProjectProjectIdArchiveUploadPostArgs),
+    ArchiveUploadV1ProjectProjectIdArchiveUploadPost(
+        ArchiveUploadV1ProjectProjectIdArchiveUploadPostArgs,
+    ),
     /// Publish Latest
     #[command(name = "publish-latest-v1-project-project-id-publish-post")]
     PublishLatestV1ProjectProjectIdPublishPost(PublishLatestV1ProjectProjectIdPublishPostArgs),
     /// Create New Version
     #[command(name = "create-new-version-v1-project-project-id-version-post")]
-    CreateNewVersionV1ProjectProjectIdVersionPost(CreateNewVersionV1ProjectProjectIdVersionPostArgs),
+    CreateNewVersionV1ProjectProjectIdVersionPost(
+        CreateNewVersionV1ProjectProjectIdVersionPostArgs,
+    ),
     /// Delete Project Version
-    #[command(name = "delete-project-version-v1-project-project-id-version-project-version-id-delete")]
-    DeleteProjectVersionV1ProjectProjectIdVersionProjectVersionIdDelete(DeleteProjectVersionV1ProjectProjectIdVersionProjectVersionIdDeleteArgs),
+    #[command(
+        name = "delete-project-version-v1-project-project-id-version-project-version-id-delete"
+    )]
+    DeleteProjectVersionV1ProjectProjectIdVersionProjectVersionIdDelete(
+        DeleteProjectVersionV1ProjectProjectIdVersionProjectVersionIdDeleteArgs,
+    ),
     /// Download Project
     #[command(name = "download-project-v1-project-project-id-version-project-version-download-get")]
-    DownloadProjectV1ProjectProjectIdVersionProjectVersionDownloadGet(DownloadProjectV1ProjectProjectIdVersionProjectVersionDownloadGetArgs),
+    DownloadProjectV1ProjectProjectIdVersionProjectVersionDownloadGet(
+        DownloadProjectV1ProjectProjectIdVersionProjectVersionDownloadGetArgs,
+    ),
     /// List User Projects
     #[command(name = "list-user-projects-v1-user-user-id-projects-get")]
     ListUserProjectsV1UserUserIdProjectsGet(ListUserProjectsV1UserUserIdProjectsGetArgs),
@@ -73,18 +89,23 @@ pub enum NotebookPanelsCommands {
     DeleteAppV2AppsAppIdDelete(DeleteAppV2AppsAppIdDeleteArgs),
     /// Download App
     #[command(name = "download-app-v2-apps-app-id-download-app-version-id-get")]
-    DownloadAppV2AppsAppIdDownloadAppVersionIdGet(DownloadAppV2AppsAppIdDownloadAppVersionIdGetArgs),
+    DownloadAppV2AppsAppIdDownloadAppVersionIdGet(
+        DownloadAppV2AppsAppIdDownloadAppVersionIdGetArgs,
+    ),
     /// Get App Contents
     #[command(name = "get-app-contents-v2-apps-app-id-storage-app-version-id-get")]
-    GetAppContentsV2AppsAppIdStorageAppVersionIdGet(GetAppContentsV2AppsAppIdStorageAppVersionIdGetArgs),
+    GetAppContentsV2AppsAppIdStorageAppVersionIdGet(
+        GetAppContentsV2AppsAppIdStorageAppVersionIdGetArgs,
+    ),
     /// Delete App Version
     #[command(name = "delete-app-version-v2-apps-app-id-version-app-version-id-delete")]
-    DeleteAppVersionV2AppsAppIdVersionAppVersionIdDelete(DeleteAppVersionV2AppsAppIdVersionAppVersionIdDeleteArgs),
+    DeleteAppVersionV2AppsAppIdVersionAppVersionIdDelete(
+        DeleteAppVersionV2AppsAppIdVersionAppVersionIdDeleteArgs,
+    ),
 }
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct AuthV1AuthTestGetArgs {
@@ -251,10 +272,15 @@ pub struct NotebookPanelsClient {
 
 impl NotebookPanelsClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -263,203 +289,406 @@ impl NotebookPanelsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn auth_v1_auth_test_get(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn auth_v1_auth_test_get(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/v1/auth-test", self.base_path);
         let mut request = client.get(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn publish_deployment_v1_deployment_domain_publish_post(&self, ctx: &CommandContext, domain: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn publish_deployment_v1_deployment_domain_publish_post(
+        &self,
+        ctx: &CommandContext,
+        domain: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/deployment/{domain}/publish/", self.base_path, domain = domain);
+        let url = format!(
+            "{}/v1/deployment/{domain}/publish/",
+            self.base_path,
+            domain = domain
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn restart_deployment_v1_deployment_domain_restart_post(&self, ctx: &CommandContext, domain: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn restart_deployment_v1_deployment_domain_restart_post(
+        &self,
+        ctx: &CommandContext,
+        domain: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/deployment/{domain}/restart/", self.base_path, domain = domain);
+        let url = format!(
+            "{}/v1/deployment/{domain}/restart/",
+            self.base_path,
+            domain = domain
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn unpublish_deployment_v1_deployment_domain_unpublish_post(&self, ctx: &CommandContext, domain: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn unpublish_deployment_v1_deployment_domain_unpublish_post(
+        &self,
+        ctx: &CommandContext,
+        domain: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/deployment/{domain}/unpublish/", self.base_path, domain = domain);
+        let url = format!(
+            "{}/v1/deployment/{domain}/unpublish/",
+            self.base_path,
+            domain = domain
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_project_v1_project_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_project_v1_project_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/v1/project/", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_project_by_id_v1_project_project_id_get(&self, ctx: &CommandContext, project_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_project_by_id_v1_project_project_id_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/",
+            self.base_path,
+            project_id = project_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_project_v1_project_project_id_delete(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_project_v1_project_project_id_delete(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.delete(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_project_v1_project_project_id_patch(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_project_v1_project_project_id_patch(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn archive_upload_v1_project_project_id_archive_upload_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn archive_upload_v1_project_project_id_archive_upload_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/archive/upload/", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/archive/upload/",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn publish_latest_v1_project_project_id_publish_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn publish_latest_v1_project_project_id_publish_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/publish/", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/publish/",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_new_version_v1_project_project_id_version_post(&self, ctx: &CommandContext, project_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_new_version_v1_project_project_id_version_post(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/version/", self.base_path, project_id = project_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/version/",
+            self.base_path,
+            project_id = project_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_project_version_v1_project_project_id_version_project_version_id_delete(&self, ctx: &CommandContext, project_id: String, project_version_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_project_version_v1_project_project_id_version_project_version_id_delete(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        project_version_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/version/{project_version_id}/", self.base_path, project_id = project_id, project_version_id = project_version_id);
+        let url = format!(
+            "{}/v1/project/{project_id}/version/{project_version_id}/",
+            self.base_path,
+            project_id = project_id,
+            project_version_id = project_version_id
+        );
         let mut request = client.delete(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn download_project_v1_project_project_id_version_project_version_download_get(&self, ctx: &CommandContext, project_id: String, project_version: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn download_project_v1_project_project_id_version_project_version_download_get(
+        &self,
+        ctx: &CommandContext,
+        project_id: String,
+        project_version: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/project/{project_id}/version/{project_version}/download/", self.base_path, project_id = project_id, project_version = project_version);
+        let url = format!(
+            "{}/v1/project/{project_id}/version/{project_version}/download/",
+            self.base_path,
+            project_id = project_id,
+            project_version = project_version
+        );
         let mut request = client.get(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_user_projects_v1_user_user_id_projects_get(&self, ctx: &CommandContext, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_user_projects_v1_user_user_id_projects_get(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v1/user/{user_id}/projects/", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/v1/user/{user_id}/projects/",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.get(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_app_v2_apps_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_app_v2_apps_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/v2/apps/", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_app_version_v2_apps_app_id_post(&self, ctx: &CommandContext, app_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_app_version_v2_apps_app_id_post(
+        &self,
+        ctx: &CommandContext,
+        app_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/v2/apps/{app_id}/", self.base_path, app_id = app_id);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_app_v2_apps_app_id_delete(&self, ctx: &CommandContext, app_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_app_v2_apps_app_id_delete(
+        &self,
+        ctx: &CommandContext,
+        app_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/v2/apps/{app_id}/", self.base_path, app_id = app_id);
         let mut request = client.delete(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn download_app_v2_apps_app_id_download_app_version_id_get(&self, ctx: &CommandContext, app_id: String, app_version_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn download_app_v2_apps_app_id_download_app_version_id_get(
+        &self,
+        ctx: &CommandContext,
+        app_id: String,
+        app_version_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v2/apps/{app_id}/download/{app_version_id}/", self.base_path, app_id = app_id, app_version_id = app_version_id);
+        let url = format!(
+            "{}/v2/apps/{app_id}/download/{app_version_id}/",
+            self.base_path,
+            app_id = app_id,
+            app_version_id = app_version_id
+        );
         let mut request = client.get(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_app_contents_v2_apps_app_id_storage_app_version_id_get(&self, ctx: &CommandContext, app_id: String, app_version_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_app_contents_v2_apps_app_id_storage_app_version_id_get(
+        &self,
+        ctx: &CommandContext,
+        app_id: String,
+        app_version_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v2/apps/{app_id}/storage/{app_version_id}/", self.base_path, app_id = app_id, app_version_id = app_version_id);
+        let url = format!(
+            "{}/v2/apps/{app_id}/storage/{app_version_id}/",
+            self.base_path,
+            app_id = app_id,
+            app_version_id = app_version_id
+        );
         let mut request = client.get(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_app_version_v2_apps_app_id_version_app_version_id_delete(&self, ctx: &CommandContext, app_id: String, app_version_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_app_version_v2_apps_app_id_version_app_version_id_delete(
+        &self,
+        ctx: &CommandContext,
+        app_id: String,
+        app_version_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/v2/apps/{app_id}/version/{app_version_id}/", self.base_path, app_id = app_id, app_version_id = app_version_id);
+        let url = format!(
+            "{}/v2/apps/{app_id}/version/{app_version_id}/",
+            self.base_path,
+            app_id = app_id,
+            app_version_id = app_version_id
+        );
         let mut request = client.delete(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

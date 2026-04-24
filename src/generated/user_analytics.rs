@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "user_analytics")]
@@ -22,12 +22,13 @@ pub enum UserAnalyticsCommands {
     HealthCheckHealthzGet(HealthCheckHealthzGetArgs),
     /// Get Organization User Downloads
     #[command(name = "get-organization-user-downloads-organizations-org-name-post")]
-    GetOrganizationUserDownloadsOrganizationsOrgNamePost(GetOrganizationUserDownloadsOrganizationsOrgNamePostArgs),
+    GetOrganizationUserDownloadsOrganizationsOrgNamePost(
+        GetOrganizationUserDownloadsOrganizationsOrgNamePostArgs,
+    ),
 }
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct GetOrganizationUserDownloadsOrganizationsOrgNamePostArgs {
@@ -43,10 +44,15 @@ pub struct UserAnalyticsClient {
 
 impl UserAnalyticsClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -55,14 +61,24 @@ impl UserAnalyticsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_user_downloads_organizations_org_name_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_user_downloads_organizations_org_name_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

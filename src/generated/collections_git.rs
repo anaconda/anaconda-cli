@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "collections_git")]
@@ -19,7 +19,9 @@ pub struct CollectionsGitCli {
 pub enum CollectionsGitCommands {
     /// Github Oauth Redirect Url
     #[command(name = "github-oauth-redirect-url-github-oauth-redirect-url-get")]
-    GithubOauthRedirectUrlGithubOauthRedirectUrlGet(GithubOauthRedirectUrlGithubOauthRedirectUrlGetArgs),
+    GithubOauthRedirectUrlGithubOauthRedirectUrlGet(
+        GithubOauthRedirectUrlGithubOauthRedirectUrlGetArgs,
+    ),
     /// Create Oauth State
     #[command(name = "create-oauth-state-github-oauth-state-get")]
     CreateOauthStateGithubOauthStateGet(CreateOauthStateGithubOauthStateGetArgs),
@@ -28,7 +30,9 @@ pub enum CollectionsGitCommands {
     HealthCheckHealthzGet(HealthCheckHealthzGetArgs),
     /// Check Remote Changes
     #[command(name = "check-remote-changes-collection-id-git-check-remote-changes-post")]
-    CheckRemoteChangesCollectionIdGitCheckRemoteChangesPost(CheckRemoteChangesCollectionIdGitCheckRemoteChangesPostArgs),
+    CheckRemoteChangesCollectionIdGitCheckRemoteChangesPost(
+        CheckRemoteChangesCollectionIdGitCheckRemoteChangesPostArgs,
+    ),
     /// Setup Github
     #[command(name = "setup-github-collection-id-git-config-post")]
     SetupGithubCollectionIdGitConfigPost(SetupGithubCollectionIdGitConfigPostArgs),
@@ -43,7 +47,9 @@ pub enum CollectionsGitCommands {
     PullRemoteChangesCollectionIdGitPullPost(PullRemoteChangesCollectionIdGitPullPostArgs),
     /// Push Collection To Github
     #[command(name = "push-collection-to-github-collection-id-git-push-post")]
-    PushCollectionToGithubCollectionIdGitPushPost(PushCollectionToGithubCollectionIdGitPushPostArgs),
+    PushCollectionToGithubCollectionIdGitPushPost(
+        PushCollectionToGithubCollectionIdGitPushPostArgs,
+    ),
     /// Create Tag
     #[command(name = "create-tag-collection-id-git-tag-post")]
     CreateTagCollectionIdGitTagPost(CreateTagCollectionIdGitTagPostArgs),
@@ -64,8 +70,7 @@ pub struct CreateOauthStateGithubOauthStateGetArgs {
 }
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct CheckRemoteChangesCollectionIdGitCheckRemoteChangesPostArgs {
@@ -126,10 +131,17 @@ pub struct CollectionsGitClient {
 
 impl CollectionsGitClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn github_oauth_redirect_url_github_oauth_redirect_url_get(&self, ctx: &CommandContext, code: String, state: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn github_oauth_redirect_url_github_oauth_redirect_url_get(
+        &self,
+        ctx: &CommandContext,
+        code: String,
+        state: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/github/oauth/redirect_url", self.base_path);
         let mut request = client.get(&url);
@@ -140,7 +152,11 @@ impl CollectionsGitClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_oauth_state_github_oauth_state_get(&self, ctx: &CommandContext, return_to: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_oauth_state_github_oauth_state_get(
+        &self,
+        ctx: &CommandContext,
+        return_to: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/github/oauth/state", self.base_path);
         let mut request = client.get(&url);
@@ -150,7 +166,10 @@ impl CollectionsGitClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -159,73 +178,146 @@ impl CollectionsGitClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn check_remote_changes_collection_id_git_check_remote_changes_post(&self, ctx: &CommandContext, collection_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn check_remote_changes_collection_id_git_check_remote_changes_post(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/check-remote-changes", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/check-remote-changes",
+            self.base_path,
+            collection_id = collection_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn setup_github_collection_id_git_config_post(&self, ctx: &CommandContext, collection_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn setup_github_collection_id_git_config_post(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/config", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/config",
+            self.base_path,
+            collection_id = collection_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_github_collection_id_git_config_put(&self, ctx: &CommandContext, collection_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_github_collection_id_git_config_put(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/config", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/config",
+            self.base_path,
+            collection_id = collection_id
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_github_collection_id_git_config_delete(&self, ctx: &CommandContext, collection_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_github_collection_id_git_config_delete(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/config", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/config",
+            self.base_path,
+            collection_id = collection_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn pull_remote_changes_collection_id_git_pull_post(&self, ctx: &CommandContext, collection_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn pull_remote_changes_collection_id_git_pull_post(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/pull", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/pull",
+            self.base_path,
+            collection_id = collection_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn push_collection_to_github_collection_id_git_push_post(&self, ctx: &CommandContext, collection_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn push_collection_to_github_collection_id_git_push_post(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/push", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/push",
+            self.base_path,
+            collection_id = collection_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_tag_collection_id_git_tag_post(&self, ctx: &CommandContext, collection_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_tag_collection_id_git_tag_post(
+        &self,
+        ctx: &CommandContext,
+        collection_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/{collection_id}/git/tag", self.base_path, collection_id = collection_id);
+        let url = format!(
+            "{}/{collection_id}/git/tag",
+            self.base_path,
+            collection_id = collection_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

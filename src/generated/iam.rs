@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "iam")]
@@ -61,12 +61,10 @@ pub struct PostEmailVerifyArgs {
 }
 
 #[derive(Parser)]
-pub struct GetPublicWellKnownOpenidConfigurationArgs {
-}
+pub struct GetPublicWellKnownOpenidConfigurationArgs {}
 
 #[derive(Parser)]
-pub struct GetPublicApiKeysArgs {
-}
+pub struct GetPublicApiKeysArgs {}
 
 #[derive(Parser)]
 pub struct PostPublicApiKeysArgs {
@@ -86,8 +84,7 @@ pub struct PostPublicAuthorizeArgs {
 }
 
 #[derive(Parser)]
-pub struct PostPublicLogoutArgs {
-}
+pub struct PostPublicLogoutArgs {}
 
 #[derive(Parser)]
 pub struct PostPublicTokenArgs {
@@ -96,8 +93,7 @@ pub struct PostPublicTokenArgs {
 }
 
 #[derive(Parser)]
-pub struct GetPublicUserinfoMeArgs {
-}
+pub struct GetPublicUserinfoMeArgs {}
 
 pub struct IamClient {
     base_path: String,
@@ -105,10 +101,16 @@ pub struct IamClient {
 
 impl IamClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn get_email_verified_code(&self, ctx: &CommandContext, code: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_email_verified_code(
+        &self,
+        ctx: &CommandContext,
+        code: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/email-verified/{code}", self.base_path, code = code);
         let request = client.get(&url);
@@ -117,7 +119,11 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn post_email_verify(&self, ctx: &CommandContext, email: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn post_email_verify(
+        &self,
+        ctx: &CommandContext,
+        email: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/email-verify", self.base_path);
         let request = client.post(&url);
@@ -126,7 +132,10 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_public_well_known_openid_configuration(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_public_well_known_openid_configuration(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/.well-known/openid-configuration", self.base_path);
         let request = client.get(&url);
@@ -135,7 +144,10 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_public_api_keys(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_public_api_keys(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/api-keys", self.base_path);
         let request = client.get(&url);
@@ -144,7 +156,11 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn post_public_api_keys(&self, ctx: &CommandContext, client: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn post_public_api_keys(
+        &self,
+        ctx: &CommandContext,
+        client: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/api-keys", self.base_path);
         let request = client.post(&url);
@@ -153,16 +169,28 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_public_api_keys_key_id(&self, ctx: &CommandContext, key_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_public_api_keys_key_id(
+        &self,
+        ctx: &CommandContext,
+        key_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/api-keys/{key_id}", self.base_path, key_id = key_id);
+        let url = format!(
+            "{}/public/api-keys/{key_id}",
+            self.base_path,
+            key_id = key_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn post_public_authorize(&self, ctx: &CommandContext, grant_type: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn post_public_authorize(
+        &self,
+        ctx: &CommandContext,
+        grant_type: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/authorize", self.base_path);
         let mut request = client.post(&url);
@@ -172,7 +200,10 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn post_public_logout(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn post_public_logout(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/logout", self.base_path);
         let request = client.post(&url);
@@ -181,7 +212,11 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn post_public_token(&self, ctx: &CommandContext, grant_type: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn post_public_token(
+        &self,
+        ctx: &CommandContext,
+        grant_type: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/token", self.base_path);
         let mut request = client.post(&url);
@@ -191,7 +226,10 @@ impl IamClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_public_userinfo_me(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_public_userinfo_me(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/userinfo/me", self.base_path);
         let request = client.get(&url);
@@ -199,5 +237,4 @@ impl IamClient {
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

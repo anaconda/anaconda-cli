@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "message_scheduler")]
@@ -31,10 +31,14 @@ pub enum MessageSchedulerCommands {
     HealthcheckInternalHealthzGet(HealthcheckInternalHealthzGetArgs),
     /// List Failed Messages
     #[command(name = "list-failed-messages-internal-messages-failed-message-id-get")]
-    ListFailedMessagesInternalMessagesFailedMessageIdGet(ListFailedMessagesInternalMessagesFailedMessageIdGetArgs),
+    ListFailedMessagesInternalMessagesFailedMessageIdGet(
+        ListFailedMessagesInternalMessagesFailedMessageIdGetArgs,
+    ),
     /// List Processed Messages
     #[command(name = "list-processed-messages-internal-messages-processed-message-id-get")]
-    ListProcessedMessagesInternalMessagesProcessedMessageIdGet(ListProcessedMessagesInternalMessagesProcessedMessageIdGetArgs),
+    ListProcessedMessagesInternalMessagesProcessedMessageIdGet(
+        ListProcessedMessagesInternalMessagesProcessedMessageIdGetArgs,
+    ),
     /// Send V2
     #[command(name = "send-v2-internal-v2-email-send-post")]
     SendV2InternalV2EmailSendPost(SendV2InternalV2EmailSendPostArgs),
@@ -67,13 +71,19 @@ pub enum MessageSchedulerCommands {
     GetRoleMappingPublicRolesMappingsUserIdGet(GetRoleMappingPublicRolesMappingsUserIdGetArgs),
     /// Create Role Mapping
     #[command(name = "create-role-mapping-public-roles-mappings-user-id-post")]
-    CreateRoleMappingPublicRolesMappingsUserIdPost(CreateRoleMappingPublicRolesMappingsUserIdPostArgs),
+    CreateRoleMappingPublicRolesMappingsUserIdPost(
+        CreateRoleMappingPublicRolesMappingsUserIdPostArgs,
+    ),
     /// Update Role Mapping
     #[command(name = "update-role-mapping-public-roles-mappings-user-id-put")]
-    UpdateRoleMappingPublicRolesMappingsUserIdPut(UpdateRoleMappingPublicRolesMappingsUserIdPutArgs),
+    UpdateRoleMappingPublicRolesMappingsUserIdPut(
+        UpdateRoleMappingPublicRolesMappingsUserIdPutArgs,
+    ),
     /// Delete Role Mapping
     #[command(name = "delete-role-mapping-public-roles-mappings-user-id-delete")]
-    DeleteRoleMappingPublicRolesMappingsUserIdDelete(DeleteRoleMappingPublicRolesMappingsUserIdDeleteArgs),
+    DeleteRoleMappingPublicRolesMappingsUserIdDelete(
+        DeleteRoleMappingPublicRolesMappingsUserIdDeleteArgs,
+    ),
     /// Get Current User Mapping
     #[command(name = "get-current-user-mapping-public-roles-me-get")]
     GetCurrentUserMappingPublicRolesMeGet(GetCurrentUserMappingPublicRolesMeGetArgs),
@@ -86,8 +96,7 @@ pub enum MessageSchedulerCommands {
 }
 
 #[derive(Parser)]
-pub struct HealthcheckHealthzGetArgs {
-}
+pub struct HealthcheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct SendBulkInternalEmailBulkPostArgs {
@@ -104,8 +113,7 @@ pub struct SendInternalEmailSendPostArgs {
 }
 
 #[derive(Parser)]
-pub struct HealthcheckInternalHealthzGetArgs {
-}
+pub struct HealthcheckInternalHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct ListFailedMessagesInternalMessagesFailedMessageIdGetArgs {
@@ -133,8 +141,7 @@ pub struct SendV2InternalV2EmailSendPostArgs {
 }
 
 #[derive(Parser)]
-pub struct ListActionPublicActionsGetArgs {
-}
+pub struct ListActionPublicActionsGetArgs {}
 
 #[derive(Parser)]
 pub struct CreateActionPublicActionsPostArgs {
@@ -144,12 +151,10 @@ pub struct CreateActionPublicActionsPostArgs {
 }
 
 #[derive(Parser)]
-pub struct ListActionEventsPublicActionsEventsGetArgs {
-}
+pub struct ListActionEventsPublicActionsEventsGetArgs {}
 
 #[derive(Parser)]
-pub struct ListActionTypesPublicActionsTypesGetArgs {
-}
+pub struct ListActionTypesPublicActionsTypesGetArgs {}
 
 #[derive(Parser)]
 pub struct GetActionPublicActionsActionIdGetArgs {
@@ -162,12 +167,10 @@ pub struct DeleteActionPublicActionsActionIdDeleteArgs {
 }
 
 #[derive(Parser)]
-pub struct HealthcheckPublicHealthzGetArgs {
-}
+pub struct HealthcheckPublicHealthzGetArgs {}
 
 #[derive(Parser)]
-pub struct GetRoleMappingsPublicRolesMappingsGetArgs {
-}
+pub struct GetRoleMappingsPublicRolesMappingsGetArgs {}
 
 #[derive(Parser)]
 pub struct GetRoleMappingPublicRolesMappingsUserIdGetArgs {
@@ -198,16 +201,13 @@ pub struct DeleteRoleMappingPublicRolesMappingsUserIdDeleteArgs {
 }
 
 #[derive(Parser)]
-pub struct GetCurrentUserMappingPublicRolesMeGetArgs {
-}
+pub struct GetCurrentUserMappingPublicRolesMeGetArgs {}
 
 #[derive(Parser)]
-pub struct GetRolesPublicRolesRolesGetArgs {
-}
+pub struct GetRolesPublicRolesRolesGetArgs {}
 
 #[derive(Parser)]
-pub struct ListEmailTemplatesPublicTemplatesEmailGetArgs {
-}
+pub struct ListEmailTemplatesPublicTemplatesEmailGetArgs {}
 
 pub struct MessageSchedulerClient {
     base_path: String,
@@ -215,10 +215,15 @@ pub struct MessageSchedulerClient {
 
 impl MessageSchedulerClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn healthcheck_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn healthcheck_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -227,27 +232,42 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn send_bulk_internal_email_bulk_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn send_bulk_internal_email_bulk_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/internal/email/bulk", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn send_internal_email_send_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn send_internal_email_send_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/internal/email/send", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn healthcheck_internal_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn healthcheck_internal_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/internal/healthz", self.base_path);
         let request = client.get(&url);
@@ -256,39 +276,76 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_failed_messages_internal_messages_failed_message_id_get(&self, ctx: &CommandContext, message_id: String, offset: Option<i32>, limit: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_failed_messages_internal_messages_failed_message_id_get(
+        &self,
+        ctx: &CommandContext,
+        message_id: String,
+        offset: Option<i32>,
+        limit: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/internal/messages/failed/{message_id}", self.base_path, message_id = message_id);
+        let url = format!(
+            "{}/internal/messages/failed/{message_id}",
+            self.base_path,
+            message_id = message_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_processed_messages_internal_messages_processed_message_id_get(&self, ctx: &CommandContext, message_id: String, offset: Option<i32>, limit: Option<i32>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_processed_messages_internal_messages_processed_message_id_get(
+        &self,
+        ctx: &CommandContext,
+        message_id: String,
+        offset: Option<i32>,
+        limit: Option<i32>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/internal/messages/processed/{message_id}", self.base_path, message_id = message_id);
+        let url = format!(
+            "{}/internal/messages/processed/{message_id}",
+            self.base_path,
+            message_id = message_id
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &offset { request = request.query(&[("offset", v)]); }
-        if let Some(v) = &limit { request = request.query(&[("limit", v)]); }
+        if let Some(v) = &offset {
+            request = request.query(&[("offset", v)]);
+        }
+        if let Some(v) = &limit {
+            request = request.query(&[("limit", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn send_v2_internal_v2_email_send_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn send_v2_internal_v2_email_send_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/internal/v2/email/send", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_action_public_actions_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_action_public_actions_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/actions", self.base_path);
         let request = client.get(&url);
@@ -297,17 +354,26 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_action_public_actions_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_action_public_actions_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/actions", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_action_events_public_actions_events_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_action_events_public_actions_events_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/actions/events/", self.base_path);
         let request = client.get(&url);
@@ -316,7 +382,10 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_action_types_public_actions_types_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_action_types_public_actions_types_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/actions/types/", self.base_path);
         let request = client.get(&url);
@@ -325,25 +394,44 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_action_public_actions_action_id_get(&self, ctx: &CommandContext, action_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_action_public_actions_action_id_get(
+        &self,
+        ctx: &CommandContext,
+        action_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/actions/{action_id}", self.base_path, action_id = action_id);
+        let url = format!(
+            "{}/public/actions/{action_id}",
+            self.base_path,
+            action_id = action_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_action_public_actions_action_id_delete(&self, ctx: &CommandContext, action_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_action_public_actions_action_id_delete(
+        &self,
+        ctx: &CommandContext,
+        action_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/actions/{action_id}", self.base_path, action_id = action_id);
+        let url = format!(
+            "{}/public/actions/{action_id}",
+            self.base_path,
+            action_id = action_id
+        );
         let request = client.delete(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn healthcheck_public_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn healthcheck_public_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/healthz", self.base_path);
         let request = client.get(&url);
@@ -352,7 +440,10 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_role_mappings_public_roles_mappings_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_role_mappings_public_roles_mappings_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/roles/mappings", self.base_path);
         let request = client.get(&url);
@@ -361,46 +452,90 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_role_mapping_public_roles_mappings_user_id_get(&self, ctx: &CommandContext, user_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_role_mapping_public_roles_mappings_user_id_get(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/public/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_role_mapping_public_roles_mappings_user_id_post(&self, ctx: &CommandContext, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_role_mapping_public_roles_mappings_user_id_post(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/public/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_role_mapping_public_roles_mappings_user_id_put(&self, ctx: &CommandContext, user_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_role_mapping_public_roles_mappings_user_id_put(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/public/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn delete_role_mapping_public_roles_mappings_user_id_delete(&self, ctx: &CommandContext, user_id: String, role: Option<String>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn delete_role_mapping_public_roles_mappings_user_id_delete(
+        &self,
+        ctx: &CommandContext,
+        user_id: String,
+        role: Option<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/public/roles/mappings/{user_id}", self.base_path, user_id = user_id);
+        let url = format!(
+            "{}/public/roles/mappings/{user_id}",
+            self.base_path,
+            user_id = user_id
+        );
         let mut request = client.delete(&url);
-        if let Some(v) = &role { request = request.query(&[("role", v)]); }
+        if let Some(v) = &role {
+            request = request.query(&[("role", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_current_user_mapping_public_roles_me_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_current_user_mapping_public_roles_me_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/roles/me", self.base_path);
         let request = client.get(&url);
@@ -409,7 +544,10 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_roles_public_roles_roles_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_roles_public_roles_roles_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/roles/roles", self.base_path);
         let request = client.get(&url);
@@ -418,7 +556,10 @@ impl MessageSchedulerClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn list_email_templates_public_templates_email_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn list_email_templates_public_templates_email_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/public/templates/email", self.base_path);
         let request = client.get(&url);
@@ -426,5 +567,4 @@ impl MessageSchedulerClient {
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

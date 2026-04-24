@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "gateway_analytics")]
@@ -22,16 +22,24 @@ pub enum GatewayAnalyticsCommands {
     HealthCheckHealthzGet(HealthCheckHealthzGetArgs),
     /// Get Bi Monthly Org Metrics
     #[command(name = "get-bi-monthly-org-metrics-reports-org-name-bi-monthly-org-metrics-get")]
-    GetBiMonthlyOrgMetricsReportsOrgNameBiMonthlyOrgMetricsGet(GetBiMonthlyOrgMetricsReportsOrgNameBiMonthlyOrgMetricsGetArgs),
+    GetBiMonthlyOrgMetricsReportsOrgNameBiMonthlyOrgMetricsGet(
+        GetBiMonthlyOrgMetricsReportsOrgNameBiMonthlyOrgMetricsGetArgs,
+    ),
     /// Get Bi Weekly Org Metrics
     #[command(name = "get-bi-weekly-org-metrics-reports-org-name-bi-weekly-org-metrics-get")]
-    GetBiWeeklyOrgMetricsReportsOrgNameBiWeeklyOrgMetricsGet(GetBiWeeklyOrgMetricsReportsOrgNameBiWeeklyOrgMetricsGetArgs),
+    GetBiWeeklyOrgMetricsReportsOrgNameBiWeeklyOrgMetricsGet(
+        GetBiWeeklyOrgMetricsReportsOrgNameBiWeeklyOrgMetricsGetArgs,
+    ),
     /// Get Settings From Payments
     #[command(name = "get-settings-from-payments-settings-payments-org-id-get")]
-    GetSettingsFromPaymentsSettingsPaymentsOrgIdGet(GetSettingsFromPaymentsSettingsPaymentsOrgIdGetArgs),
+    GetSettingsFromPaymentsSettingsPaymentsOrgIdGet(
+        GetSettingsFromPaymentsSettingsPaymentsOrgIdGetArgs,
+    ),
     /// Update Settings From Payments
     #[command(name = "update-settings-from-payments-settings-payments-org-id-put")]
-    UpdateSettingsFromPaymentsSettingsPaymentsOrgIdPut(UpdateSettingsFromPaymentsSettingsPaymentsOrgIdPutArgs),
+    UpdateSettingsFromPaymentsSettingsPaymentsOrgIdPut(
+        UpdateSettingsFromPaymentsSettingsPaymentsOrgIdPutArgs,
+    ),
     /// Get Settings
     #[command(name = "get-settings-settings-org-name-get")]
     GetSettingsSettingsOrgNameGet(GetSettingsSettingsOrgNameGetArgs),
@@ -41,8 +49,7 @@ pub enum GatewayAnalyticsCommands {
 }
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct GetBiMonthlyOrgMetricsReportsOrgNameBiMonthlyOrgMetricsGetArgs {
@@ -86,10 +93,15 @@ pub struct GatewayAnalyticsClient {
 
 impl GatewayAnalyticsClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -98,60 +110,113 @@ impl GatewayAnalyticsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_bi_monthly_org_metrics_reports_org_name_bi_monthly_org_metrics_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_bi_monthly_org_metrics_reports_org_name_bi_monthly_org_metrics_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/reports/{org_name}/bi_monthly_org_metrics", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/reports/{org_name}/bi_monthly_org_metrics",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_bi_weekly_org_metrics_reports_org_name_bi_weekly_org_metrics_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_bi_weekly_org_metrics_reports_org_name_bi_weekly_org_metrics_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/reports/{org_name}/bi_weekly_org_metrics", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/reports/{org_name}/bi_weekly_org_metrics",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_settings_from_payments_settings_payments_org_id_get(&self, ctx: &CommandContext, org_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_settings_from_payments_settings_payments_org_id_get(
+        &self,
+        ctx: &CommandContext,
+        org_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/settings/payments/{org_id}", self.base_path, org_id = org_id);
+        let url = format!(
+            "{}/settings/payments/{org_id}",
+            self.base_path,
+            org_id = org_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_settings_from_payments_settings_payments_org_id_put(&self, ctx: &CommandContext, org_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_settings_from_payments_settings_payments_org_id_put(
+        &self,
+        ctx: &CommandContext,
+        org_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/settings/payments/{org_id}", self.base_path, org_id = org_id);
+        let url = format!(
+            "{}/settings/payments/{org_id}",
+            self.base_path,
+            org_id = org_id
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_settings_settings_org_name_get(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_settings_settings_org_name_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/settings/{org_name}", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/settings/{org_name}",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_settings_settings_org_name_put(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_settings_settings_org_name_put(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/settings/{org_name}", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/settings/{org_name}",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use clap::{Parser, Subcommand};
 use crate::context::CommandContext;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "payments")]
@@ -22,7 +22,9 @@ pub enum PaymentsCommands {
     CreateBillingPortalSessionBillingPortalPost(CreateBillingPortalSessionBillingPortalPostArgs),
     /// Get Billing Config
     #[command(name = "get-billing-config-billing-portal-config-persona-get")]
-    GetBillingConfigBillingPortalConfigPersonaGet(GetBillingConfigBillingPortalConfigPersonaGetArgs),
+    GetBillingConfigBillingPortalConfigPersonaGet(
+        GetBillingConfigBillingPortalConfigPersonaGetArgs,
+    ),
     /// Calculate Tax
     #[command(name = "calculate-tax-calculate-tax-post")]
     CalculateTaxCalculateTaxPost(CalculateTaxCalculateTaxPostArgs),
@@ -31,10 +33,16 @@ pub enum PaymentsCommands {
     CreateCheckoutSessionCheckoutSessionPost(CreateCheckoutSessionCheckoutSessionPostArgs),
     /// Get Checkout Session
     #[command(name = "get-checkout-session-checkout-session-session-id-get")]
-    GetCheckoutSessionCheckoutSessionSessionIdGet(GetCheckoutSessionCheckoutSessionSessionIdGetArgs),
+    GetCheckoutSessionCheckoutSessionSessionIdGet(
+        GetCheckoutSessionCheckoutSessionSessionIdGetArgs,
+    ),
     /// Get Checkout Session Payment Data
-    #[command(name = "get-checkout-session-payment-data-checkout-session-session-id-payment-data-get")]
-    GetCheckoutSessionPaymentDataCheckoutSessionSessionIdPaymentDataGet(GetCheckoutSessionPaymentDataCheckoutSessionSessionIdPaymentDataGetArgs),
+    #[command(
+        name = "get-checkout-session-payment-data-checkout-session-session-id-payment-data-get"
+    )]
+    GetCheckoutSessionPaymentDataCheckoutSessionSessionIdPaymentDataGet(
+        GetCheckoutSessionPaymentDataCheckoutSessionSessionIdPaymentDataGetArgs,
+    ),
     /// Stripe Config
     #[command(name = "stripe-config-config-get")]
     StripeConfigConfigGet(StripeConfigConfigGetArgs),
@@ -63,23 +71,41 @@ pub enum PaymentsCommands {
     #[command(name = "health-check-healthz-get")]
     HealthCheckHealthzGet(HealthCheckHealthzGetArgs),
     /// Create Org Billing Portal Session
-    #[command(name = "create-org-billing-portal-session-organizations-org-name-billing-portal-post")]
-    CreateOrgBillingPortalSessionOrganizationsOrgNameBillingPortalPost(CreateOrgBillingPortalSessionOrganizationsOrgNameBillingPortalPostArgs),
+    #[command(
+        name = "create-org-billing-portal-session-organizations-org-name-billing-portal-post"
+    )]
+    CreateOrgBillingPortalSessionOrganizationsOrgNameBillingPortalPost(
+        CreateOrgBillingPortalSessionOrganizationsOrgNameBillingPortalPostArgs,
+    ),
     /// Get Or Create Organization Customer
     #[command(name = "get-or-create-organization-customer-organizations-org-name-customer-post")]
-    GetOrCreateOrganizationCustomerOrganizationsOrgNameCustomerPost(GetOrCreateOrganizationCustomerOrganizationsOrgNameCustomerPostArgs),
+    GetOrCreateOrganizationCustomerOrganizationsOrgNameCustomerPost(
+        GetOrCreateOrganizationCustomerOrganizationsOrgNameCustomerPostArgs,
+    ),
     /// Update Organization Customer
     #[command(name = "update-organization-customer-organizations-org-name-customer-patch")]
-    UpdateOrganizationCustomerOrganizationsOrgNameCustomerPatch(UpdateOrganizationCustomerOrganizationsOrgNameCustomerPatchArgs),
+    UpdateOrganizationCustomerOrganizationsOrgNameCustomerPatch(
+        UpdateOrganizationCustomerOrganizationsOrgNameCustomerPatchArgs,
+    ),
     /// Create new tax ids for a customer
-    #[command(name = "add-organization-customer-tax-ids-organizations-org-name-customer-tax-ids-post")]
-    AddOrganizationCustomerTaxIdsOrganizationsOrgNameCustomerTaxIdsPost(AddOrganizationCustomerTaxIdsOrganizationsOrgNameCustomerTaxIdsPostArgs),
+    #[command(
+        name = "add-organization-customer-tax-ids-organizations-org-name-customer-tax-ids-post"
+    )]
+    AddOrganizationCustomerTaxIdsOrganizationsOrgNameCustomerTaxIdsPost(
+        AddOrganizationCustomerTaxIdsOrganizationsOrgNameCustomerTaxIdsPostArgs,
+    ),
     /// Get Organization Subscriptions
     #[command(name = "get-organization-subscriptions-organizations-org-name-subscriptions-get")]
-    GetOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsGet(GetOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsGetArgs),
+    GetOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsGet(
+        GetOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsGetArgs,
+    ),
     /// Update Organization Subscriptions
-    #[command(name = "update-organization-subscriptions-organizations-org-name-subscriptions-patch")]
-    UpdateOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsPatch(UpdateOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsPatchArgs),
+    #[command(
+        name = "update-organization-subscriptions-organizations-org-name-subscriptions-patch"
+    )]
+    UpdateOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsPatch(
+        UpdateOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsPatchArgs,
+    ),
     /// Get Purchases
     #[command(name = "get-purchases-purchases-get")]
     GetPurchasesPurchasesGet(GetPurchasesPurchasesGetArgs),
@@ -100,7 +126,9 @@ pub enum PaymentsCommands {
     UpdateSubscriptionSubscriptionsPatch(UpdateSubscriptionSubscriptionsPatchArgs),
     /// Resume Subscription
     #[command(name = "resume-subscription-subscriptions-subscription-id-resume-patch")]
-    ResumeSubscriptionSubscriptionsSubscriptionIdResumePatch(ResumeSubscriptionSubscriptionsSubscriptionIdResumePatchArgs),
+    ResumeSubscriptionSubscriptionsSubscriptionIdResumePatch(
+        ResumeSubscriptionSubscriptionsSubscriptionIdResumePatchArgs,
+    ),
 }
 
 #[derive(Parser)]
@@ -151,8 +179,7 @@ pub struct StripeConfigPerProductConfigPlatformGetArgs {
 }
 
 #[derive(Parser)]
-pub struct GetOrCreateIndividualCustomerCustomerPostArgs {
-}
+pub struct GetOrCreateIndividualCustomerCustomerPostArgs {}
 
 #[derive(Parser)]
 pub struct UpdateCustomerCustomerPatchArgs {
@@ -174,16 +201,13 @@ pub struct GetCustomerDetailsCustomerCustomerIdGetArgs {
 }
 
 #[derive(Parser)]
-pub struct EduCheksEduChecksGetArgs {
-}
+pub struct EduCheksEduChecksGetArgs {}
 
 #[derive(Parser)]
-pub struct EnrollEduEduEnrollPostArgs {
-}
+pub struct EnrollEduEduEnrollPostArgs {}
 
 #[derive(Parser)]
-pub struct HealthCheckHealthzGetArgs {
-}
+pub struct HealthCheckHealthzGetArgs {}
 
 #[derive(Parser)]
 pub struct CreateOrgBillingPortalSessionOrganizationsOrgNameBillingPortalPostArgs {
@@ -231,12 +255,10 @@ pub struct UpdateOrganizationSubscriptionsOrganizationsOrgNameSubscriptionsPatch
 }
 
 #[derive(Parser)]
-pub struct GetPurchasesPurchasesGetArgs {
-}
+pub struct GetPurchasesPurchasesGetArgs {}
 
 #[derive(Parser)]
-pub struct QuotaQuotaGetArgs {
-}
+pub struct QuotaQuotaGetArgs {}
 
 #[derive(Parser)]
 pub struct ReserveQuotaQuotaReservePostArgs {
@@ -278,77 +300,131 @@ pub struct PaymentsClient {
 
 impl PaymentsClient {
     pub fn new(base_path: &str) -> Self {
-        Self { base_path: base_path.to_string() }
+        Self {
+            base_path: base_path.to_string(),
+        }
     }
 
-    pub async fn create_billing_portal_session_billing_portal_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_billing_portal_session_billing_portal_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/billing_portal", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_billing_config_billing_portal_config_persona_get(&self, ctx: &CommandContext, persona: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_billing_config_billing_portal_config_persona_get(
+        &self,
+        ctx: &CommandContext,
+        persona: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/billing_portal/config/{persona}", self.base_path, persona = persona);
+        let url = format!(
+            "{}/billing_portal/config/{persona}",
+            self.base_path,
+            persona = persona
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn calculate_tax_calculate_tax_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn calculate_tax_calculate_tax_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/calculate_tax", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_checkout_session_checkout_session_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_checkout_session_checkout_session_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/checkout_session", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_checkout_session_checkout_session_session_id_get(&self, ctx: &CommandContext, session_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_checkout_session_checkout_session_session_id_get(
+        &self,
+        ctx: &CommandContext,
+        session_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/checkout_session/{session_id}", self.base_path, session_id = session_id);
+        let url = format!(
+            "{}/checkout_session/{session_id}",
+            self.base_path,
+            session_id = session_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_checkout_session_payment_data_checkout_session_session_id_payment_data_get(&self, ctx: &CommandContext, session_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_checkout_session_payment_data_checkout_session_session_id_payment_data_get(
+        &self,
+        ctx: &CommandContext,
+        session_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/checkout_session/{session_id}/payment-data", self.base_path, session_id = session_id);
+        let url = format!(
+            "{}/checkout_session/{session_id}/payment-data",
+            self.base_path,
+            session_id = session_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn stripe_config_config_get(&self, ctx: &CommandContext, include_inactive: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn stripe_config_config_get(
+        &self,
+        ctx: &CommandContext,
+        include_inactive: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/config", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &include_inactive { request = request.query(&[("include_inactive", v)]); }
+        if let Some(v) = &include_inactive {
+            request = request.query(&[("include_inactive", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn stripe_config_per_product_config_platform_get(&self, ctx: &CommandContext, platform: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn stripe_config_per_product_config_platform_get(
+        &self,
+        ctx: &CommandContext,
+        platform: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/config/{platform}", self.base_path, platform = platform);
         let request = client.get(&url);
@@ -357,7 +433,10 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_or_create_individual_customer_customer_post(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_or_create_individual_customer_customer_post(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/customer", self.base_path);
         let request = client.post(&url);
@@ -366,36 +445,59 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_customer_customer_patch(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_customer_customer_patch(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/customer", self.base_path);
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn add_customer_tax_ids_customer_tax_ids_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn add_customer_tax_ids_customer_tax_ids_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/customer/tax_ids", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_customer_details_customer_customer_id_get(&self, ctx: &CommandContext, customer_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_customer_details_customer_customer_id_get(
+        &self,
+        ctx: &CommandContext,
+        customer_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/customer/{customer_id}", self.base_path, customer_id = customer_id);
+        let url = format!(
+            "{}/customer/{customer_id}",
+            self.base_path,
+            customer_id = customer_id
+        );
         let request = client.get(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn edu_cheks_edu_checks_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn edu_cheks_edu_checks_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/edu/checks", self.base_path);
         let request = client.get(&url);
@@ -404,7 +506,10 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn enroll_edu_edu_enroll_post(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn enroll_edu_edu_enroll_post(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/edu/enroll", self.base_path);
         let request = client.post(&url);
@@ -413,7 +518,10 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn health_check_healthz_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn health_check_healthz_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/healthz", self.base_path);
         let request = client.get(&url);
@@ -422,66 +530,132 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn create_org_billing_portal_session_organizations_org_name_billing_portal_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn create_org_billing_portal_session_organizations_org_name_billing_portal_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}/billing_portal", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}/billing_portal",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_or_create_organization_customer_organizations_org_name_customer_post(&self, ctx: &CommandContext, org_name: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_or_create_organization_customer_organizations_org_name_customer_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}/customer", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}/customer",
+            self.base_path,
+            org_name = org_name
+        );
         let request = client.post(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_organization_customer_organizations_org_name_customer_patch(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_organization_customer_organizations_org_name_customer_patch(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}/customer", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}/customer",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn add_organization_customer_tax_ids_organizations_org_name_customer_tax_ids_post(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn add_organization_customer_tax_ids_organizations_org_name_customer_tax_ids_post(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}/customer/tax_ids", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}/customer/tax_ids",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_organization_subscriptions_organizations_org_name_subscriptions_get(&self, ctx: &CommandContext, org_name: String, extended: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_organization_subscriptions_organizations_org_name_subscriptions_get(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        extended: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}/subscriptions", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}/subscriptions",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.get(&url);
-        if let Some(v) = &extended { request = request.query(&[("extended", v)]); }
+        if let Some(v) = &extended {
+            request = request.query(&[("extended", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_organization_subscriptions_organizations_org_name_subscriptions_patch(&self, ctx: &CommandContext, org_name: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_organization_subscriptions_organizations_org_name_subscriptions_patch(
+        &self,
+        ctx: &CommandContext,
+        org_name: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/organizations/{org_name}/subscriptions", self.base_path, org_name = org_name);
+        let url = format!(
+            "{}/organizations/{org_name}/subscriptions",
+            self.base_path,
+            org_name = org_name
+        );
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_purchases_purchases_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_purchases_purchases_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/purchases", self.base_path);
         let request = client.get(&url);
@@ -490,7 +664,10 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn quota_quota_get(&self, ctx: &CommandContext) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn quota_quota_get(
+        &self,
+        ctx: &CommandContext,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/quota", self.base_path);
         let request = client.get(&url);
@@ -499,53 +676,89 @@ impl PaymentsClient {
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn reserve_quota_quota_reserve_post(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn reserve_quota_quota_reserve_post(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/quota/reserve", self.base_path);
         let mut request = client.post(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn adjust_quota_quota_reserve_meter_event_id_put(&self, ctx: &CommandContext, meter_event_id: String, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn adjust_quota_quota_reserve_meter_event_id_put(
+        &self,
+        ctx: &CommandContext,
+        meter_event_id: String,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/quota/reserve/{meter_event_id}", self.base_path, meter_event_id = meter_event_id);
+        let url = format!(
+            "{}/quota/reserve/{meter_event_id}",
+            self.base_path,
+            meter_event_id = meter_event_id
+        );
         let mut request = client.put(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn get_subscriptions_subscriptions_get(&self, ctx: &CommandContext, extended: Option<bool>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn get_subscriptions_subscriptions_get(
+        &self,
+        ctx: &CommandContext,
+        extended: Option<bool>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/subscriptions", self.base_path);
         let mut request = client.get(&url);
-        if let Some(v) = &extended { request = request.query(&[("extended", v)]); }
+        if let Some(v) = &extended {
+            request = request.query(&[("extended", v)]);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn update_subscription_subscriptions_patch(&self, ctx: &CommandContext, json: Option<serde_json::Value>) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn update_subscription_subscriptions_patch(
+        &self,
+        ctx: &CommandContext,
+        json: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
         let url = format!("{}/subscriptions", self.base_path);
         let mut request = client.patch(&url);
-        if let Some(j) = json { request = request.json(&j); }
+        if let Some(j) = json {
+            request = request.json(&j);
+        }
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
 
-    pub async fn resume_subscription_subscriptions_subscription_id_resume_patch(&self, ctx: &CommandContext, subscription_id: String) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub async fn resume_subscription_subscriptions_subscription_id_resume_patch(
+        &self,
+        ctx: &CommandContext,
+        subscription_id: String,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let client = ctx.client.as_ref().ok_or("Not logged in")?;
-        let url = format!("{}/subscriptions/{subscription_id}/resume", self.base_path, subscription_id = subscription_id);
+        let url = format!(
+            "{}/subscriptions/{subscription_id}/resume",
+            self.base_path,
+            subscription_id = subscription_id
+        );
         let request = client.patch(&url);
         let response = request.send().await?;
         let text = response.text().await?;
         Ok(serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::String(text)))
     }
-
 }

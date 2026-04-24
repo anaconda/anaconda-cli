@@ -899,10 +899,16 @@ async fn execute_catalogs(
         }
         catalogs::CatalogsCommands::PatchCatalogMetadataCidIdMetadataPatch(args) => {
             let json = args.json.map(|s| serde_json::from_str(&s)).transpose()?;
-            Ok(api.patch_catalog_metadata_cid_id_metadata_patch(ctx, args.id, json).await?)
+            Ok(api
+                .patch_catalog_metadata_cid_id_metadata_patch(ctx, args.id, json)
+                .await?)
         }
-        catalogs::CatalogsCommands::GetExampleCatalogsExamplesGet(_) => Ok(api.get_example_catalogs_examples_get(ctx).await?),
-        catalogs::CatalogsCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
+        catalogs::CatalogsCommands::GetExampleCatalogsExamplesGet(_) => {
+            Ok(api.get_example_catalogs_examples_get(ctx).await?)
+        }
+        catalogs::CatalogsCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
+        }
     }
 }
 
@@ -1084,7 +1090,9 @@ async fn execute_iam(
         iam::IamCommands::PostEmailVerify(args) => {
             Ok(api.post_email_verify(ctx, args.email).await?)
         }
-        iam::IamCommands::GetPublicWellKnownOpenidConfiguration(_) => Ok(api.get_public_well_known_openid_configuration(ctx).await?),
+        iam::IamCommands::GetPublicWellKnownOpenidConfiguration(_) => {
+            Ok(api.get_public_well_known_openid_configuration(ctx).await?)
+        }
         iam::IamCommands::GetPublicApiKeys(_) => Ok(api.get_public_api_keys(ctx).await?),
         iam::IamCommands::PostPublicApiKeys(args) => {
             Ok(api.post_public_api_keys(ctx, args.client).await?)
@@ -1116,7 +1124,9 @@ async fn execute_ip_bouncer(
         ip_bouncer::IpBouncerCommands::CheckOrgCheckOrgOrgGet(args) => {
             Ok(api.check_org_check_org_org_get(ctx, args.org).await?)
         }
-        ip_bouncer::IpBouncerCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
+        ip_bouncer::IpBouncerCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
+        }
     }
 }
 
@@ -1127,8 +1137,12 @@ async fn execute_learning(
     let api = learning::LearningClient::new("/api/learning");
 
     match command {
-        learning::LearningCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
-        learning::LearningCommands::IsUserReturningIsReturnerGet(_) => Ok(api.is_user_returning_is_returner_get(ctx).await?),
+        learning::LearningCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
+        }
+        learning::LearningCommands::IsUserReturningIsReturnerGet(_) => {
+            Ok(api.is_user_returning_is_returner_get(ctx).await?)
+        }
     }
 }
 
@@ -1201,21 +1215,32 @@ async fn execute_nbserve(
     let api = nbserve::NbserveClient::new("/api/nbserve");
 
     match command {
-        nbserve::NbserveCommands::GetCatalogByCidExampleCatalogGet(args) => {
-            Ok(api.get_catalog_by_cid_example_catalog_get(ctx, args.catalog_id).await?)
+        nbserve::NbserveCommands::GetCatalogByCidExampleCatalogGet(args) => Ok(api
+            .get_catalog_by_cid_example_catalog_get(ctx, args.catalog_id)
+            .await?),
+        nbserve::NbserveCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
         }
-        nbserve::NbserveCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
-        nbserve::NbserveCommands::GetLaunchNotebookLaunchNotebookGet(args) => {
-            Ok(api.get_launch_notebook_launch_notebook_get(ctx, args.nb_url, args.cid).await?)
-        }
-        nbserve::NbserveCommands::OpenDataCatalogOpenDataCatalogGet(args) => {
-            Ok(api.open_data_catalog_open_data_catalog_get(ctx, args.cid).await?)
-        }
-        nbserve::NbserveCommands::OpenLmsOpenLmsGet(args) => {
-            Ok(api.open_lms_open_lms_get(ctx, args.category_title, args.course_title, args.notebook_title).await?)
-        }
-        nbserve::NbserveCommands::ToolboxCreateNotebookToolboxCreateNotebookGet(_) => Ok(api.toolbox_create_notebook_toolbox_create_notebook_get(ctx).await?),
-        nbserve::NbserveCommands::ToolboxCreateProjectToolboxCreateProjectGet(_) => Ok(api.toolbox_create_project_toolbox_create_project_get(ctx).await?),
+        nbserve::NbserveCommands::GetLaunchNotebookLaunchNotebookGet(args) => Ok(api
+            .get_launch_notebook_launch_notebook_get(ctx, args.nb_url, args.cid)
+            .await?),
+        nbserve::NbserveCommands::OpenDataCatalogOpenDataCatalogGet(args) => Ok(api
+            .open_data_catalog_open_data_catalog_get(ctx, args.cid)
+            .await?),
+        nbserve::NbserveCommands::OpenLmsOpenLmsGet(args) => Ok(api
+            .open_lms_open_lms_get(
+                ctx,
+                args.category_title,
+                args.course_title,
+                args.notebook_title,
+            )
+            .await?),
+        nbserve::NbserveCommands::ToolboxCreateNotebookToolboxCreateNotebookGet(_) => Ok(api
+            .toolbox_create_notebook_toolbox_create_notebook_get(ctx)
+            .await?),
+        nbserve::NbserveCommands::ToolboxCreateProjectToolboxCreateProjectGet(_) => Ok(api
+            .toolbox_create_project_toolbox_create_project_get(ctx)
+            .await?),
     }
 }
 
@@ -1316,28 +1341,42 @@ async fn execute_notebooks(
     let api = notebooks::NotebooksClient::new("/api/notebooks");
 
     match command {
-        notebooks::NotebooksCommands::NotebookConfigsConfigsGet(_) => Ok(api.notebook_configs_configs_get(ctx).await?),
-        notebooks::NotebooksCommands::HealthcheckHealthzGet(_) => Ok(api.healthcheck_healthz_get(ctx).await?),
+        notebooks::NotebooksCommands::NotebookConfigsConfigsGet(_) => {
+            Ok(api.notebook_configs_configs_get(ctx).await?)
+        }
+        notebooks::NotebooksCommands::HealthcheckHealthzGet(_) => {
+            Ok(api.healthcheck_healthz_get(ctx).await?)
+        }
         notebooks::NotebooksCommands::CreatePreviewPreviewPost(args) => {
             let json = args.json.map(|s| serde_json::from_str(&s)).transpose()?;
-            Ok(api.create_preview_preview_post(ctx, args.x_a_p_i_version, json).await?)
+            Ok(api
+                .create_preview_preview_post(ctx, args.x_a_p_i_version, json)
+                .await?)
         }
-        notebooks::NotebooksCommands::GetPreviewBlobPreviewBlobPreviewIdGet(args) => {
-            Ok(api.get_preview_blob_preview_blob_preview_id_get(ctx, args.preview_id, args.x_a_p_i_version).await?)
-        }
-        notebooks::NotebooksCommands::GetPreviewPreviewPreviewIdGet(args) => {
-            Ok(api.get_preview_preview_preview_id_get(ctx, args.preview_id, args.x_a_p_i_version).await?)
-        }
+        notebooks::NotebooksCommands::GetPreviewBlobPreviewBlobPreviewIdGet(args) => Ok(api
+            .get_preview_blob_preview_blob_preview_id_get(
+                ctx,
+                args.preview_id,
+                args.x_a_p_i_version,
+            )
+            .await?),
+        notebooks::NotebooksCommands::GetPreviewPreviewPreviewIdGet(args) => Ok(api
+            .get_preview_preview_preview_id_get(ctx, args.preview_id, args.x_a_p_i_version)
+            .await?),
         notebooks::NotebooksCommands::CreatePreviewDeprecatedV1PreviewPost(args) => {
             let json = args.json.map(|s| serde_json::from_str(&s)).transpose()?;
-            Ok(api.create_preview_deprecated_v1_preview_post(ctx, json).await?)
+            Ok(api
+                .create_preview_deprecated_v1_preview_post(ctx, json)
+                .await?)
         }
         notebooks::NotebooksCommands::GetPreviewBlobDeprecatedV1PreviewBlobPreviewIdGet(args) => {
-            Ok(api.get_preview_blob_deprecated_v1_preview_blob_preview_id_get(ctx, args.preview_id).await?)
+            Ok(api
+                .get_preview_blob_deprecated_v1_preview_blob_preview_id_get(ctx, args.preview_id)
+                .await?)
         }
-        notebooks::NotebooksCommands::GetPreviewDeprecatedV1PreviewPreviewIdGet(args) => {
-            Ok(api.get_preview_deprecated_v1_preview_preview_id_get(ctx, args.preview_id).await?)
-        }
+        notebooks::NotebooksCommands::GetPreviewDeprecatedV1PreviewPreviewIdGet(args) => Ok(api
+            .get_preview_deprecated_v1_preview_preview_id_get(ctx, args.preview_id)
+            .await?),
     }
 }
 
@@ -1462,7 +1501,9 @@ async fn execute_permissions(
     let api = permissions::PermissionsClient::new("/api/permissions");
 
     match command {
-        permissions::PermissionsCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
+        permissions::PermissionsCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
+        }
     }
 }
 
@@ -1570,43 +1611,114 @@ async fn execute_search(
     let api = search::SearchClient::new("/api/search");
 
     match command {
-        search::SearchCommands::ExpandedSearchGet(args) => {
-            Ok(api.expanded_search_get(ctx, args.query, args.include_deleted).await?)
-        }
+        search::SearchCommands::ExpandedSearchGet(args) => Ok(api
+            .expanded_search_get(ctx, args.query, args.include_deleted)
+            .await?),
         search::SearchCommands::AutocompleteAutocompleteGet(args) => {
             Ok(api.autocomplete_autocomplete_get(ctx, args.query).await?)
         }
-        search::SearchCommands::SearchCollectionsAndFilesCollectionsAndFilesGet(args) => {
-            Ok(api.search_collections_and_files_collections_and_files_get(ctx, args.query, args.page, args.page_size, args.collections_limit, args.collection_files_limit, args.include_deleted, args.min_file_size, args.max_file_size, args.created_date_range, args.created_date, args.updated_date_range, args.updated_date, args.ownership, args.file_extensions).await?)
+        search::SearchCommands::SearchCollectionsAndFilesCollectionsAndFilesGet(args) => Ok(api
+            .search_collections_and_files_collections_and_files_get(
+                ctx,
+                args.query,
+                args.page,
+                args.page_size,
+                args.collections_limit,
+                args.collection_files_limit,
+                args.include_deleted,
+                args.min_file_size,
+                args.max_file_size,
+                args.created_date_range,
+                args.created_date,
+                args.updated_date_range,
+                args.updated_date,
+                args.ownership,
+                args.file_extensions,
+            )
+            .await?),
+        search::SearchCommands::DocumentationDocumentationGet(args) => Ok(api
+            .documentation_documentation_get(
+                ctx,
+                args.query,
+                args.page,
+                args.page_size,
+                args.types,
+                args.keywords,
+            )
+            .await?),
+        search::SearchCommands::SearchEnvironmentsEnvironmentsGet(args) => Ok(api
+            .search_environments_environments_get(
+                ctx,
+                args.query,
+                args.page,
+                args.page_size,
+                args.include_deleted,
+                args.platforms,
+                args.status,
+                args.username,
+                args.created_date_range,
+                args.created_date,
+                args.updated_date_range,
+                args.updated_date,
+            )
+            .await?),
+        search::SearchCommands::SearchEnvironmentUsernamesEnvironmentsUsernamesGet(args) => Ok(api
+            .search_environment_usernames_environments_usernames_get(
+                ctx,
+                args.query,
+                args.include_deleted,
+                args.platforms,
+                args.status,
+                args.created_date_range,
+                args.created_date,
+                args.updated_date_range,
+                args.updated_date,
+            )
+            .await?),
+        search::SearchCommands::ForumSearchForumGet(args) => Ok(api
+            .forum_search_forum_get(
+                ctx,
+                args.query,
+                args.page,
+                args.page_size,
+                args.replies,
+                args.last_updated_after,
+                args.views,
+                args.types,
+            )
+            .await?),
+        search::SearchCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
         }
-        search::SearchCommands::DocumentationDocumentationGet(args) => {
-            Ok(api.documentation_documentation_get(ctx, args.query, args.page, args.page_size, args.types, args.keywords).await?)
-        }
-        search::SearchCommands::SearchEnvironmentsEnvironmentsGet(args) => {
-            Ok(api.search_environments_environments_get(ctx, args.query, args.page, args.page_size, args.include_deleted, args.platforms, args.status, args.username, args.created_date_range, args.created_date, args.updated_date_range, args.updated_date).await?)
-        }
-        search::SearchCommands::SearchEnvironmentUsernamesEnvironmentsUsernamesGet(args) => {
-            Ok(api.search_environment_usernames_environments_usernames_get(ctx, args.query, args.include_deleted, args.platforms, args.status, args.created_date_range, args.created_date, args.updated_date_range, args.updated_date).await?)
-        }
-        search::SearchCommands::ForumSearchForumGet(args) => {
-            Ok(api.forum_search_forum_get(ctx, args.query, args.page, args.page_size, args.replies, args.last_updated_after, args.views, args.types).await?)
-        }
-        search::SearchCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
         search::SearchCommands::GetSearchHistoryHistoryGet(args) => {
             Ok(api.get_search_history_history_get(ctx, args.limit).await?)
         }
-        search::SearchCommands::DeleteSearchHistoryHistoryDelete(args) => {
-            Ok(api.delete_search_history_history_delete(ctx, args.query).await?)
-        }
-        search::SearchCommands::AiModelsModelsGet(args) => {
-            Ok(api.ai_models_models_get(ctx, args.query, args.page, args.page_size).await?)
-        }
-        search::SearchCommands::SearchPublicPackagesPackagesGet(args) => {
-            Ok(api.search_public_packages_packages_get(ctx, args.query, args.page, args.page_size, args.group_top_n, args.sort_key, args.sort_key_reverse, args.include_wheels, args.include_repocore_channels, args.channels, args.licenses, args.platforms, args.package_types).await?)
-        }
-        search::SearchCommands::GetSearchContextSearchContextGet(args) => {
-            Ok(api.get_search_context_search_context_get(ctx, args.query, args.limit).await?)
-        }
+        search::SearchCommands::DeleteSearchHistoryHistoryDelete(args) => Ok(api
+            .delete_search_history_history_delete(ctx, args.query)
+            .await?),
+        search::SearchCommands::AiModelsModelsGet(args) => Ok(api
+            .ai_models_models_get(ctx, args.query, args.page, args.page_size)
+            .await?),
+        search::SearchCommands::SearchPublicPackagesPackagesGet(args) => Ok(api
+            .search_public_packages_packages_get(
+                ctx,
+                args.query,
+                args.page,
+                args.page_size,
+                args.group_top_n,
+                args.sort_key,
+                args.sort_key_reverse,
+                args.include_wheels,
+                args.include_repocore_channels,
+                args.channels,
+                args.licenses,
+                args.platforms,
+                args.package_types,
+            )
+            .await?),
+        search::SearchCommands::GetSearchContextSearchContextGet(args) => Ok(api
+            .get_search_context_search_context_get(ctx, args.query, args.limit)
+            .await?),
     }
 }
 
@@ -1654,17 +1766,20 @@ async fn execute_usernames(
             let json = args.json.map(|s| serde_json::from_str(&s)).transpose()?;
             Ok(api.create_username_put(ctx, json).await?)
         }
-        usernames::UsernamesCommands::HealthCheckHealthzGet(_) => Ok(api.health_check_healthz_get(ctx).await?),
+        usernames::UsernamesCommands::HealthCheckHealthzGet(_) => {
+            Ok(api.health_check_healthz_get(ctx).await?)
+        }
         usernames::UsernamesCommands::GetUsernameUsernameGet(args) => {
             Ok(api.get_username_username_get(ctx, args.username).await?)
         }
-        usernames::UsernamesCommands::DeleteUsernameUsernameDelete(args) => {
-            Ok(api.delete_username_username_delete(ctx, args.username).await?)
-        }
+        usernames::UsernamesCommands::DeleteUsernameUsernameDelete(args) => Ok(api
+            .delete_username_username_delete(ctx, args.username)
+            .await?),
         usernames::UsernamesCommands::UpdateUsernameDataUsernamePatch(args) => {
             let json = args.json.map(|s| serde_json::from_str(&s)).transpose()?;
-            Ok(api.update_username_data_username_patch(ctx, args.username, json).await?)
+            Ok(api
+                .update_username_data_username_patch(ctx, args.username, json)
+                .await?)
         }
     }
 }
-
