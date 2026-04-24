@@ -6,11 +6,13 @@ use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::VERSION;
 use crate::anaconda_cli;
+use crate::api;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::context::CommandContext;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
+use crate::generated;
 use crate::help;
 use crate::tools;
 use crate::update;
@@ -123,6 +125,9 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    Api {
+        command: generated::ApiCommands,
+    },
 }
 
 impl Action {
@@ -147,6 +152,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::Api { .. } => "api",
         }
     }
 
@@ -251,6 +257,9 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
+            Action::Api { command } => {
+                api::execute(ctx, command).await
+            }
         }
     }
 }
@@ -322,6 +331,7 @@ pub fn parse() -> (Action, LogLevel) {
                         Action::ToolUninstall { name, force }
                     }
                 },
+                Some(Commands::Api { command }) => Action::Api { command },
             };
             (action, level)
         }
@@ -342,6 +352,10 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
         let args: Vec<String> = std::env::args().collect();
         if args.len() > 1 {
             let subcommand = &args[1];
+            // Let clap handle help for 'api' subcommands natively (nested subcommands)
+            if subcommand == "api" {
+                e.exit();
+            }
             // Check if it's a valid subcommand (not a flag)
             if !subcommand.starts_with('-') && is_valid_subcommand(subcommand) {
                 return (
@@ -492,6 +506,17 @@ enum Commands {
     Tool {
         #[command(subcommand)]
         command: Option<ToolCommands>,
+    },
+
+    /// Make API requests to platform services
+    #[command(
+        subcommand_required = true,
+        arg_required_else_help = true,
+        override_usage = "ana api <service> <command> [options]"
+    )]
+    Api {
+        #[command(subcommand)]
+        command: generated::ApiCommands,
     },
 }
 

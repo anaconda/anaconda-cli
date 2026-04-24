@@ -1,4 +1,5 @@
 mod anaconda_cli;
+mod api;
 mod auth;
 mod cli;
 mod config;
@@ -6,6 +7,7 @@ mod context;
 mod diagnostics;
 #[cfg(feature = "feedback")]
 mod feedback;
+mod generated;
 mod help;
 mod http;
 mod input;

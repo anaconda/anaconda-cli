@@ -36,6 +36,11 @@ pub struct ApiClient {
 impl ApiClient {
     /// Create a new API client, loading credentials from the keyring if available.
     pub fn new(config: &Config) -> Result<Self, AuthError> {
+        Self::with_base_url(config, &config.base_url())
+    }
+
+    /// Create a new API client with a custom base URL.
+    pub fn with_base_url(config: &Config, base_url: &str) -> Result<Self, AuthError> {
         let api_key = get_api_key(config)?;
 
         let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
@@ -43,7 +48,7 @@ impl ApiClient {
             builder = builder.default_headers(bearer_header(key));
         }
 
-        let client = Client::new(builder, config.base_url())?;
+        let client = Client::new(builder, base_url)?;
 
         Ok(Self {
             inner: client,
