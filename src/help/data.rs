@@ -11,7 +11,13 @@ pub(super) struct HelpSection {
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
-        commands: &["tool", "bootstrap", "config", "self"],
+        commands: &[
+            "tool",
+            "bootstrap",
+            // TODO(mattkram): Hiding config from help until we fully implement CRUD
+            // "config",
+            "self",
+        ],
     },
     // TODO(mattkram): Removed PACKAGES section from help until we can comprehensively
     //                 define the wrappers.
