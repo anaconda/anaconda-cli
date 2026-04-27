@@ -14,6 +14,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         commands: &[
             "tool",
             "bootstrap",
+            "feature",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",
@@ -28,10 +29,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
-    },
-    HelpSection {
-        name: "FEATURES",
-        commands: &["feature"],
     },
 ];
 
