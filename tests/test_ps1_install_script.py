@@ -374,7 +374,12 @@ class TestPSProfileUpdate:
         assert result.returncode == 0
 
         profile_after = ps_profile.read_text()
-        assert profile_before != profile_after
+        true_profile = subprocess.run(
+            [PWSH, "-Command", "echo $Profile"], capture_output=True, text=True
+        ).stdout
+        assert profile_before != profile_after, (
+            f"{ps_profile} was not updated. Updated {true_profile} instead."
+        )
         assert str(install_dir) in profile_after
         assert "$env:PATH" in profile_after
 
