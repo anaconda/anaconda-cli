@@ -75,6 +75,10 @@ jobs:
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
+      - name: Set up pixi (fallback)
+        if: steps.setup-ana.outcome == 'failure'
+        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
+
       - name: Run unit tests
         env:
           RUST_BACKTRACE: 1
