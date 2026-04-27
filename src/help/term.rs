@@ -145,8 +145,8 @@ fn print_options_block(term: &Term) {
         "-v, --verbose",
         "Increase verbosity (can be repeated)",
     );
-    print_command_row(term, "-V, --version", "Show the ana version and exit");
-    print_command_row(term, "-h, --help", "Show this message and exit");
+    print_command_row(term, "-V, --version", "Show the ana version");
+    print_command_row(term, "-h, --help", "Show this message");
     let _ = term.write_line("");
 }
 
