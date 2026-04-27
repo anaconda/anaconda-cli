@@ -17,7 +17,6 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     secrets:
       PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
   # Determine release info early so other jobs can use it
   release-info:

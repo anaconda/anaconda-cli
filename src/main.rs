@@ -3,7 +3,6 @@ mod auth;
 mod cli;
 mod config;
 mod context;
-mod diagnostics;
 #[cfg(feature = "feedback")]
 mod feedback;
 mod help;
@@ -23,8 +22,6 @@ pub const FEEDBACK_BASE_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSe
 
 #[tokio::main]
 async fn main() {
-    let config = config::Config::load();
-    let _diagnostics_guard = diagnostics::init(&config);
     cli::execute().await;
 
     // Flush any AAU tokens that were deferred because their target
