@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from helpers import IS_LINUX
 from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
 from helpers import AnaRunner
@@ -150,7 +151,9 @@ def ana_install_env_isolated(fake_home: Path) -> dict[str, str]:
         # Rattler does not reliably detect the default cache for Windows tests
         env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
     env["HOME"] = str(fake_home)
-    env["XDG_CONFIG_HOME"] = str(fake_home)
+    if IS_LINUX:
+        # PowerShell profile locations can be overwritten by XDG_CONFIG_HOME
+        env["XDG_CONFIG_HOME"] = str(fake_home / ".config")
     env["ANA_INSTALL_DIR"] = str(fake_home / "local" / "bin")
     env["ANA_NO_PATH_UPDATE"] = "1"  # Extra safety
     return env
