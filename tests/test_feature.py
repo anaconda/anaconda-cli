@@ -33,13 +33,13 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture
-def conda_isolated_env(tmp_path: Path, env_isolated: dict[str, str]) -> dict[str, str]:
+def conda_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str, str]:
     """Provide an environment with isolated conda configuration.
 
-    Uses CONDARC environment variable to point conda at an isolated config file,
-    preventing tests from modifying the user's actual conda configuration.
+    Creates a .condarc file in the fake HOME directory so conda uses isolated
+    configuration and doesn't modify the user's actual conda settings.
     """
-    condarc_path = tmp_path / ".condarc"
+    condarc_path = fake_home / ".condarc"
     condarc_path.write_text("channels:\n  - defaults\n")
 
     return {
@@ -217,12 +217,16 @@ class TestMainXEnable:
         self,
         ana_binary: Path | None,
         conda_isolated_env: dict[str, str],
+        tmp_path: Path,
     ) -> None:
         """Enabling main-x without login should trigger login flow."""
         if ana_binary is None:
             pytest.skip("ana binary not found")
 
-        # Run without auth - no mock server, no keyring
+        # Run without auth - use empty keyring, fake domain that won't respond
+        empty_keyring = tmp_path / "empty_keyring"
+        empty_keyring.write_text("{}")
+
         result = subprocess.run(
             [str(ana_binary), "feature", "enable", "main-x", "-f"],
             capture_output=True,
@@ -230,11 +234,16 @@ class TestMainXEnable:
             encoding="utf-8",
             env={
                 **conda_isolated_env,
+                "ANA_KEYRING_PATH": str(empty_keyring),
                 "ANA_OPEN_BROWSER": "false",
+                # Use invalid domain to make login fail quickly
+                "ANA_DOMAIN": "invalid.test",
             },
+            timeout=10,  # Fail fast if it hangs
         )
 
-        # Should fail or try to start login
+        # Should fail trying to login
+        assert result.returncode != 0
         assert (
             "login" in result.stderr.lower() or "not logged in" in result.stderr.lower()
         )
