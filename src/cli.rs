@@ -123,6 +123,13 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    ApiFetch {
+        method: String,
+        url: String,
+        query_args: Option<String>,
+        data: Option<String>,
+        json: Option<String>,
+    },
 }
 
 impl Action {
@@ -147,6 +154,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::ApiFetch { .. } => "api.fetch",
         }
     }
 
@@ -251,6 +259,23 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
+            Action::ApiFetch {
+                method,
+                url,
+                query_args,
+                data,
+                json,
+            } => {
+                api_fetch(
+                    ctx,
+                    &method,
+                    &url,
+                    query_args.as_deref(),
+                    data.as_deref(),
+                    json.as_deref(),
+                )
+                .await
+            }
         }
     }
 }
@@ -321,6 +346,22 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(ToolCommands::Uninstall { name, force }) => {
                         Action::ToolUninstall { name, force }
                     }
+                },
+                Some(Commands::Api { command }) => match command {
+                    None => Action::ShowSubcommandHelp("api".to_string()),
+                    Some(ApiCommands::Fetch {
+                        method,
+                        url,
+                        query_args,
+                        data,
+                        json,
+                    }) => Action::ApiFetch {
+                        method,
+                        url,
+                        query_args,
+                        data,
+                        json,
+                    },
                 },
             };
             (action, level)
@@ -396,6 +437,46 @@ fn get_subcommand(name: &str) -> clap::Command {
         .find(|s| s.get_name() == name)
         .cloned()
         .expect("subcommand should exist")
+}
+
+async fn api_fetch(
+    ctx: &mut CommandContext,
+    method: &str,
+    url: &str,
+    query_args: Option<&str>,
+    data: Option<&str>,
+    json: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let method_upper = method.to_uppercase();
+    let mut request = match method_upper.as_str() {
+        "GET" => ctx.client.get(url),
+        "POST" => ctx.client.post(url),
+        "PUT" => ctx.client.put(url),
+        "PATCH" => ctx.client.patch(url),
+        "DELETE" => ctx.client.delete(url),
+        _ => return Err(format!("Unsupported HTTP method: {}", method).into()),
+    };
+    if let Some(args) = query_args {
+        let pairs: Vec<(&str, &str)> = args
+            .split(',')
+            .filter_map(|pair| pair.split_once('='))
+            .collect();
+        request = request.query(&pairs);
+    }
+    if let Some(body) = data {
+        request = request.body(body.to_string());
+    }
+    if let Some(body) = json {
+        request = request
+            .header("Content-Type", "application/json")
+            .body(body.to_string());
+    }
+    let response = request.send().await?;
+    let status = response.status();
+    let body = response.text().await?;
+    println!("{}", status);
+    println!("{}", body);
+    Ok(())
 }
 
 #[derive(Parser)]
@@ -493,6 +574,17 @@ enum Commands {
         #[command(subcommand)]
         command: Option<ToolCommands>,
     },
+
+    /// API commands
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana api <command> [options]"
+    )]
+    Api {
+        #[command(subcommand)]
+        command: Option<ApiCommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -585,6 +677,31 @@ enum ToolCommands {
         /// Skip confirmation prompt
         #[arg(short = 'y', long = "yes")]
         force: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ApiCommands {
+    /// Fetch data from the API
+    Fetch {
+        /// API path (e.g., /api/auth/passport)
+        url: String,
+
+        /// HTTP method to use
+        #[arg(long, default_value = "GET")]
+        method: String,
+
+        /// Comma-separated query arguments (e.g., key=value,key2=value2)
+        #[arg(short = 'q', long = "query-args")]
+        query_args: Option<String>,
+
+        /// Request body data
+        #[arg(short = 'd', long, conflicts_with = "json")]
+        data: Option<String>,
+
+        /// JSON request body
+        #[arg(short = 'j', long, conflicts_with = "data")]
+        json: Option<String>,
     },
 }
 

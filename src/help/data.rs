@@ -21,6 +21,10 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         name: "TOOLCHAIN",
         commands: &["tool", "bootstrap", "config", "self"],
     },
+    HelpSection {
+        name: "API",
+        commands: &["api"],
+    },
 ];
 
 /// Examples for the help output (using real commands)
