@@ -97,6 +97,6 @@ $env:ANA_VERSION='1.0.0'
 
 ## Supported Platforms
 
-- macOS (Intel and Apple Silicon)
-- Linux (x86_64)
+- macOS (Apple Silicon)
+- Linux (x86_64, aarch64)
 - Windows (x86_64)
