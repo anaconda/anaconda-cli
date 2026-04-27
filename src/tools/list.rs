@@ -55,3 +55,74 @@ pub fn print_tool_list(_ctx: &mut CommandContext) {
 
     println!("{table}");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_list_tools_returns_all_tools() {
+        temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
+            let tools = list_tools();
+
+            // Should have the known tools
+            let names: Vec<&str> = tools.iter().map(|t| t.name).collect();
+            assert!(names.contains(&"anaconda-cli"));
+            assert!(names.contains(&"pixi"));
+        });
+    }
+
+    #[test]
+    fn test_list_tools_detects_not_installed() {
+        temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
+            let tools = list_tools();
+
+            // Tools should not be installed in nonexistent path
+            for tool in tools {
+                assert!(
+                    !tool.installed,
+                    "Tool {} should not be installed",
+                    tool.name
+                );
+            }
+        });
+    }
+
+    #[test]
+    fn test_list_tools_detects_installed() {
+        let temp = tempfile::tempdir().unwrap();
+        let tools_dir = temp.path().join("tools");
+
+        // Create fake installed tool
+        std::fs::create_dir_all(tools_dir.join("pixi")).unwrap();
+
+        temp_env::with_var("ANA_HOME", Some(temp.path().to_str().unwrap()), || {
+            let tools = list_tools();
+
+            let pixi = tools.iter().find(|t| t.name == "pixi").unwrap();
+            assert!(pixi.installed, "pixi should be detected as installed");
+
+            let anaconda_cli = tools.iter().find(|t| t.name == "anaconda-cli").unwrap();
+            assert!(
+                !anaconda_cli.installed,
+                "anaconda-cli should not be installed"
+            );
+        });
+    }
+
+    #[test]
+    fn test_tool_info_has_binaries() {
+        temp_env::with_var("ANA_HOME", Some("/nonexistent"), || {
+            let tools = list_tools();
+
+            let pixi = tools.iter().find(|t| t.name == "pixi").unwrap();
+            assert!(!pixi.binaries.is_empty(), "pixi should have binaries");
+
+            let anaconda_cli = tools.iter().find(|t| t.name == "anaconda-cli").unwrap();
+            assert!(
+                !anaconda_cli.binaries.is_empty(),
+                "anaconda-cli should have binaries"
+            );
+        });
+    }
+}

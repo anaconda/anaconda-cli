@@ -83,4 +83,104 @@ mod tests {
             assert!(content("unknown-tool").is_none());
         });
     }
+
+    #[test]
+    fn test_content_from_custom_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool_dir = dir.path().join("my-tool");
+        std::fs::create_dir_all(&tool_dir).unwrap();
+        std::fs::write(tool_dir.join("pixi.lock"), "custom lockfile content").unwrap();
+
+        temp_env::with_var(
+            "ANA_LOCKFILES_DIR",
+            Some(dir.path().to_str().unwrap()),
+            || {
+                let lockfile = content("my-tool");
+                assert!(lockfile.is_some());
+                assert_eq!(lockfile.unwrap(), "custom lockfile content");
+            },
+        );
+    }
+
+    #[test]
+    fn test_content_custom_dir_missing_file() {
+        let dir = tempfile::tempdir().unwrap();
+
+        temp_env::with_var(
+            "ANA_LOCKFILES_DIR",
+            Some(dir.path().to_str().unwrap()),
+            || {
+                let lockfile = content("nonexistent-tool");
+                assert!(lockfile.is_none());
+            },
+        );
+    }
+
+    #[test]
+    fn test_all_tools() {
+        let tools = all_tools();
+        assert!(tools.contains(&"anaconda-cli"));
+        assert!(tools.contains(&"pixi"));
+        assert_eq!(tools.len(), 2);
+    }
+
+    #[test]
+    fn test_binaries_anaconda_cli() {
+        let bins = binaries("anaconda-cli");
+        assert!(bins.is_some());
+        let bins = bins.unwrap();
+        assert_eq!(bins.len(), 1);
+        if cfg!(unix) {
+            assert_eq!(bins[0], PathBuf::from("bin/anaconda"));
+        } else {
+            assert_eq!(bins[0], PathBuf::from("Scripts/anaconda"));
+        }
+    }
+
+    #[test]
+    fn test_binaries_pixi() {
+        let bins = binaries("pixi");
+        assert!(bins.is_some());
+        let bins = bins.unwrap();
+        assert_eq!(bins.len(), 1);
+        assert_eq!(bins[0], PathBuf::from("bin/pixi"));
+    }
+
+    #[test]
+    fn test_binaries_unknown_tool() {
+        assert!(binaries("unknown-tool").is_none());
+    }
+
+    #[test]
+    fn test_binary_names_anaconda_cli() {
+        let names = binary_names("anaconda-cli");
+        assert!(names.is_some());
+        let names = names.unwrap();
+        assert_eq!(names, vec!["anaconda"]);
+    }
+
+    #[test]
+    fn test_binary_names_pixi() {
+        let names = binary_names("pixi");
+        assert!(names.is_some());
+        let names = names.unwrap();
+        assert_eq!(names, vec!["pixi"]);
+    }
+
+    #[test]
+    fn test_binary_names_unknown_tool() {
+        assert!(binary_names("unknown-tool").is_none());
+    }
+
+    #[test]
+    fn test_find_tool_returns_correct_tool() {
+        let tool = find_tool("pixi");
+        assert!(tool.is_some());
+        assert_eq!(tool.unwrap().name, "pixi");
+    }
+
+    #[test]
+    fn test_find_tool_unknown() {
+        assert!(find_tool("not-a-real-tool").is_none());
+    }
 }

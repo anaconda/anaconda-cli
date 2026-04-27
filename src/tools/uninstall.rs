@@ -151,6 +151,39 @@ fn remove_shims_cfg_entries(binaries: &[&str]) -> miette::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cleanup_empty_dir_removes_empty() {
+        let temp = tempfile::tempdir().unwrap();
+        let empty_dir = temp.path().join("empty");
+        std::fs::create_dir(&empty_dir).unwrap();
+
+        assert!(empty_dir.exists());
+        cleanup_empty_dir(&empty_dir).unwrap();
+        assert!(!empty_dir.exists(), "empty directory should be removed");
+    }
+
+    #[test]
+    fn test_cleanup_empty_dir_keeps_nonempty() {
+        let temp = tempfile::tempdir().unwrap();
+        let nonempty_dir = temp.path().join("nonempty");
+        std::fs::create_dir(&nonempty_dir).unwrap();
+        std::fs::write(nonempty_dir.join("file.txt"), "content").unwrap();
+
+        cleanup_empty_dir(&nonempty_dir).unwrap();
+        assert!(nonempty_dir.exists(), "non-empty directory should be kept");
+    }
+
+    #[test]
+    fn test_cleanup_empty_dir_handles_nonexistent() {
+        let temp = tempfile::tempdir().unwrap();
+        let nonexistent = temp.path().join("nonexistent");
+
+        let result = cleanup_empty_dir(&nonexistent);
+        assert!(result.is_ok(), "should succeed for nonexistent directory");
+    }
+
     #[cfg(windows)]
     mod windows_tests {
         use tempfile::TempDir;

@@ -282,8 +282,12 @@ mod tests {
         assert_eq!(MAIN_X_CHANNEL, "https://repo.anaconda.cloud/repo/main-x");
     }
 
+    // ========================================================================
+    // Channel parsing tests
+    // ========================================================================
+
     #[test]
-    fn test_parse_channels_output() {
+    fn test_parse_channels_output_typical() {
         let output = "channels:\n  - conda-forge\n  - defaults\n";
         let channels: Vec<String> = output
             .lines()
@@ -298,5 +302,144 @@ mod tests {
             .collect();
 
         assert_eq!(channels, vec!["conda-forge", "defaults"]);
+    }
+
+    #[test]
+    fn test_parse_channels_output_empty() {
+        let output = "channels: []\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(channels.is_empty());
+    }
+
+    #[test]
+    fn test_parse_channels_output_with_urls() {
+        let output = "channels:\n  - https://repo.anaconda.cloud/repo/main-x\n  - conda-forge\n  - defaults\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(
+            channels,
+            vec![
+                "https://repo.anaconda.cloud/repo/main-x",
+                "conda-forge",
+                "defaults"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_channels_output_single_channel() {
+        let output = "channels:\n  - defaults\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(channels, vec!["defaults"]);
+    }
+
+    // ========================================================================
+    // plan_enable_actions tests
+    // ========================================================================
+
+    #[test]
+    fn test_plan_enable_actions_empty_channels() {
+        let current_channels: Vec<String> = vec![];
+        let actions = plan_enable_actions(&current_channels);
+
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], ChannelAction::AddMainX));
+    }
+
+    #[test]
+    fn test_plan_enable_actions_defaults_only() {
+        let current_channels = vec!["defaults".to_string()];
+        let actions = plan_enable_actions(&current_channels);
+
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], ChannelAction::AddMainX));
+    }
+
+    #[test]
+    fn test_plan_enable_actions_conda_forge_and_defaults() {
+        let current_channels = vec!["conda-forge".to_string(), "defaults".to_string()];
+        let actions = plan_enable_actions(&current_channels);
+
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], ChannelAction::AddMainX));
+    }
+
+    #[test]
+    fn test_plan_enable_actions_main_x_already_present() {
+        let current_channels = vec![
+            MAIN_X_CHANNEL.to_string(),
+            "conda-forge".to_string(),
+            "defaults".to_string(),
+        ];
+        let actions = plan_enable_actions(&current_channels);
+
+        assert!(
+            actions.is_empty(),
+            "No actions needed when main-x already configured"
+        );
+    }
+
+    #[test]
+    fn test_plan_enable_actions_main_x_only() {
+        let current_channels = vec![MAIN_X_CHANNEL.to_string()];
+        let actions = plan_enable_actions(&current_channels);
+
+        assert!(actions.is_empty());
+    }
+
+    // ========================================================================
+    // ChannelAction::commands tests
+    // ========================================================================
+
+    #[test]
+    fn test_channel_action_add_main_x_commands() {
+        let action = ChannelAction::AddMainX;
+        let commands = action.commands();
+
+        assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0], ("--add", MAIN_X_CHANNEL));
+    }
+
+    #[test]
+    fn test_channel_action_commands_format() {
+        let action = ChannelAction::AddMainX;
+        let commands = action.commands();
+
+        for (flag, channel) in commands {
+            assert!(flag.starts_with("--"), "Flag should start with --");
+            assert!(!channel.is_empty(), "Channel should not be empty");
+        }
     }
 }
