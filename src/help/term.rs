@@ -8,6 +8,7 @@ use crate::VERSION;
 
 const GLOBAL_INDENT: usize = 2;
 const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
+const DOCS_URL: &'static str = "https://anaconda.com/docs";
 
 /// Create a string of spaces for the global left_margin
 fn left_margin() -> String {
@@ -158,7 +159,7 @@ fn print_footer(term: &Term) {
         HelpStyle::Desc
             .style()
             .apply_to("Full documentation and guides at"),
-        HelpStyle::Section.style().apply_to("→ docs.anaconda.com"),
+        HelpStyle::Section.style().apply_to(format!("→ {DOCS_URL}")),
     ));
 }
 
