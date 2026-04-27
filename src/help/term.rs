@@ -7,6 +7,7 @@ use super::styles::HelpStyle;
 use crate::VERSION;
 
 const GLOBAL_INDENT: usize = 2;
+const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
 
 /// Create a string of spaces for the global left_margin
 fn left_margin() -> String {
@@ -41,11 +42,10 @@ fn print_header(term: &Term) {
         HelpStyle::Command.style().apply_to("ana"),
         VERSION
     ));
-    let tagline = "Manage your Anaconda toolchain and account.";
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
-        HelpStyle::Desc.style().apply_to(tagline)
+        HelpStyle::Desc.style().apply_to(TAGLINE)
     ));
     let _ = term.write_line("");
     let _ = term.write_line(&format!(
