@@ -83,7 +83,7 @@ fn print_examples_block(term: &Term) {
     // Content lines
     for (i, (desc, command)) in HELP_EXAMPLES.iter().enumerate() {
         // Description line (as shell comment)
-        let comment = format!("# {desc}");
+        let comment = format!("{desc}");
         let padding = inner_width.saturating_sub(comment.len() + 1);
         let padded_desc = format!(" {comment}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
