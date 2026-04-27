@@ -28,9 +28,12 @@
     }
   ],
   "extends": [
-    "local>anaconda/renovate-config"
+    "github>anaconda/renovate-config"
   ],
   "gitIgnoredAuthors": [
     "devops+anaconda-bot@anaconda.com"
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  }
 }
