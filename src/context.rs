@@ -8,9 +8,9 @@ use std::env::consts::{ARCH, OS};
 
 use opentelemetry::Value;
 
+use crate::VERSION;
 use crate::config::Config;
 use crate::http::Client;
-use crate::VERSION;
 
 /// Telemetry context for collecting command-specific attributes.
 #[derive(Debug, Default)]
