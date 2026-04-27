@@ -8,9 +8,10 @@ use std::env::consts::{ARCH, OS};
 
 use opentelemetry::Value;
 
-use crate::VERSION;
+use crate::auth;
 use crate::config::Config;
-use crate::http::Client;
+use crate::http::{bearer_header, Client};
+use crate::VERSION;
 
 /// Telemetry context for collecting command-specific attributes.
 #[derive(Debug, Default)]
@@ -56,7 +57,11 @@ impl CommandContext {
     /// Create a new command context.
     pub fn new() -> Self {
         let config = Config::load();
-        let client = Client::new(reqwest::Client::builder(), config.base_url())
+        let mut builder = reqwest::Client::builder();
+        if let Ok(Some(api_key)) = auth::get_api_key(&config) {
+            builder = builder.default_headers(bearer_header(&api_key));
+        }
+        let client = Client::new(builder, config.base_url())
             .expect("failed to create HTTP client");
         Self {
             telemetry: TelemetryContext::new(),
