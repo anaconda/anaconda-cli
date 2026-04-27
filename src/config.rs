@@ -18,6 +18,7 @@
 //! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP)  |
 //! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
+//! | `ANA_PIP_INDEX_URL`              | `https://pypi.anaconda.com/simple` | Pip package index URL |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -75,6 +76,7 @@ const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
+const DEFAULT_PIP_INDEX_URL: &str = "https://repo-latest.dev-us-east-1.anaconda.cloud/repo/wheels-test/simple/";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
@@ -115,6 +117,9 @@ pub struct Config {
 
     /// Whether to include prereleases when checking for updates
     pub include_prereleases: bool,
+
+    /// Pip index URL for package installation
+    pub pip_index_url: String,
 
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
@@ -158,6 +163,8 @@ impl Config {
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
         let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        let pip_index_url =
+            env::var("ANA_PIP_INDEX_URL").unwrap_or_else(|_| DEFAULT_PIP_INDEX_URL.to_string());
         #[cfg(feature = "diagnostics")]
         let sentry_disabled = parse_bool_env("ANA_SENTRY_DISABLED", DEFAULT_SENTRY_DISABLED);
         #[cfg(feature = "diagnostics")]
@@ -176,6 +183,7 @@ impl Config {
             keyring_path,
             use_https,
             include_prereleases,
+            pip_index_url,
             #[cfg(feature = "diagnostics")]
             sentry_disabled,
             #[cfg(feature = "diagnostics")]
@@ -263,6 +271,7 @@ mod tests {
             keyring_path: default_keyring_path(),
             use_https: true,
             include_prereleases: false,
+            pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]

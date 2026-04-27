@@ -166,6 +166,7 @@ mod tests {
             metrics_console_exporter: false,
             metrics_skip_internet_check: true,
             include_prereleases: false,
+            pip_index_url: "https://pypi.anaconda.com/simple".to_string(),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]

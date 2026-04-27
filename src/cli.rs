@@ -123,6 +123,14 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    EnableWheels {
+        pip: bool,
+        uv: bool,
+    },
+    DisableWheels {
+        pip: bool,
+        uv: bool,
+    },
 }
 
 impl Action {
@@ -147,6 +155,8 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::EnableWheels { .. } => "feature.enable.wheels",
+            Action::DisableWheels { .. } => "feature.disable.wheels",
         }
     }
 
@@ -251,6 +261,26 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
+            Action::EnableWheels { pip, uv } => {
+                let config = Config::load();
+                if pip {
+                    tools::pip::configure(&config)?;
+                }
+                if uv {
+                    tools::uv::configure(&config)?;
+                }
+                Ok(())
+            }
+            Action::DisableWheels { pip, uv } => {
+                let config = Config::load();
+                if pip {
+                    tools::pip::deconfigure()?;
+                }
+                if uv {
+                    tools::uv::deconfigure(&config)?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -321,6 +351,15 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(ToolCommands::Uninstall { name, force }) => {
                         Action::ToolUninstall { name, force }
                     }
+                },
+                Some(Commands::Feature { command }) => match command {
+                    None => Action::ShowSubcommandHelp("feature".to_string()),
+                    Some(FeatureCommands::Enable { command }) => match command {
+                        EnableCommands::Wheels { pip, uv } => Action::EnableWheels { pip, uv },
+                    },
+                    Some(FeatureCommands::Disable { command }) => match command {
+                        DisableCommands::Wheels { pip, uv } => Action::DisableWheels { pip, uv },
+                    },
                 },
             };
             (action, level)
@@ -493,6 +532,17 @@ enum Commands {
         #[command(subcommand)]
         command: Option<ToolCommands>,
     },
+
+    /// Manage features
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana feature <command> [options]"
+    )]
+    Feature {
+        #[command(subcommand)]
+        command: Option<FeatureCommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -585,6 +635,51 @@ enum ToolCommands {
         /// Skip confirmation prompt
         #[arg(short = 'y', long = "yes")]
         force: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum FeatureCommands {
+    /// Enable a feature
+    #[command(subcommand_required = true, arg_required_else_help = true)]
+    Enable {
+        #[command(subcommand)]
+        command: EnableCommands,
+    },
+
+    /// Disable a feature
+    #[command(subcommand_required = true, arg_required_else_help = true)]
+    Disable {
+        #[command(subcommand)]
+        command: DisableCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum EnableCommands {
+    /// Enable wheels index
+    Wheels {
+        /// Configure pip
+        #[arg(long)]
+        pip: bool,
+
+        /// Configure uv
+        #[arg(long)]
+        uv: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum DisableCommands {
+    /// Disable wheels index
+    Wheels {
+        /// Deconfigure pip
+        #[arg(long)]
+        pip: bool,
+
+        /// Deconfigure uv
+        #[arg(long)]
+        uv: bool,
     },
 }
 
