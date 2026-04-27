@@ -32,5 +32,8 @@
   ],
   "gitIgnoredAuthors": [
     "devops+anaconda-bot@anaconda.com"
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  }
 }
