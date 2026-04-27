@@ -375,10 +375,13 @@ class TestPSProfileUpdate:
 
         profile_after = ps_profile.read_text()
         true_profile = subprocess.run(
-            [PWSH, "-Command", "echo $Profile"], capture_output=True, text=True
+            [PWSH, "-Command", 'echo "HOME=$env:HOME; echo "PROFILE=$Profile"'],
+            env=ana_install_env_with_mock_server,
+            capture_output=True,
+            text=True,
         ).stdout
         assert profile_before != profile_after, (
-            f"{ps_profile} was not updated. Updated {true_profile} instead."
+            f"{ps_profile} was not updated. DEBUG: {true_profile}"
         )
         assert str(install_dir) in profile_after
         assert "$env:PATH" in profile_after
