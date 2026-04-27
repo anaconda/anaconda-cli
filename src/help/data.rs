@@ -13,10 +13,12 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         name: "TOOLCHAIN",
         commands: &["tool", "bootstrap", "config", "self"],
     },
-    HelpSection {
-        name: "PACKAGES",
-        commands: &["org"],
-    },
+    // TODO(mattkram): Removed PACKAGES section from help until we can comprehensively
+    //                 define the wrappers.
+    // HelpSection {
+    //     name: "PACKAGES",
+    //     commands: &["org"],
+    // },
     HelpSection {
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
