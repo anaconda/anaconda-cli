@@ -18,7 +18,7 @@
     Installation directory (default: ${env:USERPROFILE}\.local\bin (Windows) or ${env:HOME}/.local/bin).
 
 .PARAMETER Version
-    Version to installi (default: latest).
+    Version to install (default: latest).
 
 .PARAMETER Force
     Overwrite existing installation without prompting.
@@ -304,8 +304,8 @@ function Update-Path {
         Add-ToUserPath -Directory $anaBinDir
     } else {
         $anaBinDir = Join-Path $env:HOME ".ana" "bin"
-        Add-ToShellProfile -Directory $InstallDir
-        Add-ToShellProfile -Directory $anaBinDir
+        Add-ToPSProfile -Directory $InstallDir
+        Add-ToPSProfile -Directory $anaBinDir
     }
 }
 
@@ -329,7 +329,7 @@ function Add-ToUserPath {
     Write-Host "  Restart your terminal for changes to take effect." -ForegroundColor Cyan
 }
 
-function Add-ToShellProfile {
+function Add-ToPSProfile {
     param(
         [string]$Directory
     )
@@ -338,33 +338,16 @@ function Add-ToShellProfile {
         return
     }
 
-    $line = "export PATH=`"$Directory`:`$PATH`""
-    $shell = Split-Path -Leaf $env:SHELL
-
-    switch ($shell) {
-        "bash" { $profilePath = Join-Path $env:HOME ".bashrc" }
-        "zsh"  { $profilePath = Join-Path $env:HOME ".zshrc" }
-        "fish" {
-            $line = "set -gx PATH `"$Directory`" `$PATH"
-            $profilePath = Join-Path $env:HOME ".config" "fish" "config.fish"
-        }
-        default {
-            Write-Host "! $Directory is not in your PATH." -ForegroundColor Yellow
-            Write-Host "  Add it with: $line" -ForegroundColor Yellow
-            return
-        }
-    }
-
-    if ( `
-        (Test-Path $profilePath) `
-        -and (Get-Content $profilePath -Raw) -match [regex]::Escape($line) `
-    ) {
+    $line = "`$env:PATH = `"${directory}:`$env:PATH`""
+    if ( -not (Test-Path $Profile)) {
+        New-Item -Path "$Profile" -ItemType "File" -Force | Out-Null
+    } elseif ((Get-Content $Profile -Raw) -match [regex]::Escape($line)) {
         return
     }
 
-    Add-Content -Path $profilePath -Value "`n$line"
+    Add-Content -Path $Profile -Value "$line"
     Write-Host `
-        "> Updated $profilePath - restart your shell or run: source $profilePath"`
+        "> Updated $Profile - restart your shell or run: & `$Profile"`
         -ForegroundColor Green
 }
 

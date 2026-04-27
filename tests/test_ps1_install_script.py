@@ -302,66 +302,85 @@ class TestPathUpdateWindows:
         assert str(install_dir) in user_path
 
 
-class TestShellProfileUpdate:
-    """Tests for shell profile modification on non-Windows."""
+class TestPSProfileUpdate:
+    """Tests for PowerShell profile modification on non-Windows."""
 
-    @pytest.mark.skipif(IS_WINDOWS, reason="Shell profile update is for non-Windows")
+    @staticmethod
+    def _get_ps_profile(fake_home: Path) -> Path:
+        """Get the PowerShell profile path within the fake home directory."""
+        ps_profile = (
+            fake_home / ".config" / "powershell" / "Microsoft.PowerShell_profile.ps1"
+        )
+        ps_profile.parent.mkdir(parents=True, exist_ok=True)
+        ps_profile.touch()
+        return ps_profile
+
+    @pytest.mark.skipif(
+        IS_WINDOWS, reason="PowerShell profile update is for non-Windows"
+    )
     def test_no_path_update_flag(
         self,
         ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
     ) -> None:
-        """Test -NoPathUpdate prevents shell profile modification."""
+        """Test -NoPathUpdate prevents PowerShell profile modification."""
         del ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"]
 
-        zshrc_before = (fake_home / ".zshrc").read_text()
+        ps_profile = self._get_ps_profile(fake_home)
+        profile_before = ps_profile.read_text()
 
         result = run_script("-NoPathUpdate", env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
-        zshrc_after = (fake_home / ".zshrc").read_text()
-        assert zshrc_before == zshrc_after
+        profile_after = ps_profile.read_text()
+        assert profile_before == profile_after
 
-    @pytest.mark.skipif(IS_WINDOWS, reason="Shell profile update is for non-Windows")
+    @pytest.mark.skipif(
+        IS_WINDOWS, reason="PowerShell profile update is for non-Windows"
+    )
     def test_no_path_update_env_var(
         self,
         ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
     ) -> None:
-        """Test ANA_NO_PATH_UPDATE prevents shell profile modification."""
+        """Test ANA_NO_PATH_UPDATE prevents PowerShell profile modification."""
         ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"] = "1"
 
-        zshrc_before = (fake_home / ".zshrc").read_text()
+        ps_profile = self._get_ps_profile(fake_home)
+        profile_before = ps_profile.read_text()
 
         result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
-        zshrc_after = (fake_home / ".zshrc").read_text()
-        assert zshrc_before == zshrc_after
+        profile_after = ps_profile.read_text()
+        assert profile_before == profile_after
 
-    @pytest.mark.skipif(IS_WINDOWS, reason="Shell profile update is for non-Windows")
+    @pytest.mark.skipif(
+        IS_WINDOWS, reason="PowerShell profile update is for non-Windows"
+    )
     def test_path_update_modifies_profile(
         self,
         ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
         install_dir: Path,
     ) -> None:
-        """Test that path update modifies the shell profile."""
+        """Test that path update modifies the PowerShell profile."""
         del ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"]
-        ana_install_env_with_mock_server["SHELL"] = "/bin/zsh"
 
-        zshrc = fake_home / ".zshrc"
-        zshrc_before = zshrc.read_text()
+        ps_profile = self._get_ps_profile(fake_home)
+        profile_before = ps_profile.read_text()
 
         result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
-        zshrc_after = zshrc.read_text()
-        assert zshrc_before != zshrc_after
-        assert str(install_dir) in zshrc_after
-        assert "export PATH=" in zshrc_after
+        profile_after = ps_profile.read_text()
+        assert profile_before != profile_after
+        assert str(install_dir) in profile_after
+        assert "$env:PATH" in profile_after
 
-    @pytest.mark.skipif(IS_WINDOWS, reason="Shell profile update is for non-Windows")
+    @pytest.mark.skipif(
+        IS_WINDOWS, reason="PowerShell profile update is for non-Windows"
+    )
     def test_path_update_idempotent(
         self,
         ana_install_env_with_mock_server: dict[str, str],
@@ -369,20 +388,21 @@ class TestShellProfileUpdate:
     ) -> None:
         """Test that running install twice doesn't duplicate PATH entry."""
         del ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"]
-        ana_install_env_with_mock_server["SHELL"] = "/bin/zsh"
+
+        ps_profile = self._get_ps_profile(fake_home)
 
         # First install
         result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
-        zshrc_after_first = (fake_home / ".zshrc").read_text()
+        profile_after_first = ps_profile.read_text()
 
         # Second install (-Force to overwrite existing binary)
         result = run_script("-Force", env=ana_install_env_with_mock_server)
         assert result.returncode == 0
-        zshrc_after_second = (fake_home / ".zshrc").read_text()
+        profile_after_second = ps_profile.read_text()
 
         # Should be the same (no duplicate entries)
-        assert zshrc_after_first == zshrc_after_second
+        assert profile_after_first == profile_after_second
 
 
 class TestBinaryVerification:
