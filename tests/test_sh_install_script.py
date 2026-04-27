@@ -2,119 +2,27 @@
 
 from __future__ import annotations
 
-import http.server
-import os
 import shutil
-import socketserver
 import stat
 import subprocess
-import threading
-from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
 
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.sh"
 
 if IS_WINDOWS and not shutil.which("sh"):
     pytest.skip("Tests only work in bash shell on Windows.", allow_module_level=True)
 
-# Create a simple mock binary script that responds to --version and --help
-MOCK_BINARY_SCRIPT = """\
-#!/bin/sh
-case "$1" in
-    --version) echo "0.0.0-mock" ;;
-    --help) echo "Mock ana CLI for testing" ;;
-    *) echo "mock ana" ;;
-esac
-"""
-EXECUTABLE_MODE = 0o755  # rwxr-xr-x
-SUPPORTED_PLATFORMS = [
-    "darwin-arm64",
-    "darwin-x86_64",
-    "linux-x86_64",
-    "linux-aarch64",
-    "windows-x86_64",
-]
-
-
 BINARY_SUFFIX = ".exe" if IS_WINDOWS else ""
 
 
 @pytest.fixture
-def install_dir(tmp_path: Path) -> Path:
+def install_dir(ana_install_env_with_mock_server: dict[str, str]) -> Path:
     """Provide a temporary installation directory."""
-    d = tmp_path / "bin"
-    d.mkdir()
-    return d
-
-
-@pytest.fixture
-def env_isolated(fake_home: Path, install_dir: Path) -> dict[str, str]:
-    """Provide an isolated environment that won't modify real shell configs."""
-    env = {
-        key: val for key, val in os.environ.copy().items() if not key.startswith("ANA_")
-    }
-
-    env["HOME"] = str(fake_home)
-    env["ANA_INSTALL_DIR"] = str(install_dir)
-    env["ANA_NO_PATH_UPDATE"] = "1"  # Extra safety
-    return env
-
-
-@pytest.fixture(scope="session")
-def mock_server(tmp_path_factory: pytest.TempPathFactory) -> Generator[str, None, None]:
-    """Start a local HTTP server to host mock binaries."""
-    import hashlib
-
-    # Create mock binaries for different platforms
-    root = tmp_path_factory.mktemp("mock_server")
-    binary_content = MOCK_BINARY_SCRIPT.encode()
-    checksum = hashlib.sha256(binary_content).hexdigest()
-    for platform in SUPPORTED_PLATFORMS:
-        suffix = ".exe" if platform.startswith("windows") else ""
-        binary = root / f"ana-{platform}{suffix}"
-        # Use write_bytes to avoid line ending conversion on Windows
-        binary.write_bytes(binary_content)
-        binary.chmod(EXECUTABLE_MODE)
-        # Create corresponding checksum file
-        checksum_file = root / f"ana-{platform}{suffix}.sha256"
-        checksum_file.write_text(f"{checksum}  ana-{platform}{suffix}\n")
-
-    class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-        """HTTP request handler that suppresses logging."""
-
-        def log_message(self, format: str, *args: object) -> None:
-            pass  # Suppress logging
-
-    handler = partial(QuietHTTPRequestHandler, directory=str(root))
-
-    # Use port 0 to let the OS pick an available port
-    with socketserver.TCPServer(("127.0.0.1", 0), handler) as server:
-        port = server.server_address[1]
-        thread = threading.Thread(target=server.serve_forever)
-        thread.daemon = True
-        thread.start()
-
-        yield f"http://127.0.0.1:{port}"
-
-        server.shutdown()
-
-
-@pytest.fixture
-def env_with_mock_server(
-    env_isolated: dict[str, str],
-    mock_server: str,
-) -> dict[str, str]:
-    """Provide isolated environment with mock server URL."""
-    env_isolated["ANA_BASE_URL"] = mock_server
-    return env_isolated
+    return Path(ana_install_env_with_mock_server["ANA_INSTALL_DIR"])
 
 
 def run_script(
@@ -228,23 +136,27 @@ class TestArgumentParsing:
 class TestGithubTokenEnvVar:
     """Tests for environment variable handling."""
 
-    def test_github_token_env_var(self, env_isolated: dict[str, str]) -> None:
+    def test_github_token_env_var(
+        self, ana_install_env_isolated: dict[str, str]
+    ) -> None:
         """Test that GITHUB_TOKEN is recognized."""
-        env_isolated["GITHUB_TOKEN"] = "test_token_12345"
+        ana_install_env_isolated["GITHUB_TOKEN"] = "test_token_12345"
         # This will fail because the token is fake, but we can check it tried to use it
-        result = run_script(env=env_isolated)
+        result = run_script(env=ana_install_env_isolated)
         # Should try to use the token (will fail at API call)
         assert result.returncode == 1
         assert "GitHub API" in result.stderr or "Download failed" in result.stderr
 
-    def test_github_token_missing_errors(self, env_isolated: dict[str, str]) -> None:
+    def test_github_token_missing_errors(
+        self, ana_install_env_isolated: dict[str, str]
+    ) -> None:
         """Test that missing GitHub token produces an error."""
         # Ensure no token is available
-        env_isolated.pop("GITHUB_TOKEN", None)
+        ana_install_env_isolated.pop("GITHUB_TOKEN", None)
         # Set PATH to only include essential system paths (no gh CLI)
-        env_isolated["PATH"] = "/usr/bin:/bin"
+        ana_install_env_isolated["PATH"] = "/usr/bin:/bin"
 
-        result = run_script(env=env_isolated)
+        result = run_script(env=ana_install_env_isolated)
         assert result.returncode == 1
         assert "GitHub token" in result.stderr or "token" in result.stderr.lower()
 
@@ -254,11 +166,11 @@ class TestInstallation:
 
     def test_successful_install(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         install_dir: Path,
     ) -> None:
         """Test successful installation of a specific version."""
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
 
         expected_binary = install_dir / f"ana{BINARY_SUFFIX}"
 
@@ -276,17 +188,17 @@ class TestInstallation:
 
     def test_install_with_cli_options(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         install_dir: Path,
     ) -> None:
         """Test installation using CLI options."""
         # Remove env vars to test CLI takes precedence
-        del env_with_mock_server["ANA_INSTALL_DIR"]
+        del ana_install_env_with_mock_server["ANA_INSTALL_DIR"]
 
         result = run_script(
             "--install-dir",
             str(install_dir),
-            env=env_with_mock_server,
+            env=ana_install_env_with_mock_server,
         )
 
         assert result.returncode == 0
@@ -294,10 +206,12 @@ class TestInstallation:
 
     def test_checksum_verification_disabled_warning(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
     ) -> None:
         """Test that checksum verification disabled warning is shown."""
-        result = run_script("--no-verify-checksum", env=env_with_mock_server)
+        result = run_script(
+            "--no-verify-checksum", env=ana_install_env_with_mock_server
+        )
 
         assert result.returncode == 0
         assert (
@@ -307,11 +221,11 @@ class TestInstallation:
 
     def test_checksum_verification_invalid_value_errors(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
     ) -> None:
         """Test that invalid ANA_VERIFY_CHECKSUM values raise an error."""
-        env_with_mock_server["ANA_VERIFY_CHECKSUM"] = "blargh"
-        result = run_script(env=env_with_mock_server)
+        ana_install_env_with_mock_server["ANA_VERIFY_CHECKSUM"] = "blargh"
+        result = run_script(env=ana_install_env_with_mock_server)
 
         assert result.returncode == 1
         assert "Invalid ANA_VERIFY_CHECKSUM" in result.stderr
@@ -322,48 +236,45 @@ class TestForceInstall:
 
     def test_overwrite_without_force_fails_non_tty(
         self,
-        env_with_mock_server: dict[str, str],
-        install_dir: Path,
+        ana_install_env_with_mock_server: dict[str, str],
     ) -> None:
         """Test that overwriting without --force fails in non-TTY mode."""
         # First install
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         # Try to install again without --force
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 1
         assert "already exists" in result.stderr
         assert "--force" in result.stderr
 
     def test_overwrite_with_force_succeeds(
         self,
-        env_with_mock_server: dict[str, str],
-        install_dir: Path,
+        ana_install_env_with_mock_server: dict[str, str],
     ) -> None:
         """Test that overwriting with --force succeeds."""
         # First install
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         # Second install with --force
-        result = run_script("--force", env=env_with_mock_server)
+        result = run_script("--force", env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
     def test_force_via_env_var(
         self,
-        env_with_mock_server: dict[str, str],
-        install_dir: Path,
+        ana_install_env_with_mock_server: dict[str, str],
     ) -> None:
         """Test ANA_FORCE_INSTALL environment variable."""
-        env_with_mock_server["ANA_FORCE_INSTALL"] = "1"
+        ana_install_env_with_mock_server["ANA_FORCE_INSTALL"] = "1"
 
         # First install
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         # Second install (should succeed due to env var)
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
 
@@ -372,15 +283,15 @@ class TestShellProfileUpdate:
 
     def test_no_path_update_flag(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
     ) -> None:
         """Test --no-path-update prevents shell profile modification."""
-        del env_with_mock_server["ANA_NO_PATH_UPDATE"]
+        del ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"]
 
         zshrc_before = (fake_home / ".zshrc").read_text()
 
-        result = run_script("--no-path-update", env=env_with_mock_server)
+        result = run_script("--no-path-update", env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         zshrc_after = (fake_home / ".zshrc").read_text()
@@ -388,15 +299,15 @@ class TestShellProfileUpdate:
 
     def test_no_path_update_env_var(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
     ) -> None:
         """Test ANA_NO_PATH_UPDATE prevents shell profile modification."""
-        env_with_mock_server["ANA_NO_PATH_UPDATE"] = "1"
+        ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"] = "1"
 
         zshrc_before = (fake_home / ".zshrc").read_text()
 
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         zshrc_after = (fake_home / ".zshrc").read_text()
@@ -404,19 +315,19 @@ class TestShellProfileUpdate:
 
     def test_path_update_modifies_profile(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
         install_dir: Path,
     ) -> None:
         """Test that path update modifies the shell profile."""
-        del env_with_mock_server["ANA_NO_PATH_UPDATE"]
+        del ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"]
         # Set SHELL to zsh for predictable behavior
-        env_with_mock_server["SHELL"] = "/bin/zsh"
+        ana_install_env_with_mock_server["SHELL"] = "/bin/zsh"
 
         zshrc = fake_home / ".zshrc"
         zshrc_before = zshrc.read_text()
 
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         zshrc_after = zshrc.read_text()
@@ -426,21 +337,20 @@ class TestShellProfileUpdate:
 
     def test_path_update_idempotent(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         fake_home: Path,
-        install_dir: Path,
     ) -> None:
         """Test that running install twice doesn't duplicate PATH entry."""
-        del env_with_mock_server["ANA_NO_PATH_UPDATE"]
-        env_with_mock_server["SHELL"] = "/bin/zsh"
+        del ana_install_env_with_mock_server["ANA_NO_PATH_UPDATE"]
+        ana_install_env_with_mock_server["SHELL"] = "/bin/zsh"
 
         # First install
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
         zshrc_after_first = (fake_home / ".zshrc").read_text()
 
         # Second install (--force to overwrite existing binary)
-        result = run_script("--force", env=env_with_mock_server)
+        result = run_script("--force", env=ana_install_env_with_mock_server)
         assert result.returncode == 0
         zshrc_after_second = (fake_home / ".zshrc").read_text()
 
@@ -451,18 +361,31 @@ class TestShellProfileUpdate:
 class TestBinaryVerification:
     """Tests to verify the installed mock binary works."""
 
-    @pytest.mark.skipif(IS_WINDOWS, reason="Mock shell script doesn't run as .exe")
+    @staticmethod
+    def _get_mock_binary(install_dir: Path) -> Path:
+        """Get the mock binary path, renaming .exe files to .cmd outside sh.
+
+        Windows shells expect .exe files to be PE files and will refuse to
+        execute other scripts disguised as .exe.
+        """
+        binary = install_dir / f"ana{BINARY_SUFFIX}"
+        if not IS_WINDOWS:
+            return binary
+        cmd_file = binary.with_suffix(".cmd")
+        binary.rename(cmd_file)
+        return cmd_file
+
     def test_installed_binary_runs(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         install_dir: Path,
     ) -> None:
         """Test that the installed binary actually runs."""
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
         # Run the installed binary
-        binary = install_dir / f"ana{BINARY_SUFFIX}"
+        binary = self._get_mock_binary(install_dir)
         result = subprocess.run(
             [str(binary), "--version"],
             capture_output=True,
@@ -471,17 +394,19 @@ class TestBinaryVerification:
         assert result.returncode == 0
         assert "0.0.0-mock" in result.stdout
 
-    @pytest.mark.skipif(IS_WINDOWS, reason="Mock shell script doesn't run as .exe")
     def test_installed_binary_help(
         self,
-        env_with_mock_server: dict[str, str],
+        ana_install_env_with_mock_server: dict[str, str],
         install_dir: Path,
     ) -> None:
         """Test that the installed binary shows help."""
-        result = run_script(env=env_with_mock_server)
+        result = run_script(env=ana_install_env_with_mock_server)
         assert result.returncode == 0
 
-        binary = install_dir / f"ana{BINARY_SUFFIX}"
+        binary = Path(
+            ana_install_env_with_mock_server["ANA_INSTALL_DIR"], f"ana{BINARY_SUFFIX}"
+        )
+        binary = self._get_mock_binary(install_dir)
         result = subprocess.run(
             [str(binary), "--help"],
             capture_output=True,
