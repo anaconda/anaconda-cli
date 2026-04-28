@@ -23,12 +23,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: read  # To check out private repository
+
 jobs:
   pre-commit:
     name: Run pre-commit and push fixes
     runs-on: ubuntu-latest
-    permissions:
-      contents: read  # To check out private repository
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
