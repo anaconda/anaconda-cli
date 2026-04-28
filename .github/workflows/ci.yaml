@@ -92,6 +92,8 @@ jobs:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # Use internal URL to bypass Cloudflare protection in CI
+          ANA_SELF_UPDATE_URL: https://ana-cli.internal.anacondaconnect.com
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)
@@ -100,6 +102,8 @@ jobs:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # Use internal URL to bypass Cloudflare protection in CI
+          ANA_SELF_UPDATE_URL: https://ana-cli.internal.anacondaconnect.com
         run: pixi run test-integration
         shell: powershell
 
