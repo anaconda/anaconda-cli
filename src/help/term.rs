@@ -161,6 +161,7 @@ fn print_footer(term: &Term) {
             .apply_to("Full documentation and guides at"),
         HelpStyle::Section.style().apply_to(format!("→ {DOCS_URL}")),
     ));
+    let _ = term.write_line("");
 }
 
 /// Main help output
