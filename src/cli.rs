@@ -61,7 +61,10 @@ pub async fn execute() {
     let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
-    let skip_telemetry_spawn = matches!(&action, Action::TelemetrySubmit | Action::TelemetryKill);
+    let skip_telemetry_spawn = matches!(
+        &action,
+        Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
+    );
 
     let result = action.execute().await;
 
@@ -150,6 +153,7 @@ pub enum Action {
     },
     TelemetrySubmit,
     TelemetryKill,
+    TelemetryStatus,
 }
 
 impl Action {
@@ -187,6 +191,7 @@ impl Action {
             },
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
+            Action::TelemetryStatus => "telemetry-status",
         }
     }
 
@@ -350,7 +355,20 @@ impl Action {
                 match crate::telemetry::kill_submitters() {
                     Ok(0) => println!("No telemetry processes found"),
                     Ok(n) => println!("Killed {} telemetry process(es)", n),
-                    Err(e) => return Err(format!("Failed to kill processes: {}", e).into()),
+                    Err(e) => return Err(miette!("Failed to kill processes: {}", e)),
+                }
+                Ok(())
+            }
+            Action::TelemetryStatus => {
+                match crate::telemetry::list_submitters() {
+                    Ok(pids) if pids.is_empty() => println!("No telemetry processes running"),
+                    Ok(pids) => {
+                        println!("{} telemetry process(es) running:", pids.len());
+                        for pid in pids {
+                            println!("  PID {}", pid);
+                        }
+                    }
+                    Err(e) => return Err(miette!("Failed to list processes: {}", e)),
                 }
                 Ok(())
             }
@@ -472,6 +490,7 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
                 Some(Commands::TelemetryKill) => Action::TelemetryKill,
+                Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
             };
             (action, level)
         }
@@ -683,6 +702,10 @@ enum Commands {
     /// Kill background telemetry processes (internal use only)
     #[command(hide = true)]
     TelemetryKill,
+
+    /// Check status of background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryStatus,
 }
 
 #[derive(Subcommand)]
@@ -856,7 +879,9 @@ mod tests {
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
         let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config", "telemetry-submit", "telemetry-kill"].into_iter().collect();
+            ["org", "config", "telemetry-submit", "telemetry-kill", "telemetry-status"]
+                .into_iter()
+                .collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd

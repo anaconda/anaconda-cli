@@ -55,6 +55,55 @@ fn spawn_detached_windows(exe: &std::path::Path) -> io::Result<()> {
     Ok(())
 }
 
+/// Check for running telemetry-submit processes.
+///
+/// Returns a list of PIDs.
+pub fn list_submitters() -> io::Result<Vec<u32>> {
+    #[cfg(unix)]
+    {
+        list_submitters_unix()
+    }
+
+    #[cfg(windows)]
+    {
+        list_submitters_windows()
+    }
+}
+
+#[cfg(unix)]
+fn list_submitters_unix() -> io::Result<Vec<u32>> {
+    let output = Command::new("pgrep")
+        .args(["-f", "ana telemetry-submit"])
+        .output()?;
+
+    let pids: Vec<u32> = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| line.trim().parse().ok())
+        .collect();
+
+    Ok(pids)
+}
+
+#[cfg(windows)]
+fn list_submitters_windows() -> io::Result<Vec<u32>> {
+    let output = Command::new("wmic")
+        .args([
+            "process",
+            "where",
+            "commandline like '%ana%telemetry-submit%'",
+            "get",
+            "processid",
+        ])
+        .output()?;
+
+    let pids: Vec<u32> = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| line.trim().parse().ok())
+        .collect();
+
+    Ok(pids)
+}
+
 /// Kill any running telemetry-submit processes.
 ///
 /// Returns the number of processes killed.
