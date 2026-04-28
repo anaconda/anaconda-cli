@@ -65,9 +65,11 @@ jobs:
 
       - name: Commit and fail if changes occurred
         if: steps.updates.outputs.changed == 1
+        env:
+          REF: ${{ github.head_ref }}
         run: |
-          git fetch origin refs/heads/${{ github.head_ref }}:refs/remotes/origin/${{ github.head_ref }}
-          git checkout ${{ github.head_ref }}
+          git fetch origin "refs/heads/${REF}:refs/remotes/origin/${REF}"
+          git checkout "${REF}"
 
           git config user.name "Anaconda Bot"
           git config user.email "devops+anaconda-bot@anaconda.com"
