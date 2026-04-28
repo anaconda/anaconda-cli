@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   pre-commit:
+    name: Run pre-commit and push fixes
     runs-on: ubuntu-latest
     permissions:
       contents: read  # To check out private repository
@@ -33,7 +34,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-          token: ${{ secrets.ANACONDA_BOT_TOKEN }}
+          token: ${{ secrets.ANACONDA_BOT_TOKEN }}  # zizmor: ignore[secrets-outside-env]
 
       - name: Configure git for private repos
         env:
@@ -60,7 +61,7 @@ jobs:
         run: |
           pixi run pre-commit || :
           if git status --porcelain | grep -q .; then
-            echo "changed=1" >>$GITHUB_OUTPUT
+            echo "changed=1" >> "${GITHUB_OUTPUT}"
           fi
 
       - name: Commit and fail if changes occurred
