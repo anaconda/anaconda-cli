@@ -222,8 +222,8 @@ impl Action {
                 help::print_help(subcommands);
                 Ok(())
             }
-            Action::ShowSubcommandHelp(name) => {
-                help::print_subcommand_help(&get_subcommand(&name));
+            Action::ShowSubcommandHelp(path) => {
+                help::print_subcommand_help(&get_subcommand(&path), &path);
                 Ok(())
             }
             Action::ShowVersion => {
@@ -454,17 +454,19 @@ fn is_valid_subcommand(name: &str) -> bool {
 
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        // Check if help was requested for a subcommand
+        // Check if help was requested for a subcommand (including nested ones)
         let args: Vec<String> = std::env::args().collect();
-        if args.len() > 1 {
-            let subcommand = &args[1];
-            // Check if it's a valid subcommand (not a flag)
-            if !subcommand.starts_with('-') && is_valid_subcommand(subcommand) {
-                return (
-                    Action::ShowSubcommandHelp(subcommand.clone()),
-                    LogLevel::Off,
-                );
-            }
+        // Collect all non-flag args after the binary name to build the subcommand path
+        let subcommand_parts: Vec<&str> = args
+            .iter()
+            .skip(1)
+            .filter(|a| !a.starts_with('-'))
+            .map(|s| s.as_str())
+            .collect();
+
+        if !subcommand_parts.is_empty() && is_valid_subcommand(subcommand_parts[0]) {
+            let subcommand_path = subcommand_parts.join(" ");
+            return (Action::ShowSubcommandHelp(subcommand_path), LogLevel::Off);
         }
         return (Action::ShowHelp, LogLevel::Off);
     }
@@ -505,13 +507,21 @@ fn get_subcommand_descriptions() -> HashMap<String, String> {
         .collect()
 }
 
-/// Get a subcommand's clap Command by name
-fn get_subcommand(name: &str) -> clap::Command {
-    Cli::command()
-        .get_subcommands()
-        .find(|s| s.get_name() == name)
-        .cloned()
-        .expect("subcommand should exist")
+/// Get a subcommand's clap Command by name (supports nested paths like "self update")
+fn get_subcommand(path: &str) -> clap::Command {
+    let parts: Vec<&str> = path.split_whitespace().collect();
+    let mut cmd = Cli::command();
+
+    for part in parts {
+        let subcmd = cmd
+            .get_subcommands()
+            .find(|s| s.get_name() == part)
+            .cloned()
+            .expect("subcommand should exist");
+        cmd = subcmd;
+    }
+
+    cmd
 }
 
 #[derive(Parser)]
