@@ -175,8 +175,9 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     print_footer(&term);
 }
 
-/// Help for a subcommand (e.g., `ana self`, `ana auth`, `ana bootstrap`)
-pub fn print_subcommand_help(cmd: &clap::Command) {
+/// Help for a subcommand (e.g., `ana self`, `ana auth`, `ana self update`)
+/// `path` is the full command path like "self update"
+pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     let term = Term::stdout();
     let ind = left_margin();
 
@@ -186,12 +187,17 @@ pub fn print_subcommand_help(cmd: &clap::Command) {
         let _ = term.write_line("");
     }
 
-    // Usage - render and ensure it starts with "ana "
-    let usage = cmd.clone().render_usage().to_string();
-    let usage = if usage.starts_with("Usage: ana ") {
-        usage
+    // Usage - build from path to ensure correct nesting
+    let has_options = cmd
+        .get_arguments()
+        .any(|a| a.get_id() != "help" && a.get_id() != "version");
+    let has_subcommands = cmd.get_subcommands().next().is_some();
+    let usage = if has_subcommands {
+        format!("Usage: ana {} <command> [options]", path)
+    } else if has_options {
+        format!("Usage: ana {} [OPTIONS]", path)
     } else {
-        usage.replacen("Usage: ", "Usage: ana ", 1)
+        format!("Usage: ana {}", path)
     };
     let _ = term.write_line(&format!(
         "{}{}",
@@ -212,5 +218,29 @@ pub fn print_subcommand_help(cmd: &clap::Command) {
                 .unwrap_or_default();
             print_command_row(&term, name, &desc);
         }
+        let _ = term.write_line("");
+    }
+
+    // Options (for leaf commands with arguments/flags)
+    let args: Vec<_> = cmd
+        .get_arguments()
+        .filter(|a| a.get_id() != "help" && a.get_id() != "version")
+        .collect();
+    if !args.is_empty() {
+        print_section(&term, "OPTIONS");
+        for arg in args {
+            let short = arg
+                .get_short()
+                .map(|s| format!("-{}, ", s))
+                .unwrap_or_default();
+            let long = arg
+                .get_long()
+                .map(|l| format!("--{}", l))
+                .unwrap_or_default();
+            let name = format!("{}{}", short, long);
+            let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
+            print_command_row(&term, &name, &desc);
+        }
+        let _ = term.write_line("");
     }
 }
