@@ -25,9 +25,7 @@ concurrency:
 
 jobs:
   pre-commit:
-    runs-on:
-      labels:
-        - ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read  # To check out private repository
     steps:
