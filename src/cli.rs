@@ -714,4 +714,102 @@ mod tests {
             missing
         );
     }
+
+    #[test]
+    fn test_feature_enable_wheels_pip_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { command }),
+            }) => match command {
+                EnableCommands::Wheels { pip, uv } => {
+                    assert!(pip);
+                    assert!(!uv);
+                }
+            },
+            _ => panic!("Expected Feature Enable Wheels command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_enable_wheels_uv_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { command }),
+            }) => match command {
+                EnableCommands::Wheels { pip, uv } => {
+                    assert!(!pip);
+                    assert!(uv);
+                }
+            },
+            _ => panic!("Expected Feature Enable Wheels command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_enable_wheels_both_flags() {
+        let cli =
+            Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { command }),
+            }) => match command {
+                EnableCommands::Wheels { pip, uv } => {
+                    assert!(pip);
+                    assert!(uv);
+                }
+            },
+            _ => panic!("Expected Feature Enable Wheels command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels_pip_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Disable { command }),
+            }) => match command {
+                DisableCommands::Wheels { pip, uv } => {
+                    assert!(pip);
+                    assert!(!uv);
+                }
+            },
+            _ => panic!("Expected Feature Disable Wheels command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels_uv_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Disable { command }),
+            }) => match command {
+                DisableCommands::Wheels { pip, uv } => {
+                    assert!(!pip);
+                    assert!(uv);
+                }
+            },
+            _ => panic!("Expected Feature Disable Wheels command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels_both_flags() {
+        let cli =
+            Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Disable { command }),
+            }) => match command {
+                DisableCommands::Wheels { pip, uv } => {
+                    assert!(pip);
+                    assert!(uv);
+                }
+            },
+            _ => panic!("Expected Feature Disable Wheels command"),
+        }
+    }
 }

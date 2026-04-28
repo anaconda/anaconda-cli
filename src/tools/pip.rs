@@ -71,3 +71,65 @@ fn build_authenticated_url(url: &str, api_key: &str) -> Result<String, Box<dyn s
         scheme, api_key, host, path
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_authenticated_url_with_path() {
+        let url = "https://example.com/repo/simple/";
+        let api_key = "test-api-key";
+
+        let result = build_authenticated_url(url, api_key).unwrap();
+
+        assert_eq!(
+            result,
+            "https://__token__:test-api-key@example.com/repo/simple/"
+        );
+    }
+
+    #[test]
+    fn test_build_authenticated_url_without_path() {
+        let url = "https://pypi.org";
+        let api_key = "my-key";
+
+        let result = build_authenticated_url(url, api_key).unwrap();
+
+        assert_eq!(result, "https://__token__:my-key@pypi.org");
+    }
+
+    #[test]
+    fn test_build_authenticated_url_http_scheme() {
+        let url = "http://localhost:8080/simple/";
+        let api_key = "local-key";
+
+        let result = build_authenticated_url(url, api_key).unwrap();
+
+        assert_eq!(result, "http://__token__:local-key@localhost:8080/simple/");
+    }
+
+    #[test]
+    fn test_build_authenticated_url_missing_scheme() {
+        let url = "example.com/path";
+        let api_key = "key";
+
+        let result = build_authenticated_url(url, api_key);
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("missing scheme"));
+    }
+
+    #[test]
+    fn test_build_authenticated_url_real_wheels_url() {
+        let url = "https://repo-latest.dev-us-east-1.anaconda.cloud/repo/wheels-test/simple/";
+        let api_key = "abc123";
+
+        let result = build_authenticated_url(url, api_key).unwrap();
+
+        assert_eq!(
+            result,
+            "https://__token__:abc123@repo-latest.dev-us-east-1.anaconda.cloud/repo/wheels-test/simple/"
+        );
+    }
+}

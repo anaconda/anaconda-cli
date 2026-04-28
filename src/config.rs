@@ -466,4 +466,27 @@ mod tests {
             assert!(config.include_prereleases);
         });
     }
+
+    #[test]
+    fn test_config_default_pip_index_url() {
+        temp_env::with_var("ANA_PIP_INDEX_URL", None::<&str>, || {
+            let config = Config::load();
+            assert_eq!(
+                config.pip_index_url,
+                "https://repo-latest.dev-us-east-1.anaconda.cloud/repo/wheels-test/simple/"
+            );
+        });
+    }
+
+    #[test]
+    fn test_config_load_pip_index_url_from_env() {
+        temp_env::with_var(
+            "ANA_PIP_INDEX_URL",
+            Some("https://custom.example.com/simple/"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.pip_index_url, "https://custom.example.com/simple/");
+            },
+        );
+    }
 }
