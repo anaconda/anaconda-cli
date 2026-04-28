@@ -54,6 +54,9 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
         env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
     else:
         env["HOME"] = str(fake_home)
+    # Preserve ANA_SELF_UPDATE_URL if set (e.g., by CI to use internal URL)
+    if "ANA_SELF_UPDATE_URL" in os.environ:
+        env["ANA_SELF_UPDATE_URL"] = os.environ["ANA_SELF_UPDATE_URL"]
     return env
 
 
