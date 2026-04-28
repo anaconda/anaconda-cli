@@ -24,12 +24,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+    permissions:
+      contents: read  # To check out private repository
     strategy:
       fail-fast: true
       matrix:
