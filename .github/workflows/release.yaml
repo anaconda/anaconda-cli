@@ -91,7 +91,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Download binaries
@@ -168,9 +167,6 @@ jobs:
             gh release delete latest --yes
             git push origin :refs/tags/latest 2>/dev/null || true
           fi
-
-          # Delete local tag if it exists (from fetch-depth: 0)
-          git tag -d latest 2>/dev/null || true
 
           NOTES=$(cat <<EOF
           This release always points to the most recent build.
