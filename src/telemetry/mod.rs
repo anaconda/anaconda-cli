@@ -10,11 +10,13 @@
 //! The types in `event.rs` are portable and can be moved to anaconda-otel-rs.
 
 pub mod event;
+pub mod otel;
 mod spawn;
 mod spool;
 mod submit;
 
-pub use event::{SerializableValue, TelemetryEvent};
+pub use event::TelemetryEvent;
+pub use otel::SerializableValue;
 pub use spawn::spawn_telemetry_submitter;
 pub use spool::write_batch;
 pub use submit::submit_pending;

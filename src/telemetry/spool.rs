@@ -50,7 +50,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    use crate::telemetry::event::SerializableValue;
+    use crate::telemetry::otel::SerializableValue;
 
     #[test]
     fn test_write_batch_creates_file() {

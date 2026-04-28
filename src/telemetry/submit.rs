@@ -4,9 +4,8 @@ use std::fs;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 
-use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
-
 use super::event::{TelemetryBatch, TelemetryEvent};
+use super::otel;
 
 /// Submit all pending telemetry batches.
 ///
@@ -18,7 +17,7 @@ pub fn submit_pending() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    crate::config::setup_telemetry();
+    otel::setup();
 
     let entries: Vec<_> = fs::read_dir(&pending_dir)?
         .filter_map(|e| e.ok())
@@ -42,7 +41,7 @@ pub fn submit_pending() -> Result<(), Box<dyn std::error::Error>> {
 
     cleanup_old_files(&pending_dir, 7)?;
 
-    shutdown_telemetry();
+    otel::shutdown();
 
     Ok(())
 }
@@ -52,22 +51,20 @@ fn submit_batch_file(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let batch: TelemetryBatch = serde_json::from_str(&content)?;
 
     for event in batch.events {
-        let attrs = match &event {
-            TelemetryEvent::Counter { attributes, .. } => attributes,
-            TelemetryEvent::Histogram { attributes, .. } => attributes,
-        };
-
-        let otel_attrs: std::collections::HashMap<String, opentelemetry::Value> = attrs
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone().into()))
-            .collect();
-
         match event {
-            TelemetryEvent::Counter { name, value, .. } => {
-                increment_counter(&name, value, otel_attrs);
+            TelemetryEvent::Counter {
+                name,
+                value,
+                attributes,
+            } => {
+                otel::submit_counter(&name, value, attributes);
             }
-            TelemetryEvent::Histogram { name, value, .. } => {
-                record_histogram(&name, value, otel_attrs);
+            TelemetryEvent::Histogram {
+                name,
+                value,
+                attributes,
+            } => {
+                otel::submit_histogram(&name, value, attributes);
             }
         }
     }
@@ -101,7 +98,7 @@ mod tests {
     use std::collections::HashMap;
     use std::io::Write;
 
-    use crate::telemetry::event::SerializableValue;
+    use crate::telemetry::otel::SerializableValue;
 
     #[test]
     fn test_cleanup_old_files_keeps_recent() {

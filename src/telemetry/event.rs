@@ -1,9 +1,9 @@
 //! Portable telemetry event types.
-//!
-//! These types have no ana-cli dependencies and can be moved to anaconda-otel-rs.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use super::otel::SerializableValue;
 
 /// A single telemetry event (counter or histogram).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -19,39 +19,6 @@ pub enum TelemetryEvent {
         value: f64,
         attributes: HashMap<String, SerializableValue>,
     },
-}
-
-/// A value type that can be serialized and converted to/from OpenTelemetry Value.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(untagged)]
-pub enum SerializableValue {
-    String(String),
-    Int(i64),
-    Float(f64),
-    Bool(bool),
-}
-
-impl From<opentelemetry::Value> for SerializableValue {
-    fn from(v: opentelemetry::Value) -> Self {
-        match v {
-            opentelemetry::Value::String(s) => SerializableValue::String(s.to_string()),
-            opentelemetry::Value::I64(i) => SerializableValue::Int(i),
-            opentelemetry::Value::F64(f) => SerializableValue::Float(f),
-            opentelemetry::Value::Bool(b) => SerializableValue::Bool(b),
-            _ => SerializableValue::String(format!("{:?}", v)),
-        }
-    }
-}
-
-impl From<SerializableValue> for opentelemetry::Value {
-    fn from(v: SerializableValue) -> Self {
-        match v {
-            SerializableValue::String(s) => opentelemetry::Value::String(s.into()),
-            SerializableValue::Int(i) => opentelemetry::Value::I64(i),
-            SerializableValue::Float(f) => opentelemetry::Value::F64(f),
-            SerializableValue::Bool(b) => opentelemetry::Value::Bool(b),
-        }
-    }
 }
 
 /// A batch of telemetry events with metadata.
@@ -124,25 +91,4 @@ mod tests {
         assert_eq!(batch.events.len(), 1);
     }
 
-    #[test]
-    fn test_serializable_value_from_otel() {
-        let string_val = opentelemetry::Value::String("test".into());
-        let int_val = opentelemetry::Value::I64(42);
-        let float_val = opentelemetry::Value::F64(3.14);
-        let bool_val = opentelemetry::Value::Bool(true);
-
-        assert_eq!(
-            SerializableValue::from(string_val),
-            SerializableValue::String("test".to_string())
-        );
-        assert_eq!(SerializableValue::from(int_val), SerializableValue::Int(42));
-        assert_eq!(
-            SerializableValue::from(float_val),
-            SerializableValue::Float(3.14)
-        );
-        assert_eq!(
-            SerializableValue::from(bool_val),
-            SerializableValue::Bool(true)
-        );
-    }
 }
