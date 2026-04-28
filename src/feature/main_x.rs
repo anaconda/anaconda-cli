@@ -255,19 +255,20 @@ fn find_conda() -> miette::Result<std::path::PathBuf> {
     }
 }
 
-/// Get the list of currently configured channels from conda config --get.
+/// Get the list of currently configured channels from conda config --show.
 ///
 /// The output format is:
 /// ```
-/// --add channels 'defaults'   # lowest priority
-/// --add channels 'conda-forge'   # highest priority
+/// channels:
+///   - conda-forge
+///   - defaults
 /// ```
 fn get_configured_channels(conda_bin: &Path) -> miette::Result<Vec<String>> {
     let output = Command::new(conda_bin)
-        .args(["config", "--get", "channels"])
+        .args(["config", "--show", "channels"])
         .output()
         .into_diagnostic()
-        .context("failed to run conda config --get channels")?;
+        .context("failed to run conda config --show channels")?;
 
     if !output.status.success() {
         // If command fails, assume no channels configured
@@ -276,16 +277,13 @@ fn get_configured_channels(conda_bin: &Path) -> miette::Result<Vec<String>> {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    // Parse output: extract channel from "--add channels '<channel>'" lines
+    // Parse YAML-like output: skip "channels:" line, then extract "  - <channel>" lines
     let channels: Vec<String> = stdout
         .lines()
         .filter_map(|line| {
-            let line = line.trim();
-            if line.starts_with("--add channels '") {
-                // Extract channel between quotes
-                line.strip_prefix("--add channels '")
-                    .and_then(|s| s.split('\'').next())
-                    .map(String::from)
+            let trimmed = line.trim();
+            if trimmed.starts_with("- ") {
+                Some(trimmed.strip_prefix("- ").unwrap().to_string())
             } else {
                 None
             }
@@ -302,6 +300,89 @@ mod tests {
     #[test]
     fn test_channel_constants() {
         assert_eq!(MAIN_X_CHANNEL, "https://repo.anaconda.cloud/repo/main-x");
+    }
+
+    // ========================================================================
+    // Channel parsing tests
+    // ========================================================================
+
+    #[test]
+    fn test_parse_channels_output_typical() {
+        let output = "channels:\n  - conda-forge\n  - defaults\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(channels, vec!["conda-forge", "defaults"]);
+    }
+
+    #[test]
+    fn test_parse_channels_output_empty() {
+        let output = "channels: []\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(channels.is_empty());
+    }
+
+    #[test]
+    fn test_parse_channels_output_with_urls() {
+        let output = "channels:\n  - https://repo.anaconda.cloud/repo/main-x\n  - conda-forge\n  - defaults\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(
+            channels,
+            vec![
+                "https://repo.anaconda.cloud/repo/main-x",
+                "conda-forge",
+                "defaults"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_channels_output_single_channel() {
+        let output = "channels:\n  - defaults\n";
+        let channels: Vec<String> = output
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(channels, vec!["defaults"]);
     }
 
     // ========================================================================
