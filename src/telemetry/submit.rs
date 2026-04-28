@@ -171,4 +171,85 @@ mod tests {
         let parsed: TelemetryBatch = serde_json::from_str(&content).unwrap();
         assert_eq!(parsed.events.len(), 1);
     }
+
+    #[test]
+    fn test_submit_pending_inner_no_pending_dir() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
+            // pending dir doesn't exist - should return Ok
+            let result = submit_pending_inner();
+            assert!(result.is_ok());
+        });
+    }
+
+    #[test]
+    fn test_submit_pending_inner_empty_pending_dir() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pending_dir = temp_dir.path().join("telemetry").join("pending");
+        fs::create_dir_all(&pending_dir).unwrap();
+
+        temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
+            // pending dir exists but is empty - should return Ok
+            let result = submit_pending_inner();
+            assert!(result.is_ok());
+        });
+    }
+
+    #[test]
+    fn test_submit_pending_inner_skips_non_json_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pending_dir = temp_dir.path().join("telemetry").join("pending");
+        fs::create_dir_all(&pending_dir).unwrap();
+
+        // Create a non-json file
+        fs::write(pending_dir.join("test.txt"), "not json").unwrap();
+        // Create a tmp file (in-progress write)
+        fs::write(pending_dir.join("123.tmp"), "{}").unwrap();
+
+        temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
+            let result = submit_pending_inner();
+            assert!(result.is_ok());
+
+            // Files should still exist (not processed)
+            assert!(pending_dir.join("test.txt").exists());
+            assert!(pending_dir.join("123.tmp").exists());
+        });
+    }
+
+    #[test]
+    fn test_submit_pending_inner_handles_invalid_json() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pending_dir = temp_dir.path().join("telemetry").join("pending");
+        fs::create_dir_all(&pending_dir).unwrap();
+
+        // Create an invalid json file
+        fs::write(pending_dir.join("123.json"), "not valid json").unwrap();
+
+        temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
+            // Should not panic, just log warning and continue
+            let result = submit_pending_inner();
+            assert!(result.is_ok());
+
+            // Invalid file should still exist (not deleted on parse failure)
+            assert!(pending_dir.join("123.json").exists());
+        });
+    }
+
+    #[test]
+    fn test_cleanup_old_files_empty_dir() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Should handle empty directory without error
+        let result = cleanup_old_files(temp_dir.path(), 7);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_submit_pending_timeout_returns_result() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
+            // With no pending dir, should complete quickly and return Ok
+            let result = submit_pending();
+            assert!(result.is_ok());
+        });
+    }
 }

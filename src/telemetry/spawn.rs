@@ -163,3 +163,35 @@ fn kill_submitters_windows() -> io::Result<u32> {
 
     Ok(killed)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_list_submitters_returns_ok() {
+        // Should not panic and should return a result
+        let result = list_submitters();
+        assert!(result.is_ok());
+        // Result should be a vec (possibly empty)
+        let pids = result.unwrap();
+        assert!(pids.len() < 1000); // Sanity check
+    }
+
+    #[test]
+    fn test_kill_submitters_returns_ok() {
+        // Should not panic and should return a result
+        // Note: This may or may not kill processes depending on what's running
+        let result = kill_submitters();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_submitters_returns_valid_pids() {
+        let result = list_submitters().unwrap();
+        // All returned values should be valid PIDs (positive integers)
+        for pid in result {
+            assert!(pid > 0);
+        }
+    }
+}
