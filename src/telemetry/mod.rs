@@ -17,7 +17,7 @@ mod submit;
 
 pub use event::TelemetryEvent;
 pub use otel::SerializableValue;
-pub use spawn::spawn_telemetry_submitter;
+pub use spawn::{kill_submitters, spawn_telemetry_submitter};
 pub use spool::write_batch;
 pub use submit::submit_pending;
 

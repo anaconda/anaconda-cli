@@ -1,4 +1,4 @@
-//! Cross-platform detached process spawning for telemetry submission.
+//! Cross-platform detached process spawning and management for telemetry submission.
 
 use std::io;
 use std::process::{Command, Stdio};
@@ -53,4 +53,64 @@ fn spawn_detached_windows(exe: &std::path::Path) -> io::Result<()> {
     let _child = cmd.spawn()?;
 
     Ok(())
+}
+
+/// Kill any running telemetry-submit processes.
+///
+/// Returns the number of processes killed.
+pub fn kill_submitters() -> io::Result<u32> {
+    #[cfg(unix)]
+    {
+        kill_submitters_unix()
+    }
+
+    #[cfg(windows)]
+    {
+        kill_submitters_windows()
+    }
+}
+
+#[cfg(unix)]
+fn kill_submitters_unix() -> io::Result<u32> {
+    // Use pkill to find and kill processes matching "ana telemetry-submit"
+    // pkill returns 0 if processes were killed, 1 if none found
+    let output = Command::new("pkill")
+        .args(["-f", "ana telemetry-submit"])
+        .output()?;
+
+    // pkill returns 0 if processes were killed, 1 if none matched
+    if output.status.success() {
+        Ok(1) // pkill doesn't report count, report minimum
+    } else {
+        Ok(0)
+    }
+}
+
+#[cfg(windows)]
+fn kill_submitters_windows() -> io::Result<u32> {
+    // Use WMIC to find PIDs, then taskkill
+    let output = Command::new("wmic")
+        .args([
+            "process",
+            "where",
+            "commandline like '%ana%telemetry-submit%'",
+            "get",
+            "processid",
+        ])
+        .output()?;
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut killed = 0;
+
+    for line in output_str.lines() {
+        let line = line.trim();
+        if let Ok(pid) = line.parse::<u32>() {
+            let _ = Command::new("taskkill")
+                .args(["/F", "/PID", &pid.to_string()])
+                .output();
+            killed += 1;
+        }
+    }
+
+    Ok(killed)
 }

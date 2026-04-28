@@ -61,11 +61,11 @@ pub async fn execute() {
     let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
-    let is_telemetry_submit = matches!(&action, Action::TelemetrySubmit);
+    let skip_telemetry_spawn = matches!(&action, Action::TelemetrySubmit | Action::TelemetryKill);
 
     let result = action.execute().await;
 
-    if !is_telemetry_submit {
+    if !skip_telemetry_spawn {
         if let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
             tracing::debug!("Failed to spawn telemetry submitter: {}", e);
         }
@@ -149,6 +149,7 @@ pub enum Action {
         uv: bool,
     },
     TelemetrySubmit,
+    TelemetryKill,
 }
 
 impl Action {
@@ -185,6 +186,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::TelemetrySubmit => "telemetry-submit",
+            Action::TelemetryKill => "telemetry-kill",
         }
     }
 
@@ -344,6 +346,14 @@ impl Action {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
             }
+            Action::TelemetryKill => {
+                match crate::telemetry::kill_submitters() {
+                    Ok(0) => println!("No telemetry processes found"),
+                    Ok(n) => println!("Killed {} telemetry process(es)", n),
+                    Err(e) => return Err(format!("Failed to kill processes: {}", e).into()),
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -461,6 +471,7 @@ pub fn parse() -> (Action, LogLevel) {
                     },
                 },
                 Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
+                Some(Commands::TelemetryKill) => Action::TelemetryKill,
             };
             (action, level)
         }
@@ -668,6 +679,10 @@ enum Commands {
     /// Submit pending telemetry batches (internal use only)
     #[command(hide = true)]
     TelemetrySubmit,
+
+    /// Kill background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryKill,
 }
 
 #[derive(Subcommand)]
@@ -841,7 +856,7 @@ mod tests {
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
         let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config", "telemetry-submit"].into_iter().collect();
+            ["org", "config", "telemetry-submit", "telemetry-kill"].into_iter().collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd
