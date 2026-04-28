@@ -38,7 +38,7 @@ jobs:
 
       - name: Configure git for private repos
         env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
         run: |
           git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
@@ -49,7 +49,7 @@ jobs:
         with:
           ana-version: v0.0.9
           tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
