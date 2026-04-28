@@ -277,7 +277,7 @@ impl Action {
             }
             Action::FeatureDisable { feature, force } => {
                 match feature.as_str() {
-                    "main-x" => feature::disable_main_x(force)?,
+                    "main-x" => feature::disable_main_x(ctx, force)?,
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
                 }
                 Ok(())
