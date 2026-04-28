@@ -283,7 +283,7 @@ fn get_configured_channels(conda_bin: &Path) -> miette::Result<Vec<String>> {
         .filter_map(|line| {
             let trimmed = line.trim();
             if trimmed.starts_with("- ") {
-                Some(trimmed.strip_prefix("- ").unwrap().to_string())
+                Some(trimmed.strip_prefix("- ").unwrap().trim().to_string())
             } else {
                 None
             }
