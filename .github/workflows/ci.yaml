@@ -50,9 +50,6 @@ jobs:
           git config --global --add url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash
         run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
