@@ -2,15 +2,42 @@
 
 use std::fs;
 use std::path::Path;
+use std::sync::mpsc;
+use std::thread;
 use std::time::{Duration, SystemTime};
 
 use super::event::{TelemetryBatch, TelemetryEvent};
 use super::otel;
 
-/// Submit all pending telemetry batches.
+/// Default timeout for the telemetry submission process (30 seconds).
+const SUBMIT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Submit all pending telemetry batches with a timeout.
 ///
 /// Called by the detached telemetry-submit subprocess.
+/// Returns an error if submission takes longer than SUBMIT_TIMEOUT.
 pub fn submit_pending() -> Result<(), Box<dyn std::error::Error>> {
+    let (tx, rx) = mpsc::channel::<Result<(), String>>();
+
+    thread::spawn(move || {
+        let result = submit_pending_inner().map_err(|e| e.to_string());
+        let _ = tx.send(result);
+    });
+
+    match rx.recv_timeout(SUBMIT_TIMEOUT) {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(e.into()),
+        Err(mpsc::RecvTimeoutError::Timeout) => {
+            Err("Telemetry submission timed out".into())
+        }
+        Err(mpsc::RecvTimeoutError::Disconnected) => {
+            Err("Telemetry submission thread panicked".into())
+        }
+    }
+}
+
+/// Inner submission logic without timeout.
+fn submit_pending_inner() -> Result<(), Box<dyn std::error::Error>> {
     let pending_dir = super::pending_dir();
 
     if !pending_dir.exists() {
