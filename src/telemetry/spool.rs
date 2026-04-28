@@ -7,13 +7,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::event::{TelemetryBatch, TelemetryEvent};
 
+/// Maximum number of pending spool files to keep.
+const MAX_PENDING_FILES: usize = 100;
+
 /// Write a batch of events to a spool file.
 ///
 /// Uses atomic write (temp file + rename) for crash safety.
+/// Enforces MAX_PENDING_FILES limit by deleting oldest files.
 /// Returns the path to the written file.
 pub fn write_batch(events: Vec<TelemetryEvent>, version: &str) -> io::Result<PathBuf> {
     let pending_dir = super::pending_dir();
     fs::create_dir_all(&pending_dir)?;
+
+    // Enforce max file count before writing
+    enforce_max_files(&pending_dir, MAX_PENDING_FILES)?;
 
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -43,6 +50,29 @@ pub fn write_batch(events: Vec<TelemetryEvent>, version: &str) -> io::Result<Pat
     fs::rename(&temp_path, &final_path)?;
 
     Ok(final_path)
+}
+
+/// Enforce maximum file count by deleting oldest files.
+fn enforce_max_files(dir: &PathBuf, max_files: usize) -> io::Result<()> {
+    let mut entries: Vec<_> = fs::read_dir(dir)?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+        .collect();
+
+    if entries.len() < max_files {
+        return Ok(());
+    }
+
+    // Sort by filename (which is nanosecond timestamp) - oldest first
+    entries.sort_by_key(|e| e.file_name());
+
+    // Delete oldest files to make room
+    let to_delete = entries.len() - max_files + 1; // +1 for the new file we're about to write
+    for entry in entries.into_iter().take(to_delete) {
+        let _ = fs::remove_file(entry.path());
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -100,5 +130,54 @@ mod tests {
 
             assert!(tmp_files.is_empty(), "No .tmp files should remain");
         });
+    }
+
+    #[test]
+    fn test_enforce_max_files_deletes_oldest() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pending_dir = temp_dir.path().join("telemetry").join("pending");
+        fs::create_dir_all(&pending_dir).unwrap();
+
+        // Create 5 files with sequential names
+        for i in 0..5 {
+            let path = pending_dir.join(format!("{}.json", i));
+            fs::write(&path, "{}").unwrap();
+        }
+
+        // Enforce max of 3 files (need room for 1 new file, so keep 2)
+        enforce_max_files(&pending_dir, 3).unwrap();
+
+        let remaining: Vec<_> = fs::read_dir(&pending_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+
+        // Should have deleted 3 oldest (0, 1, 2), keeping 2 (3, 4)
+        assert_eq!(remaining.len(), 2);
+        assert!(pending_dir.join("3.json").exists());
+        assert!(pending_dir.join("4.json").exists());
+    }
+
+    #[test]
+    fn test_enforce_max_files_no_op_when_under_limit() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pending_dir = temp_dir.path().join("telemetry").join("pending");
+        fs::create_dir_all(&pending_dir).unwrap();
+
+        // Create 2 files
+        for i in 0..2 {
+            let path = pending_dir.join(format!("{}.json", i));
+            fs::write(&path, "{}").unwrap();
+        }
+
+        // Enforce max of 5 files - should do nothing
+        enforce_max_files(&pending_dir, 5).unwrap();
+
+        let remaining: Vec<_> = fs::read_dir(&pending_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+
+        assert_eq!(remaining.len(), 2);
     }
 }
