@@ -36,9 +36,11 @@ jobs:
           token: ${{ secrets.ANACONDA_BOT_TOKEN }}
 
       - name: Configure git for private repos
+        env:
+          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
         run: |
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
       - name: Set up ana with pixi
