@@ -42,8 +42,13 @@ use crate::VERSION;
 use crate::auth;
 use crate::table;
 
+/// Check if telemetry is enabled.
+pub fn telemetry_enabled() -> bool {
+    parse_bool_env("ANA_ENABLE_TELEMETRY", true)
+}
+
 pub fn setup_telemetry() {
-    if !parse_bool_env("ANA_ENABLE_TELEMETRY", true) {
+    if !telemetry_enabled() {
         return;
     }
     let _ = try_setup_telemetry();
