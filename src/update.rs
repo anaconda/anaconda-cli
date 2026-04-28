@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use std::env;
@@ -8,8 +10,21 @@ use crate::context::CommandContext;
 use crate::http::{bearer_header, build_client};
 use crate::input::prompt_yes_no;
 
-// We track the repo for releases
+// GitHub repository for releases (used when ANA_SELF_UPDATE_URL=github)
 const GITHUB_REPO: &str = "anaconda/ana-cli";
+
+// Static manifest structs
+#[derive(Debug, Clone, Deserialize)]
+struct StaticManifest {
+    channels: HashMap<String, StaticChannel>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct StaticChannel {
+    versions: Vec<String>,
+    #[allow(dead_code)]
+    latest: Option<String>,
+}
 
 fn github_client() -> Result<reqwest_middleware::ClientWithMiddleware, Error> {
     let token = match env::var("GITHUB_TOKEN") {
@@ -98,18 +113,29 @@ pub struct Release {
     pub assets: Vec<Asset>,
 }
 
-fn get_asset_name() -> Result<String, Error> {
+fn get_platform_target() -> Result<&'static str, Error> {
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
 
     match (os, arch) {
-        ("macos", "aarch64") => Ok("ana-darwin-arm64".to_string()),
-        ("linux", "x86_64") => Ok("ana-linux-x86_64".to_string()),
-        ("windows", "x86_64") => Ok("ana-windows-x86_64.exe".to_string()),
+        ("macos", "aarch64") => Ok("darwin-arm64"),
+        ("macos", "x86_64") => Ok("darwin-x86_64"),
+        ("linux", "x86_64") => Ok("linux-x86_64"),
+        ("linux", "aarch64") => Ok("linux-aarch64"),
+        ("windows", "x86_64") => Ok("windows-x86_64"),
         _ => {
             tracing::error!("Unsupported platform: {}-{}", os, arch);
             Err(Error::UnsupportedPlatform(format!("{}-{}", os, arch)))
         }
+    }
+}
+
+fn get_asset_name() -> Result<String, Error> {
+    let target = get_platform_target()?;
+    if target.starts_with("windows") {
+        Ok(format!("ana-{}.exe", target))
+    } else {
+        Ok(format!("ana-{}", target))
     }
 }
 
@@ -126,13 +152,19 @@ pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
 pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
     use futures_util::StreamExt;
 
-    let client = github_client()?;
-    let response = client
-        .get(&asset.url)
-        .header("Accept", "application/octet-stream")
-        .send()
-        .await?
-        .error_for_status()?;
+    let is_github = asset.url.contains("api.github.com");
+    let response = if is_github {
+        let client = github_client()?;
+        client
+            .get(&asset.url)
+            .header("Accept", "application/octet-stream")
+            .send()
+            .await?
+            .error_for_status()?
+    } else {
+        let client = build_client(reqwest::Client::builder())?;
+        client.get(&asset.url).send().await?.error_for_status()?
+    };
 
     let total_size = response.content_length().unwrap_or(0);
 
@@ -179,7 +211,7 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
     semver::Version::parse(&normalized).map_err(|_| Error::VersionParse(tag.to_string()))
 }
 
-async fn fetch_releases() -> Result<Vec<Release>, Error> {
+async fn fetch_github_releases() -> Result<Vec<Release>, Error> {
     let client = github_client()?;
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
     let releases: Vec<Release> = client
@@ -193,15 +225,73 @@ async fn fetch_releases() -> Result<Vec<Release>, Error> {
     Ok(releases)
 }
 
+async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, Error> {
+    let client = build_client(reqwest::Client::builder())?;
+    let manifest_url = format!("{}/releases.json", base_url);
+    let manifest: StaticManifest = client
+        .get(&manifest_url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let config = Config::load();
+    let channel = if config.include_prereleases {
+        "dev"
+    } else {
+        "stable"
+    };
+
+    let channel_data = manifest
+        .channels
+        .get(channel)
+        .ok_or_else(|| Error::Http(format!("Channel '{}' not found in manifest", channel)))?;
+
+    let releases: Vec<Release> = channel_data
+        .versions
+        .iter()
+        .map(|tag| {
+            let asset_name = get_asset_name().unwrap_or_default();
+            Release {
+                tag_name: tag.clone(),
+                prerelease: channel == "dev",
+                draft: false,
+                assets: vec![Asset {
+                    name: asset_name.clone(),
+                    url: format!("{}/releases/{}/{}/{}", base_url, channel, tag, asset_name),
+                }],
+            }
+        })
+        .collect();
+
+    Ok(releases)
+}
+
 pub async fn fetch_available_releases() -> Result<Vec<Release>, Error> {
     let config = Config::load();
-    let mut releases: Vec<_> = fetch_releases()
-        .await?
-        .into_iter()
-        .filter(|r| !r.draft) // Always exclude draft releases
-        .filter(|r| parse_version(&r.tag_name).is_ok())
-        .filter(|r| config.include_prereleases || !r.prerelease)
-        .collect();
+
+    let mut releases: Vec<_> = match &config.self_update_url {
+        Some(base_url) => {
+            // Static hosting - releases are already filtered by channel
+            fetch_static_releases(base_url)
+                .await?
+                .into_iter()
+                .filter(|r| parse_version(&r.tag_name).is_ok())
+                .collect()
+        }
+        None => {
+            // GitHub Releases
+            fetch_github_releases()
+                .await?
+                .into_iter()
+                .filter(|r| !r.draft)
+                .filter(|r| parse_version(&r.tag_name).is_ok())
+                .filter(|r| config.include_prereleases || !r.prerelease)
+                .collect()
+        }
+    };
+
     releases.sort_by(|a, b| {
         let va = parse_version(&a.tag_name).unwrap();
         let vb = parse_version(&b.tag_name).unwrap();
@@ -345,13 +435,13 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_fetch_releases_missing_token_error() {
+    async fn test_fetch_github_releases_missing_token_error() {
         // This test will fail if GITHUB_TOKEN is set in the environment
         // In CI, ensure it's not set, or skip this test
         if env::var("GITHUB_TOKEN").is_ok() {
             return; // Skip test if token is set
         }
-        let result = fetch_releases().await;
+        let result = fetch_github_releases().await;
         assert_eq!(result.unwrap_err(), Error::MissingToken);
     }
 

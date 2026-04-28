@@ -166,6 +166,7 @@ mod tests {
             metrics_console_exporter: false,
             metrics_skip_internet_check: true,
             include_prereleases: false,
+            self_update_url: Some("https://example.com".to_string()),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]

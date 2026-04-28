@@ -18,6 +18,7 @@
 //! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP)  |
 //! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
+//! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -75,6 +76,7 @@ const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
+const DEFAULT_SELF_UPDATE_URL: &str = "https://ana-cli.anacondaconnect.com";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
@@ -115,6 +117,9 @@ pub struct Config {
 
     /// Whether to include prereleases when checking for updates
     pub include_prereleases: bool,
+
+    /// Base URL for static self-update; if None, uses GitHub Releases
+    pub self_update_url: Option<String>,
 
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
@@ -158,6 +163,11 @@ impl Config {
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
         let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        let self_update_url = match env::var("ANA_SELF_UPDATE_URL") {
+            Ok(s) if s.trim().eq_ignore_ascii_case("github") => None,
+            Ok(s) if !s.trim().is_empty() => Some(s.trim().to_string()),
+            _ => Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+        };
         #[cfg(feature = "diagnostics")]
         let sentry_disabled = parse_bool_env("ANA_SENTRY_DISABLED", DEFAULT_SENTRY_DISABLED);
         #[cfg(feature = "diagnostics")]
@@ -176,6 +186,7 @@ impl Config {
             keyring_path,
             use_https,
             include_prereleases,
+            self_update_url,
             #[cfg(feature = "diagnostics")]
             sentry_disabled,
             #[cfg(feature = "diagnostics")]
@@ -263,6 +274,7 @@ mod tests {
             keyring_path: default_keyring_path(),
             use_https: true,
             include_prereleases: false,
+            self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]
@@ -454,6 +466,44 @@ mod tests {
         temp_env::with_var("ANA_PRERELEASES", Some("true"), || {
             let config = Config::load();
             assert!(config.include_prereleases);
+        });
+    }
+
+    #[test]
+    fn test_config_default_self_update_url() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", None::<&str>, || {
+            let config = Config::load();
+            assert_eq!(
+                config.self_update_url,
+                Some(DEFAULT_SELF_UPDATE_URL.to_string())
+            );
+        });
+    }
+
+    #[test]
+    fn test_config_self_update_url_custom() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", Some("https://example.com"), || {
+            let config = Config::load();
+            assert_eq!(
+                config.self_update_url,
+                Some("https://example.com".to_string())
+            );
+        });
+    }
+
+    #[test]
+    fn test_config_self_update_url_github_magic_value() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", Some("github"), || {
+            let config = Config::load();
+            assert_eq!(config.self_update_url, None);
+        });
+    }
+
+    #[test]
+    fn test_config_self_update_url_github_case_insensitive() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", Some("GitHub"), || {
+            let config = Config::load();
+            assert_eq!(config.self_update_url, None);
         });
     }
 }
