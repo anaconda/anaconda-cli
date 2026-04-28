@@ -124,7 +124,7 @@ pub async fn enable_main_x(ctx: &mut CommandContext, force: bool) -> miette::Res
 /// Disable main-x channel configuration.
 ///
 /// This command removes the main-x channel from conda configuration.
-pub fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::Result<()> {
+pub async fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Disabling {} feature...",
         status::highlight("main-x")
