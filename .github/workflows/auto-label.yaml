@@ -10,8 +10,13 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   label:
+    name: Add label to PR
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write  # required to create PRs
