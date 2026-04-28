@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -141,10 +139,6 @@ class TestSelfCommand:
         assert "Update ana to the latest version" in result.stdout
 
 
-@pytest.mark.skipif(
-    os.environ.get("CI") == "true",
-    reason="Static hosting tests require external network access that may be blocked in CI",
-)
 class TestSelfUpdateStaticHosting:
     """Tests for self update with static hosting (default, no token required)."""
 
