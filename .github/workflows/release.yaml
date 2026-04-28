@@ -1,7 +1,7 @@
 name: Release
 
 permissions:
-  contents: read
+  contents: read  # To check out private repository
 
 on:
   push:
@@ -12,8 +12,6 @@ on:
 
 jobs:
   ci:
-    permissions:
-      contents: read
     uses: ./.github/workflows/ci.yaml
     secrets:
       PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
@@ -83,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ci, release-info]
     permissions:
-      contents: write
+      contents: write  # To create a release
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

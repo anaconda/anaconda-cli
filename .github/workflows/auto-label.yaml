@@ -8,12 +8,13 @@ on:
       - opened
       - edited
 
-permissions:
-  pull-requests: write
+permissions: {}
 
 jobs:
   label:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # required to create PRs
     steps:
       - name: Apply conventional commit label
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
