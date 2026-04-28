@@ -6,39 +6,56 @@ use super::data::{HELP_EXAMPLES, HELP_SECTIONS};
 use super::styles::HelpStyle;
 use crate::VERSION;
 
-/// Print a command row: "  command      description"
+const GLOBAL_INDENT: usize = 2;
+const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
+const DOCS_URL: &'static str = "https://anaconda.com/docs";
+
+/// Create a string of spaces for the global left_margin
+fn left_margin() -> String {
+    " ".repeat(GLOBAL_INDENT)
+}
+
+/// Print a command row: "    command      description"
 fn print_command_row(term: &Term, name: &str, desc: &str) {
     let styled_name = HelpStyle::Command.style().apply_to(name);
     let styled_desc = HelpStyle::Desc.style().apply_to(desc);
-    let _ = term.write_line(&format!("  {styled_name:<20} {styled_desc}"));
+    let _ = term.write_line(&format!(
+        "{}  {styled_name:<20} {styled_desc}",
+        left_margin()
+    ));
 }
 
 /// Print a section header
 fn print_section(term: &Term, name: &str) {
-    let _ = term.write_line(
-        &HelpStyle::Section
-            .style()
-            .apply_to(name.to_uppercase())
-            .to_string(),
-    );
+    let _ = term.write_line(&format!(
+        "{}{}",
+        left_margin(),
+        HelpStyle::Section.style().apply_to(name.to_uppercase())
+    ));
 }
 
 /// Print the header at the top of the help output
 fn print_header(term: &Term) {
+    let ind = left_margin();
     let _ = term.write_line(&format!(
-        "{} {}",
+        "{}{} {}",
+        ind,
         HelpStyle::Command.style().apply_to("ana"),
         VERSION
     ));
-    let tagline = "Manage your Anaconda toolchain and account.";
-    let _ = term.write_line(&HelpStyle::Desc.style().apply_to(tagline).to_string());
+    let _ = term.write_line(&format!(
+        "{}{}",
+        ind,
+        HelpStyle::Desc.style().apply_to(TAGLINE)
+    ));
     let _ = term.write_line("");
-    let _ = term.write_line(
-        &HelpStyle::Desc
+    let _ = term.write_line(&format!(
+        "{}{}",
+        ind,
+        HelpStyle::Desc
             .style()
             .apply_to("Usage: ana [OPTIONS] COMMAND [ARGS]...")
-            .to_string(),
-    );
+    ));
     let _ = term.write_line("");
 }
 
@@ -46,9 +63,9 @@ fn print_header(term: &Term) {
 fn print_examples_block(term: &Term) {
     print_section(term, "EXAMPLES");
 
-    let margin = "  ";
+    let margin = left_margin();
     let inner_width: usize = 76;
-    let cmd_indent = "  "; // Indent for command lines
+    let cmd_left_margin = "  "; // Indent for command lines
     let border = HelpStyle::BoxBorder.style();
     let bg = HelpStyle::BoxDesc.style(); // For consistent background
 
@@ -66,7 +83,7 @@ fn print_examples_block(term: &Term) {
     // Content lines
     for (i, (desc, command)) in HELP_EXAMPLES.iter().enumerate() {
         // Description line (as shell comment)
-        let comment = format!("# {desc}");
+        let comment = format!("{desc}");
         let padding = inner_width.saturating_sub(comment.len() + 1);
         let padded_desc = format!(" {comment}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
@@ -76,10 +93,10 @@ fn print_examples_block(term: &Term) {
             border.apply_to("│")
         ));
 
-        // Command line (indented)
-        let cmd_with_indent = format!("{cmd_indent}{command}");
-        let padding = inner_width.saturating_sub(cmd_with_indent.len() + 1);
-        let padded_cmd = format!(" {cmd_with_indent}{}", " ".repeat(padding));
+        // Command line (left_margined)
+        let cmd_with_left_margin = format!("{cmd_left_margin}{command}");
+        let padding = inner_width.saturating_sub(cmd_with_left_margin.len() + 1);
+        let padded_cmd = format!(" {cmd_with_left_margin}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
             "{margin}{}{}{}",
             border.apply_to("│"),
@@ -129,20 +146,22 @@ fn print_options_block(term: &Term) {
         "-v, --verbose",
         "Increase verbosity (can be repeated)",
     );
-    print_command_row(term, "-V, --version", "Show the ana version and exit");
-    print_command_row(term, "-h, --help", "Show this message and exit");
+    print_command_row(term, "-V, --version", "Show the ana version");
+    print_command_row(term, "-h, --help", "Show this message");
     let _ = term.write_line("");
 }
 
 /// Print the footer at bottom of help output
 fn print_footer(term: &Term) {
     let _ = term.write_line(&format!(
-        "{} {}",
+        "{}{} {}",
+        left_margin(),
         HelpStyle::Desc
             .style()
             .apply_to("Full documentation and guides at"),
-        HelpStyle::Section.style().apply_to("→ docs.anaconda.com"),
+        HelpStyle::Section.style().apply_to(format!("→ {DOCS_URL}")),
     ));
+    let _ = term.write_line("");
 }
 
 /// Main help output
@@ -159,10 +178,11 @@ pub fn print_help(subcommands: HashMap<String, String>) {
 /// Help for a subcommand (e.g., `ana self`, `ana auth`, `ana bootstrap`)
 pub fn print_subcommand_help(cmd: &clap::Command) {
     let term = Term::stdout();
+    let ind = left_margin();
 
     // Description
     if let Some(about) = cmd.get_about() {
-        let _ = term.write_line(&about.to_string());
+        let _ = term.write_line(&format!("{}{}", ind, about));
         let _ = term.write_line("");
     }
 
@@ -173,7 +193,11 @@ pub fn print_subcommand_help(cmd: &clap::Command) {
     } else {
         usage.replacen("Usage: ", "Usage: ana ", 1)
     };
-    let _ = term.write_line(&HelpStyle::Dim.style().apply_to(usage).to_string());
+    let _ = term.write_line(&format!(
+        "{}{}",
+        ind,
+        HelpStyle::Dim.style().apply_to(usage)
+    ));
     let _ = term.write_line("");
 
     // Commands (only if there are subcommands)

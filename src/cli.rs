@@ -601,9 +601,16 @@ mod tests {
 
     #[test]
     fn test_all_subcommands_in_help_sections() {
+        // Commands intentionally hidden from help output
+        let hidden_from_help: std::collections::HashSet<_> =
+            ["org", "config"].into_iter().collect();
+
         let cmd = Cli::command();
-        let clap_subcommands: std::collections::HashSet<_> =
-            cmd.get_subcommands().map(|s| s.get_name()).collect();
+        let clap_subcommands: std::collections::HashSet<_> = cmd
+            .get_subcommands()
+            .map(|s| s.get_name())
+            .filter(|name| !hidden_from_help.contains(name))
+            .collect();
 
         let help_section_commands: std::collections::HashSet<_> =
             help::get_all_section_commands().into_iter().collect();
