@@ -8,15 +8,6 @@ on:
       - main
   merge_group:
   pull_request:
-    # Default is [opened, reopened, synchronize]. Since we want to run pre-commit on "ready to review",
-    # we add that one. Since lists are overwritten, not merged, we add all four.
-    # See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-    # for documentation of the default behaviour
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
 
 # Cancel a previous job if the same workflow is triggers on the same PR or commit.
 concurrency:
