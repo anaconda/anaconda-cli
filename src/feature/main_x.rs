@@ -18,6 +18,7 @@ const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
 /// Represents a channel configuration action to be executed.
 enum ChannelAction {
     AddMainX,
+    RemoveMainX,
 }
 
 impl ChannelAction {
@@ -26,6 +27,9 @@ impl ChannelAction {
         match self {
             ChannelAction::AddMainX => {
                 vec![("--add", MAIN_X_CHANNEL)]
+            }
+            ChannelAction::RemoveMainX => {
+                vec![("--remove", MAIN_X_CHANNEL)]
             }
         }
     }
@@ -53,6 +57,19 @@ fn plan_enable_actions(current_channels: &[String]) -> Vec<ChannelAction> {
     // and most users will already have defaults configured.
     if !has_main_x {
         actions.push(ChannelAction::AddMainX);
+    }
+
+    actions
+}
+
+/// Plan the actions needed to disable main-x channel.
+fn plan_disable_actions(current_channels: &[String]) -> Vec<ChannelAction> {
+    let mut actions = Vec::new();
+
+    let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
+
+    if has_main_x {
+        actions.push(ChannelAction::RemoveMainX);
     }
 
     actions
@@ -133,10 +150,9 @@ pub async fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::R
 
     let conda_bin = find_conda()?;
     let current_channels = get_configured_channels(&conda_bin)?;
+    let actions = plan_disable_actions(&current_channels);
 
-    let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
-
-    if !has_main_x {
+    if actions.is_empty() {
         status::success(&format!(
             "{} feature is not enabled",
             status::highlight("main-x")
@@ -145,9 +161,13 @@ pub async fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::R
     }
 
     // Show planned changes
-    let remove_cmd = format!("conda config --remove channels {}", MAIN_X_CHANNEL);
     status::info("The following commands will be run:");
-    eprintln!("  {}", status::highlight(&remove_cmd));
+    for action in &actions {
+        for (flag, channel) in action.commands() {
+            let cmd = format!("conda config {} channels {}", flag, channel);
+            eprintln!("  {}", status::highlight(&cmd));
+        }
+    }
     status::blank_line();
 
     // Prompt for confirmation unless --force
@@ -157,9 +177,9 @@ pub async fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::R
     }
 
     status::blank_line();
-    status::running(&format!("Running {}", status::highlight(&remove_cmd)));
-    run_conda_config(&conda_bin, &["--remove", "channels", MAIN_X_CHANNEL])?;
-    status::finish_running(&format!("Ran {}", status::highlight(&remove_cmd)));
+    for action in actions {
+        action.execute_with_status(&conda_bin)?;
+    }
 
     status::blank_line();
     status::info("To re-enable, run:");
