@@ -26,7 +26,10 @@ const TOOLS: &[Tool] = &[
         binaries: if cfg![unix] {
             &[&["bin", "outerbounds"], &["bin", "obproject-deploy"]]
         } else {
-            &[&["Scripts", "outerbounds"], &["Scripts", "obproject-deploy"]]
+            &[
+                &["Scripts", "outerbounds"],
+                &["Scripts", "obproject-deploy"],
+            ]
         },
     },
     Tool {

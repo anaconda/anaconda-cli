@@ -48,12 +48,15 @@ pub fn view_app(web: bool) -> Result<(), String> {
 }
 
 fn detect_app_name() -> Result<String, String> {
-    let cwd = std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let cwd =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     // Look for deployments directory
     let deployments_dir = cwd.join("deployments");
     if !deployments_dir.exists() {
-        return Err("No deployments directory found. Are you in an Outerbounds project?".to_string());
+        return Err(
+            "No deployments directory found. Are you in an Outerbounds project?".to_string(),
+        );
     }
 
     // Find first app config (config.yaml or app.yaml)

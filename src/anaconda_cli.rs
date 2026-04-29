@@ -102,7 +102,11 @@ pub fn run_tool(tool_name: &str, args: &[String]) -> Result<(), String> {
     if status.success() {
         Ok(())
     } else {
-        let msg = format!("{} exited with code {}", tool_name, status.code().unwrap_or(1));
+        let msg = format!(
+            "{} exited with code {}",
+            tool_name,
+            status.code().unwrap_or(1)
+        );
         tracing::error!("{}", msg);
         Err(msg)
     }

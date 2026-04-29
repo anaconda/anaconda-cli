@@ -364,11 +364,7 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
         } else {
             let prompt = format!("Platform URL [{}]", detected);
             let p = prompt_input(&prompt)?;
-            if p.is_empty() {
-                detected
-            } else {
-                p
-            }
+            if p.is_empty() { detected } else { p }
         }
     } else {
         loop {
