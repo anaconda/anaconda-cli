@@ -9,6 +9,7 @@ use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::context::CommandContext;
+use crate::feature;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::help;
@@ -123,6 +124,14 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    FeatureEnable {
+        feature: String,
+        force: bool,
+    },
+    FeatureDisable {
+        feature: String,
+        force: bool,
+    },
 }
 
 impl Action {
@@ -147,6 +156,14 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::FeatureEnable { feature, .. } => match feature.as_str() {
+                "main-x" => "feature.enable.main-x",
+                _ => "feature.enable.unknown",
+            },
+            Action::FeatureDisable { feature, .. } => match feature.as_str() {
+                "main-x" => "feature.disable.main-x",
+                _ => "feature.disable.unknown",
+            },
         }
     }
 
@@ -251,6 +268,20 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
+            Action::FeatureEnable { feature, force } => {
+                match feature.as_str() {
+                    "main-x" => feature::enable_main_x(ctx, force).await?,
+                    _ => return Err(format!("Unknown feature: {}", feature).into()),
+                }
+                Ok(())
+            }
+            Action::FeatureDisable { feature, force } => {
+                match feature.as_str() {
+                    "main-x" => feature::disable_main_x(ctx, force).await?,
+                    _ => return Err(format!("Unknown feature: {}", feature).into()),
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -321,6 +352,17 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(ToolCommands::Uninstall { name, force }) => {
                         Action::ToolUninstall { name, force }
                     }
+                },
+                Some(Commands::Feature { command }) => match command {
+                    None => Action::ShowSubcommandHelp("feature".to_string()),
+                    Some(FeatureCommands::Enable { name, force }) => Action::FeatureEnable {
+                        feature: name,
+                        force,
+                    },
+                    Some(FeatureCommands::Disable { name, force }) => Action::FeatureDisable {
+                        feature: name,
+                        force,
+                    },
                 },
             };
             (action, level)
@@ -493,6 +535,17 @@ enum Commands {
         #[command(subcommand)]
         command: Option<ToolCommands>,
     },
+
+    /// Enable or disable Anaconda features
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana feature <command> [options]"
+    )]
+    Feature {
+        #[command(subcommand)]
+        command: Option<FeatureCommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -584,6 +637,29 @@ enum ToolCommands {
 
         /// Skip confirmation prompt
         #[arg(short = 'y', long = "yes")]
+        force: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum FeatureCommands {
+    /// Enable a feature
+    Enable {
+        /// Name of the feature to enable (e.g., main-x)
+        name: String,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'f', long)]
+        force: bool,
+    },
+
+    /// Disable a feature
+    Disable {
+        /// Name of the feature to disable (e.g., main-x)
+        name: String,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'f', long)]
         force: bool,
     },
 }
