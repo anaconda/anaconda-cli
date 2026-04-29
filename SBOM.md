@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-04-27T20:48:04Z<br>
+Generated: 2026-04-29T15:35:38Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 470 (67 platform-specific)<br>
-Platforms: linux, macos, windows
-<br>**[Security advisories](#security-advisories): 3 across 1 package**
+Platforms: linux-aarch64, linux-x86_64, macos, windows
+<br>**[Security advisories](#security-advisories): 5 across 2 packages**
 
 ## Packages
 
@@ -31,7 +31,7 @@ Platforms: linux, macos, windows
 | [anstyle-query](https://crates.io/crates/anstyle-query) | 1.1.5 | MIT OR Apache-2.0 |  |  |
 | [anstyle-wincon](https://crates.io/crates/anstyle-wincon) | 3.0.11 | MIT OR Apache-2.0 | windows |  |
 | [anyhow](https://crates.io/crates/anyhow) | 1.0.102 | MIT OR Apache-2.0 |  |  |
-| [astral-tokio-tar](https://crates.io/crates/astral-tokio-tar) | 0.6.0 | MIT OR Apache-2.0 |  |  |
+| [astral-tokio-tar](https://crates.io/crates/astral-tokio-tar) | 0.6.0 | MIT OR Apache-2.0 |  | 2 |
 | [astral\_async\_zip](https://crates.io/crates/astral_async_zip) | 0.0.17 | MIT |  |  |
 | [async-compression](https://crates.io/crates/async-compression) | 0.4.41 | MIT OR Apache-2.0 |  |  |
 | [async-once-cell](https://crates.io/crates/async-once-cell) | 0.5.4 | MIT OR Apache-2.0 |  |  |
@@ -75,7 +75,7 @@ Platforms: linux, macos, windows
 | [core-foundation](https://crates.io/crates/core-foundation) | 0.10.1 | MIT OR Apache-2.0 | macos |  |
 | [core-foundation-sys](https://crates.io/crates/core-foundation-sys) | 0.8.7 | MIT OR Apache-2.0 | macos |  |
 | [cpufeatures](https://crates.io/crates/cpufeatures) | 0.2.17 | MIT OR Apache-2.0 |  |  |
-| [cpufeatures](https://crates.io/crates/cpufeatures) | 0.3.0 | MIT OR Apache-2.0 | linux, windows |  |
+| [cpufeatures](https://crates.io/crates/cpufeatures) | 0.3.0 | MIT OR Apache-2.0 | linux-x86_64, windows |  |
 | [crc32fast](https://crates.io/crates/crc32fast) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [crossbeam-deque](https://crates.io/crates/crossbeam-deque) | 0.8.6 | MIT OR Apache-2.0 |  |  |
 | [crossbeam-epoch](https://crates.io/crates/crossbeam-epoch) | 0.9.18 | MIT OR Apache-2.0 |  |  |
@@ -485,8 +485,10 @@ Platforms: linux, macos, windows
 
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
-| rustls-webpki | 0.103.11 | [RUSTSEC-2026-0098](https://rustsec.org/advisories/RUSTSEC-2026-0098.html) |  |  |  |
+| astral-tokio-tar | 0.6.0 | [RUSTSEC-2026-0113](https://rustsec.org/advisories/RUSTSEC-2026-0113.html) |  |  |  |
+| astral-tokio-tar | 0.6.0 | [RUSTSEC-2026-0112](https://rustsec.org/advisories/RUSTSEC-2026-0112.html) |  |  |  |
 | rustls-webpki | 0.103.11 | [RUSTSEC-2026-0104](https://rustsec.org/advisories/RUSTSEC-2026-0104.html) |  |  |  |
+| rustls-webpki | 0.103.11 | [RUSTSEC-2026-0098](https://rustsec.org/advisories/RUSTSEC-2026-0098.html) |  |  |  |
 | rustls-webpki | 0.103.11 | [RUSTSEC-2026-0099](https://rustsec.org/advisories/RUSTSEC-2026-0099.html) |  |  |  |
 
 ## License Summary

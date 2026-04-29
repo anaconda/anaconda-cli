@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:b51a0457-2ac1-498c-b805-b850ea76544b",
+  "serialNumber": "urn:uuid:555ce829-a65a-486b-aeea-3972c1ece01b",
   "metadata": {
-    "timestamp": "2026-04-27T20:48:04Z",
+    "timestamp": "2026-04-29T15:35:38Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -32,7 +32,7 @@
     "properties": [
       {
         "name": "cdx:rustc:sbom:target:triple",
-        "value": "aarch64-apple-darwin,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu"
+        "value": "aarch64-apple-darwin,aarch64-unknown-linux-gnu,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu"
       }
     ]
   },
@@ -1929,7 +1929,7 @@
       "properties": [
         {
           "name": "cdx:ana:platforms",
-          "value": "linux,windows"
+          "value": "linux-x86_64,windows"
         }
       ]
     },
@@ -18278,16 +18278,30 @@
   ],
   "vulnerabilities": [
     {
-      "id": "RUSTSEC-2026-0098",
-      "description": "Name constraints for URI names were ignored and therefore accepted.\n\nNote this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.",
+      "id": "RUSTSEC-2026-0113",
+      "description": "In versions 0.6.0 and earlier of astral-tokio-tar, the unpack_in API could\ninadvertently modify the permissions of external (i.e. non-archive) directories\noutside of the archive. An attacker could use this to contrite a tar archive\nthat maliciously changes directory permissions outside of its intended\nhierarchy. This flaw only affects directories; individual file permissions\ncannot be modified via it.\n\nSee GHSA-j4xf-2g29-59ph for the equivalent flaw in the tar crate.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0113.html"
       },
       "ratings": [],
       "affects": [
         {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls-webpki@0.103.11"
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.0"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0112",
+      "description": "Versions of astral-tokio-tar prior to 0.6.1 contain a PAX header interpretation\nbug that allows manipulated entries to be made selectively visible or invisible\nduring extraction with astral-tokio-tar versus other tar implementations.\nAn attacker could use this differential to smuggle unexpected files onto a\nvictim's filesystem.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0112.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.0"
         }
       ]
     },
@@ -18297,6 +18311,20 @@
       "source": {
         "name": "RustSec",
         "url": "https://rustsec.org/advisories/RUSTSEC-2026-0104.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls-webpki@0.103.11"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0098",
+      "description": "Name constraints for URI names were ignored and therefore accepted.\n\nNote this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.\n\nSince name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.\n\nThis vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0098.html"
       },
       "ratings": [],
       "affects": [

@@ -21,9 +21,15 @@ from urllib.parse import unquote
 
 # Mapping from Rust target triples to short platform labels
 TARGET_LABELS: dict[str, str] = {
-    "x86_64-unknown-linux-gnu": "linux",
+    "x86_64-unknown-linux-gnu": "linux-x86_64",
+    "aarch64-unknown-linux-gnu": "linux-aarch64",
     "aarch64-apple-darwin": "macos",
     "x86_64-pc-windows-msvc": "windows",
+}
+
+# Labels that should be combined into a single label when all are present
+COMBINED_LABELS: dict[frozenset[str], str] = {
+    frozenset({"linux-x86_64", "linux-aarch64"}): "linux",
 }
 
 # ---------------------------------------------------------------------------
@@ -153,8 +159,9 @@ def merge_target_sboms(
         key = (comp["name"], comp.get("version", ""))
         platforms = platform_map.get(key, set())
         if platforms and platforms < all_labels:
+            simplified = simplify_platforms(platforms)
             comp.setdefault("properties", []).append(
-                {"name": "cdx:ana:platforms", "value": ",".join(sorted(platforms))}
+                {"name": "cdx:ana:platforms", "value": ",".join(sorted(simplified))}
             )
 
     # Sanitize local filesystem paths (cargo-cyclonedx embeds the developer's
@@ -326,6 +333,19 @@ def extract_scores(vuln: dict) -> tuple[str, str, str]:
     return v2, v3, severity
 
 
+def simplify_platforms(platforms: set[str]) -> set[str]:
+    """Simplify platform labels by combining related platforms.
+
+    E.g., if both "linux-x86_64" and "linux-aarch64" are present, replace them with "linux".
+    """
+    result = set(platforms)
+    for labels_to_combine, combined_label in COMBINED_LABELS.items():
+        if labels_to_combine <= result:
+            result -= labels_to_combine
+            result.add(combined_label)
+    return result
+
+
 def platform_display(platforms: set[str], all_labels: set[str]) -> str:
     """Return a display string for platform annotations.
 
@@ -333,12 +353,13 @@ def platform_display(platforms: set[str], all_labels: set[str]) -> str:
     """
     if platforms >= all_labels:
         return ""
-    return ", ".join(sorted(platforms))
+    simplified = simplify_platforms(platforms)
+    return ", ".join(sorted(simplified))
 
 
 def generate_markdown(
     data: dict,
-    platform_map: dict[tuple[str, str], set[str]] | None = None,
+    platform_map: dict[tuple[str, str], set[str]],
 ) -> str:
     """Generate SBOM.md from a CycloneDX BOM with optional platform annotations."""
     components = data.get("components", [])

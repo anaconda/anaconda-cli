@@ -103,6 +103,7 @@ jobs:
         run: |
           mkdir -p release-assets
           mv binaries/binary-ubuntu-latest/ana release-assets/ana-linux-x86_64
+          mv binaries/binary-ubuntu-24.04-arm/ana release-assets/ana-linux-aarch64
           mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
           mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
 
