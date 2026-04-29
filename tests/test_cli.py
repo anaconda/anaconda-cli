@@ -33,9 +33,9 @@ class TestHelp:
 
     def test_help_shows_version_in_header(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
-        # Header should be "ana {version}" on first line
+        # Header should be "ana {version}" on first line (with optional indent and dev suffix)
         first_line = result.stdout.split("\n")[0]
-        assert re.match(r"ana \d+\.\d+\.\d+", first_line)
+        assert re.match(r"\s*ana \d+\.\d+\.\d+(\.dev\d+)?", first_line)
 
     def test_help_shows_self_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
