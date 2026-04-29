@@ -95,6 +95,23 @@ pub fn prompt_yes_no(message: &str) -> bool {
     matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
+/// Prompt the user for text input.
+///
+/// Displays `message` followed by `: ` and waits for input.
+/// Returns the trimmed input string, or an error if reading fails.
+pub fn prompt_input(message: &str) -> Result<String, String> {
+    use std::io::Write;
+    print!("{}: ", message);
+    std::io::stdout().flush().map_err(|e| e.to_string())?;
+
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .map_err(|e| e.to_string())?;
+
+    Ok(input.trim().to_string())
+}
+
 /// RAII guard for terminal state restoration.
 ///
 /// The console crate's `read_key()` puts stdin into raw mode. If the

@@ -80,3 +80,30 @@ pub fn run_ob(_ctx: &mut CommandContext, args: &[String]) -> Result<(), String> 
         Err(msg)
     }
 }
+
+pub fn run_tool(tool_name: &str, args: &[String]) -> Result<(), String> {
+    let tool_bin = paths::bin_dir().join(tool_name);
+
+    if !tool_bin.exists() {
+        let msg = format!(
+            "{} not found at {}. Run `ana bootstrap` first.",
+            tool_name,
+            tool_bin.display()
+        );
+        tracing::error!("{}", msg);
+        return Err(msg);
+    }
+
+    let status = Command::new(&tool_bin)
+        .args(args)
+        .status()
+        .map_err(|e| format!("Failed to run {}: {}", tool_name, e))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        let msg = format!("{} exited with code {}", tool_name, status.code().unwrap_or(1));
+        tracing::error!("{}", msg);
+        Err(msg)
+    }
+}

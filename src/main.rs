@@ -10,6 +10,7 @@ mod feedback;
 mod help;
 mod http;
 mod input;
+mod outerbounds;
 mod paths;
 mod qr;
 mod table;

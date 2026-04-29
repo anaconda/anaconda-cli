@@ -6,7 +6,7 @@ use crate::ui::styles::UiColor;
 
 /// Styles for help output matching UX design
 #[allow(dead_code)]
-pub(super) enum HelpStyle {
+pub enum HelpStyle {
     Section,    // green headers
     Command,    // blue command names
     Desc,       // gray descriptions
