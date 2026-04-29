@@ -241,6 +241,12 @@ impl Action {
                     return outerbounds::open_app(&args[2])
                         .map_err(|e| Box::<dyn std::error::Error>::from(e));
                 }
+                // Handle `ob app view [--web]`
+                if args.len() >= 2 && args[0] == "app" && args[1] == "view" {
+                    let web = args.get(2).map(|a| a == "--web").unwrap_or(false);
+                    return outerbounds::view_app(web)
+                        .map_err(|e| Box::<dyn std::error::Error>::from(e));
+                }
                 // Handle `ob init [path] [options]`
                 if !args.is_empty() && args[0] == "init" {
                     let init_args: Vec<String> = args[1..].to_vec();
