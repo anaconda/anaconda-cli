@@ -1,6 +1,6 @@
 //! Package installation from lockfiles via rattler.
 
-use std::{path::Path, path::PathBuf, str::FromStr, time::Instant}
+use std::{path::Path, path::PathBuf, process::Command, str::FromStr, time::Instant};
 
 use indicatif::{MultiProgress, ProgressDrawTarget};
 use miette::{Context, IntoDiagnostic};
@@ -414,7 +414,6 @@ mod tests {
         );
     }
 
-<<<<<<< HEAD
     #[cfg(windows)]
     mod windows_tests {
         use super::*;
