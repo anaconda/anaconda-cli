@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:0262bcf5-2407-4f01-b608-0497771fabe0",
+  "serialNumber": "urn:uuid:023af47b-3d1c-41ca-a511-f24b515dc871",
   "metadata": {
-    "timestamp": "2026-04-23T18:32:32Z",
+    "timestamp": "2026-04-29T15:28:11Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -32,7 +32,7 @@
     "properties": [
       {
         "name": "cdx:rustc:sbom:target:triple",
-        "value": "aarch64-apple-darwin,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu"
+        "value": "aarch64-apple-darwin,aarch64-unknown-linux-gnu,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu"
       }
     ]
   },
@@ -1929,7 +1929,7 @@
       "properties": [
         {
           "name": "cdx:ana:platforms",
-          "value": "linux,windows"
+          "value": "linux-x86_64,windows"
         }
       ]
     },
@@ -18251,6 +18251,34 @@
     }
   ],
   "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2026-0113",
+      "description": "In versions 0.6.0 and earlier of astral-tokio-tar, the unpack_in API could\ninadvertently modify the permissions of external (i.e. non-archive) directories\noutside of the archive. An attacker could use this to contrite a tar archive\nthat maliciously changes directory permissions outside of its intended\nhierarchy. This flaw only affects directories; individual file permissions\ncannot be modified via it.\n\nSee GHSA-j4xf-2g29-59ph for the equivalent flaw in the tar crate.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0113.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.0"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0112",
+      "description": "Versions of astral-tokio-tar prior to 0.6.1 contain a PAX header interpretation\nbug that allows manipulated entries to be made selectively visible or invisible\nduring extraction with astral-tokio-tar versus other tar implementations.\nAn attacker could use this differential to smuggle unexpected files onto a\nvictim's filesystem.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0112.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.0"
+        }
+      ]
+    },
     {
       "id": "RUSTSEC-2026-0104",
       "description": "A panic was reachable when parsing certificate revocation lists via [`BorrowedCertRevocationList::from_der`]\nor [`OwnedCertRevocationList::from_der`].  This was the result of mishandling a syntactically valid empty\n`BIT STRING` appearing in the `onlySomeReasons` element of a `IssuingDistributionPoint` CRL extension.\n\nThis panic is reachable prior to a CRL's signature being verified.\n\nApplications that do not use CRLs are not affected.\n\nThank you to @tynus3 for the report.",
