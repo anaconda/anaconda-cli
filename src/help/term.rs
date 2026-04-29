@@ -7,16 +7,16 @@ use super::styles::HelpStyle;
 use crate::VERSION;
 
 const GLOBAL_INDENT: usize = 2;
-const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
-const DOCS_URL: &'static str = "https://anaconda.com/docs";
+const TAGLINE: &str = "Manage your Anaconda toolchain and account.";
+const DOCS_URL: &str = "https://anaconda.com/docs";
 
 /// Create a string of spaces for the global left_margin
-fn left_margin() -> String {
+pub fn left_margin() -> String {
     " ".repeat(GLOBAL_INDENT)
 }
 
-/// Print a command row: "    command      description"
-fn print_command_row(term: &Term, name: &str, desc: &str) {
+/// Print a command row: "  command      description"
+pub fn print_command_row(term: &Term, name: &str, desc: &str) {
     let styled_name = HelpStyle::Command.style().apply_to(name);
     let styled_desc = HelpStyle::Desc.style().apply_to(desc);
     let _ = term.write_line(&format!(
@@ -52,7 +52,7 @@ fn print_option_row(term: &Term, short: Option<&str>, long: Option<&str>, desc: 
 }
 
 /// Print a section header
-fn print_section(term: &Term, name: &str) {
+pub fn print_section(term: &Term, name: &str) {
     let _ = term.write_line(&format!(
         "{}{}",
         left_margin(),
@@ -372,4 +372,5 @@ mod tests {
         let usage = build_usage_string(&cmd, "simple");
         assert_eq!(usage, "Usage: ana simple");
     }
+    let _ = term.write_line("");
 }
