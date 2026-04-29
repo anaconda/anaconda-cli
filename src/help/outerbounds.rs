@@ -7,8 +7,8 @@ const TITLE: &str = "Outerbounds Platform CLI for managing ML infrastructure.";
 
 const OB_EXAMPLES: &[(&str, &str)] = &[
     ("Create a new Outerbounds project", "ana ob init"),
-    ("List deployed apps", "ana ob app list"),
     ("Deploy the current project", "ana ob deploy"),
+    ("Open deployed app in browser", "ana ob app view --web"),
 ];
 
 struct ObSubcommand {
@@ -19,7 +19,7 @@ struct ObSubcommand {
 const OB_SUBCOMMANDS: &[ObSubcommand] = &[
     ObSubcommand {
         name: "app",
-        desc: "Commands related to Outerbounds apps (+ ana: open)",
+        desc: "Commands related to Outerbounds apps (+ ana: open, view)",
     },
     ObSubcommand {
         name: "check",
