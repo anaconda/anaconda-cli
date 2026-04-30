@@ -176,7 +176,8 @@ fn load_keyring(config: &Config) -> Result<Keyring, AuthError> {
         return Ok(Keyring::new());
     }
 
-    let contents = fs::read_to_string(path).map_err(|e| keyring_permission_error("read", path, e))?;
+    let contents =
+        fs::read_to_string(path).map_err(|e| keyring_permission_error("read", path, e))?;
 
     // Handle empty file as empty keyring
     if contents.trim().is_empty() {
@@ -430,7 +431,10 @@ mod tests {
         );
 
         let msg = error.to_string();
-        assert!(msg.contains("Permission denied"), "Should include original error");
+        assert!(
+            msg.contains("Permission denied"),
+            "Should include original error"
+        );
         assert!(msg.contains("chmod 700"), "Should include directory fix");
         assert!(msg.contains("chmod 600"), "Should include file fix");
     }
