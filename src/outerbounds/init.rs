@@ -143,7 +143,11 @@ fn detect_platform() -> Option<String> {
     Some(platform.to_string())
 }
 
-fn write_template(path: &Path, template: &str, replacements: &[(&str, &str)]) -> Result<(), String> {
+fn write_template(
+    path: &Path,
+    template: &str,
+    replacements: &[(&str, &str)],
+) -> Result<(), String> {
     let mut content = template.to_string();
     for (from, to) in replacements {
         content = content.replace(from, to);
@@ -244,11 +248,7 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
         templates::PYPROJECT_TOML,
         replacements,
     )?;
-    write_template(
-        &project_path.join(".gitignore"),
-        templates::GITIGNORE,
-        &[],
-    )?;
+    write_template(&project_path.join(".gitignore"), templates::GITIGNORE, &[])?;
 
     // Create example flow
     let flow_dir = project_path.join("flows/hello_flow");
@@ -262,7 +262,11 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
     fs::create_dir_all(&app_dir)
         .map_err(|e| format!("Failed to create deployments directory: {}", e))?;
     write_template(&app_dir.join("app.py"), templates::APP_PY, &[])?;
-    write_template(&app_dir.join("config.yaml"), templates::APP_CONFIG_YAML, &[])?;
+    write_template(
+        &app_dir.join("config.yaml"),
+        templates::APP_CONFIG_YAML,
+        &[],
+    )?;
     write_template(
         &app_dir.join("requirements.txt"),
         templates::APP_REQUIREMENTS_TXT,

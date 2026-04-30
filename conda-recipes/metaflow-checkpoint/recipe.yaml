@@ -7,8 +7,8 @@ package:
   version: ${{ version }}
 
 source:
-- url: https://pypi.io/packages/source/m/metaflow-checkpoint/metaflow_checkpoint-${{ version }}.tar.gz
-  sha256: f957f2f1fc5d203000eaf906386cf75739c6370ce2240542dfc0e18c270d9c56
+  - url: https://pypi.io/packages/source/m/metaflow-checkpoint/metaflow_checkpoint-${{ version }}.tar.gz
+    sha256: f957f2f1fc5d203000eaf906386cf75739c6370ce2240542dfc0e18c270d9c56
 
 build:
   number: ${{ build_number }}
@@ -17,11 +17,11 @@ build:
 
 requirements:
   host:
-  - python
-  - pip
-  - setuptools
+    - python
+    - pip
+    - setuptools
   run:
-  - python
+    - python
 
 about:
   summary: Checkpoint support for Metaflow

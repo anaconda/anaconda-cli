@@ -274,11 +274,7 @@ impl Action {
                 // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
                 if !args.is_empty() && args[0] == "deploy" {
                     let deploy_args: Vec<String> = args[1..].to_vec();
-                    anaconda_cli::run_tool_binary(
-                        "outerbounds",
-                        "obproject-deploy",
-                        &deploy_args,
-                    )?;
+                    anaconda_cli::run_tool_binary("outerbounds", "obproject-deploy", &deploy_args)?;
                     status::blank_line();
                     status::celebrate("Deployment complete!");
                     status::blank_line();

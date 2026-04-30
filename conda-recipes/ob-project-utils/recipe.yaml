@@ -7,25 +7,25 @@ package:
   version: ${{ version }}
 
 source:
-- url: https://pypi.io/packages/source/o/ob-project-utils/ob_project_utils-${{ version }}.tar.gz
-  sha256: 88e687059401ddfca1ee35741488016e531fc61deb64e1b3817b1dc710390b17
+  - url: https://pypi.io/packages/source/o/ob-project-utils/ob_project_utils-${{ version }}.tar.gz
+    sha256: 88e687059401ddfca1ee35741488016e531fc61deb64e1b3817b1dc710390b17
 
 build:
   number: ${{ build_number }}
   script: ${{ PYTHON }} -m pip install .
   python:
     entry_points:
-    - obproject-deploy = deploy.deploy_obproject:main
+      - obproject-deploy = deploy.deploy_obproject:main
   noarch: python
 
 requirements:
   host:
-  - python
-  - pip
-  - setuptools
+    - python
+    - pip
+    - setuptools
   run:
-  - requests
-  - pyyaml
+    - requests
+    - pyyaml
 
 about:
   summary: Utilities for Outerbounds projects

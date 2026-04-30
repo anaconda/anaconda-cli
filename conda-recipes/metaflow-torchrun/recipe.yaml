@@ -7,8 +7,8 @@ package:
   version: ${{ version }}
 
 source:
-- url: https://pypi.io/packages/source/m/metaflow-torchrun/metaflow_torchrun-${{ version }}.tar.gz
-  sha256: 10e924f82dd6bcfb87ef7d1e3dfd9ccde343a425fc4e91fbbbfe6378f35fb67d
+  - url: https://pypi.io/packages/source/m/metaflow-torchrun/metaflow_torchrun-${{ version }}.tar.gz
+    sha256: 10e924f82dd6bcfb87ef7d1e3dfd9ccde343a425fc4e91fbbbfe6378f35fb67d
 
 build:
   number: ${{ build_number }}
@@ -17,11 +17,11 @@ build:
 
 requirements:
   host:
-  - python
-  - pip
-  - setuptools
+    - python
+    - pip
+    - setuptools
   run:
-  - python
+    - python
 
 about:
   summary: Torchrun integration for Metaflow

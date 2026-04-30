@@ -7,10 +7,10 @@ package:
   version: ${{ version }}
 
 source:
-- url: https://pypi.io/packages/source/o/ob-metaflow-extensions/ob_metaflow_extensions-${{ version }}.tar.gz
-  sha256: 53a3376a4cffcccbbeb4f96ac000c067c99512351acd1c18f027f1f47f54dca4
-  patches:
-  - fast_bakery_default_channel.patch
+  - url: https://pypi.io/packages/source/o/ob-metaflow-extensions/ob_metaflow_extensions-${{ version }}.tar.gz
+    sha256: 53a3376a4cffcccbbeb4f96ac000c067c99512351acd1c18f027f1f47f54dca4
+    patches:
+      - fast_bakery_default_channel.patch
 
 build:
   number: ${{ build_number }}
@@ -19,13 +19,13 @@ build:
 
 requirements:
   host:
-  - python
-  - pip
-  - setuptools
+    - python
+    - pip
+    - setuptools
   run:
-  - 'boto3 '
-  - 'kubernetes '
-  - ob-metaflow ==2.19.21.1
+    - 'boto3 '
+    - 'kubernetes '
+    - ob-metaflow ==2.19.21.1
 
 about:
   summary: Outerbounds Platform Extensions for Metaflow

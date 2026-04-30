@@ -1,6 +1,8 @@
 from functools import partial
 
-from metaflow import step, card, current
+from metaflow import card
+from metaflow import current
+from metaflow import step
 from metaflow.cards import Markdown
 from metaflow.decorators import _base_step_decorator
 from metaflow.plugins.pypi.conda_decorator import CondaStepDecorator
@@ -11,6 +13,7 @@ ANACONDA_MAIN_CHANNEL = "https://repo.anaconda.com/pkgs/main"
 
 class AnacondaCondaDecorator(CondaStepDecorator):
     """Step decorator that configures conda with Anaconda's main channel."""
+
     name = "anaconda_conda"
     defaults = {
         **CondaStepDecorator.defaults,
@@ -39,7 +42,9 @@ class HelloFlow(ProjectFlow):
         import numpy as np
 
         current.card.append(Markdown(f"# Numpy version: {np.__version__}"))
-        current.card.append(Markdown("**Channel:** https://repo.anaconda.com/pkgs/main"))
+        current.card.append(
+            Markdown("**Channel:** https://repo.anaconda.com/pkgs/main")
+        )
         print(f"Numpy version: {np.__version__}")
 
         self.processed = self.message.upper()

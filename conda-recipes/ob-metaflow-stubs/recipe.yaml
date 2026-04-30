@@ -7,8 +7,8 @@ package:
   version: ${{ version }}
 
 source:
-- url: https://pypi.io/packages/source/o/ob-metaflow-stubs/ob_metaflow_stubs-${{ version }}.tar.gz
-  sha256: f77dd41841f86b78e6b5fc499665dfe5ae774c8d59e967c55de91340b18dbe98
+  - url: https://pypi.io/packages/source/o/ob-metaflow-stubs/ob_metaflow_stubs-${{ version }}.tar.gz
+    sha256: f77dd41841f86b78e6b5fc499665dfe5ae774c8d59e967c55de91340b18dbe98
 
 build:
   number: ${{ build_number }}
@@ -17,11 +17,11 @@ build:
 
 requirements:
   host:
-  - python
-  - pip
-  - setuptools
+    - python
+    - pip
+    - setuptools
   run:
-  - python
+    - python
 
 about:
   summary: Metaflow stubs for Outerbounds
