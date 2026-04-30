@@ -49,7 +49,7 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
         },
         HelpExample {
             desc: "Install a tool".to_string(),
-            command: "ana tool install pixi".to_string(),
+            command: "ana tool install outerbounds".to_string(),
         },
         HelpExample {
             desc: "Manage your ana version".to_string(),

@@ -263,8 +263,7 @@ impl Action {
                 // Handle `ob app view [--web]`
                 if args.len() >= 2 && args[0] == "app" && args[1] == "view" {
                     let web = args.get(2).map(|a| a == "--web").unwrap_or(false);
-                    return outerbounds::view_app(web)
-                        .map_err(|e| Box::<dyn std::error::Error>::from(e));
+                    return outerbounds::view_app(web).map_err(|e| miette!("{}", e));
                 }
                 // Handle `ob init [path] [options]`
                 if !args.is_empty() && args[0] == "init" {
@@ -282,10 +281,14 @@ impl Action {
                         }
                     }
                 }
-                // Handle `ob deploy` as alias for obproject-deploy
+                // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
                 if !args.is_empty() && args[0] == "deploy" {
                     let deploy_args: Vec<String> = args[1..].to_vec();
-                    return Ok(anaconda_cli::run_tool("obproject-deploy", &deploy_args).map_err(|e| miette!("{}", e))?);
+                    return Ok(anaconda_cli::run_tool_binary(
+                        "outerbounds",
+                        "obproject-deploy",
+                        &deploy_args,
+                    ).map_err(|e| miette!("{}", e))?);
                 }
                 Ok(anaconda_cli::run_ob(ctx, &args).map_err(|e| miette!("{}", e))?)
             }
