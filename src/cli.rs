@@ -237,6 +237,12 @@ impl Action {
                     help::outerbounds::print_outerbounds_help();
                     return Ok(());
                 }
+                // Auto-install outerbounds tool if not present
+                if !crate::paths::bin_path("outerbounds").exists() {
+                    status::info("Installing outerbounds tool...");
+                    tools::install::install_tool(ctx, "outerbounds").await?;
+                    status::blank_line();
+                }
                 // Handle `ob app open <name>`
                 if args.len() >= 3 && args[0] == "app" && args[1] == "open" {
                     return outerbounds::open_app(&args[2])
