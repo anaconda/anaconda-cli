@@ -7,13 +7,6 @@ on:
   pull_request:
   merge_group:
   workflow_call:
-    secrets:
-      PRIVATE_REPO_TOKEN:
-        description: Token for accessing private repositories
-        required: true
-      SENTRY_DSN:
-        description: Sentry DSN for error reporting (only for release builds)
-        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -22,11 +15,33 @@ concurrency:
 permissions: {}
 
 jobs:
+  secrets:
+    name: Fetch secrets
+    runs-on: self-hosted-default
+    outputs:
+      PRIVATE_REPO_TOKEN: ${{ steps.vault-secrets.outputs.PRIVATE_REPO_TOKEN }}
+      SENTRY_DSN: ${{ steps.vault-secrets.outputs.SENTRY_DSN }}
+    steps:
+      - name: Import secrets from Vault
+        id: vault-secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          path: approle-gha
+          roleId: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
+          namespace: admin
+          secrets: |
+            ai-platform/common/data/ana-cli PRIVATE_REPO_TOKEN | PRIVATE_REPO_TOKEN ;
+            ai-platform/common/data/ana-cli SENTRY_DSN | SENTRY_DSN
+
   build:
     name: Build (${{ matrix.os }})
+    needs: [secrets]
     runs-on: ${{ matrix.os }}
     env:
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      SENTRY_DSN: ${{ needs.secrets.outputs.SENTRY_DSN }}
     permissions:
       contents: read  # To check out private repository
     strategy:
@@ -46,7 +61,7 @@ jobs:
 
       - name: Configure git for private repos
         env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          REPO_TOKEN: ${{ needs.secrets.outputs.PRIVATE_REPO_TOKEN }}
         run: |
           git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
@@ -73,7 +88,7 @@ jobs:
         with:
           ana-version: v0.0.9
           tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          github-token: ${{ needs.secrets.outputs.PRIVATE_REPO_TOKEN }}
 
       - name: Set up pixi (fallback)
         if: matrix.os == 'ubuntu-24.04-arm'
@@ -123,7 +138,7 @@ jobs:
   check:
     name: Check
     if: always()
-    needs: [build]
+    needs: [secrets, build]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether all jobs succeeded
