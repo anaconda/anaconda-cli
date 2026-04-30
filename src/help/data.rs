@@ -36,7 +36,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
 /// Examples for the help output (using real commands)
 pub(super) const HELP_EXAMPLES: &[(&str, &str)] = &[
     ("Log into your Anaconda account", "ana login"),
-    ("Install a tool", "ana tool install pixi"),
+    ("Install a tool", "ana tool install outerbounds"),
     ("Update ana to the latest version", "ana self update"),
 ];
 

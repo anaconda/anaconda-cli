@@ -1,0 +1,36 @@
+context:
+  version: 0.12.30
+  build_number: '0'
+
+package:
+  name: outerbounds
+  version: ${{ version }}
+
+source:
+- url: https://files.pythonhosted.org/packages/75/88/2e38206e8b31c419dc106f793f89aa959818a079855c799d0996ca8e49cb/outerbounds-${{ version }}-py3-none-any.whl
+  sha256: 18bf148aa0b3b0816192982f824b60cdd012446ebe19f761fe2591ab601f73d0
+
+build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install outerbounds-${{ version }}-py3-none-any.whl --no-deps
+  noarch: python
+
+requirements:
+  host:
+  - python >=3.8
+  - pip
+  run:
+  - python >=3.8
+  - boto3
+  - ob-project-utils >=0.2.27
+  - ob-metaflow ==2.19.21.1
+  - ob-metaflow-extensions ==1.6.17
+  - ob-metaflow-stubs ==6.0.12.30
+  - metaflow-torchrun >=0.2.1
+  - metaflow-checkpoint ==0.2.10
+
+about:
+  summary: Outerbounds CLI and SDK
+  description: |
+    The Outerbounds CLI and SDK for interacting with the Outerbounds platform.
+  license: Apache-2.0

@@ -27,7 +27,7 @@ const OB_SUBCOMMANDS: &[ObSubcommand] = &[
     },
     ObSubcommand {
         name: "deploy",
-        desc: "Deploy the current project (ana, alias for obproject-deploy)",
+        desc: "Deploy the current project (ana)",
     },
     ObSubcommand {
         name: "init",

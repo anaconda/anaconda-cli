@@ -1,0 +1,40 @@
+context:
+  version: 0.2.34
+  build_number: '0'
+
+package:
+  name: ob-project-utils
+  version: ${{ version }}
+
+source:
+- url: https://pypi.io/packages/source/o/ob-project-utils/ob_project_utils-${{ version }}.tar.gz
+  sha256: 88e687059401ddfca1ee35741488016e531fc61deb64e1b3817b1dc710390b17
+
+build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install .
+  python:
+    entry_points:
+    - obproject-deploy = deploy.deploy_obproject:main
+  noarch: python
+
+requirements:
+  host:
+  - python
+  - pip
+  - setuptools
+  run:
+  - requests
+  - pyyaml
+
+about:
+  summary: Utilities for Outerbounds projects
+  description: |2
+
+    # Utilities for managing Outerbounds projects
+
+    - `deploy` - CI/CD deployment script for obprojects
+    - `src-html` - Svelte source for highlight and table (eval) cards
+    - `metaflow-extensions` - the highlight card backend & `card(type='highlight')`
+    - `highlight_card` - highlight card mutator, i.e. the user-facing `@highlight`
+    - `obproject` - `ProjectFlow` base flow and supporting modules

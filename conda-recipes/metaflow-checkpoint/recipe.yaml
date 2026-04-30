@@ -1,0 +1,28 @@
+context:
+  version: 0.2.10
+  build_number: '0'
+
+package:
+  name: metaflow-checkpoint
+  version: ${{ version }}
+
+source:
+- url: https://pypi.io/packages/source/m/metaflow-checkpoint/metaflow_checkpoint-${{ version }}.tar.gz
+  sha256: f957f2f1fc5d203000eaf906386cf75739c6370ce2240542dfc0e18c270d9c56
+
+build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install .
+  noarch: python
+
+requirements:
+  host:
+  - python
+  - pip
+  - setuptools
+  run:
+  - python
+
+about:
+  summary: Checkpoint support for Metaflow
+  license: Apache-2.0

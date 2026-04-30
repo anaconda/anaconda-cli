@@ -1,0 +1,36 @@
+context:
+  version: 1.6.17
+  build_number: '0'
+
+package:
+  name: ob-metaflow-extensions
+  version: ${{ version }}
+
+source:
+- url: https://pypi.io/packages/source/o/ob-metaflow-extensions/ob_metaflow_extensions-${{ version }}.tar.gz
+  sha256: 53a3376a4cffcccbbeb4f96ac000c067c99512351acd1c18f027f1f47f54dca4
+  patches:
+  - fast_bakery_default_channel.patch
+
+build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install .
+  noarch: python
+
+requirements:
+  host:
+  - python
+  - pip
+  - setuptools
+  run:
+  - 'boto3 '
+  - 'kubernetes '
+  - ob-metaflow ==2.19.21.1
+
+about:
+  summary: Outerbounds Platform Extensions for Metaflow
+  description: |
+    # Outerbounds platform package
+
+    This package installs client side packages for Outerbounds platform. See Outerbounds platform documentation and [Metaflow documentation](https://metaflow.org/) for more info on how to use it.
+  license: LicenseRef-Commercial

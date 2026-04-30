@@ -98,196 +98,29 @@ pub fn print_init_help() {
     let _ = term.write_line("");
 }
 
-const OBPROJECT_TOML_TEMPLATE: &str = r#"platform = "{platform}"
-project = "{project}"
-title = "{title}"
-"#;
+// Embedded template files
+mod templates {
+    // Root files
+    pub const OBPROJECT_TOML: &str = include_str!("../../templates/ob_project/obproject.toml");
+    pub const README_MD: &str = include_str!("../../templates/ob_project/README.md");
+    pub const PYPROJECT_TOML: &str = include_str!("../../templates/ob_project/pyproject.toml");
+    pub const GITIGNORE: &str = include_str!("../../templates/ob_project/.gitignore");
 
-const README_TEMPLATE: &str = r#"# {title}
+    // Flow files
+    pub const FLOW_PY: &str = include_str!("../../templates/ob_project/flows/hello_flow/flow.py");
+    pub const FLOW_README: &str =
+        include_str!("../../templates/ob_project/flows/hello_flow/README.md");
 
-An Outerbounds project.
-
-## Getting Started
-
-1. Deploy the project:
-   ```bash
-   ana ob deploy
-   ```
-
-## Project Structure
-
-- `flows/hello_flow/` - Example Metaflow workflow
-- `deployments/hello_app/` - Example FastAPI application
-
-## Running Locally
-
-### Run the flow locally:
-```bash
-cd flows/hello_flow
-python flow.py run
-```
-
-### Run the app locally:
-```bash
-cd deployments/hello_app
-pip install -r requirements.txt
-uvicorn app:app --reload
-```
-"#;
-
-const PYPROJECT_TOML_TEMPLATE: &str = r#"[project]
-name = "{project}"
-version = "0.1.0"
-description = "{title}"
-requires-python = "==3.12"
-dependencies = [
-    "fastapi>=0.100.0",
-    "uvicorn[standard]>=0.23.0",
-]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-"#;
-
-const FLOW_PY: &str = r##"from metaflow import step, card, current
-from metaflow.cards import Markdown
-from obproject import ProjectFlow
-
-
-class HelloFlow(ProjectFlow):
-    """A simple example flow that demonstrates Outerbounds basics."""
-
-    @step
-    def start(self):
-        """Initialize the flow with a greeting."""
-        self.message = "Hello from Outerbounds!"
-        print(self.message)
-        self.next(self.process)
-
-    @step
-    def process(self):
-        """Process the message."""
-        self.processed = self.message.upper()
-        print(f"Processed: {self.processed}")
-        self.next(self.end)
-
-    @card
-    @step
-    def end(self):
-        """Finish the flow and display results in a card."""
-        current.card.append(Markdown("# Flow Complete"))
-        current.card.append(Markdown(f"**Original message:** {self.message}"))
-        current.card.append(Markdown(f"**Processed message:** {self.processed}"))
-        print(f"Flow complete! Final message: {self.processed}")
-
-
-if __name__ == "__main__":
-    HelloFlow()
-"##;
-
-const FLOW_README: &str = r#"# Hello Flow
-
-A simple Outerbounds workflow that demonstrates the basics.
-
-## Running Locally
-
-```bash
-python flow.py run
-```
-
-## Running on Outerbounds
-
-```bash
-python flow.py --with kubernetes run
-```
-"#;
-
-const APP_PY: &str = r#"from fastapi import FastAPI
-
-app = FastAPI(title="Hello App", description="A simple example API")
-
-
-@app.get("/")
-async def root():
-    """Return a welcome message."""
-    return {"message": "Hello from Outerbounds!"}
-
-
-@app.get("/health")
-async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
-
-
-@app.get("/greet/{name}")
-async def greet(name: str):
-    """Greet a user by name."""
-    return {"message": f"Hello, {name}!"}
-"#;
-
-const APP_CONFIG_YAML: &str = r#"name: hello-app
-port: 8000
-auth_type: Browser
-commands:
-  - uvicorn deployments.hello_app.app:app --host 0.0.0.0 --port 8000
-resources:
-  cpu: "0.5"
-  memory: "512Mi"
-"#;
-
-const APP_REQUIREMENTS_TXT: &str = r#"fastapi>=0.100.0
-uvicorn[standard]>=0.23.0
-"#;
-
-const APP_README: &str = r#"# Hello App
-
-A simple FastAPI application deployed to Outerbounds.
-
-## Endpoints
-
-- `GET /` - Welcome message
-- `GET /health` - Health check
-- `GET /greet/{name}` - Personalized greeting
-
-## Running Locally
-
-```bash
-pip install -r requirements.txt
-uvicorn app:app --reload
-```
-
-Then visit http://localhost:8000
-"#;
-
-const GITIGNORE: &str = r#"# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-dist/
-build/
-
-# Virtual environments
-.venv/
-venv/
-ENV/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Metaflow
-.metaflow/
-
-# OS
-.DS_Store
-Thumbs.db
-"#;
+    // App files
+    pub const APP_PY: &str =
+        include_str!("../../templates/ob_project/deployments/hello_app/app.py");
+    pub const APP_CONFIG_YAML: &str =
+        include_str!("../../templates/ob_project/deployments/hello_app/config.yaml");
+    pub const APP_REQUIREMENTS_TXT: &str =
+        include_str!("../../templates/ob_project/deployments/hello_app/requirements.txt");
+    pub const APP_README: &str =
+        include_str!("../../templates/ob_project/deployments/hello_app/README.md");
+}
 
 #[derive(Deserialize)]
 struct ObConfig {
@@ -308,6 +141,14 @@ fn detect_platform() -> Option<String> {
     let url = url.strip_prefix("https://api.")?;
     let platform = url.split('/').next()?;
     Some(platform.to_string())
+}
+
+fn write_template(path: &Path, template: &str, replacements: &[(&str, &str)]) -> Result<(), String> {
+    let mut content = template.to_string();
+    for (from, to) in replacements {
+        content = content.replace(from, to);
+    }
+    fs::write(path, content).map_err(|e| format!("Failed to write {}: {}", path.display(), e))
 }
 
 pub fn init_project(opts: InitOptions) -> Result<(), String> {
@@ -381,52 +222,53 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
             .map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
+    let replacements: &[(&str, &str)] = &[
+        ("{platform}", &platform),
+        ("{project}", &project_name),
+        ("{title}", &title),
+    ];
+
     // Write root files
-    let obproject_content = OBPROJECT_TOML_TEMPLATE
-        .replace("{platform}", &platform)
-        .replace("{project}", &project_name)
-        .replace("{title}", &title);
-    fs::write(project_path.join("obproject.toml"), obproject_content)
-        .map_err(|e| format!("Failed to write obproject.toml: {}", e))?;
-
-    let readme_content = README_TEMPLATE.replace("{title}", &title);
-    fs::write(project_path.join("README.md"), readme_content)
-        .map_err(|e| format!("Failed to write README.md: {}", e))?;
-
-    let pyproject_content = PYPROJECT_TOML_TEMPLATE
-        .replace("{project}", &project_name)
-        .replace("{title}", &title);
-    fs::write(project_path.join("pyproject.toml"), pyproject_content)
-        .map_err(|e| format!("Failed to write pyproject.toml: {}", e))?;
-
-    fs::write(project_path.join(".gitignore"), GITIGNORE)
-        .map_err(|e| format!("Failed to write .gitignore: {}", e))?;
+    write_template(
+        &project_path.join("obproject.toml"),
+        templates::OBPROJECT_TOML,
+        replacements,
+    )?;
+    write_template(
+        &project_path.join("README.md"),
+        templates::README_MD,
+        replacements,
+    )?;
+    write_template(
+        &project_path.join("pyproject.toml"),
+        templates::PYPROJECT_TOML,
+        replacements,
+    )?;
+    write_template(
+        &project_path.join(".gitignore"),
+        templates::GITIGNORE,
+        &[],
+    )?;
 
     // Create example flow
     let flow_dir = project_path.join("flows/hello_flow");
     fs::create_dir_all(&flow_dir)
         .map_err(|e| format!("Failed to create flows directory: {}", e))?;
-    fs::write(flow_dir.join("flow.py"), FLOW_PY)
-        .map_err(|e| format!("Failed to write flow.py: {}", e))?;
-    fs::write(flow_dir.join("README.md"), FLOW_README)
-        .map_err(|e| format!("Failed to write flow README: {}", e))?;
+    write_template(&flow_dir.join("flow.py"), templates::FLOW_PY, &[])?;
+    write_template(&flow_dir.join("README.md"), templates::FLOW_README, &[])?;
 
     // Create example app
     let app_dir = project_path.join("deployments/hello_app");
     fs::create_dir_all(&app_dir)
         .map_err(|e| format!("Failed to create deployments directory: {}", e))?;
-    fs::write(app_dir.join("app.py"), APP_PY)
-        .map_err(|e| format!("Failed to write app.py: {}", e))?;
-    fs::write(app_dir.join("config.yaml"), APP_CONFIG_YAML)
-        .map_err(|e| format!("Failed to write config.yaml: {}", e))?;
-    fs::write(app_dir.join("requirements.txt"), APP_REQUIREMENTS_TXT)
-        .map_err(|e| format!("Failed to write requirements.txt: {}", e))?;
-    fs::write(app_dir.join("README.md"), APP_README)
-        .map_err(|e| format!("Failed to write app README: {}", e))?;
-
-    // Create src directory
-    fs::create_dir_all(project_path.join("src"))
-        .map_err(|e| format!("Failed to create src directory: {}", e))?;
+    write_template(&app_dir.join("app.py"), templates::APP_PY, &[])?;
+    write_template(&app_dir.join("config.yaml"), templates::APP_CONFIG_YAML, &[])?;
+    write_template(
+        &app_dir.join("requirements.txt"),
+        templates::APP_REQUIREMENTS_TXT,
+        &[],
+    )?;
+    write_template(&app_dir.join("README.md"), templates::APP_README, &[])?;
 
     // Initialize git repository unless --no-git-init was specified
     if !no_git_init {
@@ -472,6 +314,9 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
     println!("      ├── config.yaml");
     println!("      ├── requirements.txt");
     println!("      └── README.md");
+    println!();
+    println!("The flow includes the @anaconda_conda decorator for using");
+    println!("Anaconda's main channel with Metaflow steps.");
     println!();
     println!("Next steps:");
     println!("  1. cd {}", project_path.display());

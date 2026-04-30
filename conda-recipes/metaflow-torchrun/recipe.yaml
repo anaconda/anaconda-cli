@@ -1,0 +1,28 @@
+context:
+  version: 0.2.1
+  build_number: '0'
+
+package:
+  name: metaflow-torchrun
+  version: ${{ version }}
+
+source:
+- url: https://pypi.io/packages/source/m/metaflow-torchrun/metaflow_torchrun-${{ version }}.tar.gz
+  sha256: 10e924f82dd6bcfb87ef7d1e3dfd9ccde343a425fc4e91fbbbfe6378f35fb67d
+
+build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install .
+  noarch: python
+
+requirements:
+  host:
+  - python
+  - pip
+  - setuptools
+  run:
+  - python
+
+about:
+  summary: Torchrun integration for Metaflow
+  license: Apache-2.0

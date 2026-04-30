@@ -1,0 +1,64 @@
+diff --git a/metaflow_extensions/outerbounds/plugins/fast_bakery/fast_bakery.py b/metaflow_extensions/outerbounds/plugins/fast_bakery/fast_bakery.py
+--- a/metaflow_extensions/outerbounds/plugins/fast_bakery/fast_bakery.py
++++ b/metaflow_extensions/outerbounds/plugins/fast_bakery/fast_bakery.py
+@@ -107,6 +107,11 @@ class FastBakery:
+             self._format_packages(packages)
+         )
+         return self
++
++    def default_channel(self, channel: str):
++        if channel:
++            self._payload["defaultChannel"] = channel
++        return self
+
+     def base_image(self, image: str):
+         self._payload["baseImage"] = {"imageReference": image}
+diff --git a/metaflow_extensions/outerbounds/plugins/fast_bakery/docker_environment.py b/metaflow_extensions/outerbounds/plugins/fast_bakery/docker_environment.py
+--- a/metaflow_extensions/outerbounds/plugins/fast_bakery/docker_environment.py
++++ b/metaflow_extensions/outerbounds/plugins/fast_bakery/docker_environment.py
+@@ -202,6 +202,7 @@ class DockerEnvironment(MetaflowEnvironment):
+             pypi_packages=None,
+             conda_packages=None,
+             base_image=None,
++            default_channel=None,
+         ):
+             try:
+                 bakery = FastBakery(url=FAST_BAKERY_URL)
+@@ -209,6 +210,7 @@ class DockerEnvironment(MetaflowEnvironment):
+                 bakery.python_version(python)
+                 bakery.pypi_packages(pypi_packages)
+                 bakery.conda_packages(conda_packages)
++                bakery.default_channel(default_channel)
+                 bakery.base_image(base_image)
+                 if self._force_rebuild:
+                     bakery.ignore_cache()
+@@ -226,6 +228,8 @@ class DockerEnvironment(MetaflowEnvironment):
+                         self.logger(f"     📦 Conda packages:")
+                         for package, version in conda_packages.items():
+                             self.logger(f"        🔧 {package}: {version}")
++                        if default_channel:
++                            self.logger(f"     📡 Default channel: {default_channel}")
+
+                     self.logger(f"     🏗️  Base image: {base_image}")
+
+@@ -275,6 +279,11 @@ class DockerEnvironment(MetaflowEnvironment):
+             packages = get_pinned_conda_libs(python, self.datastore_type)
+             packages.update(dependencies.attributes["packages"] if dependencies else {})
+
++            # Extract default_channel from conda decorator if present
++            default_channel = None
++            if isinstance(dependencies, CondaStepDecorator):
++                default_channel = dependencies.attributes.get("default_channel")
++
+             requested = {
+                 "python": python,
+                 "pypi_packages": (
+@@ -283,6 +292,7 @@ class DockerEnvironment(MetaflowEnvironment):
+                 "conda_packages": (
+                     packages if isinstance(dependencies, CondaStepDecorator) else None
+                 ),
+                 "base_image": base_image,
++                "default_channel": default_channel,
+             }
+             dedup_key = hashlib.sha256(
+                 json.dumps(requested).encode("utf-8")

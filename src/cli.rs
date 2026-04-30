@@ -264,10 +264,14 @@ impl Action {
                         }
                     }
                 }
-                // Handle `ob deploy` as alias for obproject-deploy
+                // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
                 if !args.is_empty() && args[0] == "deploy" {
                     let deploy_args: Vec<String> = args[1..].to_vec();
-                    return Ok(anaconda_cli::run_tool("obproject-deploy", &deploy_args)?);
+                    return Ok(anaconda_cli::run_tool_binary(
+                        "outerbounds",
+                        "obproject-deploy",
+                        &deploy_args,
+                    )?);
                 }
                 Ok(anaconda_cli::run_ob(ctx, &args)?)
             }

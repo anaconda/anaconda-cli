@@ -1,0 +1,35 @@
+context:
+  version: 2.19.21.1
+  build_number: '0'
+
+package:
+  name: ob-metaflow
+  version: ${{ version }}
+
+source:
+- url: https://pypi.io/packages/source/o/ob-metaflow/ob_metaflow-${{ version }}.tar.gz
+  sha256: 27ea12cc9aa6c0d48456f851b3b9efce8085490ce38ded1d8413b3ddbb9bb910
+
+build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install .
+  python:
+    entry_points:
+    - metaflow = metaflow.cmd.main_cli:start
+    - metaflow-dev = metaflow.cmd.make_wrapper:main
+  noarch: python
+
+requirements:
+  host:
+  - python
+  - pip
+  - setuptools
+  run:
+  - requests
+  - boto3
+  - pylint
+  - kubernetes
+
+about:
+  summary: 'Metaflow: More AI and ML, Less Engineering'
+  license: Apache-2.0
