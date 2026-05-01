@@ -66,6 +66,10 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
     # Preserve ANA_SELF_UPDATE_URL if set (e.g., by CI to use internal URL)
     if "ANA_SELF_UPDATE_URL" in os.environ:
         env["ANA_SELF_UPDATE_URL"] = os.environ["ANA_SELF_UPDATE_URL"]
+    # Preserve Cloudflare Zero Trust credentials for accessing protected endpoints
+    for cf_var in ("CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET"):
+        if cf_var in os.environ:
+            env[cf_var] = os.environ[cf_var]
     return env
 
 
