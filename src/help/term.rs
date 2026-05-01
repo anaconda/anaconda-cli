@@ -5,6 +5,7 @@ use console::Term;
 use super::data::{HELP_EXAMPLES, HELP_SECTIONS};
 use super::styles::HelpStyle;
 use crate::VERSION;
+use crate::ui::status;
 
 const GLOBAL_INDENT: usize = 2;
 const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
@@ -221,26 +222,26 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         let _ = term.write_line("");
     }
 
-    // Options (for leaf commands with arguments/flags)
+    // Options section - always show at least -h, --help
     let args: Vec<_> = cmd
         .get_arguments()
         .filter(|a| a.get_id() != "help" && a.get_id() != "version")
         .collect();
-    if !args.is_empty() {
-        print_section(&term, "OPTIONS");
-        for arg in args {
-            let short = arg
-                .get_short()
-                .map(|s| format!("-{}, ", s))
-                .unwrap_or_default();
-            let long = arg
-                .get_long()
-                .map(|l| format!("--{}", l))
-                .unwrap_or_default();
-            let name = format!("{}{}", short, long);
-            let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
-            print_command_row(&term, &name, &desc);
-        }
-        let _ = term.write_line("");
+    print_section(&term, "OPTIONS");
+    for arg in args {
+        let short = arg
+            .get_short()
+            .map(|s| format!("-{}, ", s))
+            .unwrap_or_default();
+        let long = arg
+            .get_long()
+            .map(|l| format!("--{}", l))
+            .unwrap_or_default();
+        let name = format!("{}{}", short, long);
+        let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
+        print_command_row(&term, &name, &desc);
     }
+    print_command_row(&term, "--h, --help", "Show this message");
+    status::blank_line();
+    print_footer(&term);
 }
