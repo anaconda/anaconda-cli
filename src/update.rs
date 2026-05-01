@@ -334,7 +334,7 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
     match check_update(ctx, current_version).await {
         Ok(UpdateCheck::Available(release)) => {
             println!(
-                "Update available: {} -> {}",
+                "Update available: v{} -> {}",
                 current_version, release.tag_name
             );
         }
