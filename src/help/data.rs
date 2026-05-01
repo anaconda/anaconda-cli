@@ -43,6 +43,24 @@ pub(super) const HELP_EXAMPLES: &[(&str, &str)] = &[
     ("Manage your ana version", "ana self update"),
 ];
 
+/// Subcommand examples keyed by command path
+/// Path format matches the space-separated command hierarchy (e.g., "self update")
+const SUBCOMMAND_EXAMPLES: &[(&str, &[(&str, &str)])] = &[(
+    "self update",
+    &[
+        ("Update to the latest version", "ana self update"),
+        ("Update to a specific version", "ana self update v0.0.8"),
+    ],
+)];
+
+/// Get examples for a specific subcommand by its path
+pub(super) fn get_subcommand_examples(path: &str) -> Option<&'static [(&'static str, &'static str)]> {
+    SUBCOMMAND_EXAMPLES
+        .iter()
+        .find(|(p, _)| *p == path)
+        .map(|(_, examples)| *examples)
+}
+
 /// Get all command names defined in help sections (for testing)
 #[cfg(test)]
 pub fn get_all_section_commands() -> Vec<&'static str> {

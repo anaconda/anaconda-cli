@@ -100,7 +100,9 @@ pub enum Action {
     Whoami {
         json: bool,
     },
-    Update,
+    Update {
+        version: Option<String>,
+    },
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
@@ -254,8 +256,8 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
-            Action::Update => {
-                update::run_update(ctx, VERSION).await;
+            Action::Update { version } => {
+                update::run_update(ctx, VERSION, version).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
@@ -375,13 +377,17 @@ pub fn parse() -> (Action, LogLevel) {
                         feedback_type: feedback::parse_feedback_type(bug, feature),
                         description,
                     },
-                    Some(SelfCommands::Update { check, list }) => {
+                    Some(SelfCommands::Update {
+                        version,
+                        check,
+                        list,
+                    }) => {
                         if check {
                             Action::CheckForUpdate
                         } else if list {
                             Action::ShowAvailableVersions
                         } else {
-                            Action::Update
+                            Action::Update { version }
                         }
                     }
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
@@ -690,12 +696,15 @@ enum SelfCommands {
 
     /// Manage your ana version
     Update {
+        /// Version to install (e.g., v0.0.8)
+        version: Option<String>,
+
         /// Check if an update is available
-        #[arg(long, conflicts_with = "list")]
+        #[arg(long, conflicts_with_all = ["list", "version"])]
         check: bool,
 
         /// List available versions
-        #[arg(long, conflicts_with = "check")]
+        #[arg(long, conflicts_with_all = ["check", "version"])]
         list: bool,
     },
 

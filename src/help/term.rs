@@ -2,10 +2,9 @@ use std::collections::HashMap;
 
 use console::Term;
 
-use super::data::{HELP_EXAMPLES, HELP_SECTIONS};
+use super::data::{get_subcommand_examples, HELP_EXAMPLES, HELP_SECTIONS};
 use super::styles::HelpStyle;
 use crate::VERSION;
-use crate::ui::status;
 
 const GLOBAL_INDENT: usize = 2;
 const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
@@ -127,6 +126,25 @@ fn print_examples_block(term: &Term) {
     let _ = term.write_line("");
 }
 
+/// Print examples for a subcommand (simpler format than main help)
+fn print_subcommand_examples(term: &Term, examples: &[(&str, &str)]) {
+    print_section(term, "EXAMPLES");
+    let margin = left_margin();
+    for (desc, command) in examples {
+        let _ = term.write_line(&format!(
+            "{}  {}",
+            margin,
+            HelpStyle::BoxDesc.style().apply_to(desc)
+        ));
+        let _ = term.write_line(&format!(
+            "{}    {}",
+            margin,
+            HelpStyle::BoxCommand.style().apply_to(command)
+        ));
+        let _ = term.write_line("");
+    }
+}
+
 fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
     for section in HELP_SECTIONS {
         print_section(term, section.name);
@@ -189,16 +207,38 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     }
 
     // Usage - build from path to ensure correct nesting
+    // Filter out built-in help/version flags (which have --long options)
+    let is_builtin_flag = |a: &clap::Arg| {
+        (a.get_id() == "help" || a.get_id() == "version")
+            && (a.get_long().is_some() || a.get_short().is_some())
+    };
+    let positional_args: Vec<_> = cmd
+        .get_arguments()
+        .filter(|a| !is_builtin_flag(a))
+        .filter(|a| a.get_long().is_none() && a.get_short().is_none())
+        .collect();
     let has_options = cmd
         .get_arguments()
-        .any(|a| a.get_id() != "help" && a.get_id() != "version");
+        .any(|a| !is_builtin_flag(a) && (a.get_long().is_some() || a.get_short().is_some()));
     let has_subcommands = cmd.get_subcommands().next().is_some();
+
+    let positional_str = positional_args
+        .iter()
+        .map(|a| format!("[{}]", a.get_id().as_str().to_uppercase()))
+        .collect::<Vec<_>>()
+        .join(" ");
+
     let usage = if has_subcommands {
         format!("Usage: ana {} <command> [options]", path)
-    } else if has_options {
-        format!("Usage: ana {} [OPTIONS]", path)
     } else {
-        format!("Usage: ana {}", path)
+        let mut parts = vec![format!("Usage: ana {}", path)];
+        if !positional_str.is_empty() {
+            parts.push(positional_str);
+        }
+        if has_options {
+            parts.push("[OPTIONS]".to_string());
+        }
+        parts.join(" ")
     };
     let _ = term.write_line(&format!(
         "{}{}",
@@ -222,13 +262,25 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         let _ = term.write_line("");
     }
 
+    // Arguments section (positional arguments)
+    if !positional_args.is_empty() {
+        print_section(&term, "ARGUMENTS");
+        for arg in &positional_args {
+            let name = arg.get_id().as_str();
+            let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
+            print_command_row(&term, name, &desc);
+        }
+        let _ = term.write_line("");
+    }
+
     // Options section - always show at least -h, --help
-    let args: Vec<_> = cmd
+    let option_args: Vec<_> = cmd
         .get_arguments()
-        .filter(|a| a.get_id() != "help" && a.get_id() != "version")
+        .filter(|a| !is_builtin_flag(a))
+        .filter(|a| a.get_long().is_some() || a.get_short().is_some())
         .collect();
     print_section(&term, "OPTIONS");
-    for arg in args {
+    for arg in option_args {
         let short = arg
             .get_short()
             .map(|s| format!("-{}, ", s))
@@ -241,7 +293,13 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
         print_command_row(&term, &name, &desc);
     }
-    print_command_row(&term, "--h, --help", "Show this message");
-    status::blank_line();
+    print_command_row(&term, "-h, --help", "Show this message");
+    let _ = term.write_line("");
+
+    // Examples (if available for this subcommand)
+    if let Some(examples) = get_subcommand_examples(path) {
+        print_subcommand_examples(&term, examples);
+    }
+
     print_footer(&term);
 }

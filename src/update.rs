@@ -351,34 +351,80 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
     }
 }
 
-pub async fn run_update(ctx: &CommandContext, current_version: &str) {
-    let check = match check_update(ctx, current_version).await {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::error!("Failed to check for updates: {}", e);
-            eprintln!("Failed to check for updates: {}", e);
-            return;
-        }
-    };
+pub async fn run_update(
+    ctx: &CommandContext,
+    current_version: &str,
+    target_version: Option<String>,
+) {
+    if let Some(version) = target_version {
+        // Install specific version
+        let releases = match fetch_available_releases(ctx).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Failed to fetch releases: {}", e);
+                eprintln!("Failed to fetch releases: {}", e);
+                return;
+            }
+        };
 
-    match check {
-        UpdateCheck::Available(release) => {
-            match apply_update(ctx, &release).await {
-                Ok(()) => println!(
-                    "Updated successfully: {} -> {}",
-                    current_version, release.tag_name
-                ),
-                Err(e) => {
-                    tracing::error!("Failed to update: {}", e);
-                    eprintln!("Failed to update: {}", e);
-                }
+        // Normalize version tag (ensure v prefix)
+        let target_tag = if version.starts_with('v') {
+            version
+        } else {
+            format!("v{}", version)
+        };
+
+        let release = match releases.into_iter().find(|r| r.tag_name == target_tag) {
+            Some(r) => r,
+            None => {
+                eprintln!(
+                    "Version {} not found. Use --list to see available versions.",
+                    target_tag
+                );
+                return;
+            }
+        };
+
+        match apply_update(ctx, &release).await {
+            Ok(()) => println!(
+                "Updated successfully: {} -> {}",
+                current_version, release.tag_name
+            ),
+            Err(e) => {
+                tracing::error!("Failed to update: {}", e);
+                eprintln!("Failed to update: {}", e);
             }
         }
-        UpdateCheck::AlreadyUpToDate => {
-            println!("Already up to date ({})", current_version);
-        }
-        UpdateCheck::NoReleases => {
-            println!("No releases available.");
+    } else {
+        // Update to latest version
+        let check = match check_update(ctx, current_version).await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!("Failed to check for updates: {}", e);
+                eprintln!("Failed to check for updates: {}", e);
+                return;
+            }
+        };
+
+        match check {
+            UpdateCheck::Available(release) => {
+                match apply_update(ctx, &release).await {
+                    Ok(()) => println!(
+                        "Updated successfully: {} -> {}",
+                        current_version, release.tag_name
+                    ),
+                    Err(e) => {
+                        tracing::error!("Failed to update: {}", e);
+                        eprintln!("Failed to update: {}", e);
+                    }
+                }
+            }
+            UpdateCheck::AlreadyUpToDate => {
+                println!("Already up to date ({})", current_version);
+            }
+            UpdateCheck::NoReleases => {
+                println!("No releases available.");
+            }
         }
     }
 }
