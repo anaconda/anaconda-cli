@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use console::Term;
 
-use super::data::{get_subcommand_examples, HELP_EXAMPLES, HELP_SECTIONS};
+use super::data::{HELP_EXAMPLES, HELP_SECTIONS, get_subcommand_examples};
 use super::styles::HelpStyle;
 use crate::VERSION;
 
@@ -60,7 +60,7 @@ fn print_header(term: &Term) {
 }
 
 /// Print the examples block in a styled box with rounded corners
-fn print_examples_block(term: &Term) {
+fn print_examples_block(term: &Term, examples: &[(&str, &str)]) {
     print_section(term, "EXAMPLES");
 
     let margin = left_margin();
@@ -81,7 +81,7 @@ fn print_examples_block(term: &Term) {
     ));
 
     // Content lines
-    for (i, (desc, command)) in HELP_EXAMPLES.iter().enumerate() {
+    for (i, (desc, command)) in examples.iter().enumerate() {
         // Description line (as shell comment)
         let comment = format!("{desc}");
         let padding = inner_width.saturating_sub(comment.len() + 1);
@@ -105,7 +105,7 @@ fn print_examples_block(term: &Term) {
         ));
 
         // Add spacing between examples (except after last)
-        if i < HELP_EXAMPLES.len() - 1 {
+        if i < examples.len() - 1 {
             let empty_line = " ".repeat(inner_width);
             let _ = term.write_line(&format!(
                 "{margin}{}{}{}",
@@ -117,6 +117,7 @@ fn print_examples_block(term: &Term) {
     }
 
     // Bottom border
+    // Bottom border
     let _ = term.write_line(&format!(
         "{margin}{}{}{}",
         border.apply_to("╰"),
@@ -124,25 +125,6 @@ fn print_examples_block(term: &Term) {
         border.apply_to("╯")
     ));
     let _ = term.write_line("");
-}
-
-/// Print examples for a subcommand (simpler format than main help)
-fn print_subcommand_examples(term: &Term, examples: &[(&str, &str)]) {
-    print_section(term, "EXAMPLES");
-    let margin = left_margin();
-    for (desc, command) in examples {
-        let _ = term.write_line(&format!(
-            "{}  {}",
-            margin,
-            HelpStyle::BoxDesc.style().apply_to(desc)
-        ));
-        let _ = term.write_line(&format!(
-            "{}    {}",
-            margin,
-            HelpStyle::BoxCommand.style().apply_to(command)
-        ));
-        let _ = term.write_line("");
-    }
 }
 
 fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
@@ -188,7 +170,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
 
     print_header(&term);
-    print_examples_block(&term);
+    print_examples_block(&term, HELP_EXAMPLES);
     print_section_blocks(&term, &subcommands);
     print_options_block(&term);
     print_footer(&term);
@@ -247,6 +229,11 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     ));
     let _ = term.write_line("");
 
+    // Examples (if available for this subcommand)
+    if let Some(examples) = get_subcommand_examples(path) {
+        print_examples_block(&term, examples);
+    }
+
     // Commands (only if there are subcommands)
     let subcommands: Vec<_> = cmd.get_subcommands().collect();
     if !subcommands.is_empty() {
@@ -257,17 +244,6 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
                 .get_about()
                 .map(|a| a.to_string())
                 .unwrap_or_default();
-            print_command_row(&term, name, &desc);
-        }
-        let _ = term.write_line("");
-    }
-
-    // Arguments section (positional arguments)
-    if !positional_args.is_empty() {
-        print_section(&term, "ARGUMENTS");
-        for arg in &positional_args {
-            let name = arg.get_id().as_str();
-            let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
             print_command_row(&term, name, &desc);
         }
         let _ = term.write_line("");
@@ -295,11 +271,6 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     }
     print_command_row(&term, "-h, --help", "Show this message");
     let _ = term.write_line("");
-
-    // Examples (if available for this subcommand)
-    if let Some(examples) = get_subcommand_examples(path) {
-        print_subcommand_examples(&term, examples);
-    }
 
     print_footer(&term);
 }
