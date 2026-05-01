@@ -144,7 +144,8 @@ class TestSelfCommand:
 # Skip static hosting tests if Cloudflare credentials aren't available
 # (the endpoint is protected by Cloudflare Zero Trust)
 requires_cloudflare = pytest.mark.skipif(
-    not os.environ.get("CF_ACCESS_CLIENT_ID") or not os.environ.get("CF_ACCESS_CLIENT_SECRET"),
+    not os.environ.get("CF_ACCESS_CLIENT_ID")
+    or not os.environ.get("CF_ACCESS_CLIENT_SECRET"),
     reason="Cloudflare credentials not available (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET)",
 )
 
