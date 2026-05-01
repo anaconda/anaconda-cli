@@ -24,8 +24,30 @@ concurrency:
 permissions: {}
 
 jobs:
+  secrets:
+    name: Fetch secrets
+    runs-on: self-hosted-default
+    outputs:
+      CF_ACCESS_CLIENT_ID: ${{ steps.cloudflare-service-token.outputs.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ steps.cloudflare-service-token.outputs.CF_ACCESS_CLIENT_SECRET }}
+    steps:
+      - name: Import Cloudflare Service Token
+        id: cloudflare-service-token
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          path: approle-gha
+          roleId: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
+          namespace: admin
+          secrets: |
+            anaconda-dot-sh/common/data/cloudflare-service-token CF_ACCESS_CLIENT_ID | CF_ACCESS_CLIENT_ID ;
+            anaconda-dot-sh/common/data/cloudflare-service-token CF_ACCESS_CLIENT_SECRET | CF_ACCESS_CLIENT_SECRET ;
+
   build:
     name: Build (${{ matrix.os }})
+    needs: [secrets]
     runs-on: ${{ matrix.os }}
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -81,20 +103,6 @@ jobs:
         if: matrix.os == 'ubuntu-24.04-arm'
         uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
-      - name: Import Cloudflare Service Token
-        id: cloudflare-service-token
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          path: approle-gha
-          roleId: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
-          namespace: admin
-          secrets: |
-            anaconda-dot-sh/common/data/cloudflare-service-token CF_ACCESS_CLIENT_ID | CF_ACCESS_CLIENT_ID ;
-            anaconda-dot-sh/common/data/cloudflare-service-token CF_ACCESS_CLIENT_SECRET | CF_ACCESS_CLIENT_SECRET ;
-
       - name: Run unit tests
         if: ${{ !inputs.skip-tests }}
         env:
@@ -110,9 +118,8 @@ jobs:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-          # Cloudflare Zero Trust headers for accessing protected endpoints
-          CF_ACCESS_CLIENT_ID: ${{ steps.cloudflare-service-token.outputs.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ steps.cloudflare-service-token.outputs.CF_ACCESS_CLIENT_SECRET }}
+          CF_ACCESS_CLIENT_ID: ${{ needs.secrets.outputs.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ needs.secrets.outputs.CF_ACCESS_CLIENT_SECRET }}
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)
@@ -121,9 +128,8 @@ jobs:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-          # Cloudflare Zero Trust headers for accessing protected endpoints
-          CF_ACCESS_CLIENT_ID: ${{ steps.cloudflare-service-token.outputs.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ steps.cloudflare-service-token.outputs.CF_ACCESS_CLIENT_SECRET }}
+          CF_ACCESS_CLIENT_ID: ${{ needs.secrets.outputs.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ needs.secrets.outputs.CF_ACCESS_CLIENT_SECRET }}
         run: pixi run test-integration
         shell: powershell
 
@@ -147,7 +153,7 @@ jobs:
   check:
     name: Check
     if: always()
-    needs: [build]
+    needs: [secrets, build]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether all jobs succeeded
