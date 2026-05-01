@@ -138,7 +138,7 @@ class TestSelfCommand:
     def test_self_shows_update_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("self")
         assert "update" in result.stdout
-        assert "Update ana to the latest version" in result.stdout
+        assert "Manage your ana version" in result.stdout
 
 
 # Skip static hosting tests if Cloudflare credentials aren't available

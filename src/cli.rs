@@ -688,7 +688,7 @@ enum SelfCommands {
         description: Option<String>,
     },
 
-    /// Update ana to the latest version
+    /// Manage your ana version
     Update {
         /// Check if an update is available
         #[arg(long, conflicts_with = "list")]

@@ -40,7 +40,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
 pub(super) const HELP_EXAMPLES: &[(&str, &str)] = &[
     ("Log into your Anaconda account", "ana login"),
     ("Install a tool", "ana tool install pixi"),
-    ("Update ana to the latest version", "ana self update"),
+    ("Manage your ana version", "ana self update"),
 ];
 
 /// Get all command names defined in help sections (for testing)
