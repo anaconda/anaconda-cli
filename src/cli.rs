@@ -100,9 +100,7 @@ pub enum Action {
     Whoami {
         json: bool,
     },
-    Update {
-        force: bool,
-    },
+    Update,
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
@@ -256,8 +254,8 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
-            Action::Update { force } => {
-                update::run_update(ctx, VERSION, force).await;
+            Action::Update => {
+                update::run_update(ctx, VERSION).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
@@ -377,13 +375,13 @@ pub fn parse() -> (Action, LogLevel) {
                         feedback_type: feedback::parse_feedback_type(bug, feature),
                         description,
                     },
-                    Some(SelfCommands::Update { yes, check, list }) => {
+                    Some(SelfCommands::Update { check, list }) => {
                         if check {
                             Action::CheckForUpdate
                         } else if list {
                             Action::ShowAvailableVersions
                         } else {
-                            Action::Update { force: yes }
+                            Action::Update
                         }
                     }
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
@@ -692,16 +690,12 @@ enum SelfCommands {
 
     /// Update ana to the latest version
     Update {
-        /// Skip confirmation prompt
-        #[arg(short = 'y', long = "yes")]
-        yes: bool,
-
         /// Check if an update is available
-        #[arg(long, conflicts_with_all = ["yes", "list"])]
+        #[arg(long, conflicts_with = "list")]
         check: bool,
 
         /// List available versions
-        #[arg(long, conflicts_with_all = ["yes", "check"])]
+        #[arg(long, conflicts_with = "check")]
         list: bool,
     },
 

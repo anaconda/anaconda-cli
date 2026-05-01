@@ -5,7 +5,6 @@ use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 
 use crate::context::CommandContext;
-use crate::input::prompt_yes_no;
 
 // GitHub repository for releases (used when ANA_SELF_UPDATE_URL=github)
 const GITHUB_REPO: &str = "anaconda/ana-cli";
@@ -352,7 +351,7 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
     }
 }
 
-pub async fn run_update(ctx: &CommandContext, current_version: &str, force: bool) {
+pub async fn run_update(ctx: &CommandContext, current_version: &str) {
     let check = match check_update(ctx, current_version).await {
         Ok(c) => c,
         Err(e) => {
@@ -364,13 +363,6 @@ pub async fn run_update(ctx: &CommandContext, current_version: &str, force: bool
 
     match check {
         UpdateCheck::Available(release) => {
-            if !force {
-                let message = format!("Update {} -> {}?", current_version, release.tag_name);
-                if !prompt_yes_no(&message, true) {
-                    println!("Update cancelled.");
-                    return;
-                }
-            }
             match apply_update(ctx, &release).await {
                 Ok(()) => println!(
                     "Updated successfully: {} -> {}",
