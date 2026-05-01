@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use console::Term;
 
-use super::data::{HELP_EXAMPLES, HELP_SECTIONS, get_subcommand_examples};
+use super::data::{HELP_SECTIONS, HelpExample, get_main_examples, get_subcommand_examples};
 use super::styles::HelpStyle;
 use crate::VERSION;
 
@@ -60,7 +60,7 @@ fn print_header(term: &Term) {
 }
 
 /// Print the examples block in a styled box with rounded corners
-fn print_examples_block(term: &Term, examples: &[(&str, &str)]) {
+fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     print_section(term, "EXAMPLES");
 
     let margin = left_margin();
@@ -81,8 +81,10 @@ fn print_examples_block(term: &Term, examples: &[(&str, &str)]) {
     ));
 
     // Content lines
-    for (i, (desc, command)) in examples.iter().enumerate() {
+    for (i, example) in examples.iter().enumerate() {
         // Description line (as shell comment)
+        let desc = &example.desc;
+        let command = &example.command;
         let comment = format!("{desc}");
         let padding = inner_width.saturating_sub(comment.len() + 1);
         let padded_desc = format!(" {comment}{}", " ".repeat(padding));
@@ -170,7 +172,7 @@ pub fn print_help(subcommands: HashMap<String, String>) {
     let term = Term::stdout();
 
     print_header(&term);
-    print_examples_block(&term, HELP_EXAMPLES);
+    print_examples_block(&term, get_main_examples());
     print_section_blocks(&term, &subcommands);
     print_options_block(&term);
     print_footer(&term);

@@ -407,18 +407,16 @@ pub async fn run_update(
         };
 
         match check {
-            UpdateCheck::Available(release) => {
-                match apply_update(ctx, &release).await {
-                    Ok(()) => println!(
-                        "Updated successfully: {} -> {}",
-                        current_version, release.tag_name
-                    ),
-                    Err(e) => {
-                        tracing::error!("Failed to update: {}", e);
-                        eprintln!("Failed to update: {}", e);
-                    }
+            UpdateCheck::Available(release) => match apply_update(ctx, &release).await {
+                Ok(()) => println!(
+                    "Updated successfully: {} -> {}",
+                    current_version, release.tag_name
+                ),
+                Err(e) => {
+                    tracing::error!("Failed to update: {}", e);
+                    eprintln!("Failed to update: {}", e);
                 }
-            }
+            },
             UpdateCheck::AlreadyUpToDate => {
                 println!("Already up to date ({})", current_version);
             }
