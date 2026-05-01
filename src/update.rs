@@ -154,14 +154,27 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
     };
 
     let total_size = response.content_length().unwrap_or(0);
+    let total_mb = total_size as f64 / 1_000_000.0;
+
+    use crate::ui::styles::UiColor;
+
+    eprintln!("  Downloading {} ({:.1} MB)", asset.name, total_mb);
+    eprintln!("  {}", UiColor::Dim.apply_to(&asset.url));
 
     let pb = ProgressBar::new(total_size);
+    let dim = UiColor::Dim.hex();
+    let dim_suffix = UiColor::Dim.apply_to("% |").to_string();
+    let template = format!(
+        "  {{bar:34.{}/{dim}}} {{percent:>2.{dim}}}{dim_suffix} {{elapsed:.{dim}}}",
+        UiColor::Green.hex(),
+    );
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{bar:40.cyan/blue} {bytes}/{total_bytes} ({eta})")
+            .template(&template)
             .unwrap()
-            .progress_chars("=> "),
+            .progress_chars("━━─"),
     );
+    pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(&asset.name);
@@ -179,6 +192,12 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
     }
 
     pb.finish_and_clear();
+
+    // Clear the "Downloading" and URL lines (move up 2 lines and clear each)
+    use std::io::IsTerminal;
+    if std::io::stderr().is_terminal() {
+        eprint!("\x1b[2A\x1b[K\x1b[1B\x1b[K\x1b[1A");
+    }
 
     // Replace the running binary in-place
     self_replace::self_replace(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
@@ -327,7 +346,6 @@ async fn check_update(ctx: &CommandContext, current_version: &str) -> Result<Upd
 
 async fn apply_update(ctx: &CommandContext, release: &Release) -> Result<(), Error> {
     let asset = get_asset_for_platform(release)?;
-    println!("Downloading {} ({})", asset.name, asset.url);
     download_and_replace(ctx, asset).await?;
     Ok(())
 }
