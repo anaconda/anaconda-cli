@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -139,6 +141,15 @@ class TestSelfCommand:
         assert "Update ana to the latest version" in result.stdout
 
 
+# Skip static hosting tests if Cloudflare credentials aren't available
+# (the endpoint is protected by Cloudflare Zero Trust)
+requires_cloudflare = pytest.mark.skipif(
+    not os.environ.get("CF_ACCESS_CLIENT_ID") or not os.environ.get("CF_ACCESS_CLIENT_SECRET"),
+    reason="Cloudflare credentials not available (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET)",
+)
+
+
+@requires_cloudflare
 class TestSelfUpdateStaticHosting:
     """Tests for self update with static hosting (default, no token required)."""
 
