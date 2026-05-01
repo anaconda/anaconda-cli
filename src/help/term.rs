@@ -229,14 +229,14 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         .join(" ");
 
     let usage = if has_subcommands {
-        format!("Usage: ana {} <command> [options]", path)
+        format!("Usage: ana {} [OPTIONS] COMMAND [ARGS]...", path)
     } else {
         let mut parts = vec![format!("Usage: ana {}", path)];
-        if !positional_str.is_empty() {
-            parts.push(positional_str);
-        }
         if has_options {
             parts.push("[OPTIONS]".to_string());
+        }
+        if !positional_str.is_empty() {
+            parts.push(positional_str);
         }
         parts.join(" ")
     };
