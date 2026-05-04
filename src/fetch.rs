@@ -24,6 +24,7 @@ pub async fn api_fetch(
         "DELETE" => ctx.client.delete(url),
         _ => return Err(format!("Unsupported HTTP method: {}", method).into()),
     };
+    request = request.header("X-Ana-Raw-Request", "true");
     if let Some(args) = query_args {
         let pairs: Vec<(&str, &str)> = args
             .split(',')
