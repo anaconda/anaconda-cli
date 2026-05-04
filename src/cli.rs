@@ -10,9 +10,9 @@ use crate::auth;
 use crate::config::{self, Config};
 use crate::context::CommandContext;
 use crate::feature;
-use crate::fetch::api_fetch;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
+use crate::fetch::api_fetch;
 use crate::help;
 use crate::tools;
 use crate::update;
@@ -780,5 +780,4 @@ mod tests {
             missing
         );
     }
-
 }

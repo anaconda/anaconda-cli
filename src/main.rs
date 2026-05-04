@@ -5,9 +5,9 @@ mod config;
 mod context;
 mod diagnostics;
 mod feature;
-mod fetch;
 #[cfg(feature = "feedback")]
 mod feedback;
+mod fetch;
 mod help;
 mod http;
 mod input;
