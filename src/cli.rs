@@ -770,7 +770,13 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Enable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -786,7 +792,13 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Disable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -802,7 +814,13 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Enable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -818,7 +836,13 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--uv"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Enable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -835,7 +859,13 @@ mod tests {
             Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip", "--uv"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Enable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -851,7 +881,13 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Disable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -867,7 +903,13 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--uv"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Disable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
@@ -884,7 +926,13 @@ mod tests {
             Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip", "--uv"]).unwrap();
         match cli.command {
             Some(Commands::Feature {
-                command: Some(FeatureCommands::Disable { name, force, pip, uv }),
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
             }) => {
                 assert_eq!(name, "wheels");
                 assert!(!force);
