@@ -6,12 +6,10 @@ use url::Url;
 
 use crate::auth;
 use crate::config::Config;
-use crate::tools::require_command;
 
 /// Configure pip to use Anaconda's wheels index with authentication.
+/// Caller should verify pip is installed before calling.
 pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    require_command("pip")?;
-
     let api_key = auth::get_api_key(config)?
         .ok_or("Login required to configure pip. Run `ana login` first.")?;
 
@@ -21,9 +19,8 @@ pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Remove pip configuration for Anaconda's wheels index.
+/// Caller should verify pip is installed before calling.
 pub fn deconfigure() -> Result<(), Box<dyn std::error::Error>> {
-    require_command("pip")?;
-
     let output = Command::new("pip")
         .args(["config", "unset", "global.index-url"])
         .output()?;

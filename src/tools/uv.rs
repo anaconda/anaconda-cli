@@ -2,7 +2,6 @@ use std::process::Command;
 
 use crate::auth;
 use crate::config::Config;
-use crate::tools::require_command;
 
 /// Get the base URL for uv auth by removing /simple/ suffix if present.
 fn get_base_url(pip_index_url: &str) -> &str {
@@ -13,9 +12,8 @@ fn get_base_url(pip_index_url: &str) -> &str {
 }
 
 /// Configure uv to use Anaconda's wheels index with authentication.
+/// Caller should verify uv is installed before calling.
 pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    require_command("uv")?;
-
     let api_key = auth::get_api_key(config)?
         .ok_or("Login required to configure uv. Run `ana login` first.")?;
 
@@ -35,9 +33,8 @@ pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Remove uv configuration for Anaconda's wheels index.
+/// Caller should verify uv is installed before calling.
 pub fn deconfigure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    require_command("uv")?;
-
     let base_url = get_base_url(&config.pip_index_url);
 
     let output = Command::new("uv")

@@ -282,14 +282,7 @@ impl Action {
             } => {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
-                    "wheels" => {
-                        if pip {
-                            tools::pip::configure(&ctx.config)?;
-                        }
-                        if uv {
-                            tools::uv::configure(&ctx.config)?;
-                        }
-                    }
+                    "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
                 }
                 Ok(())
@@ -302,14 +295,7 @@ impl Action {
             } => {
                 match feature.as_str() {
                     "main-x" => feature::disable_main_x(ctx, force).await?,
-                    "wheels" => {
-                        if pip {
-                            tools::pip::deconfigure()?;
-                        }
-                        if uv {
-                            tools::uv::deconfigure(&ctx.config)?;
-                        }
-                    }
+                    "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
                 }
                 Ok(())
