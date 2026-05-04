@@ -5,11 +5,6 @@ on:
     branches:
       - main
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
   merge_group:
   workflow_call:
     secrets:
@@ -24,16 +19,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+    permissions:
+      contents: read  # To check out private repository
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
     defaults:
       run:
@@ -43,15 +42,15 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure git for private repos
+        env:
+          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
         run: |
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
 
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash
@@ -69,11 +68,16 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
       - name: Set up ana with pixi
+        if: matrix.os != 'ubuntu-24.04-arm'
         uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
         with:
-          ana-version: v0.0.8
+          ana-version: v0.0.9
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+
+      - name: Set up pixi (fallback)
+        if: matrix.os == 'ubuntu-24.04-arm'
+        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
       - name: Run unit tests
         env:
@@ -97,7 +101,7 @@ jobs:
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         run: pixi run test-integration
-        shell: pwsh
+        shell: powershell
 
       - name: Build conda package
         run: pixi run build-conda

@@ -7,6 +7,8 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+IS_LINUX = sys.platform == "linux"
+IS_MACOS = sys.platform == "darwin"
 IS_WINDOWS = sys.platform == "win32"
 
 

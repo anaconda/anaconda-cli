@@ -40,7 +40,7 @@ if [ -n "${CI:-}" ]; then
 fi
 
 # Target triples for per-platform SBOM generation
-TARGETS=(x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-pc-windows-msvc)
+TARGETS=(x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu aarch64-apple-darwin x86_64-pc-windows-msvc)
 
 # Generate per-target CycloneDX SBOMs
 TARGET_FILES=()

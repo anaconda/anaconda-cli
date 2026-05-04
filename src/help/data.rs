@@ -10,16 +10,25 @@ pub(super) struct HelpSection {
 ///                 now, assuming YAGNI and asserting inclusing via unit tests.
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
+        name: "TOOLCHAIN",
+        commands: &[
+            "tool",
+            "bootstrap",
+            "feature",
+            // TODO(mattkram): Hiding config from help until we fully implement CRUD
+            // "config",
+            "self",
+        ],
+    },
+    // TODO(mattkram): Removed PACKAGES section from help until we can comprehensively
+    //                 define the wrappers.
+    // HelpSection {
+    //     name: "PACKAGES",
+    //     commands: &["org"],
+    // },
+    HelpSection {
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
-    },
-    HelpSection {
-        name: "PACKAGES",
-        commands: &["org"],
-    },
-    HelpSection {
-        name: "TOOLCHAIN",
-        commands: &["tool", "bootstrap", "config", "self"],
     },
     HelpSection {
         name: "API",

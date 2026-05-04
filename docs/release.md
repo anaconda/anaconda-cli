@@ -6,7 +6,7 @@ This document describes the process for creating releases of the `ana` CLI.
 
 Releases are automated via GitHub Actions. The workflow is triggered by pushing a version tag (e.g., `v1.2.3`) and handles:
 
-- Building binaries for all platforms (Linux, macOS, Windows)
+- Building binaries for all platforms (Linux x86_64, Linux aarch64, macOS, Windows)
 - Generating checksums
 - Uploading binaries to the GitHub release
 - Publishing conda packages to Anaconda.org
@@ -42,7 +42,7 @@ You can monitor progress at [Actions](https://github.com/anaconda/ana-cli/action
 
 Once the workflow completes:
 
-- Check that all 6 assets are attached (3 binaries + 3 checksums)
+- Check that all 8 assets are attached (4 binaries + 4 checksums)
 - Verify the release is no longer marked as a prerelease
 - Confirm the `latest` release points to the new version
 

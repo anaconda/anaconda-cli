@@ -8,44 +8,38 @@ on:
       - main
   merge_group:
   pull_request:
-    # Default is [opened, reopened, synchronize]. Since we want to run pre-commit on "ready to review",
-    # we add that one. Since lists are overwritten, not merged, we add all four.
-    # See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-    # for documentation of the default behaviour
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
 
 # Cancel a previous job if the same workflow is triggers on the same PR or commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   pre-commit:
-    runs-on:
-      labels:
-        - ubuntu-latest
+    name: pre-commit
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          token: ${{ secrets.ANACONDA_BOT_TOKEN }}
-          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.ANACONDA_BOT_TOKEN }}  # zizmor: ignore[secrets-outside-env]
 
       - name: Configure git for private repos
+        env:
+          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
         run: |
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
       - name: Set up ana with pixi
         uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
         with:
-          ana-version: v0.0.8
+          ana-version: v0.0.9
           tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
@@ -57,14 +51,16 @@ jobs:
         run: |
           pixi run pre-commit || :
           if git status --porcelain | grep -q .; then
-            echo "changed=1" >>$GITHUB_OUTPUT
+            echo "changed=1" >> "${GITHUB_OUTPUT}"
           fi
 
       - name: Commit and fail if changes occurred
         if: steps.updates.outputs.changed == 1
+        env:
+          REF: ${{ github.head_ref }}
         run: |
-          git fetch origin refs/heads/${{ github.head_ref }}:refs/remotes/origin/${{ github.head_ref }}
-          git checkout ${{ github.head_ref }}
+          git fetch origin "refs/heads/${REF}:refs/remotes/origin/${REF}"
+          git checkout "${REF}"
 
           git config user.name "Anaconda Bot"
           git config user.email "devops+anaconda-bot@anaconda.com"

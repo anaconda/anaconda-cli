@@ -9,6 +9,7 @@ use crate::anaconda_cli;
 use crate::auth;
 use crate::config::{self, Config};
 use crate::context::CommandContext;
+use crate::feature;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::help;
@@ -130,6 +131,14 @@ pub enum Action {
         data: Option<String>,
         json: Option<String>,
     },
+    FeatureEnable {
+        feature: String,
+        force: bool,
+    },
+    FeatureDisable {
+        feature: String,
+        force: bool,
+    },
 }
 
 impl Action {
@@ -155,6 +164,14 @@ impl Action {
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
             Action::ApiFetch { .. } => "api.fetch",
+            Action::FeatureEnable { feature, .. } => match feature.as_str() {
+                "main-x" => "feature.enable.main-x",
+                _ => "feature.enable.unknown",
+            },
+            Action::FeatureDisable { feature, .. } => match feature.as_str() {
+                "main-x" => "feature.disable.main-x",
+                _ => "feature.disable.unknown",
+            },
         }
     }
 
@@ -276,6 +293,20 @@ impl Action {
                 )
                 .await
             }
+            Action::FeatureEnable { feature, force } => {
+                match feature.as_str() {
+                    "main-x" => feature::enable_main_x(ctx, force).await?,
+                    _ => return Err(format!("Unknown feature: {}", feature).into()),
+                }
+                Ok(())
+            }
+            Action::FeatureDisable { feature, force } => {
+                match feature.as_str() {
+                    "main-x" => feature::disable_main_x(ctx, force).await?,
+                    _ => return Err(format!("Unknown feature: {}", feature).into()),
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -361,6 +392,17 @@ pub fn parse() -> (Action, LogLevel) {
                         query_args,
                         data,
                         json,
+                    },
+                },
+                Some(Commands::Feature { command }) => match command {
+                    None => Action::ShowSubcommandHelp("feature".to_string()),
+                    Some(FeatureCommands::Enable { name, force }) => Action::FeatureEnable {
+                        feature: name,
+                        force,
+                    },
+                    Some(FeatureCommands::Disable { name, force }) => Action::FeatureDisable {
+                        feature: name,
+                        force,
                     },
                 },
             };
@@ -585,6 +627,17 @@ enum Commands {
         #[command(subcommand)]
         command: Option<ApiCommands>,
     },
+
+    /// Enable or disable Anaconda features
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana feature <command> [options]"
+    )]
+    Feature {
+        #[command(subcommand)]
+        command: Option<FeatureCommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -705,6 +758,29 @@ enum ApiCommands {
     },
 }
 
+#[derive(Subcommand)]
+enum FeatureCommands {
+    /// Enable a feature
+    Enable {
+        /// Name of the feature to enable (e.g., main-x)
+        name: String,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'f', long)]
+        force: bool,
+    },
+
+    /// Disable a feature
+    Disable {
+        /// Name of the feature to disable (e.g., main-x)
+        name: String,
+
+        /// Skip confirmation prompt
+        #[arg(short = 'f', long)]
+        force: bool,
+    },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -718,9 +794,16 @@ mod tests {
 
     #[test]
     fn test_all_subcommands_in_help_sections() {
+        // Commands intentionally hidden from help output
+        let hidden_from_help: std::collections::HashSet<_> =
+            ["org", "config"].into_iter().collect();
+
         let cmd = Cli::command();
-        let clap_subcommands: std::collections::HashSet<_> =
-            cmd.get_subcommands().map(|s| s.get_name()).collect();
+        let clap_subcommands: std::collections::HashSet<_> = cmd
+            .get_subcommands()
+            .map(|s| s.get_name())
+            .filter(|name| !hidden_from_help.contains(name))
+            .collect();
 
         let help_section_commands: std::collections::HashSet<_> =
             help::get_all_section_commands().into_iter().collect();
