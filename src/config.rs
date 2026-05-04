@@ -77,7 +77,7 @@ const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 const DEFAULT_PIP_INDEX_URL: &str =
-    "https://repo-latest.dev-us-east-1.anaconda.cloud/repo/wheels-test/simple/";
+    "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
