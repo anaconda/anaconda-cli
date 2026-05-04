@@ -190,7 +190,11 @@ pub async fn enable_wheels(
 
         if let Err(e) = result {
             eprintln!();
-            return Err(miette::miette!("Failed to configure {}: {}", action.tool_name(), e));
+            return Err(miette::miette!(
+                "Failed to configure {}: {}",
+                action.tool_name(),
+                e
+            ));
         }
 
         status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
@@ -289,7 +293,11 @@ pub async fn disable_wheels(
 
         if let Err(e) = result {
             eprintln!();
-            return Err(miette::miette!("Failed to deconfigure {}: {}", action.tool_name(), e));
+            return Err(miette::miette!(
+                "Failed to deconfigure {}: {}",
+                action.tool_name(),
+                e
+            ));
         }
 
         status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
