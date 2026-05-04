@@ -30,6 +30,10 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
     },
+    HelpSection {
+        name: "API",
+        commands: &["api"],
+    },
 ];
 
 /// Examples for the help output (using real commands)

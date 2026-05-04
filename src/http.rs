@@ -3,6 +3,9 @@
 use reqwest::{Request, Response};
 use reqwest_middleware::{Middleware, Next, Result};
 
+use crate::auth;
+use crate::config::Config;
+
 /// Middleware that logs HTTP requests and responses.
 pub struct LoggingMiddleware;
 
@@ -54,6 +57,16 @@ impl Client {
             inner,
             base_url: base_url.into(),
         })
+    }
+
+    /// Create a client from config with optional auth headers.
+    pub fn from_config() -> std::result::Result<Self, reqwest::Error> {
+        let config = Config::load();
+        let mut builder = reqwest::Client::builder();
+        if let Ok(Some(api_key)) = auth::get_api_key(&config) {
+            builder = builder.default_headers(bearer_header(&api_key));
+        }
+        Self::new(builder, config.base_url())
     }
 
     /// Resolve a URL - prepends base_url for relative paths, passes through full URLs.

@@ -7,6 +7,7 @@ mod diagnostics;
 mod feature;
 #[cfg(feature = "feedback")]
 mod feedback;
+mod fetch;
 mod help;
 mod http;
 mod input;
