@@ -47,6 +47,7 @@ webbrowser = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 opentelemetry = "0.31.0"
+url = "2.5.8"
 
 [dev-dependencies]
 temp-env = "0.3"

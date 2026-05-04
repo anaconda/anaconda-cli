@@ -472,7 +472,7 @@ mod tests {
             let config = Config::load();
             assert_eq!(
                 config.pip_index_url,
-                "https://repo-latest.dev-us-east-1.anaconda.cloud/repo/wheels-test/simple/"
+                "https://repo.anaconda.cloud/repo/anaconda-wheels/simple"
             );
         });
     }

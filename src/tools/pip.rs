@@ -2,6 +2,8 @@
 
 use std::process::Command;
 
+use url::Url;
+
 use crate::auth;
 use crate::config::Config;
 
@@ -55,21 +57,13 @@ fn configure_pip(config: &Config, api_key: &str) -> Result<(), Box<dyn std::erro
 }
 
 /// Build an authenticated URL by inserting token credentials.
-fn build_authenticated_url(url: &str, api_key: &str) -> Result<String, Box<dyn std::error::Error>> {
-    // Parse the URL to extract components
-    let prefix_end = url.find("://").ok_or("Invalid URL: missing scheme")?;
-    let scheme = &url[..prefix_end];
-    let rest = &url[prefix_end + 3..]; // skip "://"
-
-    // Find where the host ends (at first '/' or end of string)
-    let host_end = rest.find('/').unwrap_or(rest.len());
-    let host = &rest[..host_end];
-    let path = &rest[host_end..];
-
-    Ok(format!(
-        "{}://__token__:{}@{}{}",
-        scheme, api_key, host, path
-    ))
+fn build_authenticated_url(url_str: &str, api_key: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut url = Url::parse(url_str)?;
+    url.set_username("__token__")
+        .map_err(|_| "Cannot set username on URL")?;
+    url.set_password(Some(api_key))
+        .map_err(|_| "Cannot set password on URL")?;
+    Ok(url.to_string())
 }
 
 #[cfg(test)]
@@ -96,7 +90,7 @@ mod tests {
 
         let result = build_authenticated_url(url, api_key).unwrap();
 
-        assert_eq!(result, "https://__token__:my-key@pypi.org");
+        assert_eq!(result, "https://__token__:my-key@pypi.org/");
     }
 
     #[test]
@@ -117,7 +111,6 @@ mod tests {
         let result = build_authenticated_url(url, api_key);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("missing scheme"));
     }
 
     #[test]
