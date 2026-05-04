@@ -6,7 +6,7 @@ use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
-use crate::tools::require_command;
+use crate::tools::utils::command_exists;
 use crate::ui::status;
 
 /// Represents a tool configuration action to be executed.
@@ -51,6 +51,62 @@ fn get_uv_base_url(pip_index_url: &str) -> &str {
         .trim_end_matches('/')
 }
 
+/// Discover available tools and prompt the user for each one.
+/// Returns the list of actions to perform.
+fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<ConfigAction>> {
+    let pip_available = command_exists("pip");
+    let uv_available = command_exists("uv");
+
+    if !pip_available && !uv_available {
+        return Err(miette::miette!(
+            "Neither pip nor uv found in PATH. Please install at least one first."
+        ));
+    }
+
+    status::info("Detected package managers:");
+    if pip_available {
+        eprintln!("  {} pip", status::highlight("✓"));
+    }
+    if uv_available {
+        eprintln!("  {} uv", status::highlight("✓"));
+    }
+    status::blank_line();
+
+    let mut actions = Vec::new();
+
+    if pip_available {
+        let prompt = if enable {
+            "Configure pip to use Anaconda's wheels index?"
+        } else {
+            "Remove pip configuration for Anaconda's wheels index?"
+        };
+        if force || prompt_yes_no(prompt) {
+            if enable {
+                actions.push(ConfigAction::ConfigurePip);
+            } else {
+                actions.push(ConfigAction::DeconfigurePip);
+            }
+        }
+    }
+
+    if uv_available {
+        let prompt = if enable {
+            "Configure uv to use Anaconda's wheels index?"
+        } else {
+            "Remove uv configuration for Anaconda's wheels index?"
+        };
+        if force || prompt_yes_no(prompt) {
+            if enable {
+                actions.push(ConfigAction::ConfigureUv);
+            } else {
+                actions.push(ConfigAction::DeconfigureUv);
+            }
+        }
+    }
+
+    Ok(actions)
+}
+
 /// Enable wheels feature for pip and/or uv.
 pub async fn enable_wheels(
     ctx: &mut CommandContext,
@@ -64,21 +120,35 @@ pub async fn enable_wheels(
     ));
     status::blank_line();
 
-    // Step 1: Check which tools are requested and available
-    let mut actions = Vec::new();
-    if pip {
-        require_command("pip").map_err(|e| miette::miette!("{}", e))?;
-        actions.push(ConfigAction::ConfigurePip);
-    }
-    if uv {
-        require_command("uv").map_err(|e| miette::miette!("{}", e))?;
-        actions.push(ConfigAction::ConfigureUv);
-    }
+    // Step 1: Determine which tools to configure
+    let actions = if pip || uv {
+        // Explicit flags provided - use those (error if tool not found)
+        let mut actions = Vec::new();
+        if pip {
+            if !command_exists("pip") {
+                return Err(miette::miette!(
+                    "'pip' is not installed or not found in PATH. Please install pip first."
+                ));
+            }
+            actions.push(ConfigAction::ConfigurePip);
+        }
+        if uv {
+            if !command_exists("uv") {
+                return Err(miette::miette!(
+                    "'uv' is not installed or not found in PATH. Please install uv first."
+                ));
+            }
+            actions.push(ConfigAction::ConfigureUv);
+        }
+        actions
+    } else {
+        // No flags - auto-detect and prompt for each available tool
+        discover_and_prompt_tools(true, force)?
+    };
 
     if actions.is_empty() {
-        return Err(miette::miette!(
-            "No tools specified. Use --pip and/or --uv to specify which tools to configure."
-        ));
+        status::info("No tools selected for configuration.");
+        return Ok(());
     }
 
     // Step 2: Check login status and prompt if needed
@@ -154,21 +224,35 @@ pub async fn disable_wheels(
     ));
     status::blank_line();
 
-    // Step 1: Check which tools are requested and available
-    let mut actions = Vec::new();
-    if pip {
-        require_command("pip").map_err(|e| miette::miette!("{}", e))?;
-        actions.push(ConfigAction::DeconfigurePip);
-    }
-    if uv {
-        require_command("uv").map_err(|e| miette::miette!("{}", e))?;
-        actions.push(ConfigAction::DeconfigureUv);
-    }
+    // Step 1: Determine which tools to deconfigure
+    let actions = if pip || uv {
+        // Explicit flags provided - use those (error if tool not found)
+        let mut actions = Vec::new();
+        if pip {
+            if !command_exists("pip") {
+                return Err(miette::miette!(
+                    "'pip' is not installed or not found in PATH. Please install pip first."
+                ));
+            }
+            actions.push(ConfigAction::DeconfigurePip);
+        }
+        if uv {
+            if !command_exists("uv") {
+                return Err(miette::miette!(
+                    "'uv' is not installed or not found in PATH. Please install uv first."
+                ));
+            }
+            actions.push(ConfigAction::DeconfigureUv);
+        }
+        actions
+    } else {
+        // No flags - auto-detect and prompt for each available tool
+        discover_and_prompt_tools(false, force)?
+    };
 
     if actions.is_empty() {
-        return Err(miette::miette!(
-            "No tools specified. Use --pip and/or --uv to specify which tools to deconfigure."
-        ));
+        status::info("No tools selected for deconfiguration.");
+        return Ok(());
     }
 
     // Step 2: Show planned changes
