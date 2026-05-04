@@ -28,7 +28,6 @@ pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("Failed to configure uv auth: {}", stderr).into());
     }
 
-    println!("Configured uv authentication for {}", base_url);
     Ok(())
 }
 
@@ -49,7 +48,6 @@ pub fn deconfigure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    println!("Removed uv authentication for {}", base_url);
     Ok(())
 }
 

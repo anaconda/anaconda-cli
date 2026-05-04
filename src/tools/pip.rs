@@ -38,7 +38,6 @@ pub fn deconfigure() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    println!("Removed pip index-url configuration");
     Ok(())
 }
 
@@ -58,7 +57,6 @@ fn configure_pip(pip_cmd: &str, config: &Config, api_key: &str) -> Result<(), Bo
         return Err(format!("Failed to configure pip: {}", stderr).into());
     }
 
-    println!("Configured pip to use {}", config.pip_index_url);
     Ok(())
 }
 
