@@ -509,8 +509,8 @@ async fn api_fetch(
         request = request.body(body.to_string());
     }
     if let Some(body) = json {
-        let parsed: serde_json::Value = serde_json::from_str(body)
-            .map_err(|e| format!("Invalid JSON: {}", e))?;
+        let parsed: serde_json::Value =
+            serde_json::from_str(body).map_err(|e| format!("Invalid JSON: {}", e))?;
         request = request.json(&parsed);
     }
     let response = request.send().await?;
