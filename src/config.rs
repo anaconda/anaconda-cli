@@ -18,7 +18,7 @@
 //! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP)  |
 //! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
-//! | `ANA_PIP_INDEX_URL`              | `https://pypi.anaconda.com/simple` | Pip package index URL |
+//! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
