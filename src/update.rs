@@ -219,7 +219,10 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
 
 async fn fetch_github_releases(ctx: &CommandContext) -> Result<Vec<Release>, Error> {
     let gh_client = ctx.github_client().ok_or(Error::MissingToken)?;
-    let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
+    let url = format!(
+        "https://api.github.com/repos/{}/releases?per_page=100",
+        GITHUB_REPO
+    );
     let releases: Vec<Release> = gh_client
         .get(&url)
         .header("Accept", "application/vnd.github+json")
@@ -537,30 +540,91 @@ pub async fn run_update(
     }
 }
 
+fn format_release_date(published_at: &str) -> String {
+    use chrono::{DateTime, Utc};
+    let published: DateTime<Utc> = match published_at.parse() {
+        Ok(dt) => dt,
+        Err(_) => return String::new(),
+    };
+    published.format("%b %d, %Y").to_string()
+}
+
 pub async fn show_available_versions(ctx: &CommandContext, current_version: &str) {
+    use crate::ui::status;
+
     let releases = match fetch_available_releases(ctx).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("Failed to fetch releases: {}", e);
-            eprintln!("Failed to fetch releases: {}", e);
+            status::error(&format!("Failed to fetch releases: {}", e));
             return;
         }
     };
 
     if releases.is_empty() {
-        println!("No releases available.");
+        status::warn("No releases available.");
         return;
     }
 
     let current_tag = format!("v{}", current_version);
-    for release in releases {
-        let marker = if release.tag_name == current_tag {
-            " *"
+    let latest_tag = releases.first().map(|r| r.tag_name.as_str());
+
+    // Find longest version for alignment (+ 4 space gap)
+    let pad_width = releases.iter().map(|r| r.tag_name.len()).max().unwrap_or(0) + 4;
+
+    eprintln!("  {}", status::section("Available versions"));
+    for release in &releases {
+        let is_current = release.tag_name == current_tag;
+        let is_latest = Some(release.tag_name.as_str()) == latest_tag;
+
+        let date_str = release
+            .published_at
+            .as_ref()
+            .map(|p| status::dim(&format_release_date(p)));
+
+        let tag = if is_current {
+            Some(status::section("Current"))
+        } else if is_latest {
+            Some(status::highlight("Latest"))
         } else {
-            ""
+            None
         };
-        println!("{}{}", release.tag_name, marker);
+
+        // Pad version for alignment only when dates are present
+        let version_display = if date_str.is_some() {
+            format!("{:<width$}", release.tag_name, width = pad_width)
+        } else {
+            release.tag_name.clone()
+        };
+
+        // Apply color after padding (ANSI codes break width formatting)
+        let version_str = if is_current {
+            status::section(&version_display)
+        } else if is_latest {
+            status::highlight(&version_display)
+        } else {
+            version_display
+        };
+
+        match (&date_str, &tag) {
+            (Some(date), Some(t)) => eprintln!("  {}{}    {}", version_str, date, t),
+            (Some(date), None) => eprintln!("  {}{}", version_str, date),
+            (None, Some(t)) => eprintln!("  {}    {}", version_str, t),
+            (None, None) => eprintln!("  {}", version_str),
+        }
     }
+
+    eprintln!();
+    eprintln!("  Update to the latest version:");
+    eprintln!("    {}", status::highlight("ana self update"));
+    eprintln!();
+    eprintln!("  Update to a specific version:");
+    eprintln!(
+        "    {} {}",
+        status::highlight("ana self update"),
+        status::dim("[VERSION]")
+    );
+    eprintln!();
 }
 
 #[cfg(test)]
