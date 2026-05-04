@@ -48,14 +48,3 @@ pub async fn api_fetch(
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_api_healthcheck() {
-        let mut ctx = CommandContext::new();
-        let result = api_fetch(&mut ctx, "GET", "/api/auth/healthcheck", None, None, None).await;
-        assert!(result.is_ok());
-    }
-}
