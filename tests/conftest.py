@@ -54,7 +54,8 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
     env = {
         key: val
         for key, val in os.environ.items()
-        if (not key.startswith("ANA_") and key != "GITHUB_TOKEN") or key in PRESERVE_VARS
+        if (not key.startswith("ANA_") and key != "GITHUB_TOKEN")
+        or key in PRESERVE_VARS
     }
     if IS_WINDOWS:
         env["USERPROFILE"] = str(fake_home)
