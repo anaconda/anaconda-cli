@@ -8,6 +8,7 @@ use std::env::consts::{ARCH, OS};
 
 use opentelemetry::Value;
 
+use crate::config::Config;
 use crate::VERSION;
 
 /// Telemetry context for collecting command-specific attributes.
@@ -47,6 +48,8 @@ impl TelemetryContext {
 pub struct CommandContext {
     /// Telemetry attributes collector.
     pub telemetry: TelemetryContext,
+    /// Application configuration.
+    pub config: Config,
 }
 
 impl CommandContext {
@@ -54,6 +57,7 @@ impl CommandContext {
     pub fn new() -> Self {
         Self {
             telemetry: TelemetryContext::new(),
+            config: Config::load(),
         }
     }
 }

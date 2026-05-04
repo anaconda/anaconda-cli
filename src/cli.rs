@@ -283,12 +283,11 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
                     "wheels" => {
-                        let config = Config::load();
                         if pip {
-                            tools::pip::configure(&config)?;
+                            tools::pip::configure(&ctx.config)?;
                         }
                         if uv {
-                            tools::uv::configure(&config)?;
+                            tools::uv::configure(&ctx.config)?;
                         }
                     }
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
@@ -304,12 +303,11 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::disable_main_x(ctx, force).await?,
                     "wheels" => {
-                        let config = Config::load();
                         if pip {
                             tools::pip::deconfigure()?;
                         }
                         if uv {
-                            tools::uv::deconfigure(&config)?;
+                            tools::uv::deconfigure(&ctx.config)?;
                         }
                     }
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
