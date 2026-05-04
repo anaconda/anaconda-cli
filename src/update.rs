@@ -419,15 +419,7 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
                 let start = std::time::Instant::now();
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
-                        let elapsed = start.elapsed().as_secs_f64();
-                        eprintln!();
-                        eprintln!(
-                            "  {} {}",
-                            status::section("UPDATED"),
-                            status::dim(&format!("{:.1}s", elapsed))
-                        );
-                        eprintln!("  was v{} → now {}", current_version, release.tag_name);
-                        eprintln!();
+                        print_update_success(current_version, &release.tag_name, start.elapsed())
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
@@ -452,18 +444,32 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
     }
 }
 
+fn print_update_success(current_version: &str, new_version: &str, elapsed: std::time::Duration) {
+    use crate::ui::status;
+    eprintln!();
+    eprintln!(
+        "  {} {}",
+        status::section("UPDATED"),
+        status::dim(&format!("{:.1}s", elapsed.as_secs_f64()))
+    );
+    eprintln!("  was v{} → now {}", current_version, new_version);
+    eprintln!();
+}
+
 pub async fn run_update(
     ctx: &CommandContext,
     current_version: &str,
     target_version: Option<String>,
 ) {
+    use crate::ui::status;
+
     if let Some(version) = target_version {
         // Install specific version
         let releases = match fetch_available_releases(ctx).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("Failed to fetch releases: {}", e);
-                eprintln!("Failed to fetch releases: {}", e);
+                status::error(&format!("Failed to fetch releases: {}", e));
                 return;
             }
         };
@@ -478,22 +484,20 @@ pub async fn run_update(
         let release = match releases.into_iter().find(|r| r.tag_name == target_tag) {
             Some(r) => r,
             None => {
-                eprintln!(
+                status::error(&format!(
                     "Version {} not found. Use --list to see available versions.",
                     target_tag
-                );
+                ));
                 return;
             }
         };
 
+        let start = std::time::Instant::now();
         match apply_update(ctx, &release).await {
-            Ok(()) => println!(
-                "Updated successfully: {} -> {}",
-                current_version, release.tag_name
-            ),
+            Ok(()) => print_update_success(current_version, &release.tag_name, start.elapsed()),
             Err(e) => {
                 tracing::error!("Failed to update: {}", e);
-                eprintln!("Failed to update: {}", e);
+                status::error(&format!("Failed to update: {}", e));
             }
         }
     } else {
@@ -502,27 +506,32 @@ pub async fn run_update(
             Ok(c) => c,
             Err(e) => {
                 tracing::error!("Failed to check for updates: {}", e);
-                eprintln!("Failed to check for updates: {}", e);
+                status::error(&format!("Failed to check for updates: {}", e));
                 return;
             }
         };
 
         match check {
-            UpdateCheck::Available(release) => match apply_update(ctx, &release).await {
-                Ok(()) => println!(
-                    "Updated successfully: {} -> {}",
-                    current_version, release.tag_name
-                ),
-                Err(e) => {
-                    tracing::error!("Failed to update: {}", e);
-                    eprintln!("Failed to update: {}", e);
+            UpdateCheck::Available(release) => {
+                let start = std::time::Instant::now();
+                match apply_update(ctx, &release).await {
+                    Ok(()) => {
+                        print_update_success(current_version, &release.tag_name, start.elapsed())
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to update: {}", e);
+                        status::error(&format!("Failed to update: {}", e));
+                    }
                 }
-            },
+            }
             UpdateCheck::AlreadyUpToDate => {
-                println!("Already up to date ({})", current_version);
+                eprintln!("  {}", status::section("UP TO DATE"));
+                eprintln!();
+                eprintln!("  {:<10} v{}", "Current:", current_version);
+                eprintln!();
             }
             UpdateCheck::NoReleases => {
-                println!("No releases available.");
+                status::warn("No releases available.");
             }
         }
     }
