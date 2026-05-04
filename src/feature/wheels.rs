@@ -6,7 +6,7 @@ use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
-use crate::tools::utils::command_exists;
+use crate::tools::utils::{command_exists, find_pip};
 use crate::ui::status;
 
 /// Represents a tool configuration action to be executed.
@@ -28,9 +28,13 @@ impl ConfigAction {
     fn command_description(&self, config: &Config) -> String {
         match self {
             ConfigAction::ConfigurePip => {
-                format!("pip config set global.index-url {}", config.pip_index_url)
+                let pip_cmd = find_pip().unwrap_or("pip");
+                format!("{} config set global.index-url {}", pip_cmd, config.pip_index_url)
             }
-            ConfigAction::DeconfigurePip => "pip config unset global.index-url".to_string(),
+            ConfigAction::DeconfigurePip => {
+                let pip_cmd = find_pip().unwrap_or("pip");
+                format!("{} config unset global.index-url", pip_cmd)
+            }
             ConfigAction::ConfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
                 format!("uv auth login {}", base_url)
@@ -54,18 +58,18 @@ fn get_uv_base_url(pip_index_url: &str) -> &str {
 /// Discover available tools and prompt the user for each one.
 /// Returns the list of actions to perform.
 fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<ConfigAction>> {
-    let pip_available = command_exists("pip");
+    let pip_cmd = find_pip();
     let uv_available = command_exists("uv");
 
-    if !pip_available && !uv_available {
+    if pip_cmd.is_none() && !uv_available {
         return Err(miette::miette!(
             "Neither pip nor uv found in PATH. Please install at least one first."
         ));
     }
 
     status::info("Detected package managers:");
-    if pip_available {
-        eprintln!("  {} pip", status::highlight("✓"));
+    if let Some(cmd) = pip_cmd {
+        eprintln!("  {} {} (pip)", status::highlight("✓"), cmd);
     }
     if uv_available {
         eprintln!("  {} uv", status::highlight("✓"));
@@ -74,7 +78,7 @@ fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<Co
 
     let mut actions = Vec::new();
 
-    if pip_available {
+    if pip_cmd.is_some() {
         let prompt = if enable {
             "Configure pip to use Anaconda's wheels index?"
         } else {
@@ -125,7 +129,7 @@ pub async fn enable_wheels(
         // Explicit flags provided - use those (error if tool not found)
         let mut actions = Vec::new();
         if pip {
-            if !command_exists("pip") {
+            if find_pip().is_none() {
                 return Err(miette::miette!(
                     "'pip' is not installed or not found in PATH. Please install pip first."
                 ));
@@ -229,7 +233,7 @@ pub async fn disable_wheels(
         // Explicit flags provided - use those (error if tool not found)
         let mut actions = Vec::new();
         if pip {
-            if !command_exists("pip") {
+            if find_pip().is_none() {
                 return Err(miette::miette!(
                     "'pip' is not installed or not found in PATH. Please install pip first."
                 ));
