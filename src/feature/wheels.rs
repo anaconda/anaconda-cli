@@ -29,7 +29,10 @@ impl ConfigAction {
         match self {
             ConfigAction::ConfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                format!("{} config set global.index-url {}", pip_cmd, config.pip_index_url)
+                format!(
+                    "{} config set global.index-url {}",
+                    pip_cmd, config.pip_index_url
+                )
             }
             ConfigAction::DeconfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");

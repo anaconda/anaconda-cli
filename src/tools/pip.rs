@@ -43,7 +43,11 @@ pub fn deconfigure() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Configure pip to use Anaconda's package index with authentication.
-fn configure_pip(pip_cmd: &str, config: &Config, api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn configure_pip(
+    pip_cmd: &str,
+    config: &Config,
+    api_key: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Build authenticated URL by inserting credentials into the index URL
     // e.g., https://example.com/path -> https://__token__:API_KEY@example.com/path
     let authenticated_url = build_authenticated_url(&config.pip_index_url, api_key)?;
