@@ -61,7 +61,10 @@ fn configure_pip(config: &Config, api_key: &str) -> Result<(), Box<dyn std::erro
 }
 
 /// Build an authenticated URL by inserting token credentials.
-fn build_authenticated_url(url_str: &str, api_key: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn build_authenticated_url(
+    url_str: &str,
+    api_key: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
     let mut url = Url::parse(url_str)?;
     url.set_username("__token__")
         .map_err(|_| "Cannot set username on URL")?;
