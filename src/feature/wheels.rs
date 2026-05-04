@@ -25,26 +25,34 @@ impl ConfigAction {
         }
     }
 
-    fn command_description(&self, config: &Config) -> String {
+    fn command_descriptions(&self, config: &Config) -> Vec<String> {
         match self {
             ConfigAction::ConfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                format!(
+                vec![format!(
                     "{} config set global.index-url {}",
                     pip_cmd, config.pip_index_url
-                )
+                )]
             }
             ConfigAction::DeconfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                format!("{} config unset global.index-url", pip_cmd)
+                vec![format!("{} config unset global.index-url", pip_cmd)]
             }
             ConfigAction::ConfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
-                format!("uv auth login {}", base_url)
+                let config_path = get_uv_config_path();
+                vec![
+                    format!("Set default index in {}", config_path),
+                    format!("uv auth login {}", base_url),
+                ]
             }
             ConfigAction::DeconfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
-                format!("uv auth logout {}", base_url)
+                let config_path = get_uv_config_path();
+                vec![
+                    format!("Remove default index from {}", config_path),
+                    format!("uv auth logout {}", base_url),
+                ]
             }
         }
     }
@@ -56,6 +64,13 @@ fn get_uv_base_url(pip_index_url: &str) -> &str {
         .trim_end_matches('/')
         .trim_end_matches("/simple")
         .trim_end_matches('/')
+}
+
+/// Get the path to the global uv.toml config file for display purposes.
+fn get_uv_config_path() -> String {
+    dirs::config_dir()
+        .map(|p| p.join("uv").join("uv.toml").display().to_string())
+        .unwrap_or_else(|| "~/.config/uv/uv.toml".to_string())
 }
 
 /// Discover available tools and prompt the user for each one.
@@ -163,10 +178,11 @@ pub async fn enable_wheels(
 
     // Step 3: Show planned changes
     status::blank_line();
-    status::info("The following commands will be run:");
+    status::info("The following changes will be made:");
     for action in &actions {
-        let cmd = action.command_description(&ctx.config);
-        eprintln!("  {}", status::highlight(&cmd));
+        for desc in action.command_descriptions(&ctx.config) {
+            eprintln!("  {}", status::highlight(&desc));
+        }
     }
     status::blank_line();
 
@@ -179,8 +195,7 @@ pub async fn enable_wheels(
     // Step 5: Execute the changes
     status::blank_line();
     for action in &actions {
-        let cmd = action.command_description(&ctx.config);
-        status::running(&format!("Running {}", status::highlight(&cmd)));
+        status::running(&format!("Configuring {}...", action.tool_name()));
 
         let result = match action {
             ConfigAction::ConfigurePip => crate::tools::pip::configure(&ctx.config),
@@ -197,7 +212,7 @@ pub async fn enable_wheels(
             ));
         }
 
-        status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
+        status::finish_running(&format!("Configured {}", action.tool_name()));
     }
 
     // Step 6: Show success message and undo instructions
@@ -266,10 +281,11 @@ pub async fn disable_wheels(
     }
 
     // Step 2: Show planned changes
-    status::info("The following commands will be run:");
+    status::info("The following changes will be made:");
     for action in &actions {
-        let cmd = action.command_description(&ctx.config);
-        eprintln!("  {}", status::highlight(&cmd));
+        for desc in action.command_descriptions(&ctx.config) {
+            eprintln!("  {}", status::highlight(&desc));
+        }
     }
     status::blank_line();
 
@@ -282,8 +298,7 @@ pub async fn disable_wheels(
     // Step 4: Execute the changes
     status::blank_line();
     for action in &actions {
-        let cmd = action.command_description(&ctx.config);
-        status::running(&format!("Running {}", status::highlight(&cmd)));
+        status::running(&format!("Deconfiguring {}...", action.tool_name()));
 
         let result = match action {
             ConfigAction::DeconfigurePip => crate::tools::pip::deconfigure(),
@@ -300,7 +315,7 @@ pub async fn disable_wheels(
             ));
         }
 
-        status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
+        status::finish_running(&format!("Deconfigured {}", action.tool_name()));
     }
 
     // Step 5: Show success and re-enable instructions
