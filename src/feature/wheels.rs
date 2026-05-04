@@ -182,16 +182,15 @@ pub async fn enable_wheels(
         let cmd = action.command_description(&ctx.config);
         status::running(&format!("Running {}", status::highlight(&cmd)));
 
-        match action {
-            ConfigAction::ConfigurePip => {
-                crate::tools::pip::configure(&ctx.config)
-                    .map_err(|e| miette::miette!("Failed to configure pip: {}", e))?;
-            }
-            ConfigAction::ConfigureUv => {
-                crate::tools::uv::configure(&ctx.config)
-                    .map_err(|e| miette::miette!("Failed to configure uv: {}", e))?;
-            }
+        let result = match action {
+            ConfigAction::ConfigurePip => crate::tools::pip::configure(&ctx.config),
+            ConfigAction::ConfigureUv => crate::tools::uv::configure(&ctx.config),
             _ => unreachable!(),
+        };
+
+        if let Err(e) = result {
+            eprintln!();
+            return Err(miette::miette!("Failed to configure {}: {}", action.tool_name(), e));
         }
 
         status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
@@ -282,16 +281,15 @@ pub async fn disable_wheels(
         let cmd = action.command_description(&ctx.config);
         status::running(&format!("Running {}", status::highlight(&cmd)));
 
-        match action {
-            ConfigAction::DeconfigurePip => {
-                crate::tools::pip::deconfigure()
-                    .map_err(|e| miette::miette!("Failed to deconfigure pip: {}", e))?;
-            }
-            ConfigAction::DeconfigureUv => {
-                crate::tools::uv::deconfigure(&ctx.config)
-                    .map_err(|e| miette::miette!("Failed to deconfigure uv: {}", e))?;
-            }
+        let result = match action {
+            ConfigAction::DeconfigurePip => crate::tools::pip::deconfigure(),
+            ConfigAction::DeconfigureUv => crate::tools::uv::deconfigure(&ctx.config),
             _ => unreachable!(),
+        };
+
+        if let Err(e) = result {
+            eprintln!();
+            return Err(miette::miette!("Failed to deconfigure {}: {}", action.tool_name(), e));
         }
 
         status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
