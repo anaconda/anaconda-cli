@@ -47,4 +47,3 @@ pub async fn api_fetch(
     println!("{}", body);
     Ok(())
 }
-
