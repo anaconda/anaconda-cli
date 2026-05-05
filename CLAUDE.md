@@ -13,6 +13,25 @@ cargo test
 ### Pre-commit
 The repo uses pre-commit hooks. Run `pre-commit install` after cloning.
 
+### CommandContext
+All commands receive a `CommandContext` (`ctx`). Always access `config` and `client` through `ctx`:
+- Use `ctx.config` - never call `Config::load()` 
+- Use `ctx.client` - never construct a new `Client`
+- For specialized HTTP clients, use `ctx.client.github()`, `ctx.client.download()`, or `ctx.client.unauthenticated()`
+
+### Commit and PR titles
+Use conventional commit format: `<type>: <description>`
+
+Available types:
+- `feat` - New features
+- `fix` - Bug fixes
+- `chore` - Maintenance tasks
+- `refac` - Code refactoring
+- `docs` - Documentation changes
+- `test` - Test additions/changes
+- `build` - Build system changes
+- `ci` - CI/CD changes
+
 ## Release Process
 
 When creating a new release:
