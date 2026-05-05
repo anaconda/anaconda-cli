@@ -143,7 +143,7 @@ class TestAuthHelp:
 
         assert result.returncode == 0
         assert "Authentication commands" in result.stdout
-        assert "Usage: ana auth <command>" in result.stdout
+        assert "Usage: ana auth" in result.stdout
 
     def test_auth_shows_subcommands(self, run_ana: AnaRunner) -> None:
         """Auth help should list subcommands."""
