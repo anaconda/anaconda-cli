@@ -119,7 +119,6 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     }
 
     // Bottom border
-    // Bottom border
     let _ = term.write_line(&format!(
         "{margin}{}{}{}",
         border.apply_to("╰"),
