@@ -135,10 +135,14 @@ pub enum Action {
     FeatureEnable {
         feature: String,
         force: bool,
+        pip: bool,
+        uv: bool,
     },
     FeatureDisable {
         feature: String,
         force: bool,
+        pip: bool,
+        uv: bool,
     },
 }
 
@@ -167,10 +171,12 @@ impl Action {
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
+                "wheels" => "feature.enable.wheels",
                 _ => "feature.enable.unknown",
             },
             Action::FeatureDisable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.disable.main-x",
+                "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
         }
@@ -294,16 +300,28 @@ impl Action {
                 )
                 .await
             }
-            Action::FeatureEnable { feature, force } => {
+            Action::FeatureEnable {
+                feature,
+                force,
+                pip,
+                uv,
+            } => {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
+                    "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
                 }
                 Ok(())
             }
-            Action::FeatureDisable { feature, force } => {
+            Action::FeatureDisable {
+                feature,
+                force,
+                pip,
+                uv,
+            } => {
                 match feature.as_str() {
                     "main-x" => feature::disable_main_x(ctx, force).await?,
+                    "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
                     _ => return Err(format!("Unknown feature: {}", feature).into()),
                 }
                 Ok(())
@@ -397,13 +415,27 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Feature { command }) => match command {
                     None => Action::ShowSubcommandHelp("feature".to_string()),
-                    Some(FeatureCommands::Enable { name, force }) => Action::FeatureEnable {
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }) => Action::FeatureEnable {
                         feature: name,
                         force,
+                        pip,
+                        uv,
                     },
-                    Some(FeatureCommands::Disable { name, force }) => Action::FeatureDisable {
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }) => Action::FeatureDisable {
                         feature: name,
                         force,
+                        pip,
+                        uv,
                     },
                 },
             };
@@ -723,22 +755,38 @@ enum ApiCommands {
 enum FeatureCommands {
     /// Enable a feature
     Enable {
-        /// Name of the feature to enable (e.g., main-x)
+        /// Name of the feature to enable (e.g., main-x, wheels)
         name: String,
 
         /// Skip confirmation prompt
         #[arg(short = 'f', long)]
         force: bool,
+
+        /// Configure pip (for wheels feature)
+        #[arg(long)]
+        pip: bool,
+
+        /// Configure uv (for wheels feature)
+        #[arg(long)]
+        uv: bool,
     },
 
     /// Disable a feature
     Disable {
-        /// Name of the feature to disable (e.g., main-x)
+        /// Name of the feature to disable (e.g., main-x, wheels)
         name: String,
 
         /// Skip confirmation prompt
         #[arg(short = 'f', long)]
         force: bool,
+
+        /// Deconfigure pip (for wheels feature)
+        #[arg(long)]
+        pip: bool,
+
+        /// Deconfigure uv (for wheels feature)
+        #[arg(long)]
+        uv: bool,
     },
 }
 
@@ -779,5 +827,183 @@ mod tests {
              Add them to HELP_SECTIONS in src/help/data.rs",
             missing
         );
+    }
+
+    #[test]
+    fn test_feature_enable_wheels() {
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(!pip);
+                assert!(!uv);
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels() {
+        let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(!pip);
+                assert!(!uv);
+            }
+            _ => panic!("Expected Feature Disable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_enable_wheels_pip_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(pip);
+                assert!(!uv);
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_enable_wheels_uv_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(!pip);
+                assert!(uv);
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_enable_wheels_both_flags() {
+        let cli =
+            Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Enable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(pip);
+                assert!(uv);
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels_pip_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(pip);
+                assert!(!uv);
+            }
+            _ => panic!("Expected Feature Disable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels_uv_flag() {
+        let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(!pip);
+                assert!(uv);
+            }
+            _ => panic!("Expected Feature Disable command"),
+        }
+    }
+
+    #[test]
+    fn test_feature_disable_wheels_both_flags() {
+        let cli =
+            Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip", "--uv"]).unwrap();
+        match cli.command {
+            Some(Commands::Feature {
+                command:
+                    Some(FeatureCommands::Disable {
+                        name,
+                        force,
+                        pip,
+                        uv,
+                    }),
+            }) => {
+                assert_eq!(name, "wheels");
+                assert!(!force);
+                assert!(pip);
+                assert!(uv);
+            }
+            _ => panic!("Expected Feature Disable command"),
+        }
     }
 }

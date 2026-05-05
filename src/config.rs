@@ -18,6 +18,7 @@
 //! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP)  |
 //! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
+//! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
 //! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
 //!
 //! When the `diagnostics` feature is enabled:
@@ -76,6 +77,7 @@ const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
 const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
+const DEFAULT_PIP_INDEX_URL: &str = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
 const DEFAULT_SELF_UPDATE_URL: &str = "https://anaconda.sh";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
@@ -118,6 +120,8 @@ pub struct Config {
     /// Whether to include prereleases when checking for updates
     pub include_prereleases: bool,
 
+    /// Pip index URL for package installation
+    pub pip_index_url: String,
     /// Base URL for static self-update; if None, uses GitHub Releases
     pub self_update_url: Option<String>,
 
@@ -163,6 +167,8 @@ impl Config {
             .unwrap_or_else(|_| default_keyring_path());
         let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
         let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        let pip_index_url =
+            env::var("ANA_PIP_INDEX_URL").unwrap_or_else(|_| DEFAULT_PIP_INDEX_URL.to_string());
         let self_update_url = match env::var("ANA_SELF_UPDATE_URL") {
             Ok(s) if s.trim().eq_ignore_ascii_case("github") => None,
             Ok(s) if !s.trim().is_empty() => Some(s.trim().to_string()),
@@ -186,6 +192,7 @@ impl Config {
             keyring_path,
             use_https,
             include_prereleases,
+            pip_index_url,
             self_update_url,
             #[cfg(feature = "diagnostics")]
             sentry_disabled,
@@ -274,6 +281,7 @@ mod tests {
             keyring_path: default_keyring_path(),
             use_https: true,
             include_prereleases: false,
+            pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
@@ -470,6 +478,17 @@ mod tests {
     }
 
     #[test]
+    fn test_config_default_pip_index_url() {
+        temp_env::with_var("ANA_PIP_INDEX_URL", None::<&str>, || {
+            let config = Config::load();
+            assert_eq!(
+                config.pip_index_url,
+                "https://repo.anaconda.cloud/repo/anaconda-wheels/simple"
+            );
+        });
+    }
+
+    #[test]
     fn test_config_default_self_update_url() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", None::<&str>, || {
             let config = Config::load();
@@ -478,6 +497,18 @@ mod tests {
                 Some(DEFAULT_SELF_UPDATE_URL.to_string())
             );
         });
+    }
+
+    #[test]
+    fn test_config_load_pip_index_url_from_env() {
+        temp_env::with_var(
+            "ANA_PIP_INDEX_URL",
+            Some("https://custom.example.com/simple/"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.pip_index_url, "https://custom.example.com/simple/");
+            },
+        );
     }
 
     #[test]
