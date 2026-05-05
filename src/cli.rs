@@ -299,6 +299,7 @@ impl Action {
                     json.as_deref(),
                 )
                 .await
+                .map_err(|e| e.to_string().into())
             }
             Action::FeatureEnable {
                 feature,

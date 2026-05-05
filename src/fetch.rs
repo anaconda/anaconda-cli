@@ -1,3 +1,5 @@
+use miette::{miette, Context, IntoDiagnostic};
+
 use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
@@ -9,10 +11,10 @@ pub async fn api_fetch(
     query_args: Option<&str>,
     data: Option<&str>,
     json: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> miette::Result<()> {
     let config = Config::load();
-    if auth::get_api_key(&config)?.is_none() {
-        return Err("Not logged in. Run `ana login` first.".into());
+    if auth::get_api_key(&config).into_diagnostic()?.is_none() {
+        return Err(miette!("Not logged in. Run `ana login` first."));
     }
 
     let method_upper = method.to_uppercase();
@@ -22,7 +24,7 @@ pub async fn api_fetch(
         "PUT" => ctx.client.put(url),
         "PATCH" => ctx.client.patch(url),
         "DELETE" => ctx.client.delete(url),
-        _ => return Err(format!("Unsupported HTTP method: {}", method).into()),
+        _ => return Err(miette!("Unsupported HTTP method: {}", method)),
     };
     request = request.header("X-Ana-Raw-Request", "true");
     if let Some(args) = query_args {
@@ -36,13 +38,14 @@ pub async fn api_fetch(
         request = request.body(body.to_string());
     }
     if let Some(body) = json {
-        let parsed: serde_json::Value =
-            serde_json::from_str(body).map_err(|e| format!("Invalid JSON: {}", e))?;
+        let parsed: serde_json::Value = serde_json::from_str(body)
+            .into_diagnostic()
+            .context("Invalid JSON")?;
         request = request.json(&parsed);
     }
-    let response = request.send().await?;
+    let response = request.send().await.into_diagnostic()?;
     let status = response.status();
-    let body = response.text().await?;
+    let body = response.text().await.into_diagnostic()?;
     println!("{}", status);
     println!("{}", body);
     Ok(())
