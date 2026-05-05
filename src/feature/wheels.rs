@@ -161,7 +161,7 @@ pub async fn enable_wheels(
 
     // Show tip about flags if multiple tools detected and no explicit flags
     if !pip && !uv && actions.len() > 1 {
-        status::info("Tip: Use --pip or --uv to configure only one tool.");
+        status::tip("Use --pip or --uv to configure only one tool.");
         status::blank_line();
     }
 
@@ -274,7 +274,7 @@ pub async fn disable_wheels(
 
     // Show tip about flags if multiple tools detected and no explicit flags
     if !pip && !uv && actions.len() > 1 {
-        status::info("Tip: Use --pip or --uv to deconfigure only one tool.");
+        status::tip("Use --pip or --uv to deconfigure only one tool.");
         status::blank_line();
     }
 
