@@ -42,31 +42,39 @@ fn is_builtin_arg(a: &clap::Arg) -> bool {
     a.get_id() == "help" || a.get_id() == "version"
 }
 
+fn format_positional(a: &clap::Arg) -> String {
+    let name = a.get_id().as_str().to_uppercase();
+    let is_multi = a.get_num_args().is_some_and(|r| r.max_values() > 1);
+    if is_multi {
+        format!("[{}]...", name)
+    } else {
+        format!("[{}]", name)
+    }
+}
+
 /// Build a usage string for a command
 fn build_usage_string(cmd: &clap::Command, path: &str) -> String {
     let user_args: Vec<_> = cmd.get_arguments().filter(|a| !is_builtin_arg(a)).collect();
     let has_options = user_args.iter().any(|a| !is_positional(a));
     let has_subcommands = cmd.get_subcommands().next().is_some();
 
-    let positionals: String = user_args
+    let positionals: Vec<_> = user_args
         .iter()
         .filter(|a| is_positional(a))
-        .map(|a| format!("[{}]", a.get_id().as_str().to_uppercase()))
-        .collect::<Vec<_>>()
-        .join(" ");
+        .map(|a| format_positional(a))
+        .collect();
 
-    if has_subcommands {
-        format!("Usage: ana {} [OPTIONS] COMMAND [ARGS]...", path)
-    } else {
-        let mut parts = vec![format!("Usage: ana {}", path)];
-        if has_options {
-            parts.push("[OPTIONS]".to_string());
-        }
-        if !positionals.is_empty() {
-            parts.push(positionals);
-        }
-        parts.join(" ")
+    let mut parts = vec![format!("Usage: ana {}", path)];
+    if has_options {
+        parts.push("[OPTIONS]".to_string());
     }
+    if has_subcommands {
+        parts.push("COMMAND".to_string());
+    }
+    if !positionals.is_empty() {
+        parts.extend(positionals);
+    }
+    parts.join(" ")
 }
 
 /// Print the header at the top of the help output
@@ -308,7 +316,16 @@ mod tests {
     fn test_usage_with_subcommands() {
         let cmd = Command::new("test").subcommand(Command::new("sub"));
         let usage = build_usage_string(&cmd, "self");
-        assert_eq!(usage, "Usage: ana self [OPTIONS] COMMAND [ARGS]...");
+        assert_eq!(usage, "Usage: ana self COMMAND");
+    }
+
+    #[test]
+    fn test_usage_with_subcommands_and_positional() {
+        let cmd = Command::new("test")
+            .subcommand(Command::new("sub"))
+            .arg(Arg::new("target").required(true));
+        let usage = build_usage_string(&cmd, "run");
+        assert_eq!(usage, "Usage: ana run COMMAND [TARGET]");
     }
 
     #[test]
@@ -318,6 +335,17 @@ mod tests {
             .arg(Arg::new("force").long("force"));
         let usage = build_usage_string(&cmd, "upload");
         assert_eq!(usage, "Usage: ana upload [OPTIONS] [FILE]");
+    }
+
+    #[test]
+    fn test_usage_with_multi_value_arg() {
+        let cmd = Command::new("test").arg(
+            Arg::new("files")
+                .required(true)
+                .num_args(1..),
+        );
+        let usage = build_usage_string(&cmd, "process");
+        assert_eq!(usage, "Usage: ana process [FILES]...");
     }
 
     #[test]
