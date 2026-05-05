@@ -7,6 +7,7 @@ use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
 use crate::context::CommandContext;
+use crate::errors::UpdateError;
 use crate::http::{bearer_header, build_client};
 use crate::input::prompt_yes_no;
 
@@ -26,75 +27,17 @@ struct StaticChannel {
     latest: Option<String>,
 }
 
-fn github_client() -> Result<reqwest_middleware::ClientWithMiddleware, Error> {
+fn github_client() -> Result<reqwest_middleware::ClientWithMiddleware, UpdateError> {
     let token = match env::var("GITHUB_TOKEN") {
         Ok(token) if !token.is_empty() => token,
         _ => {
             tracing::error!("GITHUB_TOKEN not set or empty");
-            return Err(Error::MissingToken);
+            return Err(UpdateError::MissingToken);
         }
     };
     Ok(build_client(
         reqwest::Client::builder().default_headers(bearer_header(&token)),
     )?)
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Error {
-    Http(String),
-    Io(String),
-    VersionParse(String),
-    MissingToken,
-    AssetNotFound(String),
-    UnsupportedPlatform(String),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Http(msg) => write!(f, "HTTP error: {}", msg),
-            Error::Io(msg) => write!(f, "IO error: {}", msg),
-            Error::VersionParse(v) => write!(f, "Failed to parse version: {}", v),
-            Error::MissingToken => {
-                writeln!(
-                    f,
-                    "GITHUB_TOKEN not set. Required for accessing private repo."
-                )?;
-                #[cfg(unix)]
-                {
-                    writeln!(f, "  Run: export GITHUB_TOKEN=$(gh auth token)")
-                }
-                #[cfg(windows)]
-                {
-                    writeln!(f, " Run:")?;
-                    writeln!(f, "   PowerShell: $env:GITHUB_TOKEN=(gh auth token)")?;
-                    writeln!(
-                        f,
-                        "   cmd.exe: for /f %i in ('gh auth token') do set GITHUB_TOKEN=%i"
-                    )?;
-                    writeln!(f, "   git bash: export GITHUB_TOKEN=$(gh auth token)")
-                }
-            }
-            Error::AssetNotFound(platform) => {
-                write!(f, "No release asset found for platform: {}", platform)
-            }
-            Error::UnsupportedPlatform(info) => {
-                write!(f, "Unsupported platform: {}", info)
-            }
-        }
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Self {
-        Error::Http(e.to_string())
-    }
-}
-
-impl From<reqwest_middleware::Error> for Error {
-    fn from(e: reqwest_middleware::Error) -> Self {
-        Error::Http(e.to_string())
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -113,7 +56,7 @@ pub struct Release {
     pub assets: Vec<Asset>,
 }
 
-fn get_platform_target() -> Result<&'static str, Error> {
+fn get_platform_target() -> Result<&'static str, UpdateError> {
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
 
@@ -125,12 +68,12 @@ fn get_platform_target() -> Result<&'static str, Error> {
         ("windows", "x86_64") => Ok("windows-x86_64"),
         _ => {
             tracing::error!("Unsupported platform: {}-{}", os, arch);
-            Err(Error::UnsupportedPlatform(format!("{}-{}", os, arch)))
+            Err(UpdateError::UnsupportedPlatform(format!("{}-{}", os, arch)))
         }
     }
 }
 
-fn get_asset_name() -> Result<String, Error> {
+fn get_asset_name() -> Result<String, UpdateError> {
     let target = get_platform_target()?;
     if target.starts_with("windows") {
         Ok(format!("ana-{}.exe", target))
@@ -139,17 +82,17 @@ fn get_asset_name() -> Result<String, Error> {
     }
 }
 
-pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, Error> {
+pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, UpdateError> {
     let asset_name = get_asset_name()?;
 
     release
         .assets
         .iter()
         .find(|a| a.name == asset_name)
-        .ok_or(Error::AssetNotFound(asset_name))
+        .ok_or(UpdateError::AssetNotFound(asset_name))
 }
 
-pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
+pub async fn download_and_replace(asset: &Asset) -> Result<(), UpdateError> {
     use futures_util::StreamExt;
 
     let is_github = asset.url.contains("api.github.com");
@@ -180,26 +123,26 @@ pub async fn download_and_replace(asset: &Asset) -> Result<(), Error> {
     let temp_path = temp_dir.join(&asset.name);
     let mut file = tokio::fs::File::create(&temp_path)
         .await
-        .map_err(|e| Error::Io(e.to_string()))?;
+        .map_err(|e| UpdateError::Io(e.to_string()))?;
 
     let mut stream = response.bytes_stream();
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| Error::Io(e.to_string()))?;
+        let chunk = chunk.map_err(|e| UpdateError::Io(e.to_string()))?;
         file.write_all(&chunk)
             .await
-            .map_err(|e| Error::Io(e.to_string()))?;
+            .map_err(|e| UpdateError::Io(e.to_string()))?;
         pb.inc(chunk.len() as u64);
     }
 
     pb.finish_and_clear();
 
     // Replace the running binary in-place
-    self_replace::self_replace(&temp_path).map_err(|e| Error::Io(e.to_string()))?;
+    self_replace::self_replace(&temp_path).map_err(|e| UpdateError::Io(e.to_string()))?;
 
     Ok(())
 }
 
-pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
+pub fn parse_version(tag: &str) -> Result<semver::Version, UpdateError> {
     // Convert a tag associated with a GitHub release into a semantic version
     let version_str = tag.strip_prefix('v').unwrap_or(tag);
     // Convert .devN to -dev.N for semver compatibility
@@ -208,10 +151,10 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
     } else {
         version_str.to_string()
     };
-    semver::Version::parse(&normalized).map_err(|_| Error::VersionParse(tag.to_string()))
+    semver::Version::parse(&normalized).map_err(|_| UpdateError::VersionParse(tag.to_string()))
 }
 
-async fn fetch_github_releases() -> Result<Vec<Release>, Error> {
+async fn fetch_github_releases() -> Result<Vec<Release>, UpdateError> {
     let client = github_client()?;
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
     let releases: Vec<Release> = client
@@ -225,7 +168,7 @@ async fn fetch_github_releases() -> Result<Vec<Release>, Error> {
     Ok(releases)
 }
 
-async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, Error> {
+async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, UpdateError> {
     let client = build_client(reqwest::Client::builder())?;
     let manifest_url = format!("{}/releases.json", base_url);
     let manifest: StaticManifest = client
@@ -246,7 +189,7 @@ async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, Error> {
     let channel_data = manifest
         .channels
         .get(channel)
-        .ok_or_else(|| Error::Http(format!("Channel '{}' not found in manifest", channel)))?;
+        .ok_or_else(|| UpdateError::Http(format!("Channel '{}' not found in manifest", channel)))?;
 
     let releases: Vec<Release> = channel_data
         .versions
@@ -268,7 +211,7 @@ async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, Error> {
     Ok(releases)
 }
 
-pub async fn fetch_available_releases() -> Result<Vec<Release>, Error> {
+pub async fn fetch_available_releases() -> Result<Vec<Release>, UpdateError> {
     let config = Config::load();
 
     let mut releases: Vec<_> = match &config.self_update_url {
@@ -306,7 +249,7 @@ pub enum UpdateCheck {
     NoReleases,
 }
 
-fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCheck, Error> {
+fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCheck, UpdateError> {
     let current = parse_version(current_version)?;
 
     let latest = releases
@@ -332,12 +275,12 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCh
     }
 }
 
-pub async fn check_update(current_version: &str) -> Result<UpdateCheck, Error> {
+pub async fn check_update(current_version: &str) -> Result<UpdateCheck, UpdateError> {
     let releases = fetch_available_releases().await?;
     find_update(releases, current_version)
 }
 
-pub async fn apply_update(release: &Release) -> Result<(), Error> {
+pub async fn apply_update(release: &Release) -> Result<(), UpdateError> {
     let asset = get_asset_for_platform(release)?;
     println!("Downloading {} ({})", asset.name, asset.url);
     download_and_replace(asset).await?;
@@ -442,7 +385,7 @@ mod tests {
             return; // Skip test if token is set
         }
         let result = fetch_github_releases().await;
-        assert_eq!(result.unwrap_err(), Error::MissingToken);
+        assert_eq!(result.unwrap_err(), UpdateError::MissingToken);
     }
 
     #[test]
@@ -469,7 +412,7 @@ mod tests {
     #[test]
     fn test_parse_version_invalid() {
         let result = parse_version("not-a-version");
-        assert!(matches!(result, Err(Error::VersionParse(_))));
+        assert!(matches!(result, Err(UpdateError::VersionParse(_))));
     }
 
     fn make_release(tag: &str, prerelease: bool) -> Release {
@@ -551,7 +494,7 @@ mod tests {
     fn test_find_update_invalid_current_version() {
         let releases = vec![make_release("v0.0.1", false)];
         let result = find_update(releases, "invalid");
-        assert!(matches!(result, Err(Error::VersionParse(_))));
+        assert!(matches!(result, Err(UpdateError::VersionParse(_))));
     }
 
     #[test]
@@ -622,7 +565,7 @@ mod tests {
         let result = get_asset_for_platform(&release);
         // On supported platforms, should return AssetNotFound since our platform isn't in assets
         if get_asset_name().is_ok() {
-            assert!(matches!(result, Err(Error::AssetNotFound(_))));
+            assert!(matches!(result, Err(UpdateError::AssetNotFound(_))));
         }
     }
 }
