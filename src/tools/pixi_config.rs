@@ -40,7 +40,7 @@ pub fn configure_default_channels(pixi_bin: &Path) -> miette::Result<()> {
         );
         eprintln!();
 
-        if !prompt_yes_no("   Update default channels?") {
+        if !prompt_yes_no("   Update default channels?", true) {
             eprintln!("   Keeping existing channel configuration.");
             return Ok(());
         }

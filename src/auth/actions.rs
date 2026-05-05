@@ -272,7 +272,7 @@ async fn login_with_api_key(
             return Ok(());
         }
 
-        if !crate::input::prompt_yes_no("Overwrite existing credentials?") {
+        if !crate::input::prompt_yes_no("Overwrite existing credentials?", false) {
             return Ok(());
         }
     }
@@ -312,7 +312,7 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
             "Already logged in to {}",
             status::highlight(&config.domain)
         ));
-        if !crate::input::prompt_yes_no("Login again?") {
+        if !crate::input::prompt_yes_no("Login again?", true) {
             // Return early if user declines to log in again
             return Ok(());
         }

@@ -203,7 +203,7 @@ pub async fn enable_wheels(
     status::blank_line();
 
     // Step 4: Prompt for confirmation unless --force
-    if !force && !prompt_yes_no("Proceed?") {
+    if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
@@ -312,7 +312,7 @@ pub async fn disable_wheels(
     status::blank_line();
 
     // Step 3: Prompt for confirmation unless --force
-    if !force && !prompt_yes_no("Proceed?") {
+    if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
