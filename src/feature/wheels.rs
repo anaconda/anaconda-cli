@@ -87,10 +87,10 @@ fn discover_tools(enable: bool) -> miette::Result<Vec<ConfigAction>> {
 
     status::info("Detected package managers:");
     if let Some(cmd) = pip_cmd {
-        eprintln!("  {} {} (pip)", status::highlight("✓"), cmd);
+        eprintln!("  {} {} (pip)", status::checkmark(), cmd);
     }
     if uv_available {
-        eprintln!("  {} uv", status::highlight("✓"));
+        eprintln!("  {} uv", status::checkmark());
     }
     status::blank_line();
 

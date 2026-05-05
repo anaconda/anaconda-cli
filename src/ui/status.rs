@@ -58,6 +58,11 @@ pub fn highlight(text: &str) -> String {
     UiColor::Blue.apply_to(text).to_string()
 }
 
+/// Return a green checkmark.
+pub fn checkmark() -> String {
+    UiColor::Green.apply_to("✓").to_string()
+}
+
 /// Return text styled as dim.
 ///
 /// Use this for secondary information, hints.
