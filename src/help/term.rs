@@ -34,6 +34,41 @@ fn print_section(term: &Term, name: &str) {
     ));
 }
 
+fn is_positional(a: &clap::Arg) -> bool {
+    a.get_long().is_none() && a.get_short().is_none()
+}
+
+fn is_builtin_arg(a: &clap::Arg) -> bool {
+    a.get_id() == "help" || a.get_id() == "version"
+}
+
+/// Build a usage string for a command
+fn build_usage_string(cmd: &clap::Command, path: &str) -> String {
+    let user_args: Vec<_> = cmd.get_arguments().filter(|a| !is_builtin_arg(a)).collect();
+    let has_options = user_args.iter().any(|a| !is_positional(a));
+    let has_subcommands = cmd.get_subcommands().next().is_some();
+
+    let positionals: String = user_args
+        .iter()
+        .filter(|a| is_positional(a))
+        .map(|a| format!("[{}]", a.get_id().as_str().to_uppercase()))
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    if has_subcommands {
+        format!("Usage: ana {} [OPTIONS] COMMAND [ARGS]...", path)
+    } else {
+        let mut parts = vec![format!("Usage: ana {}", path)];
+        if has_options {
+            parts.push("[OPTIONS]".to_string());
+        }
+        if !positionals.is_empty() {
+            parts.push(positionals);
+        }
+        parts.join(" ")
+    }
+}
+
 /// Print the header at the top of the help output
 fn print_header(term: &Term) {
     let ind = left_margin();
@@ -189,40 +224,7 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         let _ = term.write_line("");
     }
 
-    // Usage - build from path to ensure correct nesting
-    // Filter out built-in help/version flags (which have --long options)
-    let is_builtin_flag = |a: &clap::Arg| {
-        (a.get_id() == "help" || a.get_id() == "version")
-            && (a.get_long().is_some() || a.get_short().is_some())
-    };
-    let positional_args: Vec<_> = cmd
-        .get_arguments()
-        .filter(|a| !is_builtin_flag(a))
-        .filter(|a| a.get_long().is_none() && a.get_short().is_none())
-        .collect();
-    let has_options = cmd
-        .get_arguments()
-        .any(|a| !is_builtin_flag(a) && (a.get_long().is_some() || a.get_short().is_some()));
-    let has_subcommands = cmd.get_subcommands().next().is_some();
-
-    let positional_str = positional_args
-        .iter()
-        .map(|a| format!("[{}]", a.get_id().as_str().to_uppercase()))
-        .collect::<Vec<_>>()
-        .join(" ");
-
-    let usage = if has_subcommands {
-        format!("Usage: ana {} [OPTIONS] COMMAND [ARGS]...", path)
-    } else {
-        let mut parts = vec![format!("Usage: ana {}", path)];
-        if has_options {
-            parts.push("[OPTIONS]".to_string());
-        }
-        if !positional_str.is_empty() {
-            parts.push(positional_str);
-        }
-        parts.join(" ")
-    };
+    let usage = build_usage_string(cmd, path);
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
@@ -253,7 +255,7 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     // Options section - always show at least -h, --help
     let option_args: Vec<_> = cmd
         .get_arguments()
-        .filter(|a| !is_builtin_flag(a))
+        .filter(|a| !is_builtin_arg(a))
         .filter(|a| a.get_long().is_some() || a.get_short().is_some())
         .collect();
     print_section(&term, "OPTIONS");
@@ -274,4 +276,56 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     let _ = term.write_line("");
 
     print_footer(&term);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::{Arg, Command};
+
+    #[test]
+    fn test_usage_simple_command_no_args() {
+        let cmd = Command::new("test");
+        let usage = build_usage_string(&cmd, "foo");
+        assert_eq!(usage, "Usage: ana foo");
+    }
+
+    #[test]
+    fn test_usage_with_positional_arg() {
+        let cmd = Command::new("test").arg(Arg::new("name").required(true));
+        let usage = build_usage_string(&cmd, "auth login");
+        assert_eq!(usage, "Usage: ana auth login [NAME]");
+    }
+
+    #[test]
+    fn test_usage_with_options() {
+        let cmd = Command::new("test").arg(Arg::new("verbose").long("verbose"));
+        let usage = build_usage_string(&cmd, "self update");
+        assert_eq!(usage, "Usage: ana self update [OPTIONS]");
+    }
+
+    #[test]
+    fn test_usage_with_subcommands() {
+        let cmd = Command::new("test").subcommand(Command::new("sub"));
+        let usage = build_usage_string(&cmd, "self");
+        assert_eq!(usage, "Usage: ana self [OPTIONS] COMMAND [ARGS]...");
+    }
+
+    #[test]
+    fn test_usage_with_options_and_positional() {
+        let cmd = Command::new("test")
+            .arg(Arg::new("file").required(true))
+            .arg(Arg::new("force").long("force"));
+        let usage = build_usage_string(&cmd, "upload");
+        assert_eq!(usage, "Usage: ana upload [OPTIONS] [FILE]");
+    }
+
+    #[test]
+    fn test_usage_excludes_builtin_help_version() {
+        let cmd = Command::new("test")
+            .disable_help_flag(false)
+            .disable_version_flag(false);
+        let usage = build_usage_string(&cmd, "simple");
+        assert_eq!(usage, "Usage: ana simple");
+    }
 }
