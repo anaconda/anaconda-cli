@@ -484,6 +484,10 @@ mod tests {
             assert_eq!(
                 config.pip_index_url,
                 "https://repo.anaconda.cloud/repo/anaconda-wheels/simple"
+            );
+        });
+    }
+
     #[test]
     fn test_config_default_self_update_url() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", None::<&str>, || {
@@ -505,6 +509,8 @@ mod tests {
                 assert_eq!(config.pip_index_url, "https://custom.example.com/simple/");
             },
         );
+    }
+
     #[test]
     fn test_config_self_update_url_custom() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", Some("https://example.com"), || {
