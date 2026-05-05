@@ -300,7 +300,12 @@ impl Action {
                 )
                 .await
             }
-            Action::FeatureEnable { feature, force, pip, uv } => {
+            Action::FeatureEnable {
+                feature,
+                force,
+                pip,
+                uv,
+            } => {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
