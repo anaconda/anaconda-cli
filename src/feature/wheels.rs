@@ -6,7 +6,7 @@ use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
-use crate::tools::utils::{command_exists, find_pip};
+use crate::tools::utils::{command_exists, find_pip, which};
 use crate::ui::status;
 
 /// Represents a tool configuration action to be executed.
@@ -87,10 +87,12 @@ fn discover_tools(enable: bool) -> miette::Result<Vec<ConfigAction>> {
 
     status::info("Detected package managers:");
     if let Some(cmd) = pip_cmd {
-        eprintln!("  {} {} (pip)", status::checkmark(), cmd);
+        let path = which(cmd).unwrap_or_else(|| cmd.to_string());
+        eprintln!("  {} pip ({})", status::checkmark(), status::dim(&path));
     }
     if uv_available {
-        eprintln!("  {} uv", status::checkmark());
+        let path = which("uv").unwrap_or_else(|| "uv".to_string());
+        eprintln!("  {} uv ({})", status::checkmark(), status::dim(&path));
     }
     status::blank_line();
 
