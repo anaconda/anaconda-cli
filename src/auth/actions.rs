@@ -10,9 +10,8 @@ use super::keyring::{delete_api_key, get_api_key, save_api_key};
 use super::responses::{
     AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
 };
-use crate::config::Config;
 use crate::context::CommandContext;
-use crate::http::{Client, bearer_header, build_client};
+use crate::http::{Client, bearer_header};
 use crate::input::KeyListener;
 use crate::ui::status;
 
@@ -25,65 +24,6 @@ fn print_qr(qr: &str) {
         eprintln!("    {}", line);
     }
     eprintln!();
-}
-
-/// HTTP client with configuration and optional authentication.
-pub struct ApiClient {
-    inner: Client,
-    api_key: Option<String>,
-}
-
-impl ApiClient {
-    /// Create a new API client, loading credentials from the keyring if available.
-    pub fn new(config: &Config) -> Result<Self, AuthError> {
-        let api_key = get_api_key(config)?;
-
-        let mut builder = reqwest::Client::builder().timeout(REQUEST_TIMEOUT);
-        if let Some(ref key) = api_key {
-            builder = builder.default_headers(bearer_header(key));
-        }
-
-        let client = Client::new(builder, config.base_url())?;
-
-        Ok(Self {
-            inner: client,
-            api_key,
-        })
-    }
-
-    /// Check if the client has valid credentials.
-    pub fn is_authenticated(&self) -> bool {
-        self.api_key.is_some()
-    }
-
-    /// GET request.
-    pub fn get(&self, url: &str) -> reqwest_middleware::RequestBuilder {
-        self.inner.get(url)
-    }
-
-    /// POST request.
-    #[allow(dead_code)]
-    pub fn post(&self, url: &str) -> reqwest_middleware::RequestBuilder {
-        self.inner.post(url)
-    }
-
-    /// PUT request.
-    #[allow(dead_code)]
-    pub fn put(&self, url: &str) -> reqwest_middleware::RequestBuilder {
-        self.inner.put(url)
-    }
-
-    /// PATCH request.
-    #[allow(dead_code)]
-    pub fn patch(&self, url: &str) -> reqwest_middleware::RequestBuilder {
-        self.inner.patch(url)
-    }
-
-    /// DELETE request.
-    #[allow(dead_code)]
-    pub fn delete(&self, url: &str) -> reqwest_middleware::RequestBuilder {
-        self.inner.delete(url)
-    }
 }
 
 /// Print logged-in user status line.
@@ -164,15 +104,15 @@ fn print_token_expiration(expires_at: &str) {
 /// Save API key and display login success information.
 ///
 /// This is the common "finalize login" logic shared by both device flow and direct API key login.
-async fn save_and_display_login(config: &Config, api_key: &str) -> Result<(), AuthError> {
+async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
 
     // Save to keyring
-    save_api_key(config, api_key)?;
+    save_api_key(&ctx.config, api_key)?;
     status::success("API key stored in keyring");
 
     // Fetch and display user info
-    if let Ok(login_info) = fetch_login_info(config).await {
+    if let Ok(login_info) = fetch_login_info(ctx, api_key).await {
         print_logged_in_status(&login_info.email);
         if let Some(expires_at) = get_expiration(api_key) {
             print_token_expiration(&expires_at);
@@ -188,8 +128,10 @@ struct LoginInfo {
 }
 
 /// Fetch login info for display after login.
-async fn fetch_login_info(config: &Config) -> Result<LoginInfo, AuthError> {
-    let client = ApiClient::new(config)?;
+async fn fetch_login_info(ctx: &CommandContext, api_key: &str) -> Result<LoginInfo, AuthError> {
+    // Create a client with the just-saved API key
+    let builder = reqwest::Client::builder().default_headers(bearer_header(api_key));
+    let client = Client::new(builder, ctx.config.base_url())?;
 
     // Fetch account info
     let account_response = client.get("/api/account").send().await?;
@@ -243,7 +185,7 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
 
 /// Login with a provided API key (bypassing device flow).
 async fn login_with_api_key(
-    config: &Config,
+    ctx: &CommandContext,
     api_key: String,
     force: bool,
 ) -> Result<(), AuthError> {
@@ -257,10 +199,10 @@ async fn login_with_api_key(
     }
 
     // Check if already logged in
-    if !force && get_api_key(config)?.is_some() {
+    if !force && get_api_key(&ctx.config)?.is_some() {
         status::warn(&format!(
             "Already logged in to {}",
-            status::highlight(&config.domain)
+            status::highlight(&ctx.config.domain)
         ));
 
         // If stdin is a pipe, we can't prompt interactively - require --force
@@ -277,7 +219,7 @@ async fn login_with_api_key(
         }
     }
 
-    save_and_display_login(config, &api_key).await
+    save_and_display_login(ctx, &api_key).await
 }
 
 /// Try to read API key from stdin if data is available.
@@ -300,17 +242,15 @@ fn try_read_api_key_from_stdin() -> Option<String> {
 }
 
 /// Perform the device authorization flow.
-async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError> {
-    // We use a new, unauthenticated client instead of ApiClient, since
-    // login by definition happens first. It ends up being simpler to do
-    // this, at least for now, because the auth flow needs to follow direct
-    // URLs from openid-configuration etc.
+async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), AuthError> {
+    // We use an unauthenticated client since login by definition happens first.
+    // The auth flow needs to follow direct URLs from openid-configuration etc.
 
     // Check if already logged in
-    if !force && get_api_key(config)?.is_some() {
+    if !force && get_api_key(&ctx.config)?.is_some() {
         status::warn(&format!(
             "Already logged in to {}",
-            status::highlight(&config.domain)
+            status::highlight(&ctx.config.domain)
         ));
         if !crate::input::prompt_yes_no("Login again?") {
             // Return early if user declines to log in again
@@ -318,11 +258,12 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
         }
     }
 
-    let client = build_client(reqwest::Client::builder().timeout(REQUEST_TIMEOUT))?;
+    let client = ctx.client.unauthenticated(REQUEST_TIMEOUT)
+        .ok_or_else(|| AuthError::Middleware("failed to create unauthenticated client".to_string()))?;
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
-        .get(&config.well_known_url())
+        .get(ctx.config.well_known_url())
         .send()
         .await?
         .json()
@@ -336,7 +277,7 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
     let device_response: DeviceAuthResponse = client
         .post(&device_auth_endpoint)
         .form(&[
-            ("client_id", config.client_id.as_str()),
+            ("client_id", ctx.config.client_id.as_str()),
             ("scope", "openid profile email"),
         ])
         .send()
@@ -351,7 +292,7 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
         .unwrap_or(&device_response.verification_uri);
 
     // Try to open browser first — this determines whether we show QR immediately
-    let browser_opened = if config.open_browser {
+    let browser_opened = if ctx.config.open_browser {
         let uri = device_response
             .verification_uri_complete
             .as_ref()
@@ -378,7 +319,7 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
         // Browser opened — clean layout, offer QR on demand
         status::info(&format!(
             "Opening {} in your browser...",
-            status::highlight(&config.domain)
+            status::highlight(&ctx.config.domain)
         ));
         status::blank_line();
         status::info("To authenticate, visit:");
@@ -450,7 +391,7 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
             .form(&[
                 ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
                 ("device_code", &device_response.device_code),
-                ("client_id", &config.client_id),
+                ("client_id", &ctx.config.client_id),
             ])
             .send()
             .await?;
@@ -461,9 +402,9 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
             status::success("Authentication complete");
 
             // Create API key
-            let api_key = create_api_key(&client, config, &token.access_token).await?;
+            let api_key = create_api_key(&client, &ctx.config, &token.access_token).await?;
 
-            return save_and_display_login(config, &api_key).await;
+            return save_and_display_login(ctx, &api_key).await;
         }
 
         let error: TokenErrorResponse = response.json().await?;
@@ -508,22 +449,20 @@ async fn login_device_flow(config: &Config, force: bool) -> Result<(), AuthError
 /// 4. `echo key | ana login` - read from stdin if piped
 /// 5. `ana login` - device flow
 pub async fn login(
-    _ctx: &mut CommandContext,
+    ctx: &CommandContext,
     api_key: Option<String>,
     prompt_api_key: bool,
     force: bool,
 ) -> Result<(), AuthError> {
-    let config = Config::load();
-
     match api_key {
         Some(key) if key == "-" => {
             // Explicit stdin read: `ana login -`
             let api_key = read_api_key_from_stdin()?;
-            login_with_api_key(&config, api_key, force).await
+            login_with_api_key(ctx, api_key, force).await
         }
         Some(key) => {
             // Positional argument: `ana login <key>`
-            login_with_api_key(&config, key, force).await
+            login_with_api_key(ctx, key, force).await
         }
         None if prompt_api_key => {
             // --api-key flag: prompt for API key (or read stdin if piped)
@@ -532,50 +471,46 @@ pub async fn login(
             } else {
                 prompt_api_key_hidden()?
             };
-            login_with_api_key(&config, api_key, force).await
+            login_with_api_key(ctx, api_key, force).await
         }
         None => {
             // No args: check if stdin has data piped in, otherwise device flow
             if let Some(api_key) = try_read_api_key_from_stdin() {
-                login_with_api_key(&config, api_key, force).await
+                login_with_api_key(ctx, api_key, force).await
             } else {
-                login_device_flow(&config, force).await
+                login_device_flow(ctx, force).await
             }
         }
     }
 }
 
 /// Log out by removing the API key for the current domain.
-pub fn logout(_ctx: &mut CommandContext) -> Result<(), AuthError> {
-    let config = Config::load();
-
+pub fn logout(ctx: &CommandContext) -> Result<(), AuthError> {
     // Check if already logged out
-    if get_api_key(&config)?.is_none() {
+    if get_api_key(&ctx.config)?.is_none() {
         status::warn(&format!(
             "Not logged in to {}",
-            status::highlight(&config.domain)
+            status::highlight(&ctx.config.domain)
         ));
         return Ok(());
     }
 
-    delete_api_key(&config)?;
+    delete_api_key(&ctx.config)?;
     status::success(&format!(
         "Logged out of {}",
-        status::highlight(&config.domain)
+        status::highlight(&ctx.config.domain)
     ));
     status::success("API key removed from system keyring");
     status::warn(&format!(
         "To fully revoke your token visit {}",
-        status::highlight(&format!("{}/app/profile/api-keys", config.base_url()))
+        status::highlight(&format!("{}/app/profile/api-keys", ctx.config.base_url()))
     ));
     Ok(())
 }
 
 /// Display the API key for the current domain.
-pub fn show_api_key(_ctx: &mut CommandContext) -> Result<(), AuthError> {
-    let config = Config::load();
-
-    match get_api_key(&config)? {
+pub fn show_api_key(ctx: &CommandContext) -> Result<(), AuthError> {
+    match get_api_key(&ctx.config)? {
         Some(key) => println!("{}", key),
         None => {
             status::error("not logged in");
@@ -614,11 +549,9 @@ fn mask_api_key(key: &str) -> String {
 }
 
 /// Display information about the logged-in user.
-pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthError> {
-    let config = Config::load();
-    let client = ApiClient::new(&config)?;
-
-    if !client.is_authenticated() {
+pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
+    // Check if logged in by checking for API key
+    if get_api_key(&ctx.config)?.is_none() {
         status::error("not logged in");
         status::info(&format!(
             "Run {} to authenticate.",
@@ -627,7 +560,7 @@ pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthErr
         return Ok(());
     }
 
-    let response = client.get("/api/auth/sessions/whoami").send().await?;
+    let response = ctx.client.get("/api/auth/sessions/whoami").send().await?;
 
     if !response.status().is_success() {
         let resp_status = response.status();
@@ -758,7 +691,7 @@ pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthErr
     // Token info section
     status::blank_line();
     eprintln!("{}", status::section("token"));
-    if let Some(api_key) = get_api_key(&config)? {
+    if let Some(api_key) = get_api_key(&ctx.config)? {
         eprintln!(
             "  {}{}",
             status::dim(&format!("{:<12}", "value")),
@@ -768,7 +701,7 @@ pub async fn whoami(_ctx: &mut CommandContext, json: bool) -> Result<(), AuthErr
     eprintln!(
         "  {}{}",
         status::dim(&format!("{:<12}", "storage")),
-        status::dim(&config.keyring_path.display().to_string())
+        status::dim(&ctx.config.keyring_path.display().to_string())
     );
 
     Ok(())

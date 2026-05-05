@@ -82,7 +82,7 @@ fn plan_disable_actions(current_channels: &[String]) -> Vec<ChannelAction> {
 /// 2. Shows planned changes and prompts for confirmation
 /// 3. Adds the main-x channel to conda configuration (with main channel for fallback)
 /// 4. Provides instructions for reverting the changes
-pub async fn enable_main_x(ctx: &mut CommandContext, force: bool) -> miette::Result<()> {
+pub async fn enable_main_x(ctx: &CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Enabling {} feature...",
         status::highlight("main-x")
@@ -141,7 +141,7 @@ pub async fn enable_main_x(ctx: &mut CommandContext, force: bool) -> miette::Res
 /// Disable main-x channel configuration.
 ///
 /// This command removes the main-x channel from conda configuration.
-pub async fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::Result<()> {
+pub async fn disable_main_x(_ctx: &CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Disabling {} feature...",
         status::highlight("main-x")
@@ -189,12 +189,11 @@ pub async fn disable_main_x(_ctx: &mut CommandContext, force: bool) -> miette::R
 }
 
 /// Ensure the user is logged in, prompting them to login if not.
-async fn ensure_logged_in(ctx: &mut CommandContext) -> miette::Result<()> {
+async fn ensure_logged_in(ctx: &CommandContext) -> miette::Result<()> {
     status::waiting("Checking authentication status...");
 
     // Try to get API key to check if logged in
-    let config = crate::config::Config::load();
-    match auth::get_api_key(&config) {
+    match auth::get_api_key(&ctx.config) {
         Ok(Some(_)) => {
             status::success("Already logged in");
             Ok(())

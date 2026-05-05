@@ -1,17 +1,15 @@
 use crate::auth;
-use crate::config::Config;
 use crate::context::CommandContext;
 
 pub async fn api_fetch(
-    ctx: &mut CommandContext,
+    ctx: &CommandContext,
     method: &str,
     url: &str,
     query_args: Option<&str>,
     data: Option<&str>,
     json: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let config = Config::load();
-    if auth::get_api_key(&config)?.is_none() {
+    if auth::get_api_key(&ctx.config)?.is_none() {
         return Err("Not logged in. Run `ana login` first.".into());
     }
 

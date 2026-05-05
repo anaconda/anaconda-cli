@@ -1,6 +1,7 @@
 //! HTTP client utilities with logging middleware.
 
 use std::env;
+use std::sync::OnceLock;
 
 use reqwest::{Request, Response};
 use reqwest_middleware::{Middleware, Next, Result};
@@ -43,6 +44,9 @@ impl Middleware for LoggingMiddleware {
 pub struct Client {
     inner: reqwest_middleware::ClientWithMiddleware,
     base_url: String,
+    github: OnceLock<reqwest_middleware::ClientWithMiddleware>,
+    download: OnceLock<reqwest_middleware::ClientWithMiddleware>,
+    unauthenticated: OnceLock<reqwest_middleware::ClientWithMiddleware>,
 }
 
 impl Client {
@@ -58,17 +62,63 @@ impl Client {
         Ok(Self {
             inner,
             base_url: base_url.into(),
+            github: OnceLock::new(),
+            download: OnceLock::new(),
+            unauthenticated: OnceLock::new(),
         })
     }
 
     /// Create a client from config with optional auth headers.
-    pub fn from_config() -> std::result::Result<Self, reqwest::Error> {
-        let config = Config::load();
+    pub fn from_config(config: &Config) -> std::result::Result<Self, reqwest::Error> {
         let mut builder = reqwest::Client::builder();
-        if let Ok(Some(api_key)) = auth::get_api_key(&config) {
+        if let Ok(Some(api_key)) = auth::get_api_key(config) {
             builder = builder.default_headers(bearer_header(&api_key));
         }
         Self::new(builder, config.base_url())
+    }
+
+    /// Get or create a GitHub API client (uses GITHUB_TOKEN).
+    /// Returns None if GITHUB_TOKEN is not set or client creation fails.
+    pub fn github(&self) -> Option<&reqwest_middleware::ClientWithMiddleware> {
+        if self.github.get().is_none() {
+            if let Some(client) = env::var("GITHUB_TOKEN")
+                .ok()
+                .filter(|t| !t.is_empty())
+                .and_then(|token| {
+                    build_client(
+                        reqwest::Client::builder().default_headers(bearer_header(&token)),
+                    )
+                    .ok()
+                })
+            {
+                let _ = self.github.set(client);
+            }
+        }
+        self.github.get()
+    }
+
+    /// Get or create a download client optimized for binary downloads (no gzip).
+    pub fn download(&self) -> Option<&reqwest_middleware::ClientWithMiddleware> {
+        if self.download.get().is_none() {
+            if let Some(client) = build_client(reqwest::Client::builder().no_gzip()).ok() {
+                let _ = self.download.set(client);
+            }
+        }
+        self.download.get()
+    }
+
+    /// Get or create an unauthenticated client with a timeout.
+    /// Used for login flows where the user isn't authenticated yet.
+    pub fn unauthenticated(
+        &self,
+        timeout: std::time::Duration,
+    ) -> Option<&reqwest_middleware::ClientWithMiddleware> {
+        if self.unauthenticated.get().is_none() {
+            if let Some(client) = build_client(reqwest::Client::builder().timeout(timeout)).ok() {
+                let _ = self.unauthenticated.set(client);
+            }
+        }
+        self.unauthenticated.get()
     }
 
     /// Resolve a URL - prepends base_url for relative paths, passes through full URLs.
