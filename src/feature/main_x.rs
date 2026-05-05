@@ -114,7 +114,7 @@ pub async fn enable_main_x(ctx: &CommandContext, force: bool) -> miette::Result<
     status::blank_line();
 
     // Step 4: Prompt for confirmation unless --force
-    if !force && !prompt_yes_no("Proceed?") {
+    if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
@@ -171,7 +171,7 @@ pub async fn disable_main_x(_ctx: &CommandContext, force: bool) -> miette::Resul
     status::blank_line();
 
     // Prompt for confirmation unless --force
-    if !force && !prompt_yes_no("Proceed?") {
+    if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }

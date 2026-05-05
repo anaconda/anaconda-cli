@@ -366,7 +366,7 @@ pub async fn run_update(ctx: &CommandContext, current_version: &str, force: bool
         UpdateCheck::Available(release) => {
             if !force {
                 let message = format!("Update {} -> {}?", current_version, release.tag_name);
-                if !prompt_yes_no(&message) {
+                if !prompt_yes_no(&message, true) {
                     println!("Update cancelled.");
                     return;
                 }

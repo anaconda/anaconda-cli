@@ -52,7 +52,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
     eprintln!();
 
     // Prompt for confirmation unless --force was passed
-    if !force && !prompt_yes_no("Proceed with uninstall?") {
+    if !force && !prompt_yes_no("Proceed with uninstall?", false) {
         eprintln!("Aborted.");
         return Ok(());
     }
