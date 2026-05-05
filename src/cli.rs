@@ -12,6 +12,7 @@ use crate::context::CommandContext;
 use crate::feature;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
+use crate::fetch::api_fetch;
 use crate::help;
 use crate::tools;
 use crate::update;
@@ -124,6 +125,13 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    ApiFetch {
+        method: String,
+        url: String,
+        query_args: Option<String>,
+        data: Option<String>,
+        json: Option<String>,
+    },
     FeatureEnable {
         feature: String,
         force: bool,
@@ -160,6 +168,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
                 "wheels" => "feature.enable.wheels",
@@ -274,12 +283,24 @@ impl Action {
                 feedback::open_feedback(ctx, feedback_type, description);
                 Ok(())
             }
-            Action::FeatureEnable {
-                feature,
-                force,
-                pip,
-                uv,
+            Action::ApiFetch {
+                method,
+                url,
+                query_args,
+                data,
+                json,
             } => {
+                api_fetch(
+                    ctx,
+                    &method,
+                    &url,
+                    query_args.as_deref(),
+                    data.as_deref(),
+                    json.as_deref(),
+                )
+                .await
+            }
+            Action::FeatureEnable { feature, force, pip, uv } => {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
@@ -370,6 +391,22 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(ToolCommands::Uninstall { name, force }) => {
                         Action::ToolUninstall { name, force }
                     }
+                },
+                Some(Commands::Api { command }) => match command {
+                    None => Action::ShowSubcommandHelp("api".to_string()),
+                    Some(ApiCommands::Fetch {
+                        method,
+                        url,
+                        query_args,
+                        data,
+                        json,
+                    }) => Action::ApiFetch {
+                        method,
+                        url,
+                        query_args,
+                        data,
+                        json,
+                    },
                 },
                 Some(Commands::Feature { command }) => match command {
                     None => Action::ShowSubcommandHelp("feature".to_string()),
@@ -568,6 +605,17 @@ enum Commands {
         command: Option<ToolCommands>,
     },
 
+    /// API commands
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana api <command> [options]"
+    )]
+    Api {
+        #[command(subcommand)]
+        command: Option<ApiCommands>,
+    },
+
     /// Enable or disable Anaconda features
     #[command(
         subcommand_required = false,
@@ -670,6 +718,31 @@ enum ToolCommands {
         /// Skip confirmation prompt
         #[arg(short = 'y', long = "yes")]
         force: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ApiCommands {
+    /// Fetch data from the API
+    Fetch {
+        /// API path (e.g., /api/auth/passport)
+        url: String,
+
+        /// HTTP method to use
+        #[arg(long, default_value = "GET")]
+        method: String,
+
+        /// Comma-separated query arguments (e.g., key=value,key2=value2)
+        #[arg(short = 'q', long = "query-args")]
+        query_args: Option<String>,
+
+        /// Request body data
+        #[arg(short = 'd', long, conflicts_with = "json")]
+        data: Option<String>,
+
+        /// JSON request body
+        #[arg(short = 'j', long, conflicts_with = "data")]
+        json: Option<String>,
     },
 }
 

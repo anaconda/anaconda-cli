@@ -40,13 +40,22 @@ def fake_home(tmp_path: Path) -> Path:
     return home
 
 
+# Vars to preserve in isolated environments (e.g., CI credentials)
+PRESERVE_VARS = {
+    "ANA_SELF_UPDATE_URL",  # CI uses internal URL to bypass Cloudflare
+    "CF_ACCESS_CLIENT_ID",  # Cloudflare Zero Trust credentials
+    "CF_ACCESS_CLIENT_SECRET",
+}
+
+
 @pytest.fixture
 def env_isolated(fake_home: Path) -> dict[str, str]:
     """Provide an isolated environment without ANA_* or GITHUB_TOKEN vars."""
     env = {
         key: val
-        for key, val in os.environ.copy().items()
-        if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
+        for key, val in os.environ.items()
+        if (not key.startswith("ANA_") and key != "GITHUB_TOKEN")
+        or key in PRESERVE_VARS
     }
     if IS_WINDOWS:
         env["USERPROFILE"] = str(fake_home)

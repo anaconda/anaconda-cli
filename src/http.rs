@@ -1,7 +1,12 @@
 //! HTTP client utilities with logging middleware.
 
+use std::env;
+
 use reqwest::{Request, Response};
 use reqwest_middleware::{Middleware, Next, Result};
+
+use crate::auth;
+use crate::config::Config;
 
 /// Middleware that logs HTTP requests and responses.
 pub struct LoggingMiddleware;
@@ -56,6 +61,16 @@ impl Client {
         })
     }
 
+    /// Create a client from config with optional auth headers.
+    pub fn from_config() -> std::result::Result<Self, reqwest::Error> {
+        let config = Config::load();
+        let mut builder = reqwest::Client::builder();
+        if let Ok(Some(api_key)) = auth::get_api_key(&config) {
+            builder = builder.default_headers(bearer_header(&api_key));
+        }
+        Self::new(builder, config.base_url())
+    }
+
     /// Resolve a URL - prepends base_url for relative paths, passes through full URLs.
     fn resolve_url(&self, url: &str) -> String {
         if url.starts_with("http://") || url.starts_with("https://") {
@@ -104,10 +119,41 @@ pub fn bearer_header(token: &str) -> reqwest::header::HeaderMap {
     headers
 }
 
+/// Get Cloudflare Zero Trust headers if environment variables are set.
+/// Returns None if either CF_ACCESS_CLIENT_ID or CF_ACCESS_CLIENT_SECRET is missing.
+pub fn cloudflare_headers() -> Option<reqwest::header::HeaderMap> {
+    let client_id = env::var("CF_ACCESS_CLIENT_ID").ok()?;
+    let client_secret = env::var("CF_ACCESS_CLIENT_SECRET").ok()?;
+
+    if client_id.is_empty() || client_secret.is_empty() {
+        return None;
+    }
+
+    let mut headers = reqwest::header::HeaderMap::new();
+
+    if let Ok(id_value) = reqwest::header::HeaderValue::from_str(&client_id) {
+        headers.insert("CF-Access-Client-Id", id_value);
+    }
+
+    if let Ok(mut secret_value) = reqwest::header::HeaderValue::from_str(&client_secret) {
+        secret_value.set_sensitive(true);
+        headers.insert("CF-Access-Client-Secret", secret_value);
+    }
+
+    Some(headers)
+}
+
 /// Build an HTTP client with user-agent and logging middleware (no base URL).
+/// If CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET environment variables are set,
+/// Cloudflare Zero Trust headers are automatically included.
 pub fn build_client(
     builder: reqwest::ClientBuilder,
 ) -> std::result::Result<reqwest_middleware::ClientWithMiddleware, reqwest::Error> {
+    let builder = if let Some(cf_headers) = cloudflare_headers() {
+        builder.default_headers(cf_headers)
+    } else {
+        builder
+    };
     let client = builder.user_agent(crate::ua::user_agent()).build()?;
     Ok(reqwest_middleware::ClientBuilder::new(client)
         .with(LoggingMiddleware)

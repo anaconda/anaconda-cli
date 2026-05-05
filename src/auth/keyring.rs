@@ -167,6 +167,7 @@ mod tests {
             metrics_skip_internet_check: true,
             include_prereleases: false,
             pip_index_url: "https://repo.anaconda.cloud/repo/anaconda-wheels/simple".to_string(),
+            self_update_url: Some("https://example.com".to_string()),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]
