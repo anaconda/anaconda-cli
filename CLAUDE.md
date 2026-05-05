@@ -15,7 +15,7 @@ The repo uses pre-commit hooks. Run `pre-commit install` after cloning.
 
 ### CommandContext
 All commands receive a `CommandContext` (`ctx`). Always access `config` and `client` through `ctx`:
-- Use `ctx.config` - never call `Config::load()` 
+- Use `ctx.config` - never call `Config::load()`
 - Use `ctx.client` - never construct a new `Client`
 - For specialized HTTP clients, use `ctx.client.github()`, `ctx.client.download()`, or `ctx.client.unauthenticated()`
 
