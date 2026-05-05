@@ -258,8 +258,9 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
         }
     }
 
-    let client = ctx.client.unauthenticated(REQUEST_TIMEOUT)
-        .ok_or_else(|| AuthError::Middleware("failed to create unauthenticated client".to_string()))?;
+    let client = ctx.client.unauthenticated(REQUEST_TIMEOUT).ok_or_else(|| {
+        AuthError::Middleware("failed to create unauthenticated client".to_string())
+    })?;
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client

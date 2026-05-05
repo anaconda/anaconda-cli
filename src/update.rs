@@ -23,7 +23,6 @@ struct StaticChannel {
     latest: Option<String>,
 }
 
-
 #[derive(Debug, PartialEq)]
 pub enum Error {
     Http(String),
@@ -147,7 +146,10 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
             .await?
             .error_for_status()?
     } else {
-        let dl_client = ctx.client.download().ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
+        let dl_client = ctx
+            .client
+            .download()
+            .ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
         dl_client.get(&asset.url).send().await?.error_for_status()?
     };
 
@@ -210,8 +212,14 @@ async fn fetch_github_releases(ctx: &CommandContext) -> Result<Vec<Release>, Err
     Ok(releases)
 }
 
-async fn fetch_static_releases(ctx: &CommandContext, base_url: &str) -> Result<Vec<Release>, Error> {
-    let dl_client = ctx.client.download().ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
+async fn fetch_static_releases(
+    ctx: &CommandContext,
+    base_url: &str,
+) -> Result<Vec<Release>, Error> {
+    let dl_client = ctx
+        .client
+        .download()
+        .ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
     let manifest_url = format!("{}/releases.json", base_url);
     let manifest: StaticManifest = dl_client
         .get(&manifest_url)

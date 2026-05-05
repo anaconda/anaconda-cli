@@ -50,7 +50,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 }
 
 /// Install packages from a lockfile string to a prefix.
-pub async fn install_from_lockfile(ctx: &CommandContext, prefix: &Path, lock_content: &str) -> miette::Result<()> {
+pub async fn install_from_lockfile(
+    ctx: &CommandContext,
+    prefix: &Path,
+    lock_content: &str,
+) -> miette::Result<()> {
     let lock_file = LockFile::from_str(lock_content)
         .into_diagnostic()
         .context("failed to parse lockfile")?;

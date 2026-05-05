@@ -85,10 +85,8 @@ impl Client {
                 .ok()
                 .filter(|t| !t.is_empty())
                 .and_then(|token| {
-                    build_client(
-                        reqwest::Client::builder().default_headers(bearer_header(&token)),
-                    )
-                    .ok()
+                    build_client(reqwest::Client::builder().default_headers(bearer_header(&token)))
+                        .ok()
                 })
             {
                 let _ = self.github.set(client);
