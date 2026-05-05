@@ -10,7 +10,7 @@ cargo build
 cargo test
 ```
 
-Always run `cargo test` and ensure all tests pass before pushing any changes.
+Always run `cargo clippy` and `cargo test` and ensure both pass before pushing any changes.
 
 ### Pre-commit
 The repo uses pre-commit hooks. Run `pre-commit install` after cloning.
