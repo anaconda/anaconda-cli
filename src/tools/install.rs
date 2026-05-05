@@ -85,7 +85,7 @@ pub async fn install_from_lockfile(
     let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix).into_diagnostic()?;
 
     // Build HTTP client
-    let client = make_download_client(ctx);
+    let client = ctx.download_client().clone();
 
     // Ensure cache directory exists
     // TODO(mattkram): Consider a custom cache dir
@@ -276,12 +276,6 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
         .context("failed to write shims.cfg")?;
 
     Ok(())
-}
-
-/// Create an HTTP client for downloading packages.
-fn make_download_client(ctx: &CommandContext) -> reqwest_middleware::ClientWithMiddleware {
-    // TODO: Add AuthenticationMiddleware for private channel support
-    ctx.download_client().clone()
 }
 
 #[cfg(test)]
