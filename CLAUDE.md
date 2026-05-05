@@ -13,6 +13,20 @@ cargo test
 ### Pre-commit
 The repo uses pre-commit hooks. Run `pre-commit install` after cloning.
 
+### Error handling
+Use `miette::Result<T>` for all fallible functions. For domain-specific errors that need reuse across modules, add them to `src/errors.rs` using both `thiserror::Error` and `miette::Diagnostic`:
+
+```rust
+#[derive(Error, Debug, Diagnostic)]
+pub enum MyError {
+    #[error("Description: {0}")]
+    #[diagnostic(code(ana::module::error_name))]
+    VariantName(String),
+}
+```
+
+For one-off errors, use `miette!("message")`. Avoid `Box<dyn Error>`.
+
 ## Release Process
 
 When creating a new release:
