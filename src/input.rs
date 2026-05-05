@@ -77,22 +77,41 @@ impl KeyListener {
 
 /// Prompt the user for yes/no confirmation.
 ///
-/// Displays `message` followed by `[y/N]` and waits for input.
-/// Returns `true` only if the user enters "y" or "yes" (case-insensitive).
-/// Returns `false` on empty input, "n", "no", or any read error.
+/// Displays `message` followed by `[Y/n]` or `[y/N]` depending on the default.
+/// The default choice is highlighted and used when the user presses Enter.
 ///
 /// This uses line-based input, so Ctrl+C is handled normally by the terminal.
-pub fn prompt_yes_no(message: &str) -> bool {
+pub fn prompt_yes_no(message: &str, default: bool) -> bool {
+    use crate::ui::status;
     use std::io::Write;
-    print!("{} [y/N] ", message);
+
+    let prompt = if default {
+        status::highlight("Y/n")
+    } else {
+        status::highlight("y/N")
+    };
+    print!("{} [{}] ", message, prompt);
     std::io::stdout().flush().unwrap();
 
     let mut input = String::new();
     if std::io::stdin().read_line(&mut input).is_err() {
-        return false;
+        return default;
     }
 
-    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
+    parse_yes_no(&input, default)
+}
+
+/// Parse a yes/no response string.
+///
+/// Returns `true` for "y" or "yes" (case-insensitive).
+/// Returns `false` for "n" or "no" (case-insensitive).
+/// Returns the default for empty input or unrecognized values.
+fn parse_yes_no(input: &str, default: bool) -> bool {
+    match input.trim().to_lowercase().as_str() {
+        "y" | "yes" => true,
+        "n" | "no" => false,
+        _ => default,
+    }
 }
 
 /// RAII guard for terminal state restoration.
@@ -144,5 +163,81 @@ struct TerminalGuard;
 impl TerminalGuard {
     fn new() -> Option<Self> {
         Some(Self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod parse_yes_no {
+        use super::*;
+
+        #[test]
+        fn yes_inputs_return_true() {
+            assert!(parse_yes_no("y", false));
+            assert!(parse_yes_no("Y", false));
+            assert!(parse_yes_no("yes", false));
+            assert!(parse_yes_no("YES", false));
+            assert!(parse_yes_no("Yes", false));
+            assert!(parse_yes_no("yEs", false));
+        }
+
+        #[test]
+        fn no_inputs_return_false() {
+            assert!(!parse_yes_no("n", true));
+            assert!(!parse_yes_no("N", true));
+            assert!(!parse_yes_no("no", true));
+            assert!(!parse_yes_no("NO", true));
+            assert!(!parse_yes_no("No", true));
+            assert!(!parse_yes_no("nO", true));
+        }
+
+        #[test]
+        fn empty_input_returns_default() {
+            assert!(parse_yes_no("", true));
+            assert!(!parse_yes_no("", false));
+        }
+
+        #[test]
+        fn whitespace_only_returns_default() {
+            assert!(parse_yes_no("   ", true));
+            assert!(!parse_yes_no("   ", false));
+            assert!(parse_yes_no("\t", true));
+            assert!(!parse_yes_no("\t", false));
+            assert!(parse_yes_no("\n", true));
+            assert!(!parse_yes_no("\n", false));
+        }
+
+        #[test]
+        fn input_with_surrounding_whitespace_is_trimmed() {
+            assert!(parse_yes_no("  y  ", false));
+            assert!(parse_yes_no("\ty\n", false));
+            assert!(parse_yes_no("  yes  ", false));
+            assert!(!parse_yes_no("  n  ", true));
+            assert!(!parse_yes_no("\tno\n", true));
+        }
+
+        #[test]
+        fn unrecognized_input_returns_default() {
+            assert!(parse_yes_no("yeah", true));
+            assert!(!parse_yes_no("yeah", false));
+            assert!(parse_yes_no("nope", true));
+            assert!(!parse_yes_no("nope", false));
+            assert!(parse_yes_no("maybe", true));
+            assert!(!parse_yes_no("maybe", false));
+            assert!(parse_yes_no("1", true));
+            assert!(!parse_yes_no("0", false));
+        }
+
+        #[test]
+        fn partial_matches_return_default() {
+            // "ye" is not "yes"
+            assert!(parse_yes_no("ye", true));
+            assert!(!parse_yes_no("ye", false));
+            // "yess" is not "yes"
+            assert!(parse_yes_no("yess", true));
+            assert!(!parse_yes_no("yess", false));
+        }
     }
 }

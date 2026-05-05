@@ -51,11 +51,23 @@ pub fn waiting(msg: &str) {
     eprintln!("{}", UiColor::Dim.apply_to(msg));
 }
 
+/// Print a tip in dim text.
+///
+/// Example output: `Tip: Use --pip or --uv to configure only one tool.`
+pub fn tip(msg: &str) {
+    eprintln!("{}", UiColor::Dim.apply_to(&format!("Tip: {}", msg)));
+}
+
 /// Return text styled as highlighted (blue).
 ///
 /// Use this for values like usernames, emails, commands.
 pub fn highlight(text: &str) -> String {
     UiColor::Blue.apply_to(text).to_string()
+}
+
+/// Return a green checkmark.
+pub fn checkmark() -> String {
+    UiColor::Green.apply_to("✓").to_string()
 }
 
 /// Return text styled as dim.

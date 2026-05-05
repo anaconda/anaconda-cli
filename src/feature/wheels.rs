@@ -6,7 +6,7 @@ use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
-use crate::tools::utils::{command_exists, find_pip};
+use crate::tools::utils::{command_exists, find_pip, which};
 use crate::ui::status;
 
 /// Represents a tool configuration action to be executed.
@@ -25,34 +25,56 @@ impl ConfigAction {
         }
     }
 
-    fn command_descriptions(&self, config: &Config) -> Vec<String> {
+    fn planned_changes(&self, config: &Config) -> Vec<PlannedChange> {
         match self {
             ConfigAction::ConfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                vec![format!(
+                vec![PlannedChange::Command(format!(
                     "{} config set global.index-url {}",
                     pip_cmd, config.pip_index_url
-                )]
+                ))]
             }
             ConfigAction::DeconfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                vec![format!("{} config unset global.index-url", pip_cmd)]
+                vec![PlannedChange::Command(format!(
+                    "{} config unset global.index-url",
+                    pip_cmd
+                ))]
             }
             ConfigAction::ConfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
                 let config_path = get_uv_config_path();
                 vec![
-                    format!("Set default index in {}", config_path),
-                    format!("uv auth login {}", base_url),
+                    PlannedChange::FileChange("Set default index in".to_string(), config_path),
+                    PlannedChange::Command(format!("uv auth login {}", base_url)),
                 ]
             }
             ConfigAction::DeconfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
                 let config_path = get_uv_config_path();
                 vec![
-                    format!("Remove default index from {}", config_path),
-                    format!("uv auth logout {}", base_url),
+                    PlannedChange::FileChange("Remove default index from".to_string(), config_path),
+                    PlannedChange::Command(format!("uv auth logout {}", base_url)),
                 ]
+            }
+        }
+    }
+}
+
+/// Represents a planned change to display to the user.
+enum PlannedChange {
+    Command(String),
+    FileChange(String, String),
+}
+
+impl PlannedChange {
+    fn display(&self) -> String {
+        match self {
+            PlannedChange::Command(cmd) => {
+                format!("Run: {}", status::highlight(cmd))
+            }
+            PlannedChange::FileChange(description, path) => {
+                format!("{}: {}", description, status::highlight(path))
             }
         }
     }
@@ -73,9 +95,9 @@ fn get_uv_config_path() -> String {
         .unwrap_or_else(|| "~/.config/uv/uv.toml".to_string())
 }
 
-/// Discover available tools and prompt the user for each one.
+/// Discover available tools and return actions for all of them.
 /// Returns the list of actions to perform.
-fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<ConfigAction>> {
+fn discover_tools(enable: bool) -> miette::Result<Vec<ConfigAction>> {
     let pip_cmd = find_pip();
     let uv_available = command_exists("uv");
 
@@ -87,42 +109,30 @@ fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<Co
 
     status::info("Detected package managers:");
     if let Some(cmd) = pip_cmd {
-        eprintln!("  {} {} (pip)", status::highlight("✓"), cmd);
+        let path = which(cmd).unwrap_or_else(|| cmd.to_string());
+        eprintln!("  {} pip ({})", status::checkmark(), status::dim(&path));
     }
     if uv_available {
-        eprintln!("  {} uv", status::highlight("✓"));
+        let path = which("uv").unwrap_or_else(|| "uv".to_string());
+        eprintln!("  {} uv ({})", status::checkmark(), status::dim(&path));
     }
     status::blank_line();
 
     let mut actions = Vec::new();
 
     if pip_cmd.is_some() {
-        let prompt = if enable {
-            "Configure pip to use Anaconda's wheels index?"
+        if enable {
+            actions.push(ConfigAction::ConfigurePip);
         } else {
-            "Remove pip configuration for Anaconda's wheels index?"
-        };
-        if force || prompt_yes_no(prompt) {
-            if enable {
-                actions.push(ConfigAction::ConfigurePip);
-            } else {
-                actions.push(ConfigAction::DeconfigurePip);
-            }
+            actions.push(ConfigAction::DeconfigurePip);
         }
     }
 
     if uv_available {
-        let prompt = if enable {
-            "Configure uv to use Anaconda's wheels index?"
+        if enable {
+            actions.push(ConfigAction::ConfigureUv);
         } else {
-            "Remove uv configuration for Anaconda's wheels index?"
-        };
-        if force || prompt_yes_no(prompt) {
-            if enable {
-                actions.push(ConfigAction::ConfigureUv);
-            } else {
-                actions.push(ConfigAction::DeconfigureUv);
-            }
+            actions.push(ConfigAction::DeconfigureUv);
         }
     }
 
@@ -164,13 +174,19 @@ pub async fn enable_wheels(
         }
         actions
     } else {
-        // No flags - auto-detect and prompt for each available tool
-        discover_and_prompt_tools(true, force)?
+        // No flags - auto-detect all available tools
+        discover_tools(true)?
     };
 
     if actions.is_empty() {
         status::info("No tools selected for configuration.");
         return Ok(());
+    }
+
+    // Show tip about flags if multiple tools detected and no explicit flags
+    if !pip && !uv && actions.len() > 1 {
+        status::tip("Use --pip or --uv to configure only one tool.");
+        status::blank_line();
     }
 
     // Step 2: Check login status and prompt if needed
@@ -180,14 +196,14 @@ pub async fn enable_wheels(
     status::blank_line();
     status::info("The following changes will be made:");
     for action in &actions {
-        for desc in action.command_descriptions(&ctx.config) {
-            eprintln!("  {}", status::highlight(&desc));
+        for change in action.planned_changes(&ctx.config) {
+            eprintln!("  {}", change.display());
         }
     }
     status::blank_line();
 
     // Step 4: Prompt for confirmation unless --force
-    if !force && !prompt_yes_no("Proceed?") {
+    if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
@@ -271,8 +287,8 @@ pub async fn disable_wheels(
         }
         actions
     } else {
-        // No flags - auto-detect and prompt for each available tool
-        discover_and_prompt_tools(false, force)?
+        // No flags - auto-detect all available tools
+        discover_tools(false)?
     };
 
     if actions.is_empty() {
@@ -280,17 +296,23 @@ pub async fn disable_wheels(
         return Ok(());
     }
 
+    // Show tip about flags if multiple tools detected and no explicit flags
+    if !pip && !uv && actions.len() > 1 {
+        status::tip("Use --pip or --uv to deconfigure only one tool.");
+        status::blank_line();
+    }
+
     // Step 2: Show planned changes
     status::info("The following changes will be made:");
     for action in &actions {
-        for desc in action.command_descriptions(&ctx.config) {
-            eprintln!("  {}", status::highlight(&desc));
+        for change in action.planned_changes(&ctx.config) {
+            eprintln!("  {}", change.display());
         }
     }
     status::blank_line();
 
     // Step 3: Prompt for confirmation unless --force
-    if !force && !prompt_yes_no("Proceed?") {
+    if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
