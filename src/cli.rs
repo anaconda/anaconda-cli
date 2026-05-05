@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{CommandFactory, Parser, Subcommand};
-use miette::{miette, IntoDiagnostic};
+use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
 use crate::anaconda_cli;
@@ -238,8 +238,9 @@ impl Action {
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx)
                 .await
                 .map_err(|e| miette!("{}", e))?),
-            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)
-                .map_err(|e| miette!("{}", e))?),
+            Action::OrgProxy { args } => Ok(
+                anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
+            ),
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())

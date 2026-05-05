@@ -1,4 +1,4 @@
-use miette::{miette, Context, IntoDiagnostic};
+use miette::{Context, IntoDiagnostic, miette};
 
 use crate::auth;
 use crate::config::Config;

@@ -86,7 +86,9 @@ pub enum UpdateError {
     #[diagnostic(code(ana::update::version_parse))]
     VersionParse(String),
 
-    #[error("GITHUB_TOKEN not set. Required for accessing private repo.\n  Run: export GITHUB_TOKEN=$(gh auth token)")]
+    #[error(
+        "GITHUB_TOKEN not set. Required for accessing private repo.\n  Run: export GITHUB_TOKEN=$(gh auth token)"
+    )]
     #[diagnostic(
         code(ana::update::missing_token),
         help("Set GITHUB_TOKEN environment variable using: export GITHUB_TOKEN=$(gh auth token)")

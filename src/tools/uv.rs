@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-use miette::{miette, Context, IntoDiagnostic};
+use miette::{Context, IntoDiagnostic, miette};
 use toml_edit::{DocumentMut, Item, Table};
 
 use crate::auth;
@@ -20,7 +20,8 @@ fn get_base_url(pip_index_url: &str) -> &str {
 
 /// Get the path to the global uv.toml config file.
 fn get_uv_config_path() -> miette::Result<PathBuf> {
-    let config_dir = dirs::config_dir().ok_or_else(|| miette!("Could not determine config directory"))?;
+    let config_dir =
+        dirs::config_dir().ok_or_else(|| miette!("Could not determine config directory"))?;
     Ok(config_dir.join("uv").join("uv.toml"))
 }
 

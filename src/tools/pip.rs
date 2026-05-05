@@ -2,7 +2,7 @@
 
 use std::process::Command;
 
-use miette::{miette, Context, IntoDiagnostic};
+use miette::{Context, IntoDiagnostic, miette};
 use url::Url;
 
 use crate::auth;
