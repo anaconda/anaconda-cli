@@ -53,8 +53,8 @@ pub struct CommandContext {
     pub telemetry: TelemetryContext,
     /// Configuration.
     pub config: Config,
-    /// HTTP client for API requests.
-    pub client: Client,
+    /// HTTP client for API requests (lazy initialized).
+    client: OnceLock<Client>,
     /// GitHub API client (lazy initialized).
     github_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Download client (lazy initialized).
@@ -66,16 +66,21 @@ pub struct CommandContext {
 impl CommandContext {
     /// Create a new command context.
     pub fn new() -> Self {
-        let config = Config::load();
-        let client = Client::from_config(&config).expect("failed to create HTTP client");
         Self {
             telemetry: TelemetryContext::new(),
-            config,
-            client,
+            config: Config::load(),
+            client: OnceLock::new(),
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),
             unauthenticated_client: OnceLock::new(),
         }
+    }
+
+    /// Get the main HTTP client (authenticated with API key if available).
+    pub fn client(&self) -> &Client {
+        self.client.get_or_init(|| {
+            Client::from_config(&self.config).expect("failed to create HTTP client")
+        })
     }
 
     /// Get or create a GitHub API client (uses GITHUB_TOKEN).

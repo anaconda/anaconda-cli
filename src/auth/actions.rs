@@ -561,7 +561,7 @@ pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
         return Ok(());
     }
 
-    let response = ctx.client.get("/api/auth/sessions/whoami").send().await?;
+    let response = ctx.client().get("/api/auth/sessions/whoami").send().await?;
 
     if !response.status().is_success() {
         let resp_status = response.status();

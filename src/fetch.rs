@@ -15,11 +15,11 @@ pub async fn api_fetch(
 
     let method_upper = method.to_uppercase();
     let mut request = match method_upper.as_str() {
-        "GET" => ctx.client.get(url),
-        "POST" => ctx.client.post(url),
-        "PUT" => ctx.client.put(url),
-        "PATCH" => ctx.client.patch(url),
-        "DELETE" => ctx.client.delete(url),
+        "GET" => ctx.client().get(url),
+        "POST" => ctx.client().post(url),
+        "PUT" => ctx.client().put(url),
+        "PATCH" => ctx.client().patch(url),
+        "DELETE" => ctx.client().delete(url),
         _ => return Err(format!("Unsupported HTTP method: {}", method).into()),
     };
     request = request.header("X-Ana-Raw-Request", "true");
