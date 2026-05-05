@@ -138,7 +138,7 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
 
     let is_github = asset.url.contains("api.github.com");
     let response = if is_github {
-        let gh_client = ctx.client.github().ok_or(Error::MissingToken)?;
+        let gh_client = ctx.github_client().ok_or(Error::MissingToken)?;
         gh_client
             .get(&asset.url)
             .header("Accept", "application/octet-stream")
@@ -147,8 +147,7 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
             .error_for_status()?
     } else {
         let dl_client = ctx
-            .client
-            .download()
+            .download_client()
             .ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
         dl_client.get(&asset.url).send().await?.error_for_status()?
     };
@@ -199,7 +198,7 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, Error> {
 }
 
 async fn fetch_github_releases(ctx: &CommandContext) -> Result<Vec<Release>, Error> {
-    let gh_client = ctx.client.github().ok_or(Error::MissingToken)?;
+    let gh_client = ctx.github_client().ok_or(Error::MissingToken)?;
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
     let releases: Vec<Release> = gh_client
         .get(&url)
@@ -217,8 +216,7 @@ async fn fetch_static_releases(
     base_url: &str,
 ) -> Result<Vec<Release>, Error> {
     let dl_client = ctx
-        .client
-        .download()
+        .download_client()
         .ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
     let manifest_url = format!("{}/releases.json", base_url);
     let manifest: StaticManifest = dl_client
