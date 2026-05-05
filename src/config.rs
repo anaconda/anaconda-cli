@@ -34,6 +34,7 @@
 use anaconda_otel_rs::{
     attributes::ResourceAttributes, config::Configuration, signals::initialize_telemetry,
 };
+use miette::{miette, IntoDiagnostic};
 use std::env;
 use std::path::PathBuf;
 
@@ -48,10 +49,11 @@ pub fn setup_telemetry() {
     let _ = try_setup_telemetry();
 }
 
-fn try_setup_telemetry() -> Result<(), Box<dyn std::error::Error>> {
+fn try_setup_telemetry() -> miette::Result<()> {
     let app_config = Config::load();
 
-    let mut otel_config = Configuration::new(Some(&app_config.metrics_endpoint), None)?;
+    let mut otel_config =
+        Configuration::new(Some(&app_config.metrics_endpoint), None).into_diagnostic()?;
 
     let api_key = auth::get_api_key(&app_config).ok().flatten();
     otel_config.set_auth_token(api_key);
@@ -59,10 +61,11 @@ fn try_setup_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     otel_config.set_metrics_export_interval_ms(app_config.metrics_export_interval_ms);
     otel_config.skip_internet_check = app_config.metrics_skip_internet_check;
 
-    let attrs = ResourceAttributes::new("ana-cli", VERSION)?;
+    let attrs =
+        ResourceAttributes::new("ana-cli", VERSION).map_err(|e| miette!("{}", e))?;
 
     initialize_telemetry(otel_config, attrs, vec!["metrics"])
-        .map_err(|e| format!("Telemetry initialization failed: {}", e))?;
+        .map_err(|e| miette!("Telemetry initialization failed: {}", e))?;
 
     Ok(())
 }
