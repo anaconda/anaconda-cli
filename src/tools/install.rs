@@ -281,9 +281,7 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 /// Create an HTTP client for downloading packages.
 fn make_download_client(ctx: &CommandContext) -> reqwest_middleware::ClientWithMiddleware {
     // TODO: Add AuthenticationMiddleware for private channel support
-    ctx.download_client()
-        .expect("failed to create download client")
-        .clone()
+    ctx.download_client().clone()
 }
 
 #[cfg(test)]

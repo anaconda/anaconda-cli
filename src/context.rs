@@ -104,13 +104,11 @@ impl CommandContext {
     }
 
     /// Get or create a download client optimized for binary downloads (no gzip).
-    pub fn download_client(&self) -> Option<&reqwest_middleware::ClientWithMiddleware> {
-        if self.download_client.get().is_none() {
-            if let Some(client) = http::build_client(reqwest::Client::builder().no_gzip()).ok() {
-                let _ = self.download_client.set(client);
-            }
-        }
-        self.download_client.get()
+    pub fn download_client(&self) -> &reqwest_middleware::ClientWithMiddleware {
+        self.download_client.get_or_init(|| {
+            http::build_client(reqwest::Client::builder().no_gzip())
+                .expect("failed to create download client")
+        })
     }
 
     /// Get or create an unauthenticated client with a timeout.
@@ -118,15 +116,11 @@ impl CommandContext {
     pub fn unauthenticated_client(
         &self,
         timeout: Duration,
-    ) -> Option<&reqwest_middleware::ClientWithMiddleware> {
-        if self.unauthenticated_client.get().is_none() {
-            if let Some(client) =
-                http::build_client(reqwest::Client::builder().timeout(timeout)).ok()
-            {
-                let _ = self.unauthenticated_client.set(client);
-            }
-        }
-        self.unauthenticated_client.get()
+    ) -> &reqwest_middleware::ClientWithMiddleware {
+        self.unauthenticated_client.get_or_init(|| {
+            http::build_client(reqwest::Client::builder().timeout(timeout))
+                .expect("failed to create unauthenticated client")
+        })
     }
 }
 

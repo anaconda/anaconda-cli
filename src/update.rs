@@ -146,10 +146,11 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
             .await?
             .error_for_status()?
     } else {
-        let dl_client = ctx
-            .download_client()
-            .ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
-        dl_client.get(&asset.url).send().await?.error_for_status()?
+        ctx.download_client()
+            .get(&asset.url)
+            .send()
+            .await?
+            .error_for_status()?
     };
 
     let total_size = response.content_length().unwrap_or(0);
@@ -215,11 +216,9 @@ async fn fetch_static_releases(
     ctx: &CommandContext,
     base_url: &str,
 ) -> Result<Vec<Release>, Error> {
-    let dl_client = ctx
-        .download_client()
-        .ok_or_else(|| Error::Http("failed to create download client".to_string()))?;
     let manifest_url = format!("{}/releases.json", base_url);
-    let manifest: StaticManifest = dl_client
+    let manifest: StaticManifest = ctx
+        .download_client()
         .get(&manifest_url)
         .send()
         .await?
