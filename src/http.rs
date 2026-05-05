@@ -39,6 +39,38 @@ impl Middleware for LoggingMiddleware {
     }
 }
 
+/// Middleware that adds authentication headers from the keyring on each request.
+pub struct AuthMiddleware {
+    config: Config,
+}
+
+impl AuthMiddleware {
+    pub fn new(config: Config) -> Self {
+        Self { config }
+    }
+}
+
+#[async_trait::async_trait]
+impl Middleware for AuthMiddleware {
+    async fn handle(
+        &self,
+        mut req: Request,
+        extensions: &mut http::Extensions,
+        next: Next<'_>,
+    ) -> Result<Response> {
+        if let Ok(Some(api_key)) = auth::get_api_key(&self.config) {
+            if let Ok(mut value) =
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_key))
+            {
+                value.set_sensitive(true);
+                req.headers_mut()
+                    .insert(reqwest::header::AUTHORIZATION, value);
+            }
+        }
+        next.run(req, extensions).await
+    }
+}
+
 /// HTTP client with base URL and logging middleware.
 pub struct Client {
     inner: reqwest_middleware::ClientWithMiddleware,
@@ -61,13 +93,20 @@ impl Client {
         })
     }
 
-    /// Create a client from config with optional auth headers.
+    /// Create a client from config with auth middleware.
+    /// Auth headers are added dynamically on each request from the keyring.
     pub fn from_config(config: &Config) -> std::result::Result<Self, reqwest::Error> {
-        let mut builder = reqwest::Client::builder();
-        if let Ok(Some(api_key)) = auth::get_api_key(config) {
-            builder = builder.default_headers(bearer_header(&api_key));
-        }
-        Self::new(builder, config.base_url())
+        let client = reqwest::Client::builder()
+            .user_agent(crate::ua::user_agent())
+            .build()?;
+        let inner = reqwest_middleware::ClientBuilder::new(client)
+            .with(AuthMiddleware::new(config.clone()))
+            .with(LoggingMiddleware)
+            .build();
+        Ok(Self {
+            inner,
+            base_url: config.base_url(),
+        })
     }
 
     /// Resolve a URL - prepends base_url for relative paths, passes through full URLs.

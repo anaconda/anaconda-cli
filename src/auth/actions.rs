@@ -11,7 +11,6 @@ use super::responses::{
     AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
 };
 use crate::context::CommandContext;
-use crate::http::{Client, bearer_header};
 use crate::input::KeyListener;
 use crate::ui::status;
 
@@ -111,8 +110,8 @@ async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(
     save_api_key(&ctx.config, api_key)?;
     status::success("API key stored in keyring");
 
-    // Fetch and display user info
-    if let Ok(login_info) = fetch_login_info(ctx, api_key).await {
+    // Fetch and display user info (ctx.client() will pick up the newly saved key via middleware)
+    if let Ok(login_info) = fetch_login_info(ctx).await {
         print_logged_in_status(&login_info.email);
         if let Some(expires_at) = get_expiration(api_key) {
             print_token_expiration(&expires_at);
@@ -128,13 +127,9 @@ struct LoginInfo {
 }
 
 /// Fetch login info for display after login.
-async fn fetch_login_info(ctx: &CommandContext, api_key: &str) -> Result<LoginInfo, AuthError> {
-    // Create a client with the just-saved API key
-    let builder = reqwest::Client::builder().default_headers(bearer_header(api_key));
-    let client = Client::new(builder, ctx.config.base_url())?;
-
-    // Fetch account info
-    let account_response = client.get("/api/account").send().await?;
+async fn fetch_login_info(ctx: &CommandContext) -> Result<LoginInfo, AuthError> {
+    // Auth middleware will add the API key from keyring automatically
+    let account_response = ctx.client().get("/api/account").send().await?;
     let account: AccountResponse = account_response.json().await?;
 
     let email = account
