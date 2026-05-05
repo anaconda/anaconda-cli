@@ -25,34 +25,56 @@ impl ConfigAction {
         }
     }
 
-    fn command_descriptions(&self, config: &Config) -> Vec<String> {
+    fn planned_changes(&self, config: &Config) -> Vec<PlannedChange> {
         match self {
             ConfigAction::ConfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                vec![format!(
+                vec![PlannedChange::Command(format!(
                     "{} config set global.index-url {}",
                     pip_cmd, config.pip_index_url
-                )]
+                ))]
             }
             ConfigAction::DeconfigurePip => {
                 let pip_cmd = find_pip().unwrap_or("pip");
-                vec![format!("{} config unset global.index-url", pip_cmd)]
+                vec![PlannedChange::Command(format!(
+                    "{} config unset global.index-url",
+                    pip_cmd
+                ))]
             }
             ConfigAction::ConfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
                 let config_path = get_uv_config_path();
                 vec![
-                    format!("Set default index in {}", config_path),
-                    format!("uv auth login {}", base_url),
+                    PlannedChange::FileChange("Set default index in".to_string(), config_path),
+                    PlannedChange::Command(format!("uv auth login {}", base_url)),
                 ]
             }
             ConfigAction::DeconfigureUv => {
                 let base_url = get_uv_base_url(&config.pip_index_url);
                 let config_path = get_uv_config_path();
                 vec![
-                    format!("Remove default index from {}", config_path),
-                    format!("uv auth logout {}", base_url),
+                    PlannedChange::FileChange("Remove default index from".to_string(), config_path),
+                    PlannedChange::Command(format!("uv auth logout {}", base_url)),
                 ]
+            }
+        }
+    }
+}
+
+/// Represents a planned change to display to the user.
+enum PlannedChange {
+    Command(String),
+    FileChange(String, String),
+}
+
+impl PlannedChange {
+    fn display(&self) -> String {
+        match self {
+            PlannedChange::Command(cmd) => {
+                format!("Run: {}", status::highlight(cmd))
+            }
+            PlannedChange::FileChange(description, path) => {
+                format!("{}: {}", description, status::highlight(path))
             }
         }
     }
@@ -174,8 +196,8 @@ pub async fn enable_wheels(
     status::blank_line();
     status::info("The following changes will be made:");
     for action in &actions {
-        for desc in action.command_descriptions(&ctx.config) {
-            eprintln!("  {}", status::highlight(&desc));
+        for change in action.planned_changes(&ctx.config) {
+            eprintln!("  {}", change.display());
         }
     }
     status::blank_line();
@@ -283,8 +305,8 @@ pub async fn disable_wheels(
     // Step 2: Show planned changes
     status::info("The following changes will be made:");
     for action in &actions {
-        for desc in action.command_descriptions(&ctx.config) {
-            eprintln!("  {}", status::highlight(&desc));
+        for change in action.planned_changes(&ctx.config) {
+            eprintln!("  {}", change.display());
         }
     }
     status::blank_line();
