@@ -36,7 +36,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
-    install_from_lockfile(&prefix, &lock_content).await?;
+    install_from_lockfile(ctx, &prefix, &lock_content).await?;
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, &binaries)?;
@@ -50,7 +50,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 }
 
 /// Install packages from a lockfile string to a prefix.
-pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette::Result<()> {
+pub async fn install_from_lockfile(
+    ctx: &CommandContext,
+    prefix: &Path,
+    lock_content: &str,
+) -> miette::Result<()> {
     let lock_file = LockFile::from_str(lock_content)
         .into_diagnostic()
         .context("failed to parse lockfile")?;
@@ -81,7 +85,7 @@ pub async fn install_from_lockfile(prefix: &Path, lock_content: &str) -> miette:
     let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix).into_diagnostic()?;
 
     // Build HTTP client
-    let client = make_download_client();
+    let client = ctx.download_client().clone();
 
     // Ensure cache directory exists
     // TODO(mattkram): Consider a custom cache dir
@@ -274,21 +278,15 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
     Ok(())
 }
 
-/// Create an HTTP client for downloading packages.
-fn make_download_client() -> reqwest_middleware::ClientWithMiddleware {
-    // TODO: Add AuthenticationMiddleware for private channel support
-    crate::http::build_client(reqwest::Client::builder().no_gzip())
-        .expect("failed to create HTTP client")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn test_lockfile_parse_error() {
+        let ctx = CommandContext::new();
         let result =
-            install_from_lockfile(Path::new("/tmp/test"), "invalid lockfile content").await;
+            install_from_lockfile(&ctx, Path::new("/tmp/test"), "invalid lockfile content").await;
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
