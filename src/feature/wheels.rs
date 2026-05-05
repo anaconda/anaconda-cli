@@ -73,9 +73,9 @@ fn get_uv_config_path() -> String {
         .unwrap_or_else(|| "~/.config/uv/uv.toml".to_string())
 }
 
-/// Discover available tools and prompt the user for each one.
+/// Discover available tools and return actions for all of them.
 /// Returns the list of actions to perform.
-fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<ConfigAction>> {
+fn discover_tools(enable: bool) -> miette::Result<Vec<ConfigAction>> {
     let pip_cmd = find_pip();
     let uv_available = command_exists("uv");
 
@@ -97,32 +97,18 @@ fn discover_and_prompt_tools(enable: bool, force: bool) -> miette::Result<Vec<Co
     let mut actions = Vec::new();
 
     if pip_cmd.is_some() {
-        let prompt = if enable {
-            "Configure pip to use Anaconda's wheels index?"
+        if enable {
+            actions.push(ConfigAction::ConfigurePip);
         } else {
-            "Remove pip configuration for Anaconda's wheels index?"
-        };
-        if force || prompt_yes_no(prompt) {
-            if enable {
-                actions.push(ConfigAction::ConfigurePip);
-            } else {
-                actions.push(ConfigAction::DeconfigurePip);
-            }
+            actions.push(ConfigAction::DeconfigurePip);
         }
     }
 
     if uv_available {
-        let prompt = if enable {
-            "Configure uv to use Anaconda's wheels index?"
+        if enable {
+            actions.push(ConfigAction::ConfigureUv);
         } else {
-            "Remove uv configuration for Anaconda's wheels index?"
-        };
-        if force || prompt_yes_no(prompt) {
-            if enable {
-                actions.push(ConfigAction::ConfigureUv);
-            } else {
-                actions.push(ConfigAction::DeconfigureUv);
-            }
+            actions.push(ConfigAction::DeconfigureUv);
         }
     }
 
@@ -164,13 +150,19 @@ pub async fn enable_wheels(
         }
         actions
     } else {
-        // No flags - auto-detect and prompt for each available tool
-        discover_and_prompt_tools(true, force)?
+        // No flags - auto-detect all available tools
+        discover_tools(true)?
     };
 
     if actions.is_empty() {
         status::info("No tools selected for configuration.");
         return Ok(());
+    }
+
+    // Show tip about flags if multiple tools detected and no explicit flags
+    if !pip && !uv && actions.len() > 1 {
+        status::info("Tip: Use --pip or --uv to configure only one tool.");
+        status::blank_line();
     }
 
     // Step 2: Check login status and prompt if needed
@@ -271,13 +263,19 @@ pub async fn disable_wheels(
         }
         actions
     } else {
-        // No flags - auto-detect and prompt for each available tool
-        discover_and_prompt_tools(false, force)?
+        // No flags - auto-detect all available tools
+        discover_tools(false)?
     };
 
     if actions.is_empty() {
         status::info("No tools selected for deconfiguration.");
         return Ok(());
+    }
+
+    // Show tip about flags if multiple tools detected and no explicit flags
+    if !pip && !uv && actions.len() > 1 {
+        status::info("Tip: Use --pip or --uv to deconfigure only one tool.");
+        status::blank_line();
     }
 
     // Step 2: Show planned changes
