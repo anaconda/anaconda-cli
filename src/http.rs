@@ -79,6 +79,7 @@ pub struct Client {
 
 impl Client {
     /// Create a new client with base URL, user-agent, and logging middleware.
+    #[allow(dead_code)]
     pub fn new(
         builder: reqwest::ClientBuilder,
         base_url: impl Into<String>,
