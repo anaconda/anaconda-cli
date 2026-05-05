@@ -2,6 +2,7 @@
 
 use std::process::Command;
 
+use miette::{miette, Context, IntoDiagnostic};
 use url::Url;
 
 use crate::auth;
@@ -10,11 +11,12 @@ use crate::tools::utils::find_pip;
 
 /// Configure pip to use Anaconda's wheels index with authentication.
 /// Caller should verify pip is installed before calling.
-pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    let pip_cmd = find_pip().ok_or("pip not found in PATH")?;
+pub fn configure(config: &Config) -> miette::Result<()> {
+    let pip_cmd = find_pip().ok_or_else(|| miette!("pip not found in PATH"))?;
 
-    let api_key = auth::get_api_key(config)?
-        .ok_or("Login required to configure pip. Run `ana login` first.")?;
+    let api_key = auth::get_api_key(config)
+        .into_diagnostic()?
+        .ok_or_else(|| miette!("Login required to configure pip. Run `ana login` first."))?;
 
     configure_pip(pip_cmd, config, &api_key)?;
 
@@ -23,18 +25,20 @@ pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Remove pip configuration for Anaconda's wheels index.
 /// Caller should verify pip is installed before calling.
-pub fn deconfigure() -> Result<(), Box<dyn std::error::Error>> {
-    let pip_cmd = find_pip().ok_or("pip not found in PATH")?;
+pub fn deconfigure() -> miette::Result<()> {
+    let pip_cmd = find_pip().ok_or_else(|| miette!("pip not found in PATH"))?;
 
     let output = Command::new(pip_cmd)
         .args(["config", "unset", "global.index-url"])
-        .output()?;
+        .output()
+        .into_diagnostic()
+        .context("Failed to run pip config")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         // "no such key" means it wasn't configured, which is fine
         if !stderr.contains("no such key") {
-            return Err(format!("Failed to deconfigure pip: {}", stderr).into());
+            return Err(miette!("Failed to deconfigure pip: {}", stderr));
         }
     }
 
@@ -42,11 +46,7 @@ pub fn deconfigure() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Configure pip to use Anaconda's package index with authentication.
-fn configure_pip(
-    pip_cmd: &str,
-    config: &Config,
-    api_key: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn configure_pip(pip_cmd: &str, config: &Config, api_key: &str) -> miette::Result<()> {
     // Build authenticated URL by inserting credentials into the index URL
     // e.g., https://example.com/path -> https://__token__:API_KEY@example.com/path
     let authenticated_url = build_authenticated_url(&config.pip_index_url, api_key)?;
@@ -54,26 +54,27 @@ fn configure_pip(
     // Configure pip global index-url
     let output = Command::new(pip_cmd)
         .args(["config", "set", "global.index-url", &authenticated_url])
-        .output()?;
+        .output()
+        .into_diagnostic()
+        .context("Failed to run pip config")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Failed to configure pip: {}", stderr).into());
+        return Err(miette!("Failed to configure pip: {}", stderr));
     }
 
     Ok(())
 }
 
 /// Build an authenticated URL by inserting token credentials.
-fn build_authenticated_url(
-    url_str: &str,
-    api_key: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let mut url = Url::parse(url_str)?;
+fn build_authenticated_url(url_str: &str, api_key: &str) -> miette::Result<String> {
+    let mut url = Url::parse(url_str)
+        .into_diagnostic()
+        .context("Invalid URL")?;
     url.set_username("__token__")
-        .map_err(|_| "Cannot set username on URL")?;
+        .map_err(|_| miette!("Cannot set username on URL"))?;
     url.set_password(Some(api_key))
-        .map_err(|_| "Cannot set password on URL")?;
+        .map_err(|_| miette!("Cannot set password on URL"))?;
     Ok(url.to_string())
 }
 
