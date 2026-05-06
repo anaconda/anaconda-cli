@@ -34,7 +34,10 @@ pub enum AuthError {
     InvalidApiKey(String),
 
     #[error("Not logged in")]
-    #[diagnostic(code(ana::auth::not_logged_in), help("Run `ana login` to authenticate"))]
+    #[diagnostic(
+        code(ana::auth::not_logged_in),
+        help("Run `ana login` to authenticate")
+    )]
     NotLoggedIn,
 }
 

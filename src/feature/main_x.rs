@@ -188,7 +188,6 @@ pub async fn disable_main_x(_ctx: &CommandContext, force: bool) -> miette::Resul
     Ok(())
 }
 
-
 /// Run a conda config command.
 fn run_conda_config(conda_bin: &Path, args: &[&str]) -> miette::Result<()> {
     let status = Command::new(conda_bin)
