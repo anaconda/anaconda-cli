@@ -291,11 +291,17 @@ impl Action {
                 // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
                 if !args.is_empty() && args[0] == "deploy" {
                     let deploy_args: Vec<String> = args[1..].to_vec();
-                    return Ok(anaconda_cli::run_tool_binary(
+                    anaconda_cli::run_tool_binary(
                         "outerbounds",
                         "obproject-deploy",
                         &deploy_args,
-                    ).map_err(|e| miette!("{}", e))?);
+                    ).map_err(|e| miette!("{}", e))?;
+                    status::blank_line();
+                    status::celebrate("Deployment complete!");
+                    status::blank_line();
+                    eprintln!("Open your app in the browser with:");
+                    eprintln!("  {}", status::highlight("ana ob app view --web"));
+                    return Ok(());
                 }
                 Ok(anaconda_cli::run_ob(ctx, &args).map_err(|e| miette!("{}", e))?)
             }
