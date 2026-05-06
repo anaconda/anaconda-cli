@@ -292,7 +292,7 @@ jobs:
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        run: pixi run test-integration
+        run: pixi run pytest tests -v
 
   check:
     name: Check
