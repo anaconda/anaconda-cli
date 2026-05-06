@@ -2,6 +2,8 @@
 //!
 //! Configures pip and/or uv to use Anaconda's wheels index.
 
+use miette::IntoDiagnostic;
+
 use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
@@ -190,7 +192,7 @@ pub async fn enable_wheels(
     }
 
     // Step 2: Check login status and prompt if needed
-    ensure_logged_in(ctx).await?;
+    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
 
     // Step 3: Show planned changes
     status::blank_line();
@@ -353,25 +355,4 @@ pub async fn disable_wheels(
     );
 
     Ok(())
-}
-
-/// Ensure the user is logged in, prompting them to login if not.
-async fn ensure_logged_in(ctx: &mut CommandContext) -> miette::Result<()> {
-    status::waiting("Checking authentication status...");
-
-    let config = Config::load();
-    match auth::get_api_key(&config) {
-        Ok(Some(_)) => {
-            status::success("Already logged in");
-            Ok(())
-        }
-        Ok(None) | Err(_) => {
-            status::info("Not logged in. Starting login flow...");
-            status::blank_line();
-            auth::login(ctx, None, false, false)
-                .await
-                .map_err(|e| miette::miette!("Login failed: {}", e))?;
-            Ok(())
-        }
-    }
 }

@@ -117,7 +117,7 @@ fn deconfigure_global_index() -> miette::Result<()> {
 pub fn configure(config: &Config) -> miette::Result<()> {
     let api_key = auth::get_api_key(config)
         .into_diagnostic()?
-        .ok_or_else(|| miette!("Login required to configure uv. Run `ana login` first."))?;
+        .ok_or_else(|| miette!("Not logged in"))?;
 
     // Step 1: Configure global index in uv.toml
     configure_global_index(&config.pip_index_url)?;

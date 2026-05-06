@@ -429,6 +429,27 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
     }
 }
 
+/// Ensure the user is logged in, prompting to login if not.
+///
+/// Returns Ok(()) if logged in (or successfully logged in after prompt).
+/// Returns Err if not logged in and user declines to login.
+pub async fn ensure_logged_in(ctx: &CommandContext) -> Result<(), AuthError> {
+    if get_api_key(&ctx.config)?.is_some() {
+        return Ok(());
+    }
+
+    status::warn(&format!(
+        "Not logged in to {}",
+        status::highlight(&ctx.config.domain)
+    ));
+
+    if !crate::input::prompt_yes_no("Login now?", true) {
+        return Err(AuthError::NotLoggedIn);
+    }
+
+    login_device_flow(ctx, false).await
+}
+
 /// Perform login - either via API key or device authorization flow.
 ///
 /// Arguments:

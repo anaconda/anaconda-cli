@@ -11,9 +11,7 @@ pub async fn api_fetch(
     data: Option<&str>,
     json: Option<&str>,
 ) -> miette::Result<()> {
-    if auth::get_api_key(&ctx.config).into_diagnostic()?.is_none() {
-        return Err(miette!("Not logged in. Run `ana login` first."));
-    }
+    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
 
     let method_upper = method.to_uppercase();
     let mut request = match method_upper.as_str() {
