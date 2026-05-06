@@ -20,7 +20,7 @@ pub enum UiColor {
 
 impl UiColor {
     /// Get the hex value for this color.
-    fn hex(&self) -> &'static str {
+    pub fn hex(&self) -> &'static str {
         match self {
             Self::Green => "#3fb950",
             Self::Red => "#f85149",

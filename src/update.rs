@@ -6,7 +6,6 @@ use tokio::io::AsyncWriteExt;
 
 use crate::context::CommandContext;
 use crate::errors::UpdateError;
-use crate::input::prompt_yes_no;
 
 // GitHub repository for releases (used when ANA_SELF_UPDATE_URL=github)
 const GITHUB_REPO: &str = "anaconda/ana-cli";
@@ -38,6 +37,7 @@ pub struct Release {
     pub draft: bool,
     #[serde(default)]
     pub assets: Vec<Asset>,
+    pub published_at: Option<String>,
 }
 
 fn get_platform_target() -> Result<&'static str, UpdateError> {
@@ -101,14 +101,27 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
     };
 
     let total_size = response.content_length().unwrap_or(0);
+    let total_mb = total_size as f64 / 1_000_000.0;
+
+    use crate::ui::styles::UiColor;
+
+    eprintln!("  Downloading {} ({:.1} MB)", asset.name, total_mb);
+    eprintln!("  {}", UiColor::Dim.apply_to(&asset.url));
 
     let pb = ProgressBar::new(total_size);
+    let dim = UiColor::Dim.hex();
+    let dim_suffix = UiColor::Dim.apply_to("% |").to_string();
+    let template = format!(
+        "  {{bar:34.{}/{dim}}} {{percent:>2.{dim}}}{dim_suffix} {{elapsed:.{dim}}}",
+        UiColor::Green.hex(),
+    );
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{bar:40.cyan/blue} {bytes}/{total_bytes} ({eta})")
+            .template(&template)
             .unwrap()
-            .progress_chars("=> "),
+            .progress_chars("━━─"),
     );
+    pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(&asset.name);
@@ -126,6 +139,12 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
     }
 
     pb.finish_and_clear();
+
+    // Clear the "Downloading" and URL lines (move up 2 lines and clear each)
+    use std::io::IsTerminal;
+    if std::io::stderr().is_terminal() {
+        eprint!("\x1b[2A\x1b[K\x1b[1B\x1b[K\x1b[1A");
+    }
 
     // Replace the running binary in-place
     self_replace::self_replace(&temp_path).map_err(|e| UpdateError::Io(e.to_string()))?;
@@ -147,7 +166,10 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, UpdateError> {
 
 async fn fetch_github_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
     let gh_client = ctx.github_client().ok_or(UpdateError::MissingToken)?;
-    let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
+    let url = format!(
+        "https://api.github.com/repos/{}/releases?per_page=100",
+        GITHUB_REPO
+    );
     let releases: Vec<Release> = gh_client
         .get(&url)
         .header("Accept", "application/vnd.github+json")
@@ -203,6 +225,7 @@ async fn fetch_static_releases(
                     name: asset_name.clone(),
                     url: format!("{}/releases/{}/{}/{}", base_url, channel, tag, asset_name),
                 }],
+                published_at: None,
             }
         })
         .collect();
@@ -282,95 +305,281 @@ async fn check_update(
 
 async fn apply_update(ctx: &CommandContext, release: &Release) -> Result<(), UpdateError> {
     let asset = get_asset_for_platform(release)?;
-    println!("Downloading {} ({})", asset.name, asset.url);
     download_and_replace(ctx, asset).await?;
     Ok(())
 }
 
+/// Format a relative time string for display purposes only (e.g., "released 2 months ago").
+/// Precision is approximate and intended for human guidance, not exact calculations.
+fn format_relative_time_since(published_at: &str) -> String {
+    use chrono::{DateTime, Datelike, Utc};
+    let published: DateTime<Utc> = match published_at.parse() {
+        Ok(dt) => dt,
+        Err(_) => return String::new(),
+    };
+    let now = Utc::now();
+
+    let days = now.signed_duration_since(published).num_days();
+    if days < 2 {
+        return if days == 0 {
+            "released today".to_string()
+        } else {
+            "released yesterday".to_string()
+        };
+    }
+
+    let years = now.year() - published.year();
+    let months = years * 12 + (now.month() as i32 - published.month() as i32);
+
+    if months < 1 {
+        format!("released {} days ago", days)
+    } else if months < 12 {
+        if months == 1 {
+            "released 1 month ago".to_string()
+        } else {
+            format!("released {} months ago", months)
+        }
+    } else if years == 1 {
+        "released 1 year ago".to_string()
+    } else {
+        format!("released {} years ago", years)
+    }
+}
+
 pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
+    use crate::input::prompt_yes_no;
+    use crate::ui::status;
+
     match check_update(ctx, current_version).await {
         Ok(UpdateCheck::Available(release)) => {
-            println!(
-                "Update available: {} -> {}",
-                current_version, release.tag_name
+            eprintln!("  {}", status::section("UPDATE AVAILABLE"));
+            eprintln!();
+            let relative_time = release
+                .published_at
+                .as_ref()
+                .map(|p| {
+                    format!(
+                        " {}",
+                        status::dim(&format!("({})", format_relative_time_since(p)))
+                    )
+                })
+                .unwrap_or_default();
+            eprintln!(
+                "  {:<10} {}{}",
+                "Latest:",
+                status::highlight(&release.tag_name),
+                relative_time
             );
+            eprintln!("  {:<10} v{}", "Current:", current_version);
+            eprintln!();
+
+            if prompt_yes_no("Do you want to update?", true) {
+                let start = std::time::Instant::now();
+                match apply_update(ctx, &release).await {
+                    Ok(()) => {
+                        print_update_success(current_version, &release.tag_name, start.elapsed())
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to update: {}", e);
+                        status::error(&format!("Failed to update: {}", e));
+                    }
+                }
+            }
         }
         Ok(UpdateCheck::AlreadyUpToDate) => {
-            println!("Already up to date ({})", current_version);
+            eprintln!("  {}", status::section("UP TO DATE"));
+            eprintln!();
+            eprintln!("  {:<10} v{}", "Current:", current_version);
+            eprintln!();
         }
         Ok(UpdateCheck::NoReleases) => {
-            println!("No releases available.");
+            status::warn("No releases available.");
         }
         Err(e) => {
             tracing::error!("Failed to check for update: {}", e);
-            eprintln!("Failed to check for update: {}", e);
+            status::error(&format!("Failed to check for update: {}", e));
         }
     }
 }
 
-pub async fn run_update(ctx: &CommandContext, current_version: &str, force: bool) {
-    let check = match check_update(ctx, current_version).await {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::error!("Failed to check for updates: {}", e);
-            eprintln!("Failed to check for updates: {}", e);
-            return;
-        }
-    };
+fn print_update_success(current_version: &str, new_version: &str, elapsed: std::time::Duration) {
+    use crate::ui::status;
+    eprintln!();
+    eprintln!(
+        "  {} {}",
+        status::section("UPDATED"),
+        status::dim(&format!("{:.1}s", elapsed.as_secs_f64()))
+    );
+    eprintln!("  was v{} → now {}", current_version, new_version);
+    eprintln!();
+}
 
-    match check {
-        UpdateCheck::Available(release) => {
-            if !force {
-                let message = format!("Update {} -> {}?", current_version, release.tag_name);
-                if !prompt_yes_no(&message, true) {
-                    println!("Update cancelled.");
-                    return;
-                }
+pub async fn run_update(
+    ctx: &CommandContext,
+    current_version: &str,
+    target_version: Option<String>,
+) {
+    use crate::ui::status;
+
+    if let Some(version) = target_version {
+        // Install specific version
+        let releases = match fetch_available_releases(ctx).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Failed to fetch releases: {}", e);
+                status::error(&format!("Failed to fetch releases: {}", e));
+                return;
             }
-            match apply_update(ctx, &release).await {
-                Ok(()) => println!(
-                    "Updated successfully: {} -> {}",
-                    current_version, release.tag_name
-                ),
-                Err(e) => {
-                    tracing::error!("Failed to update: {}", e);
-                    eprintln!("Failed to update: {}", e);
-                }
+        };
+
+        // Normalize version tag (ensure v prefix)
+        let target_tag = if version.starts_with('v') {
+            version
+        } else {
+            format!("v{}", version)
+        };
+
+        let release = match releases.into_iter().find(|r| r.tag_name == target_tag) {
+            Some(r) => r,
+            None => {
+                status::error(&format!(
+                    "Version {} not found. Use --list to see available versions.",
+                    target_tag
+                ));
+                return;
+            }
+        };
+
+        let start = std::time::Instant::now();
+        match apply_update(ctx, &release).await {
+            Ok(()) => print_update_success(current_version, &release.tag_name, start.elapsed()),
+            Err(e) => {
+                tracing::error!("Failed to update: {}", e);
+                status::error(&format!("Failed to update: {}", e));
             }
         }
-        UpdateCheck::AlreadyUpToDate => {
-            println!("Already up to date ({})", current_version);
-        }
-        UpdateCheck::NoReleases => {
-            println!("No releases available.");
+    } else {
+        // Update to latest version
+        let check = match check_update(ctx, current_version).await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!("Failed to check for updates: {}", e);
+                status::error(&format!("Failed to check for updates: {}", e));
+                return;
+            }
+        };
+
+        match check {
+            UpdateCheck::Available(release) => {
+                let start = std::time::Instant::now();
+                match apply_update(ctx, &release).await {
+                    Ok(()) => {
+                        print_update_success(current_version, &release.tag_name, start.elapsed())
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to update: {}", e);
+                        status::error(&format!("Failed to update: {}", e));
+                    }
+                }
+            }
+            UpdateCheck::AlreadyUpToDate => {
+                eprintln!("  {}", status::section("UP TO DATE"));
+                eprintln!();
+                eprintln!("  {:<10} v{}", "Current:", current_version);
+                eprintln!();
+            }
+            UpdateCheck::NoReleases => {
+                status::warn("No releases available.");
+            }
         }
     }
+}
+
+fn format_release_date(published_at: &str) -> String {
+    use chrono::{DateTime, Utc};
+    let published: DateTime<Utc> = match published_at.parse() {
+        Ok(dt) => dt,
+        Err(_) => return String::new(),
+    };
+    published.format("%b %d, %Y").to_string()
 }
 
 pub async fn show_available_versions(ctx: &CommandContext, current_version: &str) {
+    use crate::ui::status;
+
     let releases = match fetch_available_releases(ctx).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("Failed to fetch releases: {}", e);
-            eprintln!("Failed to fetch releases: {}", e);
+            status::error(&format!("Failed to fetch releases: {}", e));
             return;
         }
     };
 
     if releases.is_empty() {
-        println!("No releases available.");
+        status::warn("No releases available.");
         return;
     }
 
     let current_tag = format!("v{}", current_version);
-    for release in releases {
-        let marker = if release.tag_name == current_tag {
-            " *"
+    let latest_tag = releases.first().map(|r| r.tag_name.as_str());
+
+    // Find longest version for alignment (+ 4 space gap)
+    let pad_width = releases.iter().map(|r| r.tag_name.len()).max().unwrap_or(0) + 4;
+
+    eprintln!("  {}", status::section("Available versions"));
+    for release in &releases {
+        let is_current = release.tag_name == current_tag;
+        let is_latest = Some(release.tag_name.as_str()) == latest_tag;
+
+        let date_str = release
+            .published_at
+            .as_ref()
+            .map(|p| status::dim(&format_release_date(p)));
+
+        let tag = if is_current {
+            Some(status::section("Current"))
+        } else if is_latest {
+            Some(status::highlight("Latest"))
         } else {
-            ""
+            None
         };
-        println!("{}{}", release.tag_name, marker);
+
+        // Pad version for alignment only when dates are present
+        let version_display = if date_str.is_some() {
+            format!("{:<width$}", release.tag_name, width = pad_width)
+        } else {
+            release.tag_name.clone()
+        };
+
+        // Apply color after padding (ANSI codes break width formatting)
+        let version_str = if is_current {
+            status::section(&version_display)
+        } else if is_latest {
+            status::highlight(&version_display)
+        } else {
+            version_display
+        };
+
+        match (&date_str, &tag) {
+            (Some(date), Some(t)) => eprintln!("  {}{}    {}", version_str, date, t),
+            (Some(date), None) => eprintln!("  {}{}", version_str, date),
+            (None, Some(t)) => eprintln!("  {}    {}", version_str, t),
+            (None, None) => eprintln!("  {}", version_str),
+        }
     }
+
+    eprintln!();
+    eprintln!("  Update to the latest version:");
+    eprintln!("    {}", status::highlight("ana self update"));
+    eprintln!();
+    eprintln!("  Update to a specific version:");
+    eprintln!(
+        "    {} {}",
+        status::highlight("ana self update"),
+        status::dim("[VERSION]")
+    );
+    eprintln!();
 }
 
 #[cfg(test)]
@@ -423,6 +632,7 @@ mod tests {
             prerelease,
             draft: false,
             assets: vec![],
+            published_at: None,
         }
     }
 
@@ -432,6 +642,7 @@ mod tests {
             prerelease: false,
             draft: true,
             assets: vec![],
+            published_at: None,
         }
     }
 
@@ -543,6 +754,7 @@ mod tests {
                     url: "https://example.com/windows".to_string(),
                 },
             ],
+            published_at: None,
         };
 
         let result = get_asset_for_platform(&release);
@@ -562,6 +774,7 @@ mod tests {
                 name: "ana-unknown-platform".to_string(),
                 url: "https://example.com/unknown".to_string(),
             }],
+            published_at: None,
         };
 
         let result = get_asset_for_platform(&release);
