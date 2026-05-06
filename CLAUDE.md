@@ -35,6 +35,9 @@ All commands receive a `CommandContext` (`ctx`). Always access `config` and `cli
 - Use `ctx.client()` - never construct a new `Client`
 - For specialized HTTP clients, use `ctx.github_client()`, `ctx.download_client()`, or `ctx.unauthenticated_client()`
 
+### Editing guidelines
+When editing files, make minimal changes. Don't remove or modify existing comments, whitespace, or formatting unless directly required by the task.
+
 ### Commit and PR titles
 Use conventional commit format: `<type>: <description>`
 
