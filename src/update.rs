@@ -372,9 +372,8 @@ fn format_relative_time_since(published_at: &str) -> String {
         };
     }
 
-    let months =
-        (now.year() - published.year()) * 12 + (now.month() as i32 - published.month() as i32);
     let years = now.year() - published.year();
+    let months = years * 12 + (now.month() as i32 - published.month() as i32);
 
     if months < 1 {
         format!("released {} days ago", days)
