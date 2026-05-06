@@ -4,6 +4,7 @@ mod cli;
 mod config;
 mod context;
 mod diagnostics;
+pub mod errors;
 mod feature;
 #[cfg(feature = "feedback")]
 mod feedback;

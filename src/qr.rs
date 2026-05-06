@@ -5,7 +5,7 @@
 //!
 //! Embedded from https://github.com/Anaconda-Sandbox/url2qr (BSD-3-Clause).
 
-use std::fmt;
+use crate::errors::QrError;
 
 // ---------------------------------------------------------------------------
 // GF(2^8) arithmetic for Reed-Solomon
@@ -121,39 +121,15 @@ const ALIGN_POSITIONS: [[u8; 2]; 6] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Error type
-// ---------------------------------------------------------------------------
-
-/// Errors returned by QR code generation.
-#[derive(Debug, Clone)]
-pub enum Error {
-    /// The URL exceeds the 134-byte maximum for versions 1-6 at EC-L.
-    TooLong(usize),
-    /// The URL contains bytes outside Latin-1 range.
-    InvalidByte,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::TooLong(n) => write!(f, "URL too long ({n} bytes), max 134 chars"),
-            Error::InvalidByte => write!(f, "URL contains non-Latin-1 characters"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-// ---------------------------------------------------------------------------
 // Version selection
 // ---------------------------------------------------------------------------
 
 /// Select the smallest QR version (1-6) that fits the given URL.
-pub fn select_version(data: &str) -> Result<u8, Error> {
+pub fn select_version(data: &str) -> Result<u8, QrError> {
     // Verify all bytes are Latin-1 (all &str bytes are valid UTF-8,
     // but we need to ensure they fit in a single byte each).
     if data.chars().any(|c| c as u32 > 255) {
-        return Err(Error::InvalidByte);
+        return Err(QrError::InvalidByte);
     }
     let byte_len = data.len();
     for (v, &capacity) in DATA_CAPACITY.iter().enumerate() {
@@ -161,7 +137,7 @@ pub fn select_version(data: &str) -> Result<u8, Error> {
             return Ok((v + 1) as u8);
         }
     }
-    Err(Error::TooLong(byte_len))
+    Err(QrError::TooLong(byte_len))
 }
 
 // ---------------------------------------------------------------------------
@@ -463,7 +439,7 @@ fn place_format_info(m: &mut Matrix) {
 /// Generate a QR code matrix for the given URL.
 ///
 /// Returns a `Vec<Vec<u8>>` where 1 = dark module, 0 = light module.
-pub fn generate_qr(url: &str) -> Result<Vec<Vec<u8>>, Error> {
+pub fn generate_qr(url: &str) -> Result<Vec<Vec<u8>>, QrError> {
     let version = select_version(url)?;
     let codewords = encode_data(url, version);
     let mut m = create_matrix(version);
@@ -474,7 +450,7 @@ pub fn generate_qr(url: &str) -> Result<Vec<Vec<u8>>, Error> {
 }
 
 /// Generate a terminal-printable QR code using Unicode half-block characters.
-pub fn qr_to_terminal(url: &str, quiet_zone: usize, invert: bool) -> Result<String, Error> {
+pub fn qr_to_terminal(url: &str, quiet_zone: usize, invert: bool) -> Result<String, QrError> {
     let matrix = generate_qr(url)?;
     let size = matrix.len();
 
@@ -549,7 +525,7 @@ mod tests {
     #[test]
     fn test_select_version_too_long() {
         let url = format!("https://example.com/{}", "x".repeat(150));
-        assert!(matches!(select_version(&url), Err(Error::TooLong(_))));
+        assert!(matches!(select_version(&url), Err(QrError::TooLong(_))));
     }
 
     #[test]

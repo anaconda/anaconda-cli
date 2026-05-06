@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{CommandFactory, Parser, Subcommand};
+use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
 use crate::anaconda_cli;
@@ -183,7 +184,7 @@ impl Action {
     }
 
     /// Execute the action with telemetry middleware
-    pub async fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn execute(self) -> miette::Result<()> {
         let name = self.match_action_name();
         let mut ctx = CommandContext::new();
         ctx.telemetry.add("command", name);
@@ -215,7 +216,7 @@ impl Action {
         result
     }
 
-    async fn run(self, ctx: &mut CommandContext) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run(self, ctx: &mut CommandContext) -> miette::Result<()> {
         match self {
             Action::ShowHelp => {
                 let subcommands = get_subcommand_descriptions();
@@ -234,8 +235,12 @@ impl Action {
                 Config::load().print_table();
                 Ok(())
             }
-            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx).await?),
-            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)?),
+            Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx)
+                .await
+                .map_err(|e| miette!("{}", e))?),
+            Action::OrgProxy { args } => Ok(
+                anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
+            ),
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -252,10 +257,12 @@ impl Action {
                 api_key,
                 prompt_api_key,
                 force,
-            } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
-            Action::Logout => Ok(auth::logout(ctx)?),
-            Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
-            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
+            } => Ok(auth::login(ctx, api_key, prompt_api_key, force)
+                .await
+                .into_diagnostic()?),
+            Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
+            Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
+            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
             Action::Update { force } => {
                 update::run_update(ctx, VERSION, force).await;
                 Ok(())
@@ -309,7 +316,7 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
-                    _ => return Err(format!("Unknown feature: {}", feature).into()),
+                    _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 Ok(())
             }
@@ -322,7 +329,7 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::disable_main_x(ctx, force).await?,
                     "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
-                    _ => return Err(format!("Unknown feature: {}", feature).into()),
+                    _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 Ok(())
             }

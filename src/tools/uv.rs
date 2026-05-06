@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+use miette::{Context, IntoDiagnostic, miette};
 use toml_edit::{DocumentMut, Item, Table};
 
 use crate::auth;
@@ -18,23 +19,24 @@ fn get_base_url(pip_index_url: &str) -> &str {
 }
 
 /// Get the path to the global uv.toml config file.
-fn get_uv_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let config_dir = dirs::config_dir().ok_or("Could not determine config directory")?;
+fn get_uv_config_path() -> miette::Result<PathBuf> {
+    let config_dir =
+        dirs::config_dir().ok_or_else(|| miette!("Could not determine config directory"))?;
     Ok(config_dir.join("uv").join("uv.toml"))
 }
 
 /// Configure the global uv.toml to use Anaconda's wheels index as the default.
-fn configure_global_index(index_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn configure_global_index(index_url: &str) -> miette::Result<()> {
     let config_path = get_uv_config_path()?;
 
     // Create parent directory if needed
     if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent)?;
+        fs::create_dir_all(parent).into_diagnostic()?;
     }
 
     // Load existing config or create new one
     let content = fs::read_to_string(&config_path).unwrap_or_default();
-    let mut doc: DocumentMut = content.parse()?;
+    let mut doc: DocumentMut = content.parse().into_diagnostic()?;
 
     // Get or create the [[index]] array
     let index_array = doc
@@ -43,7 +45,7 @@ fn configure_global_index(index_url: &str) -> Result<(), Box<dyn std::error::Err
 
     let index_array = match index_array {
         Item::ArrayOfTables(arr) => arr,
-        _ => return Err("'index' in uv.toml is not an array of tables".into()),
+        _ => return Err(miette!("'index' in uv.toml is not an array of tables")),
     };
 
     // Check if we already have an anaconda-wheels index entry
@@ -69,20 +71,20 @@ fn configure_global_index(index_url: &str) -> Result<(), Box<dyn std::error::Err
         index_array.push(new_table);
     }
 
-    fs::write(&config_path, doc.to_string())?;
+    fs::write(&config_path, doc.to_string()).into_diagnostic()?;
     Ok(())
 }
 
 /// Remove the Anaconda wheels index from the global uv.toml config.
-fn deconfigure_global_index() -> Result<(), Box<dyn std::error::Error>> {
+fn deconfigure_global_index() -> miette::Result<()> {
     let config_path = get_uv_config_path()?;
 
     if !config_path.exists() {
         return Ok(());
     }
 
-    let content = fs::read_to_string(&config_path)?;
-    let mut doc: DocumentMut = content.parse()?;
+    let content = fs::read_to_string(&config_path).into_diagnostic()?;
+    let mut doc: DocumentMut = content.parse().into_diagnostic()?;
 
     if let Some(Item::ArrayOfTables(index_array)) = doc.get_mut("index") {
         // Find and remove the anaconda-wheels entry
@@ -106,15 +108,16 @@ fn deconfigure_global_index() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    fs::write(&config_path, doc.to_string())?;
+    fs::write(&config_path, doc.to_string()).into_diagnostic()?;
     Ok(())
 }
 
 /// Configure uv to use Anaconda's wheels index with authentication.
 /// Caller should verify uv is installed before calling.
-pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = auth::get_api_key(config)?
-        .ok_or("Login required to configure uv. Run `ana login` first.")?;
+pub fn configure(config: &Config) -> miette::Result<()> {
+    let api_key = auth::get_api_key(config)
+        .into_diagnostic()?
+        .ok_or_else(|| miette!("Login required to configure uv. Run `ana login` first."))?;
 
     // Step 1: Configure global index in uv.toml
     configure_global_index(&config.pip_index_url)?;
@@ -124,11 +127,13 @@ pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
 
     let output = Command::new("uv")
         .args(["auth", "login", base_url, "--token", &api_key])
-        .output()?;
+        .output()
+        .into_diagnostic()
+        .context("Failed to run uv auth")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Failed to configure uv auth: {}", stderr).into());
+        return Err(miette!("Failed to configure uv auth: {}", stderr));
     }
 
     Ok(())
@@ -136,7 +141,7 @@ pub fn configure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Remove uv configuration for Anaconda's wheels index.
 /// Caller should verify uv is installed before calling.
-pub fn deconfigure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
+pub fn deconfigure(config: &Config) -> miette::Result<()> {
     // Step 1: Remove global index from uv.toml
     deconfigure_global_index()?;
 
@@ -145,13 +150,15 @@ pub fn deconfigure(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
 
     let output = Command::new("uv")
         .args(["auth", "logout", base_url])
-        .output()?;
+        .output()
+        .into_diagnostic()
+        .context("Failed to run uv auth")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         // Ignore "not logged in" errors
         if !stderr.contains("not logged in") && !stderr.contains("No credentials") {
-            return Err(format!("Failed to deconfigure uv auth: {}", stderr).into());
+            return Err(miette!("Failed to deconfigure uv auth: {}", stderr));
         }
     }
 
