@@ -25,6 +25,35 @@ fn print_command_row(term: &Term, name: &str, desc: &str) {
     ));
 }
 
+/// Print an option row with optional short/long flags
+fn print_option_row(term: &Term, short: Option<&str>, long: Option<&str>, desc: &str) {
+    let cmd_style = HelpStyle::Command.style();
+    let dim_style = HelpStyle::Dim.style();
+
+    let (name, visible_len) = match (short, long) {
+        (Some(s), Some(l)) => {
+            let styled = format!(
+                "{}{}{}",
+                cmd_style.apply_to(s),
+                dim_style.apply_to(", "),
+                cmd_style.apply_to(l)
+            );
+            let visible = s.len() + 2 + l.len(); // "s" + ", " + "l"
+            (styled, visible)
+        }
+        (Some(s), None) => (cmd_style.apply_to(s).to_string(), s.len()),
+        (None, Some(l)) => (cmd_style.apply_to(l).to_string(), l.len()),
+        (None, None) => (String::new(), 0),
+    };
+
+    let padding = " ".repeat(20_usize.saturating_sub(visible_len));
+    let styled_desc = HelpStyle::Desc.style().apply_to(desc);
+    let _ = term.write_line(&format!(
+        "{}  {name}{padding} {styled_desc}",
+        left_margin()
+    ));
+}
+
 /// Print a section header
 fn print_section(term: &Term, name: &str) {
     let _ = term.write_line(&format!(
@@ -186,13 +215,14 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
 
 fn print_options_block(term: &Term) {
     print_section(term, "OPTIONS");
-    print_command_row(
+    print_option_row(
         term,
-        "-v, --verbose",
+        Some("-v"),
+        Some("--verbose"),
         "Increase verbosity (can be repeated)",
     );
-    print_command_row(term, "-V, --version", "Show the ana version");
-    print_command_row(term, "-h, --help", "Show this message");
+    print_option_row(term, Some("-V"), Some("--version"), "Show the ana version");
+    print_option_row(term, Some("-h"), Some("--help"), "Show this message");
     let _ = term.write_line("");
 }
 
@@ -268,19 +298,12 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         .collect();
     print_section(&term, "OPTIONS");
     for arg in option_args {
-        let short = arg
-            .get_short()
-            .map(|s| format!("-{}, ", s))
-            .unwrap_or_default();
-        let long = arg
-            .get_long()
-            .map(|l| format!("--{}", l))
-            .unwrap_or_default();
-        let name = format!("{}{}", short, long);
+        let short = arg.get_short().map(|s| format!("-{}", s));
+        let long = arg.get_long().map(|l| format!("--{}", l));
         let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
-        print_command_row(&term, &name, &desc);
+        print_option_row(&term, short.as_deref(), long.as_deref(), &desc);
     }
-    print_command_row(&term, "-h, --help", "Show this message");
+    print_option_row(&term, Some("-h"), Some("--help"), "Show this message");
     let _ = term.write_line("");
 
     print_footer(&term);
