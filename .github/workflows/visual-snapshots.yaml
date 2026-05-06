@@ -17,6 +17,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+          ref: ${{ github.head_ref }}
 
       - name: Configure git for private repos
         env:
