@@ -16,7 +16,7 @@ pub fn configure(config: &Config) -> miette::Result<()> {
 
     let api_key = auth::get_api_key(config)
         .into_diagnostic()?
-        .ok_or_else(|| miette!("Login required to configure pip. Run `ana login` first."))?;
+        .ok_or_else(|| miette!("Not logged in"))?;
 
     configure_pip(pip_cmd, config, &api_key)?;
 

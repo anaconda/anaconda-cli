@@ -90,7 +90,7 @@ pub async fn enable_main_x(ctx: &CommandContext, force: bool) -> miette::Result<
     status::blank_line();
 
     // Step 1: Check login status and prompt if needed
-    ensure_logged_in(ctx).await?;
+    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
 
     // Step 2: Determine what changes need to be made
     let conda_bin = find_conda()?;
@@ -188,26 +188,6 @@ pub async fn disable_main_x(_ctx: &CommandContext, force: bool) -> miette::Resul
     Ok(())
 }
 
-/// Ensure the user is logged in, prompting them to login if not.
-async fn ensure_logged_in(ctx: &CommandContext) -> miette::Result<()> {
-    status::waiting("Checking authentication status...");
-
-    // Try to get API key to check if logged in
-    match auth::get_api_key(&ctx.config) {
-        Ok(Some(_)) => {
-            status::success("Already logged in");
-            Ok(())
-        }
-        Ok(None) | Err(_) => {
-            status::info("Not logged in. Starting login flow...");
-            status::blank_line();
-            auth::login(ctx, None, false, false)
-                .await
-                .map_err(|e| miette::miette!("Login failed: {}", e))?;
-            Ok(())
-        }
-    }
-}
 
 /// Run a conda config command.
 fn run_conda_config(conda_bin: &Path, args: &[&str]) -> miette::Result<()> {
