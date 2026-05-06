@@ -2,7 +2,7 @@
 
 mod actions;
 mod api_keys;
-mod errors;
+pub mod errors;
 mod keyring;
 mod responses;
 
