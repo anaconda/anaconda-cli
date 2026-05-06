@@ -2,13 +2,10 @@ use std::collections::HashMap;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
-use std::env;
 use tokio::io::AsyncWriteExt;
 
-use crate::config::Config;
 use crate::context::CommandContext;
 use crate::errors::UpdateError;
-use crate::http::{bearer_header, build_client};
 use crate::input::prompt_yes_no;
 
 // GitHub repository for releases (used when ANA_SELF_UPDATE_URL=github)
@@ -27,18 +24,6 @@ struct StaticChannel {
     latest: Option<String>,
 }
 
-fn github_client() -> Result<reqwest_middleware::ClientWithMiddleware, UpdateError> {
-    let token = match env::var("GITHUB_TOKEN") {
-        Ok(token) if !token.is_empty() => token,
-        _ => {
-            tracing::error!("GITHUB_TOKEN not set or empty");
-            return Err(UpdateError::MissingToken);
-        }
-    };
-    Ok(build_client(
-        reqwest::Client::builder().default_headers(bearer_header(&token)),
-    )?)
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Asset {
@@ -92,21 +77,28 @@ pub fn get_asset_for_platform(release: &Release) -> Result<&Asset, UpdateError> 
         .ok_or(UpdateError::AssetNotFound(asset_name))
 }
 
-pub async fn download_and_replace(asset: &Asset) -> Result<(), UpdateError> {
+async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(), UpdateError> {
     use futures_util::StreamExt;
 
     let is_github = asset.url.contains("api.github.com");
     let response = if is_github {
-        let client = github_client()?;
-        client
+        let gh_client = ctx.github_client().ok_or(UpdateError::MissingToken)?;
+        gh_client
             .get(&asset.url)
             .header("Accept", "application/octet-stream")
             .send()
-            .await?
-            .error_for_status()?
+            .await
+            .map_err(|e| UpdateError::Http(e.to_string()))?
+            .error_for_status()
+            .map_err(|e| UpdateError::Http(e.to_string()))?
     } else {
-        let client = build_client(reqwest::Client::builder())?;
-        client.get(&asset.url).send().await?.error_for_status()?
+        ctx.download_client()
+            .get(&asset.url)
+            .send()
+            .await
+            .map_err(|e| UpdateError::Http(e.to_string()))?
+            .error_for_status()
+            .map_err(|e| UpdateError::Http(e.to_string()))?
     };
 
     let total_size = response.content_length().unwrap_or(0);
@@ -154,33 +146,41 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, UpdateError> {
     semver::Version::parse(&normalized).map_err(|_| UpdateError::VersionParse(tag.to_string()))
 }
 
-async fn fetch_github_releases() -> Result<Vec<Release>, UpdateError> {
-    let client = github_client()?;
+async fn fetch_github_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
+    let gh_client = ctx.github_client().ok_or(UpdateError::MissingToken)?;
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
-    let releases: Vec<Release> = client
+    let releases: Vec<Release> = gh_client
         .get(&url)
         .header("Accept", "application/vnd.github+json")
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .map_err(|e| UpdateError::Http(e.to_string()))?
+        .error_for_status()
+        .map_err(|e| UpdateError::Http(e.to_string()))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| UpdateError::Http(e.to_string()))?;
     Ok(releases)
 }
 
-async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, UpdateError> {
-    let client = build_client(reqwest::Client::builder())?;
+async fn fetch_static_releases(
+    ctx: &CommandContext,
+    base_url: &str,
+) -> Result<Vec<Release>, UpdateError> {
     let manifest_url = format!("{}/releases.json", base_url);
-    let manifest: StaticManifest = client
+    let manifest: StaticManifest = ctx
+        .download_client()
         .get(&manifest_url)
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .map_err(|e| UpdateError::Http(e.to_string()))?
+        .error_for_status()
+        .map_err(|e| UpdateError::Http(e.to_string()))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| UpdateError::Http(e.to_string()))?;
 
-    let config = Config::load();
-    let channel = if config.include_prereleases {
+    let channel = if ctx.config.include_prereleases {
         "dev"
     } else {
         "stable"
@@ -211,13 +211,11 @@ async fn fetch_static_releases(base_url: &str) -> Result<Vec<Release>, UpdateErr
     Ok(releases)
 }
 
-pub async fn fetch_available_releases() -> Result<Vec<Release>, UpdateError> {
-    let config = Config::load();
-
-    let mut releases: Vec<_> = match &config.self_update_url {
+async fn fetch_available_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
+    let mut releases: Vec<_> = match &ctx.config.self_update_url {
         Some(base_url) => {
             // Static hosting - releases are already filtered by channel
-            fetch_static_releases(base_url)
+            fetch_static_releases(ctx, base_url)
                 .await?
                 .into_iter()
                 .filter(|r| parse_version(&r.tag_name).is_ok())
@@ -225,12 +223,12 @@ pub async fn fetch_available_releases() -> Result<Vec<Release>, UpdateError> {
         }
         None => {
             // GitHub Releases
-            fetch_github_releases()
+            fetch_github_releases(ctx)
                 .await?
                 .into_iter()
                 .filter(|r| !r.draft)
                 .filter(|r| parse_version(&r.tag_name).is_ok())
-                .filter(|r| config.include_prereleases || !r.prerelease)
+                .filter(|r| ctx.config.include_prereleases || !r.prerelease)
                 .collect()
         }
     };
@@ -275,20 +273,20 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCh
     }
 }
 
-pub async fn check_update(current_version: &str) -> Result<UpdateCheck, UpdateError> {
-    let releases = fetch_available_releases().await?;
+async fn check_update(ctx: &CommandContext, current_version: &str) -> Result<UpdateCheck, UpdateError> {
+    let releases = fetch_available_releases(ctx).await?;
     find_update(releases, current_version)
 }
 
-pub async fn apply_update(release: &Release) -> Result<(), UpdateError> {
+async fn apply_update(ctx: &CommandContext, release: &Release) -> Result<(), UpdateError> {
     let asset = get_asset_for_platform(release)?;
     println!("Downloading {} ({})", asset.name, asset.url);
-    download_and_replace(asset).await?;
+    download_and_replace(ctx, asset).await?;
     Ok(())
 }
 
-pub async fn check_for_update(_ctx: &mut CommandContext, current_version: &str) {
-    match check_update(current_version).await {
+pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
+    match check_update(ctx, current_version).await {
         Ok(UpdateCheck::Available(release)) => {
             println!(
                 "Update available: {} -> {}",
@@ -308,8 +306,8 @@ pub async fn check_for_update(_ctx: &mut CommandContext, current_version: &str) 
     }
 }
 
-pub async fn run_update(_ctx: &mut CommandContext, current_version: &str, force: bool) {
-    let check = match check_update(current_version).await {
+pub async fn run_update(ctx: &CommandContext, current_version: &str, force: bool) {
+    let check = match check_update(ctx, current_version).await {
         Ok(c) => c,
         Err(e) => {
             tracing::error!("Failed to check for updates: {}", e);
@@ -327,7 +325,7 @@ pub async fn run_update(_ctx: &mut CommandContext, current_version: &str, force:
                     return;
                 }
             }
-            match apply_update(&release).await {
+            match apply_update(ctx, &release).await {
                 Ok(()) => println!(
                     "Updated successfully: {} -> {}",
                     current_version, release.tag_name
@@ -347,8 +345,8 @@ pub async fn run_update(_ctx: &mut CommandContext, current_version: &str, force:
     }
 }
 
-pub async fn show_available_versions(_ctx: &mut CommandContext, current_version: &str) {
-    let releases = match fetch_available_releases().await {
+pub async fn show_available_versions(ctx: &CommandContext, current_version: &str) {
+    let releases = match fetch_available_releases(ctx).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("Failed to fetch releases: {}", e);
@@ -376,6 +374,7 @@ pub async fn show_available_versions(_ctx: &mut CommandContext, current_version:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
 
     #[tokio::test]
     async fn test_fetch_github_releases_missing_token_error() {
@@ -384,7 +383,8 @@ mod tests {
         if env::var("GITHUB_TOKEN").is_ok() {
             return; // Skip test if token is set
         }
-        let result = fetch_github_releases().await;
+        let ctx = CommandContext::new();
+        let result = fetch_github_releases(&ctx).await;
         assert_eq!(result.unwrap_err(), UpdateError::MissingToken);
     }
 

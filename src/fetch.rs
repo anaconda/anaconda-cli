@@ -1,29 +1,27 @@
 use miette::{Context, IntoDiagnostic, miette};
 
 use crate::auth;
-use crate::config::Config;
 use crate::context::CommandContext;
 
 pub async fn api_fetch(
-    ctx: &mut CommandContext,
+    ctx: &CommandContext,
     method: &str,
     url: &str,
     query_args: Option<&str>,
     data: Option<&str>,
     json: Option<&str>,
 ) -> miette::Result<()> {
-    let config = Config::load();
-    if auth::get_api_key(&config).into_diagnostic()?.is_none() {
+    if auth::get_api_key(&ctx.config).into_diagnostic()?.is_none() {
         return Err(miette!("Not logged in. Run `ana login` first."));
     }
 
     let method_upper = method.to_uppercase();
     let mut request = match method_upper.as_str() {
-        "GET" => ctx.client.get(url),
-        "POST" => ctx.client.post(url),
-        "PUT" => ctx.client.put(url),
-        "PATCH" => ctx.client.patch(url),
-        "DELETE" => ctx.client.delete(url),
+        "GET" => ctx.client().get(url),
+        "POST" => ctx.client().post(url),
+        "PUT" => ctx.client().put(url),
+        "PATCH" => ctx.client().patch(url),
+        "DELETE" => ctx.client().delete(url),
         _ => return Err(miette!("Unsupported HTTP method: {}", method)),
     };
     request = request.header("X-Ana-Raw-Request", "true");

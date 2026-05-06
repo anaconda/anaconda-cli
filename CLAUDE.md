@@ -10,6 +10,8 @@ cargo build
 cargo test
 ```
 
+Always run `cargo clippy` and `cargo test` and ensure both pass before pushing any changes.
+
 ### Pre-commit
 The repo uses pre-commit hooks. Run `pre-commit install` after cloning.
 
@@ -26,6 +28,25 @@ pub enum MyError {
 ```
 
 For one-off errors, use `miette!("message")`. Avoid `Box<dyn Error>`.
+
+### CommandContext
+All commands receive a `CommandContext` (`ctx`). Always access `config` and `client` through `ctx`:
+- Use `ctx.config` - never call `Config::load()`
+- Use `ctx.client()` - never construct a new `Client`
+- For specialized HTTP clients, use `ctx.github_client()`, `ctx.download_client()`, or `ctx.unauthenticated_client()`
+
+### Commit and PR titles
+Use conventional commit format: `<type>: <description>`
+
+Available types:
+- `feat` - New features
+- `fix` - Bug fixes
+- `chore` - Maintenance tasks
+- `refac` - Code refactoring
+- `docs` - Documentation changes
+- `test` - Test additions/changes
+- `build` - Build system changes
+- `ci` - CI/CD changes
 
 ## Release Process
 

@@ -4,13 +4,16 @@
 //! (telemetry, config, etc.) without polluting function signatures.
 
 use std::collections::HashMap;
+use std::env;
 use std::env::consts::{ARCH, OS};
+use std::sync::OnceLock;
+use std::time::Duration;
 
 use opentelemetry::Value;
 
 use crate::VERSION;
 use crate::config::Config;
-use crate::http::Client;
+use crate::http::{self, Client};
 
 /// Telemetry context for collecting command-specific attributes.
 #[derive(Debug, Default)]
@@ -48,21 +51,76 @@ impl TelemetryContext {
 pub struct CommandContext {
     /// Telemetry attributes collector.
     pub telemetry: TelemetryContext,
-    /// Application configuration.
+    /// Configuration.
     pub config: Config,
-    /// HTTP client for API requests.
-    pub client: Client,
+    /// HTTP client for API requests (lazy initialized).
+    client: OnceLock<Client>,
+    /// GitHub API client (lazy initialized).
+    github_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
+    /// Download client (lazy initialized).
+    download_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
+    /// Unauthenticated client (lazy initialized).
+    unauthenticated_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
 }
 
 impl CommandContext {
     /// Create a new command context.
     pub fn new() -> Self {
-        let client = Client::from_config().expect("failed to create HTTP client");
         Self {
             telemetry: TelemetryContext::new(),
             config: Config::load(),
-            client,
+            client: OnceLock::new(),
+            github_client: OnceLock::new(),
+            download_client: OnceLock::new(),
+            unauthenticated_client: OnceLock::new(),
         }
+    }
+
+    /// Get the main HTTP client (authenticated with API key if available).
+    pub fn client(&self) -> &Client {
+        self.client.get_or_init(|| {
+            Client::from_config(&self.config).expect("failed to create HTTP client")
+        })
+    }
+
+    /// Get or create a GitHub API client (uses GITHUB_TOKEN).
+    /// Returns None if GITHUB_TOKEN is not set or client creation fails.
+    pub fn github_client(&self) -> Option<&reqwest_middleware::ClientWithMiddleware> {
+        if self.github_client.get().is_none() {
+            if let Some(client) = env::var("GITHUB_TOKEN")
+                .ok()
+                .filter(|t| !t.is_empty())
+                .and_then(|token| {
+                    http::build_client(
+                        reqwest::Client::builder().default_headers(http::bearer_header(&token)),
+                    )
+                    .ok()
+                })
+            {
+                let _ = self.github_client.set(client);
+            }
+        }
+        self.github_client.get()
+    }
+
+    /// Get or create a download client optimized for binary downloads (no gzip).
+    pub fn download_client(&self) -> &reqwest_middleware::ClientWithMiddleware {
+        self.download_client.get_or_init(|| {
+            http::build_client(reqwest::Client::builder().no_gzip())
+                .expect("failed to create download client")
+        })
+    }
+
+    /// Get or create an unauthenticated client with a timeout.
+    /// Used for login flows where the user isn't authenticated yet.
+    pub fn unauthenticated_client(
+        &self,
+        timeout: Duration,
+    ) -> &reqwest_middleware::ClientWithMiddleware {
+        self.unauthenticated_client.get_or_init(|| {
+            http::build_client(reqwest::Client::builder().timeout(timeout))
+                .expect("failed to create unauthenticated client")
+        })
     }
 }
 
