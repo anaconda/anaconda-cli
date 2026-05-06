@@ -339,11 +339,7 @@ mod tests {
 
     #[test]
     fn test_usage_with_multi_value_arg() {
-        let cmd = Command::new("test").arg(
-            Arg::new("files")
-                .required(true)
-                .num_args(1..),
-        );
+        let cmd = Command::new("test").arg(Arg::new("files").required(true).num_args(1..));
         let usage = build_usage_string(&cmd, "process");
         assert_eq!(usage, "Usage: ana process [FILES]...");
     }
