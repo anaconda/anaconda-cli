@@ -48,10 +48,7 @@ fn print_option_row(term: &Term, short: Option<&str>, long: Option<&str>, desc: 
 
     let padding = " ".repeat(20_usize.saturating_sub(visible_len));
     let styled_desc = HelpStyle::Desc.style().apply_to(desc);
-    let _ = term.write_line(&format!(
-        "{}  {name}{padding} {styled_desc}",
-        left_margin()
-    ));
+    let _ = term.write_line(&format!("{}  {name}{padding} {styled_desc}", left_margin()));
 }
 
 /// Print a section header
