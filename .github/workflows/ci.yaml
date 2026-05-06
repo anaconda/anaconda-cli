@@ -81,29 +81,14 @@ jobs:
         if: matrix.os == 'ubuntu-24.04-arm'
         uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
-      # Non-Windows: run unit tests in the build job
       - name: Run unit tests
-        if: ${{ !inputs.skip-tests && runner.os != 'Windows' }}
+        if: ${{ !inputs.skip-tests }}
         env:
           RUST_BACKTRACE: 1
         run: pixi run test-release
 
-      # Windows: compile tests without running (tests run in parallel jobs)
-      - name: Compile tests
-        if: runner.os == 'Windows'
-        run: pixi run -- cargo test --release --no-run
-
       - name: Build release binary
         run: pixi run build-release
-
-      # Non-Windows: run integration tests in the build job
-      - name: Run integration tests
-        if: ${{ !inputs.skip-tests && runner.os != 'Windows' }}
-        env:
-          ANA_SENTRY_ENVIRONMENT: integration-test
-          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
-          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        run: pixi run test-integration
 
       - name: Build conda package
         run: pixi run build-conda
@@ -122,76 +107,25 @@ jobs:
           path: target/release/ana${{ runner.os == 'Windows' && '.exe' || '' }}
           retention-days: 7
 
-  # Windows-only: run unit tests in parallel after build
-  test-windows-unit:
-    name: Unit Tests (windows-latest)
+  test-integration:
+    name: Integration Tests (${{ matrix.os }}${{ matrix.shell && format(', {0}', matrix.shell) || '' }})
     needs: build
     if: ${{ !inputs.skip-tests }}
-    runs-on: windows-latest
-    env:
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-    permissions:
-      contents: read
-
-    defaults:
-      run:
-        shell: bash -el {0}
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Configure git for private repos
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-        run: |
-          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
-
-      - name: Hash SENTRY_DSN for cache key
-        id: dsn-hash
-        run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-Windows-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
-
-      - name: Set up ana with pixi
-        uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
-        with:
-          ana-version: v0.0.9
-          tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-
-      - name: Run unit tests
-        env:
-          RUST_BACKTRACE: 1
-        run: pixi run -- cargo test --release
-
-  # Windows-only: run integration tests in parallel after build (bash + powershell)
-  test-windows-integration:
-    name: Integration Tests (windows-latest, ${{ matrix.shell }})
-    needs: build
-    if: ${{ !inputs.skip-tests }}
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     strategy:
       fail-fast: true
       matrix:
-        shell: [bash, powershell]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+        shell: ['']
+        include:
+          - os: windows-latest
+            shell: powershell
 
     defaults:
       run:
-        shell: ${{ matrix.shell == 'bash' && 'bash -el {0}' || 'powershell' }}
+        shell: ${{ matrix.shell == 'powershell' && 'powershell' || 'bash -el {0}' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -200,7 +134,7 @@ jobs:
           persist-credentials: false
 
       - name: Configure git for private repos (bash)
-        if: matrix.shell == 'bash'
+        if: matrix.shell != 'powershell'
         env:
           REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
         run: |
@@ -216,33 +150,37 @@ jobs:
           git config --global --add url."https://x-access-token:$env:REPO_TOKEN@github.com/".insteadOf "ssh://git@github.com/"
 
       - name: Set up ana with pixi
+        if: matrix.os != 'ubuntu-24.04-arm'
         uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
         with:
           ana-version: v0.0.9
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
+      - name: Set up pixi (fallback)
+        if: matrix.os == 'ubuntu-24.04-arm'
+        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
+
       - name: Download binary
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: binary-windows-latest
+          name: binary-${{ matrix.os }}
           path: target/release/
 
       - name: Run integration tests
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
-          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        run: pixi run pytest tests -v
+        run: pixi run test-integration
 
   check:
     name: Check
     if: always()
-    needs: [build, test-windows-unit, test-windows-integration]
+    needs: [build, test-integration]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether all jobs succeeded
         uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
-          allowed-skips: test-windows-unit, test-windows-integration
+          allowed-skips: test-integration
           jobs: ${{ toJSON(needs) }}
