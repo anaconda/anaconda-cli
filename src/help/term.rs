@@ -372,5 +372,4 @@ mod tests {
         let usage = build_usage_string(&cmd, "simple");
         assert_eq!(usage, "Usage: ana simple");
     }
-    let _ = term.write_line("");
 }

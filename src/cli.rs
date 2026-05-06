@@ -17,6 +17,7 @@ use crate::fetch::api_fetch;
 use crate::help;
 use crate::outerbounds;
 use crate::tools;
+use crate::ui::status;
 use crate::update;
 
 /// Log level for tracing output.
