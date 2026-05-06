@@ -878,10 +878,15 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
-        let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config", "telemetry-submit", "telemetry-kill", "telemetry-status"]
-                .into_iter()
-                .collect();
+        let hidden_from_help: std::collections::HashSet<_> = [
+            "org",
+            "config",
+            "telemetry-submit",
+            "telemetry-kill",
+            "telemetry-status",
+        ]
+        .into_iter()
+        .collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd

@@ -90,5 +90,4 @@ mod tests {
         assert_eq!(batch.version, parsed.version);
         assert_eq!(batch.events.len(), 1);
     }
-
 }

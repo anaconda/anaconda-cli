@@ -84,19 +84,15 @@ pub fn shutdown() {
 
 /// Submit a counter metric to OpenTelemetry.
 pub fn submit_counter(name: &str, value: u64, attrs: HashMap<String, SerializableValue>) {
-    let otel_attrs: HashMap<String, Value> = attrs
-        .into_iter()
-        .map(|(k, v)| (k, v.into()))
-        .collect();
+    let otel_attrs: HashMap<String, Value> =
+        attrs.into_iter().map(|(k, v)| (k, v.into())).collect();
     increment_counter(name, value, otel_attrs);
 }
 
 /// Submit a histogram metric to OpenTelemetry.
 pub fn submit_histogram(name: &str, value: f64, attrs: HashMap<String, SerializableValue>) {
-    let otel_attrs: HashMap<String, Value> = attrs
-        .into_iter()
-        .map(|(k, v)| (k, v.into()))
-        .collect();
+    let otel_attrs: HashMap<String, Value> =
+        attrs.into_iter().map(|(k, v)| (k, v.into())).collect();
     record_histogram(name, value, otel_attrs);
 }
 

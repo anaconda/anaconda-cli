@@ -27,9 +27,7 @@ pub fn submit_pending() -> Result<(), Box<dyn std::error::Error>> {
     match rx.recv_timeout(SUBMIT_TIMEOUT) {
         Ok(Ok(())) => Ok(()),
         Ok(Err(e)) => Err(e.into()),
-        Err(mpsc::RecvTimeoutError::Timeout) => {
-            Err("Telemetry submission timed out".into())
-        }
+        Err(mpsc::RecvTimeoutError::Timeout) => Err("Telemetry submission timed out".into()),
         Err(mpsc::RecvTimeoutError::Disconnected) => {
             Err("Telemetry submission thread panicked".into())
         }
