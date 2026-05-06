@@ -24,7 +24,6 @@ concurrency:
 permissions: {}
 
 jobs:
-  # Non-Windows builds run everything in a single job
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -35,7 +34,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
     defaults:
       run:
@@ -82,19 +81,27 @@ jobs:
         if: matrix.os == 'ubuntu-24.04-arm'
         uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
+      # Non-Windows: run unit tests in the build job
       - name: Run unit tests
-        if: ${{ !inputs.skip-tests }}
+        if: ${{ !inputs.skip-tests && runner.os != 'Windows' }}
         env:
           RUST_BACKTRACE: 1
         run: pixi run test-release
 
+      # Windows: compile tests without running (tests run in parallel jobs)
+      - name: Compile tests
+        if: runner.os == 'Windows'
+        run: pixi run -- cargo test --release --no-run
+
       - name: Build release binary
         run: pixi run build-release
 
+      # Non-Windows: run integration tests in the build job
       - name: Run integration tests
-        if: ${{ !inputs.skip-tests }}
+        if: ${{ !inputs.skip-tests && runner.os != 'Windows' }}
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         run: pixi run test-integration
 
@@ -112,81 +119,13 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binary-${{ matrix.os }}
-          path: target/release/ana
+          path: target/release/ana${{ runner.os == 'Windows' && '.exe' || '' }}
           retention-days: 7
 
-  # Windows: Build once, then run tests in parallel
-  build-windows:
-    name: Build (windows-latest)
-    runs-on: windows-latest
-    env:
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-    permissions:
-      contents: read
-
-    defaults:
-      run:
-        shell: bash -el {0}
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Configure git for private repos
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-        run: |
-          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
-
-      - name: Hash SENTRY_DSN for cache key
-        id: dsn-hash
-        run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Cargo registry and build
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-Windows-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
-
-      - name: Set up ana with pixi
-        uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
-        with:
-          ana-version: v0.0.9
-          tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-
-      - name: Build release binary and compile tests
-        run: |
-          pixi run build-release
-          pixi run -- cargo test --release --no-run
-
-      - name: Build conda package
-        run: pixi run build-conda
-
-      - name: Upload conda package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: conda-package-windows-latest
-          path: output/
-          retention-days: 7
-
-      - name: Upload binary
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: binary-windows-latest
-          path: target/release/ana.exe
-          retention-days: 7
-
+  # Windows-only: run unit tests in parallel after build
   test-windows-unit:
     name: Unit Tests (windows-latest)
-    needs: build-windows
+    needs: build
     if: ${{ !inputs.skip-tests }}
     runs-on: windows-latest
     env:
@@ -235,11 +174,12 @@ jobs:
       - name: Run unit tests
         env:
           RUST_BACKTRACE: 1
-        run: pixi run test-release
+        run: pixi run -- cargo test --release
 
+  # Windows-only: run integration tests in parallel after build (bash + powershell)
   test-windows-integration:
     name: Integration Tests (windows-latest, ${{ matrix.shell }})
-    needs: build-windows
+    needs: build
     if: ${{ !inputs.skip-tests }}
     runs-on: windows-latest
     permissions:
@@ -291,13 +231,14 @@ jobs:
       - name: Run integration tests
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         run: pixi run pytest tests -v
 
   check:
     name: Check
     if: always()
-    needs: [build, build-windows, test-windows-unit, test-windows-integration]
+    needs: [build, test-windows-unit, test-windows-integration]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether all jobs succeeded
