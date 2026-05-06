@@ -4,7 +4,8 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
+use std::path::Path;
 
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -35,7 +36,7 @@ pub fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
 
     // Create parent directories if they don't exist
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| keyring_io_error("create directory", e))?;
+        create_secure_dir(parent)?;
     }
 
     // TODO(mattkram): The keyring access should be encapsulated in a struct
@@ -60,10 +61,10 @@ pub fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
         .or_default()
         .insert(config.domain.clone(), encoded);
 
-    // Write keyring
+    // Write keyring with secure permissions
     let keyring_json =
         serde_json::to_string(&keyring).map_err(|e| AuthError::Keyring(e.to_string()))?;
-    fs::write(path, keyring_json).map_err(|e| keyring_io_error("write", e))?;
+    write_secure_file(path, &keyring_json)?;
 
     Ok(())
 }
@@ -113,10 +114,55 @@ pub fn delete_api_key(config: &Config) -> Result<(), AuthError> {
         // Remove file if keyring is empty
         fs::remove_file(path).map_err(|e| keyring_io_error("delete", e))?;
     } else {
-        // Write updated keyring
+        // Write updated keyring with secure permissions
         let keyring_json =
             serde_json::to_string(&keyring).map_err(|e| AuthError::Keyring(e.to_string()))?;
-        fs::write(path, keyring_json).map_err(|e| keyring_io_error("write", e))?;
+        write_secure_file(path, &keyring_json)?;
+    }
+
+    Ok(())
+}
+
+/// Create a directory with secure permissions (0700 on Unix).
+fn create_secure_dir(path: &Path) -> Result<(), AuthError> {
+    if path.exists() {
+        return Ok(());
+    }
+
+    fs::create_dir_all(path).map_err(|e| keyring_permission_error("create directory", path, e))?;
+
+    // Set directory permissions to 0700 (owner read/write/execute only)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let perms = fs::Permissions::from_mode(0o700);
+        fs::set_permissions(path, perms)
+            .map_err(|e| keyring_permission_error("set directory permissions", path, e))?;
+    }
+
+    Ok(())
+}
+
+/// Write a file with secure permissions (0600 on Unix).
+fn write_secure_file(path: &Path, contents: &str) -> Result<(), AuthError> {
+    // On Unix, create file with restricted permissions from the start
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(path)
+            .map_err(|e| keyring_permission_error("write", path, e))?;
+        file.write_all(contents.as_bytes())
+            .map_err(|e| keyring_permission_error("write", path, e))?;
+    }
+
+    #[cfg(not(unix))]
+    {
+        fs::write(path, contents).map_err(|e| keyring_permission_error("write", path, e))?;
     }
 
     Ok(())
@@ -130,7 +176,8 @@ fn load_keyring(config: &Config) -> Result<Keyring, AuthError> {
         return Ok(Keyring::new());
     }
 
-    let contents = fs::read_to_string(path).map_err(|e| keyring_io_error("read", e))?;
+    let contents =
+        fs::read_to_string(path).map_err(|e| keyring_permission_error("read", path, e))?;
 
     // Handle empty file as empty keyring
     if contents.trim().is_empty() {
@@ -146,6 +193,26 @@ fn load_keyring(config: &Config) -> Result<Keyring, AuthError> {
 /// Helper to create an AuthError from an IO error.
 fn keyring_io_error(operation: &str, error: io::Error) -> AuthError {
     AuthError::Keyring(format!("Failed to {} keyring: {}", operation, error))
+}
+
+/// Helper to create an AuthError from a permission-related IO error with actionable guidance.
+fn keyring_permission_error(operation: &str, path: &Path, error: io::Error) -> AuthError {
+    let base_msg = format!("Failed to {} keyring: {}", operation, error);
+
+    // Provide actionable guidance for permission denied errors
+    #[cfg(unix)]
+    if error.kind() == io::ErrorKind::PermissionDenied {
+        if let Some(parent) = path.parent() {
+            return AuthError::Keyring(format!(
+                "{}.\n\nTo fix this, run:\n  chmod 700 {} && chmod 600 {}",
+                base_msg,
+                parent.display(),
+                path.display()
+            ));
+        }
+    }
+
+    AuthError::Keyring(base_msg)
 }
 
 #[cfg(test)]
@@ -326,5 +393,53 @@ mod tests {
         let parsed: Credential = serde_json::from_str(&json).unwrap();
 
         assert_eq!(credential, parsed);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_keyring_file_has_secure_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let parent_dir = dir.path().join("secure_dir");
+        let keyring_path = parent_dir.join("keyring");
+        let config = test_config_with_keyring(keyring_path.clone(), "test.com");
+
+        save_api_key(&config, "test-key").unwrap();
+
+        // Check directory permissions are 0700 (owner read/write/execute only)
+        let dir_perms = fs::metadata(&parent_dir).unwrap().permissions();
+        assert_eq!(
+            dir_perms.mode() & 0o777,
+            0o700,
+            "Directory should have 0700 permissions"
+        );
+
+        // Check file permissions are 0600 (owner read/write only)
+        let file_perms = fs::metadata(&keyring_path).unwrap().permissions();
+        assert_eq!(
+            file_perms.mode() & 0o777,
+            0o600,
+            "Keyring file should have 0600 permissions"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_permission_error_includes_fix_instructions() {
+        let path = Path::new("/some/path/keyring");
+        let error = keyring_permission_error(
+            "write",
+            path,
+            io::Error::new(io::ErrorKind::PermissionDenied, "Permission denied"),
+        );
+
+        let msg = error.to_string();
+        assert!(
+            msg.contains("Permission denied"),
+            "Should include original error"
+        );
+        assert!(msg.contains("chmod 700"), "Should include directory fix");
+        assert!(msg.contains("chmod 600"), "Should include file fix");
     }
 }
