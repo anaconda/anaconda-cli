@@ -2,15 +2,29 @@ name: Visual Snapshots
 
 on:
   push:
-    branches: [poc/visual-snapshots]
+    branches: [poc/snapshots]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   snapshots:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git for private repos
+        env:
+          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
 
       - name: Install pixi
         uses: prefix-dev/setup-pixi@v0.8.8
