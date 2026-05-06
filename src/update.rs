@@ -24,7 +24,6 @@ struct StaticChannel {
     latest: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct Asset {
     pub name: String,
@@ -273,7 +272,10 @@ fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCh
     }
 }
 
-async fn check_update(ctx: &CommandContext, current_version: &str) -> Result<UpdateCheck, UpdateError> {
+async fn check_update(
+    ctx: &CommandContext,
+    current_version: &str,
+) -> Result<UpdateCheck, UpdateError> {
     let releases = fetch_available_releases(ctx).await?;
     find_update(releases, current_version)
 }
