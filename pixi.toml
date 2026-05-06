@@ -63,6 +63,6 @@ cmd = "./scripts/update_lockfiles.sh --force"
 description = "Regenerate Cargo.lock and SBOM unconditionally"
 
 [tasks.vhs]
-cmd = "vhs vhs/help.tape"
+cmd = "bash -c 'for tape in vhs/*.tape; do vhs $tape; done'"
 depends-on = ["build-release"]
 description = "Generate visual snapshots with VHS"
