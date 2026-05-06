@@ -1,0 +1,47 @@
+name: Visual Snapshots
+
+on:
+  push:
+    branches: [poc/visual-snapshots]
+  pull_request:
+    branches: [main]
+
+jobs:
+  snapshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: v0.45.0
+
+      - name: Build and generate snapshots
+        run: pixi run vhs
+
+      - name: Upload snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-snapshots
+          path: vhs/*.png
+
+      - name: Commit snapshots to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f vhs/*.png
+          git commit -m "chore: Update visual snapshots [skip ci]" || echo "No changes to commit"
+          git push
+
+      - name: Write job summary
+        run: |
+          echo "## Visual Snapshots" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          for img in vhs/*.png; do
+            name=$(basename "$img")
+            url="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/vhs/$name"
+            echo "### $name" >> $GITHUB_STEP_SUMMARY
+            echo "![$name]($url)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          done
