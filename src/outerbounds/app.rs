@@ -113,14 +113,41 @@ fn get_app_url(name: &str) -> Result<String, String> {
         .and_then(|a| a.out_of_cluster_url.clone())
         .ok_or_else(|| format!("App '{}' has no URL", name))?;
 
-    // Add https:// prefix if not present
-    if url.starts_with("http://") || url.starts_with("https://") {
-        Ok(url)
-    } else {
-        Ok(format!("https://{}", url))
-    }
+    Ok(normalize_url(&url))
 }
 
 fn open_url_in_browser(url: &str) -> Result<(), String> {
     webbrowser::open(url).map_err(|e| format!("Failed to open browser: {}", e))
+}
+
+fn normalize_url(url: &str) -> String {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        url.to_string()
+    } else {
+        format!("https://{}", url)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_url_with_https() {
+        assert_eq!(normalize_url("https://example.com"), "https://example.com");
+    }
+
+    #[test]
+    fn test_normalize_url_with_http() {
+        assert_eq!(normalize_url("http://example.com"), "http://example.com");
+    }
+
+    #[test]
+    fn test_normalize_url_without_scheme() {
+        assert_eq!(normalize_url("example.com"), "https://example.com");
+        assert_eq!(
+            normalize_url("app.outerbounds.com/path"),
+            "https://app.outerbounds.com/path"
+        );
+    }
 }
