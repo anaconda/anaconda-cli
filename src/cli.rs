@@ -509,10 +509,33 @@ pub fn parse() -> (Action, LogLevel) {
                         args.extend(spc_args);
                         Action::ObProxy { args }
                     }
-                    Some(ObCommands::Flowproject { args: fp_args }) => {
-                        let mut args = vec!["flowproject".to_string()];
-                        args.extend(fp_args);
-                        Action::ObProxy { args }
+                    Some(ObCommands::Flowproject { command: fp_cmd }) => match fp_cmd {
+                        None => Action::ShowSubcommandHelp("ob flowproject".to_string()),
+                        Some(ObFlowprojectCommands::DeleteMetadata { args: dm_args }) => {
+                            let mut args = vec!["flowproject".to_string(), "delete-metadata".to_string()];
+                            args.extend(dm_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObFlowprojectCommands::GetMetadata { args: gm_args }) => {
+                            let mut args = vec!["flowproject".to_string(), "get-metadata".to_string()];
+                            args.extend(gm_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObFlowprojectCommands::ListTemplates { args: lt_args }) => {
+                            let mut args = vec!["flowproject".to_string(), "list-templates".to_string()];
+                            args.extend(lt_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObFlowprojectCommands::SetMetadata { args: sm_args }) => {
+                            let mut args = vec!["flowproject".to_string(), "set-metadata".to_string()];
+                            args.extend(sm_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObFlowprojectCommands::TeardownBranch { args: tb_args }) => {
+                            let mut args = vec!["flowproject".to_string(), "teardown-branch".to_string()];
+                            args.extend(tb_args);
+                            Action::ObProxy { args }
+                        }
                     }
                 },
                 Some(Commands::Tool { command }) => match command {
@@ -1022,10 +1045,10 @@ enum ObCommands {
     },
 
     /// Commands for pushing Deployments metadata
-    #[command(trailing_var_arg = true)]
+    #[command(subcommand_required = false, arg_required_else_help = false)]
     Flowproject {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
+        #[command(subcommand)]
+        command: Option<ObFlowprojectCommands>,
     },
 }
 
@@ -1075,6 +1098,44 @@ enum ObAppCommands {
     /// Get logs for an app worker
     #[command(trailing_var_arg = true)]
     Logs {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+}
+
+#[derive(Subcommand)]
+enum ObFlowprojectCommands {
+    /// Delete flowproject metadata for a project/branch
+    #[command(trailing_var_arg = true, name = "delete-metadata", disable_help_flag = true)]
+    DeleteMetadata {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Get flowproject metadata
+    #[command(trailing_var_arg = true, name = "get-metadata", disable_help_flag = true)]
+    GetMetadata {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// List deployed workflow templates for a project/branch
+    #[command(trailing_var_arg = true, name = "list-templates", disable_help_flag = true)]
+    ListTemplates {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Set flowproject metadata
+    #[command(trailing_var_arg = true, name = "set-metadata", disable_help_flag = true)]
+    SetMetadata {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Tear down all deployed resources for a project/branch
+    #[command(trailing_var_arg = true, name = "teardown-branch", disable_help_flag = true)]
+    TeardownBranch {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
