@@ -428,6 +428,22 @@ mod tests {
         fs::write(config_dir.join("ob_config.json"), ob_config).unwrap();
     }
 
+    /// Run a test with the home directory set to a temp path.
+    /// Sets both HOME (Unix) and USERPROFILE (Windows) for cross-platform support.
+    fn with_temp_home<F, R>(home: &Path, f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        let home_str = home.to_str().unwrap();
+        temp_env::with_vars(
+            [
+                ("HOME", Some(home_str)),
+                ("USERPROFILE", Some(home_str)),
+            ],
+            f,
+        )
+    }
+
     #[test]
     fn test_init_project_creates_structure() {
         let tmp = TempDir::new().unwrap();
@@ -435,7 +451,7 @@ mod tests {
 
         create_mock_config(tmp.path(), "test.outerbounds.com");
 
-        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+        with_temp_home(tmp.path(), || {
             let opts = InitOptions {
                 path: Some(project_path.to_string_lossy().into()),
                 name: Some("test_proj".into()),
@@ -482,7 +498,7 @@ mod tests {
 
         create_mock_config(tmp.path(), "cool.outerbounds.com");
 
-        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+        with_temp_home(tmp.path(), || {
             let opts = InitOptions {
                 path: Some(project_path.to_string_lossy().into()),
                 name: Some("my_cool_project".into()),
@@ -510,7 +526,7 @@ mod tests {
         // Create existing obproject.toml
         fs::write(tmp.path().join("obproject.toml"), "existing").unwrap();
 
-        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+        with_temp_home(tmp.path(), || {
             let opts = InitOptions {
                 path: Some(tmp.path().to_string_lossy().into()),
                 name: Some("proj".into()),
@@ -535,7 +551,7 @@ mod tests {
 
         create_mock_config(tmp.path(), "platform.com");
 
-        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+        with_temp_home(tmp.path(), || {
             let opts = InitOptions {
                 path: Some(tmp.path().to_string_lossy().into()),
                 name: Some("Invalid-Name".into()), // invalid due to uppercase and hyphen
@@ -559,7 +575,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
 
         // Set HOME to temp dir so no config is found
-        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+        with_temp_home(tmp.path(), || {
             let opts = InitOptions {
                 path: Some(tmp.path().to_string_lossy().into()),
                 name: Some("proj".into()),
@@ -582,7 +598,7 @@ mod tests {
     fn test_expand_tilde() {
         let tmp = TempDir::new().unwrap();
 
-        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+        with_temp_home(tmp.path(), || {
             // Test ~/path expansion
             let expanded = expand_tilde("~/projects/test");
             assert_eq!(expanded, tmp.path().join("projects/test"));
