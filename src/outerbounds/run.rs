@@ -1,6 +1,5 @@
 use miette::miette;
 
-use crate::anaconda_cli;
 use crate::context::CommandContext;
 use crate::help;
 use crate::tools;
@@ -53,7 +52,7 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
     // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
     if !args.is_empty() && args[0] == "deploy" {
         let deploy_args: Vec<String> = args[1..].to_vec();
-        anaconda_cli::run_tool_binary("outerbounds", "obproject-deploy", &deploy_args)
+        tools::run_tool_binary("outerbounds", "obproject-deploy", &deploy_args)
             .map_err(|e| miette!("{}", e))?;
         status::blank_line();
         status::celebrate("Deployment complete!");
@@ -64,5 +63,5 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
     }
 
     // Pass through to the outerbounds CLI
-    anaconda_cli::run_ob(ctx, args).map_err(|e| miette!("{}", e))
+    tools::run_tool_binary("outerbounds", "outerbounds", args).map_err(|e| miette!("{}", e))
 }
