@@ -215,8 +215,10 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
         print_section(term, section.name);
 
         for cmd in section.commands {
-            let desc = subcommands.get(*cmd).map(|s| s.as_str()).unwrap_or("");
-            print_command_row(term, cmd, desc);
+            // Skip commands that aren't in the subcommands map (e.g., disabled experimental features)
+            if let Some(desc) = subcommands.get(*cmd) {
+                print_command_row(term, cmd, desc);
+            }
         }
 
         let _ = term.write_line("");

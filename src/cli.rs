@@ -322,6 +322,25 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
+                    name if feature::is_valid_feature(name) => {
+                        crate::ui::status::warn(&format!(
+                            "The '{}' feature is experimental and may change or be removed.",
+                            name
+                        ));
+                        if !force
+                            && !crate::input::prompt_yes_no(
+                                "Enable this experimental feature?",
+                                false,
+                            )
+                        {
+                            return Ok(());
+                        }
+                        feature::enable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' enabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 Ok(())
@@ -335,6 +354,13 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::disable_main_x(ctx, force).await?,
                     "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
+                    name if feature::is_valid_feature(name) => {
+                        feature::disable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' disabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 Ok(())
@@ -518,10 +544,14 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-/// Get subcommand names and descriptions from clap for help introspection
+/// Get subcommand names and descriptions from clap for help introspection.
+/// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
+    let show_ob = feature::is_feature_enabled("outerbounds");
+
     Cli::command()
         .get_subcommands()
+        .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
             (
                 s.get_name().to_string(),
@@ -849,8 +879,9 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
+        // "ob" is conditionally hidden based on experimental feature state
         let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config"].into_iter().collect();
+            ["org", "config", "ob"].into_iter().collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd
