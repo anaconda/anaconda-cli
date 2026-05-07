@@ -88,11 +88,11 @@ impl PixiChannelAction {
 
 /// Configure pixi auth for repo.anaconda.cloud.
 fn run_pixi_auth_login(pixi_bin: &Path, api_key: &str) -> miette::Result<()> {
-    let cmd = format!("pixi auth login {} --conda-token <token>", REPO_HOST);
+    let cmd = format!("pixi auth login {} --token <token>", REPO_HOST);
     status::running(&format!("Running {}", status::highlight(&cmd)));
 
     let output = Command::new(pixi_bin)
-        .args(["auth", "login", REPO_HOST, "--conda-token", api_key])
+        .args(["auth", "login", REPO_HOST, "--token", api_key])
         .output()
         .into_diagnostic()
         .context("failed to run pixi auth login")?;
@@ -267,10 +267,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     status::info("The following commands will be run:");
     eprintln!(
         "  {}",
-        status::highlight(&format!(
-            "pixi auth login {} --conda-token <token>",
-            REPO_HOST
-        ))
+        status::highlight(&format!("pixi auth login {} --token <token>", REPO_HOST))
     );
     for action in &actions {
         eprintln!("  {}", status::highlight(&action.command_display()));
