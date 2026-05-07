@@ -1,15 +1,27 @@
 use console::Term;
 
+use super::data::HelpExample;
 use super::styles::HelpStyle;
-use super::term::{left_margin, print_command_row, print_section};
+use super::term::{left_margin, print_command_row, print_examples_block, print_section};
 
 const TITLE: &str = "Outerbounds Platform CLI for managing ML infrastructure.";
 
-const OB_EXAMPLES: &[(&str, &str)] = &[
-    ("Create a new Outerbounds project", "ana ob init"),
-    ("Deploy the current project", "ana ob deploy"),
-    ("Open deployed app in browser", "ana ob app view --web"),
-];
+fn get_ob_examples() -> Vec<HelpExample> {
+    vec![
+        HelpExample {
+            desc: "Create a new Outerbounds project".to_string(),
+            command: "ana ob init".to_string(),
+        },
+        HelpExample {
+            desc: "Deploy the current project".to_string(),
+            command: "ana ob deploy".to_string(),
+        },
+        HelpExample {
+            desc: "Open deployed app in browser".to_string(),
+            command: "ana ob app view --web".to_string(),
+        },
+    ]
+}
 
 struct ObSubcommand {
     name: &'static str,
@@ -59,72 +71,6 @@ const OB_SUBCOMMANDS: &[ObSubcommand] = &[
     },
 ];
 
-/// Print the examples block in a styled box with rounded corners
-fn print_ob_examples_block(term: &Term) {
-    print_section(term, "EXAMPLES");
-
-    let margin = left_margin();
-    let inner_width: usize = 76;
-    let cmd_left_margin = "  ";
-    let border = HelpStyle::BoxBorder.style();
-    let bg = HelpStyle::BoxDesc.style();
-
-    let horizontal = "─";
-
-    // Top border
-    let _ = term.write_line(&format!(
-        "{margin}{}{}{}",
-        border.apply_to("╭"),
-        border.apply_to(horizontal.repeat(inner_width)),
-        border.apply_to("╮")
-    ));
-
-    // Content lines
-    for (i, (desc, command)) in OB_EXAMPLES.iter().enumerate() {
-        // Description line
-        let comment = format!("{desc}");
-        let padding = inner_width.saturating_sub(comment.len() + 1);
-        let padded_desc = format!(" {comment}{}", " ".repeat(padding));
-        let _ = term.write_line(&format!(
-            "{margin}{}{}{}",
-            border.apply_to("│"),
-            HelpStyle::BoxDesc.style().apply_to(&padded_desc),
-            border.apply_to("│")
-        ));
-
-        // Command line
-        let cmd_with_left_margin = format!("{cmd_left_margin}{command}");
-        let padding = inner_width.saturating_sub(cmd_with_left_margin.len() + 1);
-        let padded_cmd = format!(" {cmd_with_left_margin}{}", " ".repeat(padding));
-        let _ = term.write_line(&format!(
-            "{margin}{}{}{}",
-            border.apply_to("│"),
-            HelpStyle::BoxCommand.style().apply_to(&padded_cmd),
-            border.apply_to("│")
-        ));
-
-        // Add spacing between examples (except after last)
-        if i < OB_EXAMPLES.len() - 1 {
-            let empty_line = " ".repeat(inner_width);
-            let _ = term.write_line(&format!(
-                "{margin}{}{}{}",
-                border.apply_to("│"),
-                bg.apply_to(&empty_line),
-                border.apply_to("│")
-            ));
-        }
-    }
-
-    // Bottom border
-    let _ = term.write_line(&format!(
-        "{margin}{}{}{}",
-        border.apply_to("╰"),
-        border.apply_to(horizontal.repeat(inner_width)),
-        border.apply_to("╯")
-    ));
-    let _ = term.write_line("");
-}
-
 /// Help for the outerbounds subcommand with custom styling
 pub fn print_outerbounds_help() {
     let term = Term::stdout();
@@ -145,7 +91,7 @@ pub fn print_outerbounds_help() {
     let _ = term.write_line("");
 
     // Examples
-    print_ob_examples_block(&term);
+    print_examples_block(&term, get_ob_examples());
 
     // Commands
     print_section(&term, "COMMANDS");

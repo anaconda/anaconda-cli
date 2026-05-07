@@ -129,7 +129,7 @@ fn print_header(term: &Term) {
 }
 
 /// Print the examples block in a styled box with rounded corners
-fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
+pub fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     print_section(term, "EXAMPLES");
 
     let margin = left_margin();
