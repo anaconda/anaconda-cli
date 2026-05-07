@@ -1,24 +1,13 @@
 use miette::miette;
 
 use crate::context::CommandContext;
-use crate::help;
 use crate::tools;
 use crate::ui::status;
 
-use super::{InitOptions, init_project, open_app, print_init_help, view_app};
+use super::{init_project, open_app, view_app, InitOptions};
 
 /// Run the outerbounds CLI wrapper with the given arguments.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
-    if args.is_empty()
-        || args
-            .first()
-            .map(|a| a == "--help" || a == "-h")
-            .unwrap_or(false)
-    {
-        help::outerbounds::print_outerbounds_help();
-        return Ok(());
-    }
-
     // Auto-install outerbounds tool if not present
     if !crate::paths::bin_path("outerbounds").exists() {
         status::info("Installing outerbounds tool...");
@@ -40,18 +29,8 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
     // Handle `ob init [path] [options]`
     if !args.is_empty() && args[0] == "init" {
         let init_args: Vec<String> = args[1..].to_vec();
-        match InitOptions::parse(&init_args) {
-            Ok(opts) => {
-                return init_project(opts).map_err(|e| miette!("{}", e));
-            }
-            Err(e) if e == "help" => {
-                print_init_help();
-                return Ok(());
-            }
-            Err(e) => {
-                return Err(miette!("{}", e));
-            }
-        }
+        let opts = InitOptions::from_args(&init_args);
+        return init_project(opts).map_err(|e| miette!("{}", e));
     }
 
     // Handle `ob deploy` by running obproject-deploy from the outerbounds tool

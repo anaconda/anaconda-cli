@@ -406,7 +406,92 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
-                Some(Commands::Ob { args }) => Action::ObProxy { args },
+                Some(Commands::Ob { command }) => match command {
+                    None => Action::ShowSubcommandHelp("ob".to_string()),
+                    Some(ObCommands::Init {
+                        path,
+                        name,
+                        title,
+                        platform,
+                        no_git_init,
+                    }) => {
+                        let mut args = vec!["init".to_string()];
+                        if let Some(p) = path {
+                            args.push(p);
+                        }
+                        if let Some(n) = name {
+                            args.push("--name".to_string());
+                            args.push(n);
+                        }
+                        if let Some(t) = title {
+                            args.push("--title".to_string());
+                            args.push(t);
+                        }
+                        if let Some(p) = platform {
+                            args.push("--platform".to_string());
+                            args.push(p);
+                        }
+                        if no_git_init {
+                            args.push("--no-git-init".to_string());
+                        }
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::Deploy { args: deploy_args }) => {
+                        let mut args = vec!["deploy".to_string()];
+                        args.extend(deploy_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::App { command: app_cmd }) => match app_cmd {
+                        None => Action::ShowSubcommandHelp("ob app".to_string()),
+                        Some(ObAppCommands::Open { name }) => {
+                            Action::ObProxy {
+                                args: vec!["app".to_string(), "open".to_string(), name],
+                            }
+                        }
+                        Some(ObAppCommands::View { web }) => {
+                            let mut args = vec!["app".to_string(), "view".to_string()];
+                            if web {
+                                args.push("--web".to_string());
+                            }
+                            Action::ObProxy { args }
+                        }
+                    },
+                    Some(ObCommands::Check { args: check_args }) => {
+                        let mut args = vec!["check".to_string()];
+                        args.extend(check_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::Configure { args: cfg_args }) => {
+                        let mut args = vec!["configure".to_string()];
+                        args.extend(cfg_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::FastBakery { args: fb_args }) => {
+                        let mut args = vec!["fast-bakery".to_string()];
+                        args.extend(fb_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::Integrations { args: int_args }) => {
+                        let mut args = vec!["integrations".to_string()];
+                        args.extend(int_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::Kubernetes { args: k8s_args }) => {
+                        let mut args = vec!["kubernetes".to_string()];
+                        args.extend(k8s_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::Perimeter { args: perm_args }) => {
+                        let mut args = vec!["perimeter".to_string()];
+                        args.extend(perm_args);
+                        Action::ObProxy { args }
+                    }
+                    Some(ObCommands::ServicePrincipalConfigure { args: spc_args }) => {
+                        let mut args = vec!["service-principal-configure".to_string()];
+                        args.extend(spc_args);
+                        Action::ObProxy { args }
+                    }
+                },
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -627,16 +712,15 @@ enum Commands {
         args: Vec<String>,
     },
 
-    /// Run Outerbounds CLI
+    /// Outerbounds platform CLI
     #[command(
-        trailing_var_arg = true,
-        override_usage = "ana ob [options]",
-        disable_help_flag = true
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana ob <command> [options]"
     )]
     Ob {
-        /// Arguments to pass to ob
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
+        #[command(subcommand)]
+        command: Option<ObCommands>,
     },
 
     /// Manage tools
@@ -826,6 +910,111 @@ enum FeatureCommands {
         /// Deconfigure uv (for wheels feature)
         #[arg(long)]
         uv: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ObCommands {
+    /// Create a new Outerbounds project
+    Init {
+        /// Path to create the project in
+        path: Option<String>,
+
+        /// Project name
+        #[arg(short, long)]
+        name: Option<String>,
+
+        /// Project title
+        #[arg(short, long)]
+        title: Option<String>,
+
+        /// Platform to deploy to
+        #[arg(short, long)]
+        platform: Option<String>,
+
+        /// Skip git initialization
+        #[arg(long)]
+        no_git_init: bool,
+    },
+
+    /// Deploy the current project
+    #[command(trailing_var_arg = true)]
+    Deploy {
+        /// Arguments to pass to obproject-deploy
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Commands for Outerbounds apps
+    #[command(subcommand_required = false, arg_required_else_help = false)]
+    App {
+        #[command(subcommand)]
+        command: Option<ObAppCommands>,
+    },
+
+    /// Check packages and configuration for compatibility
+    #[command(trailing_var_arg = true)]
+    Check {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Decode Outerbounds Platform configuration
+    #[command(trailing_var_arg = true)]
+    Configure {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Commands for interacting with Fast Bakery
+    #[command(trailing_var_arg = true, name = "fast-bakery")]
+    FastBakery {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Manage resource integrations
+    #[command(trailing_var_arg = true)]
+    Integrations {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Commands for interacting with Kubernetes
+    #[command(trailing_var_arg = true)]
+    Kubernetes {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Manage perimeters
+    #[command(trailing_var_arg = true)]
+    Perimeter {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Authenticate service principals using JWT
+    #[command(trailing_var_arg = true, name = "service-principal-configure")]
+    ServicePrincipalConfigure {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+}
+
+#[derive(Subcommand)]
+enum ObAppCommands {
+    /// Open a deployed app in the browser
+    Open {
+        /// Name of the app to open
+        name: String,
+    },
+
+    /// View the current project's deployed app
+    View {
+        /// Open in browser
+        #[arg(long)]
+        web: bool,
     },
 }
 

@@ -1,11 +1,8 @@
 use std::fs;
 use std::path::Path;
 
-use console::Term;
 use serde::Deserialize;
 
-use crate::help::styles::HelpStyle;
-use crate::help::{left_margin, print_command_row, print_section};
 use crate::input::prompt_input;
 
 #[derive(Default)]
@@ -18,7 +15,8 @@ pub struct InitOptions {
 }
 
 impl InitOptions {
-    pub fn parse(args: &[String]) -> Result<Self, String> {
+    /// Create InitOptions from pre-parsed arguments (after clap validation)
+    pub fn from_args(args: &[String]) -> Self {
         let mut opts = InitOptions::default();
         let mut i = 0;
 
@@ -35,67 +33,14 @@ impl InitOptions {
                 opts.platform = args.get(i).cloned();
             } else if arg == "--no-git-init" {
                 opts.no_git_init = true;
-            } else if arg == "--help" || arg == "-h" {
-                return Err("help".to_string());
             } else if !arg.starts_with('-') && opts.path.is_none() {
                 opts.path = Some(arg.clone());
-            } else if arg.starts_with('-') {
-                return Err(format!("Unknown option: {}", arg));
             }
             i += 1;
         }
 
-        Ok(opts)
+        opts
     }
-}
-
-pub fn print_init_help() {
-    let term = Term::stdout();
-    let ind = left_margin();
-
-    // Description
-    let _ = term.write_line(&format!("{}Initialize a new Outerbounds project", ind));
-    let _ = term.write_line("");
-
-    // Usage
-    let _ = term.write_line(&format!(
-        "{}{}",
-        ind,
-        HelpStyle::Dim
-            .style()
-            .apply_to("Usage: ana ob init [PATH] [OPTIONS]")
-    ));
-    let _ = term.write_line("");
-
-    // Arguments
-    print_section(&term, "ARGUMENTS");
-    print_command_row(
-        &term,
-        "[PATH]",
-        "Directory to create the project in (default: current directory)",
-    );
-    let _ = term.write_line("");
-
-    // Options
-    print_section(&term, "OPTIONS");
-    print_command_row(
-        &term,
-        "-n, --name <NAME>",
-        "Project name (lowercase, underscores allowed)",
-    );
-    print_command_row(&term, "-t, --title <TITLE>", "Project title");
-    print_command_row(
-        &term,
-        "-p, --platform <URL>",
-        "Platform URL (auto-detected from config)",
-    );
-    print_command_row(
-        &term,
-        "    --no-git-init",
-        "Skip git repository initialization",
-    );
-    print_command_row(&term, "-h, --help", "Print help");
-    let _ = term.write_line("");
 }
 
 // Embedded template files
