@@ -4,7 +4,7 @@ use crate::context::CommandContext;
 use crate::tools;
 use crate::ui::status;
 
-use super::{init_project, open_app, view_app, InitOptions};
+use super::{InitOptions, init_project, open_app, view_app};
 
 /// Run the outerbounds CLI wrapper with the given arguments.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {

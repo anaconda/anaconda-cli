@@ -443,11 +443,9 @@ pub fn parse() -> (Action, LogLevel) {
                     }
                     Some(ObCommands::App { command: app_cmd }) => match app_cmd {
                         None => Action::ShowSubcommandHelp("ob app".to_string()),
-                        Some(ObAppCommands::Open { name }) => {
-                            Action::ObProxy {
-                                args: vec!["app".to_string(), "open".to_string(), name],
-                            }
-                        }
+                        Some(ObAppCommands::Open { name }) => Action::ObProxy {
+                            args: vec!["app".to_string(), "open".to_string(), name],
+                        },
                         Some(ObAppCommands::View { web }) => {
                             let mut args = vec!["app".to_string(), "view".to_string()];
                             if web {
