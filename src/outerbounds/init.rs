@@ -43,25 +43,21 @@ impl InitOptions {
 // Embedded template files
 mod templates {
     // Root files
-    pub const OBPROJECT_TOML: &str = include_str!("../../templates/ob_project/obproject.toml");
-    pub const README_MD: &str = include_str!("../../templates/ob_project/README.md");
-    pub const PYPROJECT_TOML: &str = include_str!("../../templates/ob_project/pyproject.toml");
-    pub const GITIGNORE: &str = include_str!("../../templates/ob_project/.gitignore");
+    pub const OBPROJECT_TOML: &str = include_str!("templates/obproject.toml");
+    pub const README_MD: &str = include_str!("templates/README.md");
+    pub const PYPROJECT_TOML: &str = include_str!("templates/pyproject.toml");
+    pub const GITIGNORE: &str = include_str!("templates/.gitignore");
 
     // Flow files
-    pub const FLOW_PY: &str = include_str!("../../templates/ob_project/flows/hello_flow/flow.py");
-    pub const FLOW_README: &str =
-        include_str!("../../templates/ob_project/flows/hello_flow/README.md");
+    pub const FLOW_PY: &str = include_str!("templates/flows/hello_flow/flow.py");
+    pub const FLOW_README: &str = include_str!("templates/flows/hello_flow/README.md");
 
     // App files
-    pub const APP_PY: &str =
-        include_str!("../../templates/ob_project/deployments/hello_app/app.py");
-    pub const APP_CONFIG_YAML: &str =
-        include_str!("../../templates/ob_project/deployments/hello_app/config.yaml");
+    pub const APP_PY: &str = include_str!("templates/deployments/hello_app/app.py");
+    pub const APP_CONFIG_YAML: &str = include_str!("templates/deployments/hello_app/config.yaml");
     pub const APP_REQUIREMENTS_TXT: &str =
-        include_str!("../../templates/ob_project/deployments/hello_app/requirements.txt");
-    pub const APP_README: &str =
-        include_str!("../../templates/ob_project/deployments/hello_app/README.md");
+        include_str!("templates/deployments/hello_app/requirements.txt");
+    pub const APP_README: &str = include_str!("templates/deployments/hello_app/README.md");
 }
 
 /// Check if Outerbounds is configured by looking for ~/.metaflowconfig/config.json
