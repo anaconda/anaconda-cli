@@ -23,14 +23,11 @@ const TOOLS: &[Tool] = &[
         },
         experimental: None,
     },
+    #[cfg(unix)]
     Tool {
         name: "outerbounds",
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
-        binaries: if cfg![unix] {
-            &[&["bin", "outerbounds"]]
-        } else {
-            &[&[]] // No Windows support currently
-        },
+        binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
     },
     Tool {

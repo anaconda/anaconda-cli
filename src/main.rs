@@ -12,6 +12,7 @@ mod fetch;
 mod help;
 mod http;
 mod input;
+#[cfg(unix)]
 mod outerbounds;
 mod paths;
 mod qr;

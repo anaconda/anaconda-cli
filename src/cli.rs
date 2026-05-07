@@ -15,6 +15,7 @@ use crate::feature;
 use crate::feedback::{self, FeedbackType};
 use crate::fetch::api_fetch;
 use crate::help;
+#[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::update;
@@ -111,6 +112,7 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
+    #[cfg(unix)]
     ObProxy {
         args: Vec<String>,
     },
@@ -167,6 +169,7 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            #[cfg(unix)]
             Action::ObProxy { .. } => "ob",
             Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
@@ -246,6 +249,7 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
+            #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
@@ -432,6 +436,7 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
+                #[cfg(unix)]
                 Some(Commands::Ob { command }) => match command {
                     None => Action::ShowSubcommandHelp("ob".to_string()),
                     Some(cmd) => match cmd.into_action() {
@@ -547,7 +552,10 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
 /// Get subcommand names and descriptions from clap for help introspection.
 /// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
+    #[cfg(unix)]
     let show_ob = feature::is_feature_enabled("outerbounds");
+    #[cfg(not(unix))]
+    let show_ob = false;
 
     Cli::command()
         .get_subcommands()
@@ -664,6 +672,7 @@ enum Commands {
     },
 
     /// Outerbounds platform CLI (experimental)
+    #[cfg(unix)]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,

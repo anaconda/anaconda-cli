@@ -15,7 +15,11 @@ use serde::{Deserialize, Serialize};
 use crate::paths::ana_home;
 
 /// Valid experimental feature names.
+#[cfg(unix)]
 const VALID_FEATURES: &[&str] = &["outerbounds"];
+
+#[cfg(windows)]
+const VALID_FEATURES: &[&str] = &[];
 
 /// Root config structure for ~/.ana/config.toml
 #[derive(Default, Serialize, Deserialize)]
