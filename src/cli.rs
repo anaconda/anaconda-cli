@@ -138,12 +138,16 @@ pub enum Action {
         force: bool,
         pip: bool,
         uv: bool,
+        conda: bool,
+        pixi: bool,
     },
     FeatureDisable {
         feature: String,
         force: bool,
         pip: bool,
         uv: bool,
+        conda: bool,
+        pixi: bool,
     },
 }
 
@@ -312,12 +316,23 @@ impl Action {
                 force,
                 pip,
                 uv,
+                conda,
+                pixi,
             } => {
                 match feature.as_str() {
-                    "main-x" => feature::enable_main_x(ctx, force).await?,
+                    "main-x" => {
+                        if pixi {
+                            feature::enable_main_x_pixi(ctx, force).await?
+                        } else {
+                            // Default to conda (--conda flag or no flag)
+                            feature::enable_main_x(ctx, force).await?
+                        }
+                    }
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
+                // Silence unused variable warning for conda - it's the default when pixi is false
+                let _ = conda;
                 Ok(())
             }
             Action::FeatureDisable {
@@ -325,12 +340,23 @@ impl Action {
                 force,
                 pip,
                 uv,
+                conda,
+                pixi,
             } => {
                 match feature.as_str() {
-                    "main-x" => feature::disable_main_x(ctx, force).await?,
+                    "main-x" => {
+                        if pixi {
+                            feature::disable_main_x_pixi(ctx, force).await?
+                        } else {
+                            // Default to conda (--conda flag or no flag)
+                            feature::disable_main_x(ctx, force).await?
+                        }
+                    }
                     "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
+                // Silence unused variable warning for conda - it's the default when pixi is false
+                let _ = conda;
                 Ok(())
             }
         }
@@ -431,22 +457,30 @@ pub fn parse() -> (Action, LogLevel) {
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     }) => Action::FeatureEnable {
                         feature: name,
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     },
                     Some(FeatureCommands::Disable {
                         name,
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     }) => Action::FeatureDisable {
                         feature: name,
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     },
                 },
             };
@@ -789,6 +823,14 @@ enum FeatureCommands {
         /// Configure uv (for wheels feature)
         #[arg(long)]
         uv: bool,
+
+        /// Configure conda (for main-x feature, default if neither --conda nor --pixi specified)
+        #[arg(long)]
+        conda: bool,
+
+        /// Configure pixi (for main-x feature)
+        #[arg(long)]
+        pixi: bool,
     },
 
     /// Disable a feature
@@ -807,6 +849,14 @@ enum FeatureCommands {
         /// Deconfigure uv (for wheels feature)
         #[arg(long)]
         uv: bool,
+
+        /// Deconfigure conda (for main-x feature, default if neither --conda nor --pixi specified)
+        #[arg(long)]
+        conda: bool,
+
+        /// Deconfigure pixi (for main-x feature)
+        #[arg(long)]
+        pixi: bool,
     },
 }
 
@@ -860,6 +910,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -882,6 +933,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -904,6 +956,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -926,6 +979,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -949,6 +1003,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -971,6 +1026,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -993,6 +1049,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -1016,6 +1073,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
