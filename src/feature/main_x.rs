@@ -15,6 +15,7 @@ use crate::paths;
 use crate::ui::status;
 
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
+const REPO_HOST: &str = "repo.anaconda.cloud";
 
 /// Represents a channel configuration action to be executed for conda.
 enum CondaChannelAction {
@@ -83,6 +84,49 @@ impl PixiChannelAction {
         status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
         Ok(())
     }
+}
+
+/// Configure pixi auth for repo.anaconda.cloud.
+fn run_pixi_auth_login(pixi_bin: &Path, api_key: &str) -> miette::Result<()> {
+    let cmd = format!("pixi auth login {} --conda-token <token>", REPO_HOST);
+    status::running(&format!("Running {}", status::highlight(&cmd)));
+
+    let output = Command::new(pixi_bin)
+        .args(["auth", "login", REPO_HOST, "--conda-token", api_key])
+        .output()
+        .into_diagnostic()
+        .context("failed to run pixi auth login")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(miette::miette!("pixi auth login failed: {}", stderr));
+    }
+
+    status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
+    Ok(())
+}
+
+/// Remove pixi auth for repo.anaconda.cloud.
+fn run_pixi_auth_logout(pixi_bin: &Path) -> miette::Result<()> {
+    let cmd = format!("pixi auth logout {}", REPO_HOST);
+    status::running(&format!("Running {}", status::highlight(&cmd)));
+
+    let output = Command::new(pixi_bin)
+        .args(["auth", "logout", REPO_HOST])
+        .output()
+        .into_diagnostic()
+        .context("failed to run pixi auth logout")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // Ignore "not logged in" type errors
+        if !stderr.contains("No credentials") && !stderr.contains("not found") {
+            return Err(miette::miette!("pixi auth logout failed: {}", stderr));
+        }
+    }
+
+    status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
+    Ok(())
 }
 
 /// Plan the actions needed to enable main-x channel for conda.
@@ -194,8 +238,9 @@ pub async fn enable_main_x(ctx: &CommandContext, force: bool) -> miette::Result<
 /// This command:
 /// 1. Ensures the user is logged in to Anaconda
 /// 2. Shows planned changes and prompts for confirmation
-/// 3. Adds the main-x channel to pixi global configuration
-/// 4. Provides instructions for reverting the changes
+/// 3. Configures pixi auth for repo.anaconda.cloud
+/// 4. Adds the main-x channel to pixi global configuration
+/// 5. Provides instructions for reverting the changes
 pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Enabling {} feature via {}...",
@@ -220,6 +265,10 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     // Step 3: Show planned changes
     status::blank_line();
     status::info("The following commands will be run:");
+    eprintln!(
+        "  {}",
+        status::highlight(&format!("pixi auth login {} --conda-token <token>", REPO_HOST))
+    );
     for action in &actions {
         eprintln!("  {}", status::highlight(&action.command_display()));
     }
@@ -233,6 +282,16 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
 
     // Step 5: Execute the changes
     status::blank_line();
+
+    // Get the API key for auth
+    let api_key = auth::get_api_key(&ctx.config)
+        .into_diagnostic()?
+        .ok_or_else(|| miette::miette!("Not logged in"))?;
+
+    // Configure pixi auth first
+    run_pixi_auth_login(&pixi_bin, &api_key)?;
+
+    // Then configure channels
     for action in &actions {
         action.execute_with_status(&pixi_bin)?;
     }
@@ -306,7 +365,7 @@ pub async fn disable_main_x(_ctx: &CommandContext, force: bool) -> miette::Resul
 
 /// Disable main-x channel configuration for pixi.
 ///
-/// This command removes the main-x channel from pixi global configuration.
+/// This command removes the main-x channel and auth from pixi global configuration.
 pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Disabling {} feature via {}...",
@@ -332,6 +391,10 @@ pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::
     for action in &actions {
         eprintln!("  {}", status::highlight(&action.command_display()));
     }
+    eprintln!(
+        "  {}",
+        status::highlight(&format!("pixi auth logout {}", REPO_HOST))
+    );
     status::blank_line();
 
     // Prompt for confirmation unless --force
@@ -341,9 +404,14 @@ pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::
     }
 
     status::blank_line();
+
+    // Remove channels first
     for action in actions {
         action.execute_with_status(&pixi_bin)?;
     }
+
+    // Then remove auth
+    run_pixi_auth_logout(&pixi_bin)?;
 
     status::blank_line();
     status::info("To re-enable, run:");
