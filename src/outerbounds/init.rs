@@ -116,9 +116,44 @@ fn write_template(
         .map_err(|e| miette::miette!("Failed to write {}: {}", path.display(), e))
 }
 
+/// Expand ~ to home directory in a path string
+fn expand_tilde(path: &str) -> std::path::PathBuf {
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(rest);
+        }
+    } else if path == "~" {
+        if let Some(home) = dirs::home_dir() {
+            return home;
+        }
+    }
+    Path::new(path).to_path_buf()
+}
+
 pub fn init_project(opts: InitOptions) -> miette::Result<()> {
-    let project_path = opts.path.as_ref().map(Path::new).unwrap_or(Path::new("."));
-    let no_git_init = opts.no_git_init;
+    // Determine project path, prompting if in existing git repo without explicit path
+    let project_path = if let Some(ref p) = opts.path {
+        expand_tilde(p)
+    } else {
+        // Check if we're in an existing git repository
+        let cwd = std::env::current_dir()
+            .map_err(|e| miette::miette!("Failed to get current directory: {}", e))?;
+        if cwd.join(".git").exists() {
+            crate::ui::status::warn("This directory is already a git repository.");
+            let prompt = format!("Project path [{}]", cwd.display());
+            let input = prompt_input(&prompt).map_err(|e| miette::miette!("{}", e))?;
+            if input.is_empty() {
+                cwd
+            } else {
+                expand_tilde(&input)
+            }
+        } else {
+            cwd
+        }
+    };
+
+    // Skip git init if project path already has .git
+    let no_git_init = opts.no_git_init || project_path.join(".git").exists();
 
     // Check Outerbounds configuration
     ensure_configured()?;
@@ -168,7 +203,7 @@ pub fn init_project(opts: InitOptions) -> miette::Result<()> {
     };
 
     if project_path != Path::new(".") {
-        fs::create_dir_all(project_path)
+        fs::create_dir_all(&project_path)
             .map_err(|e| miette::miette!("Failed to create directory: {}", e))?;
     }
 
@@ -220,13 +255,13 @@ pub fn init_project(opts: InitOptions) -> miette::Result<()> {
     )?;
     write_template(&app_dir.join("README.md"), templates::APP_README, &[])?;
 
-    // Initialize git repository unless --no-git-init was specified
+    // Initialize git repository unless --no-git-init was specified or already in a git repo
     if !no_git_init {
         use std::process::Command;
 
         let git_init = Command::new("git")
             .args(["init"])
-            .current_dir(project_path)
+            .current_dir(&project_path)
             .output();
 
         match git_init {
@@ -234,13 +269,13 @@ pub fn init_project(opts: InitOptions) -> miette::Result<()> {
                 // Stage all files
                 let _ = Command::new("git")
                     .args(["add", "."])
-                    .current_dir(project_path)
+                    .current_dir(&project_path)
                     .output();
 
                 // Create initial commit
                 let _ = Command::new("git")
                     .args(["commit", "-m", "Initial commit"])
-                    .current_dir(project_path)
+                    .current_dir(&project_path)
                     .output();
             }
             _ => {
@@ -525,6 +560,33 @@ mod tests {
             assert!(result.is_err());
             let err = result.unwrap_err().to_string();
             assert!(err.contains("not configured"), "error should mention not configured: {}", err);
+        });
+    }
+
+    #[test]
+    fn test_expand_tilde() {
+        let tmp = TempDir::new().unwrap();
+
+        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+            // Test ~/path expansion
+            let expanded = expand_tilde("~/projects/test");
+            assert_eq!(expanded, tmp.path().join("projects/test"));
+
+            // Test ~ alone
+            let expanded = expand_tilde("~");
+            assert_eq!(expanded, tmp.path().to_path_buf());
+
+            // Test regular path (no tilde)
+            let expanded = expand_tilde("/absolute/path");
+            assert_eq!(expanded, Path::new("/absolute/path").to_path_buf());
+
+            // Test relative path (no tilde)
+            let expanded = expand_tilde("relative/path");
+            assert_eq!(expanded, Path::new("relative/path").to_path_buf());
+
+            // Test path starting with ~ but not ~/
+            let expanded = expand_tilde("~notahome/path");
+            assert_eq!(expanded, Path::new("~notahome/path").to_path_buf());
         });
     }
 }
