@@ -71,7 +71,7 @@ pub async fn execute() {
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {:?}", e);
         std::process::exit(1);
     }
 }

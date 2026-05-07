@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
+use crate::errors::OuterboundsNotConfiguredError;
 use crate::input::prompt_input;
 
 #[derive(Default)]
@@ -67,6 +68,24 @@ mod templates {
         include_str!("../../templates/ob_project/deployments/hello_app/README.md");
 }
 
+/// Check if Outerbounds is configured by looking for ~/.metaflowconfig/config.json
+pub fn is_configured() -> bool {
+    let Some(home) = dirs::home_dir() else {
+        return false;
+    };
+    // The main metaflow config file - this is what outerbounds CLI expects
+    home.join(".metaflowconfig/config.json").exists()
+}
+
+/// Returns an error if Outerbounds is not configured.
+pub fn ensure_configured() -> miette::Result<()> {
+    if is_configured() {
+        Ok(())
+    } else {
+        Err(OuterboundsNotConfiguredError.into())
+    }
+}
+
 #[derive(Deserialize)]
 struct ObConfig {
     #[serde(rename = "OB_CURRENT_PERIMETER_MF_CONFIG_URL")]
@@ -92,20 +111,28 @@ fn write_template(
     path: &Path,
     template: &str,
     replacements: &[(&str, &str)],
-) -> Result<(), String> {
+) -> miette::Result<()> {
     let mut content = template.to_string();
     for (from, to) in replacements {
         content = content.replace(from, to);
     }
-    fs::write(path, content).map_err(|e| format!("Failed to write {}: {}", path.display(), e))
+    fs::write(path, content)
+        .map_err(|e| miette::miette!("Failed to write {}: {}", path.display(), e))
 }
 
-pub fn init_project(opts: InitOptions) -> Result<(), String> {
+pub fn init_project(opts: InitOptions) -> miette::Result<()> {
     let project_path = opts.path.as_ref().map(Path::new).unwrap_or(Path::new("."));
     let no_git_init = opts.no_git_init;
 
+    // Check Outerbounds configuration early (unless platform is explicitly provided)
+    if opts.platform.is_none() {
+        ensure_configured()?;
+    }
+
     if project_path.join("obproject.toml").exists() {
-        return Err("obproject.toml already exists in this directory".to_string());
+        return Err(miette::miette!(
+            "obproject.toml already exists in this directory"
+        ));
     }
 
     // Check if we're in non-interactive mode (all required params provided)
@@ -113,15 +140,15 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
 
     let project_name = if let Some(name) = opts.name {
         if !is_valid_project_name(&name) {
-            return Err(
+            return Err(miette::miette!(
                 "Invalid project name. Use only lowercase letters, numbers, and underscores."
-                    .to_string(),
-            );
+            ));
         }
         name
     } else {
         loop {
-            let name = prompt_input("Project name (lowercase, underscores allowed)")?;
+            let name = prompt_input("Project name (lowercase, underscores allowed)")
+                .map_err(|e| miette::miette!("{}", e))?;
             if is_valid_project_name(&name) {
                 break name;
             }
@@ -133,12 +160,12 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
 
     let title = if let Some(t) = opts.title {
         if t.is_empty() {
-            return Err("Title cannot be empty.".to_string());
+            return Err(miette::miette!("Title cannot be empty."));
         }
         t
     } else {
         loop {
-            let t = prompt_input("Project title")?;
+            let t = prompt_input("Project title").map_err(|e| miette::miette!("{}", e))?;
             if !t.is_empty() {
                 break t;
             }
@@ -146,29 +173,23 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
         }
     };
 
+    // Platform: use provided value, or detect from config (already validated above)
     let platform = if let Some(p) = opts.platform {
         p
-    } else if let Some(detected) = detect_platform() {
+    } else {
+        let detected = detect_platform().expect("config was validated");
         if non_interactive {
             detected
         } else {
             let prompt = format!("Platform URL [{}]", detected);
-            let p = prompt_input(&prompt)?;
+            let p = prompt_input(&prompt).map_err(|e| miette::miette!("{}", e))?;
             if p.is_empty() { detected } else { p }
-        }
-    } else {
-        loop {
-            let p = prompt_input("Platform URL (e.g., my-company.outerbounds.com)")?;
-            if !p.is_empty() {
-                break p;
-            }
-            eprintln!("Platform URL cannot be empty.");
         }
     };
 
     if project_path != Path::new(".") {
         fs::create_dir_all(project_path)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+            .map_err(|e| miette::miette!("Failed to create directory: {}", e))?;
     }
 
     let replacements: &[(&str, &str)] = &[
@@ -198,14 +219,14 @@ pub fn init_project(opts: InitOptions) -> Result<(), String> {
     // Create example flow
     let flow_dir = project_path.join("flows/hello_flow");
     fs::create_dir_all(&flow_dir)
-        .map_err(|e| format!("Failed to create flows directory: {}", e))?;
+        .map_err(|e| miette::miette!("Failed to create flows directory: {}", e))?;
     write_template(&flow_dir.join("flow.py"), templates::FLOW_PY, &[])?;
     write_template(&flow_dir.join("README.md"), templates::FLOW_README, &[])?;
 
     // Create example app
     let app_dir = project_path.join("deployments/hello_app");
     fs::create_dir_all(&app_dir)
-        .map_err(|e| format!("Failed to create deployments directory: {}", e))?;
+        .map_err(|e| miette::miette!("Failed to create deployments directory: {}", e))?;
     write_template(&app_dir.join("app.py"), templates::APP_PY, &[])?;
     write_template(
         &app_dir.join("config.yaml"),
@@ -460,7 +481,8 @@ mod tests {
 
         let result = init_project(opts);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("already exists"));
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("already exists"), "error should mention 'already exists': {}", err);
     }
 
     #[test]
@@ -477,6 +499,28 @@ mod tests {
 
         let result = init_project(opts);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Invalid project name"));
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Invalid project name"), "error should mention 'Invalid project name': {}", err);
+    }
+
+    #[test]
+    fn test_init_project_not_configured_fails() {
+        let tmp = TempDir::new().unwrap();
+
+        // Set HOME to temp dir so no config is found
+        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+            let opts = InitOptions {
+                path: Some(tmp.path().to_string_lossy().into()),
+                name: Some("proj".into()),
+                title: Some("Title".into()),
+                platform: None, // No platform provided, should check config
+                no_git_init: true,
+            };
+
+            let result = init_project(opts);
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(err.contains("not configured"), "error should mention not configured: {}", err);
+        });
     }
 }

@@ -4,7 +4,7 @@ use crate::context::CommandContext;
 use crate::tools;
 use crate::ui::status;
 
-use super::{InitOptions, init_project, open_app, view_app};
+use super::{InitOptions, init_project, open_app, ensure_configured, view_app};
 
 /// Run the outerbounds CLI wrapper with the given arguments.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
@@ -30,7 +30,15 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
     if !args.is_empty() && args[0] == "init" {
         let init_args: Vec<String> = args[1..].to_vec();
         let opts = InitOptions::from_args(&init_args);
-        return init_project(opts).map_err(|e| miette!("{}", e));
+        return init_project(opts);
+    }
+
+    // Handle `ob check` - verify configuration first to give a nicer error
+    if !args.is_empty() && args[0] == "check" {
+        ensure_configured()?;
+        // Pass through to outerbounds check
+        return tools::run_tool_binary("outerbounds", "outerbounds", args)
+            .map_err(|e| miette!("{}", e));
     }
 
     // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
