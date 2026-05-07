@@ -412,7 +412,6 @@ pub fn parse() -> (Action, LogLevel) {
                         path,
                         name,
                         title,
-                        platform,
                         no_git_init,
                     }) => {
                         let mut args = vec!["init".to_string()];
@@ -426,10 +425,6 @@ pub fn parse() -> (Action, LogLevel) {
                         if let Some(t) = title {
                             args.push("--title".to_string());
                             args.push(t);
-                        }
-                        if let Some(p) = platform {
-                            args.push("--platform".to_string());
-                            args.push(p);
                         }
                         if no_git_init {
                             args.push("--no-git-init".to_string());
@@ -951,10 +946,6 @@ enum ObCommands {
         /// Project title
         #[arg(short, long)]
         title: Option<String>,
-
-        /// Platform to deploy to
-        #[arg(short, long)]
-        platform: Option<String>,
 
         /// Skip git initialization
         #[arg(long)]

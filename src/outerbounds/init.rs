@@ -11,7 +11,6 @@ pub struct InitOptions {
     pub path: Option<String>,
     pub name: Option<String>,
     pub title: Option<String>,
-    pub platform: Option<String>,
     pub no_git_init: bool,
 }
 
@@ -29,9 +28,6 @@ impl InitOptions {
             } else if arg == "--title" || arg == "-t" {
                 i += 1;
                 opts.title = args.get(i).cloned();
-            } else if arg == "--platform" || arg == "-p" {
-                i += 1;
-                opts.platform = args.get(i).cloned();
             } else if arg == "--no-git-init" {
                 opts.no_git_init = true;
             } else if !arg.starts_with('-') && opts.path.is_none() {
@@ -124,19 +120,17 @@ pub fn init_project(opts: InitOptions) -> miette::Result<()> {
     let project_path = opts.path.as_ref().map(Path::new).unwrap_or(Path::new("."));
     let no_git_init = opts.no_git_init;
 
-    // Check Outerbounds configuration early (unless platform is explicitly provided)
-    if opts.platform.is_none() {
-        ensure_configured()?;
-    }
+    // Check Outerbounds configuration
+    ensure_configured()?;
+
+    // Get platform from config
+    let platform = detect_platform().expect("config was validated");
 
     if project_path.join("obproject.toml").exists() {
         return Err(miette::miette!(
             "obproject.toml already exists in this directory"
         ));
     }
-
-    // Check if we're in non-interactive mode (all required params provided)
-    let non_interactive = opts.name.is_some() && opts.title.is_some();
 
     let project_name = if let Some(name) = opts.name {
         if !is_valid_project_name(&name) {
@@ -170,20 +164,6 @@ pub fn init_project(opts: InitOptions) -> miette::Result<()> {
                 break t;
             }
             eprintln!("Title cannot be empty.");
-        }
-    };
-
-    // Platform: use provided value, or detect from config (already validated above)
-    let platform = if let Some(p) = opts.platform {
-        p
-    } else {
-        let detected = detect_platform().expect("config was validated");
-        if non_interactive {
-            detected
-        } else {
-            let prompt = format!("Platform URL [{}]", detected);
-            let p = prompt_input(&prompt).map_err(|e| miette::miette!("{}", e))?;
-            if p.is_empty() { detected } else { p }
         }
     };
 
@@ -333,33 +313,22 @@ mod tests {
             "myproj".into(),
             "--title".into(),
             "My Project".into(),
-            "--platform".into(),
-            "example.outerbounds.com".into(),
         ];
         let opts = InitOptions::from_args(&args);
 
         assert_eq!(opts.name, Some("myproj".into()));
         assert_eq!(opts.title, Some("My Project".into()));
-        assert_eq!(opts.platform, Some("example.outerbounds.com".into()));
         assert!(!opts.no_git_init);
         assert!(opts.path.is_none());
     }
 
     #[test]
     fn test_init_options_from_args_short_flags() {
-        let args: Vec<String> = vec![
-            "-n".into(),
-            "proj".into(),
-            "-t".into(),
-            "Title".into(),
-            "-p".into(),
-            "platform.com".into(),
-        ];
+        let args: Vec<String> = vec!["-n".into(), "proj".into(), "-t".into(), "Title".into()];
         let opts = InitOptions::from_args(&args);
 
         assert_eq!(opts.name, Some("proj".into()));
         assert_eq!(opts.title, Some("Title".into()));
-        assert_eq!(opts.platform, Some("platform.com".into()));
     }
 
     #[test]
@@ -409,36 +378,55 @@ mod tests {
         assert_eq!(content, "Hello, world!");
     }
 
+    /// Create a mock Outerbounds config in the given home directory
+    fn create_mock_config(home: &Path, platform: &str) {
+        let config_dir = home.join(".metaflowconfig");
+        fs::create_dir_all(&config_dir).unwrap();
+
+        // Create config.json (required for is_configured check)
+        fs::write(config_dir.join("config.json"), "{}").unwrap();
+
+        // Create ob_config.json with platform URL
+        let ob_config = format!(
+            r#"{{"OB_CURRENT_PERIMETER_MF_CONFIG_URL": "https://api.{}/v1/perimeters/default/metaflowconfigs/default"}}"#,
+            platform
+        );
+        fs::write(config_dir.join("ob_config.json"), ob_config).unwrap();
+    }
+
     #[test]
     fn test_init_project_creates_structure() {
         let tmp = TempDir::new().unwrap();
         let project_path = tmp.path().join("test_project");
 
-        let opts = InitOptions {
-            path: Some(project_path.to_string_lossy().into()),
-            name: Some("test_proj".into()),
-            title: Some("Test Project".into()),
-            platform: Some("test.outerbounds.com".into()),
-            no_git_init: true, // skip git for test simplicity
-        };
+        create_mock_config(tmp.path(), "test.outerbounds.com");
 
-        init_project(opts).unwrap();
+        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+            let opts = InitOptions {
+                path: Some(project_path.to_string_lossy().into()),
+                name: Some("test_proj".into()),
+                title: Some("Test Project".into()),
+                no_git_init: true,
+            };
 
-        // Verify root files
-        assert!(project_path.join("obproject.toml").exists());
-        assert!(project_path.join("pyproject.toml").exists());
-        assert!(project_path.join("README.md").exists());
-        assert!(project_path.join(".gitignore").exists());
+            init_project(opts).unwrap();
 
-        // Verify flow structure
-        assert!(project_path.join("flows/hello_flow/flow.py").exists());
-        assert!(project_path.join("flows/hello_flow/README.md").exists());
+            // Verify root files
+            assert!(project_path.join("obproject.toml").exists());
+            assert!(project_path.join("pyproject.toml").exists());
+            assert!(project_path.join("README.md").exists());
+            assert!(project_path.join(".gitignore").exists());
 
-        // Verify app structure
-        assert!(project_path.join("deployments/hello_app/app.py").exists());
-        assert!(project_path.join("deployments/hello_app/config.yaml").exists());
-        assert!(project_path.join("deployments/hello_app/requirements.txt").exists());
-        assert!(project_path.join("deployments/hello_app/README.md").exists());
+            // Verify flow structure
+            assert!(project_path.join("flows/hello_flow/flow.py").exists());
+            assert!(project_path.join("flows/hello_flow/README.md").exists());
+
+            // Verify app structure
+            assert!(project_path.join("deployments/hello_app/app.py").exists());
+            assert!(project_path.join("deployments/hello_app/config.yaml").exists());
+            assert!(project_path.join("deployments/hello_app/requirements.txt").exists());
+            assert!(project_path.join("deployments/hello_app/README.md").exists());
+        });
     }
 
     #[test]
@@ -446,61 +434,78 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let project_path = tmp.path().join("subst_test");
 
-        let opts = InitOptions {
-            path: Some(project_path.to_string_lossy().into()),
-            name: Some("my_cool_project".into()),
-            title: Some("My Cool Project".into()),
-            platform: Some("cool.outerbounds.com".into()),
-            no_git_init: true,
-        };
+        create_mock_config(tmp.path(), "cool.outerbounds.com");
 
-        init_project(opts).unwrap();
+        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+            let opts = InitOptions {
+                path: Some(project_path.to_string_lossy().into()),
+                name: Some("my_cool_project".into()),
+                title: Some("My Cool Project".into()),
+                no_git_init: true,
+            };
 
-        let obproject = fs::read_to_string(project_path.join("obproject.toml")).unwrap();
-        assert!(obproject.contains("my_cool_project"));
-        assert!(obproject.contains("cool.outerbounds.com"));
+            init_project(opts).unwrap();
 
-        let readme = fs::read_to_string(project_path.join("README.md")).unwrap();
-        assert!(readme.contains("My Cool Project"));
+            let obproject = fs::read_to_string(project_path.join("obproject.toml")).unwrap();
+            assert!(obproject.contains("my_cool_project"));
+            assert!(obproject.contains("cool.outerbounds.com"));
+
+            let readme = fs::read_to_string(project_path.join("README.md")).unwrap();
+            assert!(readme.contains("My Cool Project"));
+        });
     }
 
     #[test]
     fn test_init_project_fails_if_exists() {
         let tmp = TempDir::new().unwrap();
 
+        create_mock_config(tmp.path(), "platform.com");
+
         // Create existing obproject.toml
         fs::write(tmp.path().join("obproject.toml"), "existing").unwrap();
 
-        let opts = InitOptions {
-            path: Some(tmp.path().to_string_lossy().into()),
-            name: Some("proj".into()),
-            title: Some("Title".into()),
-            platform: Some("platform.com".into()),
-            no_git_init: true,
-        };
+        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+            let opts = InitOptions {
+                path: Some(tmp.path().to_string_lossy().into()),
+                name: Some("proj".into()),
+                title: Some("Title".into()),
+                no_git_init: true,
+            };
 
-        let result = init_project(opts);
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(err.contains("already exists"), "error should mention 'already exists': {}", err);
+            let result = init_project(opts);
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(
+                err.contains("already exists"),
+                "error should mention 'already exists': {}",
+                err
+            );
+        });
     }
 
     #[test]
     fn test_init_project_invalid_name_fails() {
         let tmp = TempDir::new().unwrap();
 
-        let opts = InitOptions {
-            path: Some(tmp.path().to_string_lossy().into()),
-            name: Some("Invalid-Name".into()), // invalid due to uppercase and hyphen
-            title: Some("Title".into()),
-            platform: Some("platform.com".into()),
-            no_git_init: true,
-        };
+        create_mock_config(tmp.path(), "platform.com");
 
-        let result = init_project(opts);
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(err.contains("Invalid project name"), "error should mention 'Invalid project name': {}", err);
+        temp_env::with_var("HOME", Some(tmp.path().to_str().unwrap()), || {
+            let opts = InitOptions {
+                path: Some(tmp.path().to_string_lossy().into()),
+                name: Some("Invalid-Name".into()), // invalid due to uppercase and hyphen
+                title: Some("Title".into()),
+                no_git_init: true,
+            };
+
+            let result = init_project(opts);
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(
+                err.contains("Invalid project name"),
+                "error should mention 'Invalid project name': {}",
+                err
+            );
+        });
     }
 
     #[test]
@@ -513,7 +518,6 @@ mod tests {
                 path: Some(tmp.path().to_string_lossy().into()),
                 name: Some("proj".into()),
                 title: Some("Title".into()),
-                platform: None, // No platform provided, should check config
                 no_git_init: true,
             };
 
