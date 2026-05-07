@@ -267,7 +267,10 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     status::info("The following commands will be run:");
     eprintln!(
         "  {}",
-        status::highlight(&format!("pixi auth login {} --conda-token <token>", REPO_HOST))
+        status::highlight(&format!(
+            "pixi auth login {} --conda-token <token>",
+            REPO_HOST
+        ))
     );
     for action in &actions {
         eprintln!("  {}", status::highlight(&action.command_display()));
