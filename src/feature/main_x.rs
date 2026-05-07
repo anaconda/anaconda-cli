@@ -55,7 +55,10 @@ impl PixiChannelAction {
     fn command_display(&self) -> String {
         match self {
             PixiChannelAction::AddMainX => {
-                format!("pixi config prepend --global default-channels {}", MAIN_X_CHANNEL)
+                format!(
+                    "pixi config prepend --global default-channels {}",
+                    MAIN_X_CHANNEL
+                )
             }
             PixiChannelAction::RemoveMainX => {
                 "pixi config unset --global default-channels".to_string()
@@ -68,7 +71,10 @@ impl PixiChannelAction {
         status::running(&format!("Running {}", status::highlight(&cmd)));
         match self {
             PixiChannelAction::AddMainX => {
-                run_pixi_config(pixi_bin, &["prepend", "--global", "default-channels", MAIN_X_CHANNEL])?;
+                run_pixi_config(
+                    pixi_bin,
+                    &["prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+                )?;
             }
             PixiChannelAction::RemoveMainX => {
                 run_pixi_config(pixi_bin, &["unset", "--global", "default-channels"])?;
@@ -239,7 +245,10 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     ));
     status::blank_line();
     status::info("To disable this feature, run:");
-    eprintln!("  {}", status::highlight("ana feature disable main-x --pixi"));
+    eprintln!(
+        "  {}",
+        status::highlight("ana feature disable main-x --pixi")
+    );
 
     Ok(())
 }
@@ -338,7 +347,10 @@ pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::
 
     status::blank_line();
     status::info("To re-enable, run:");
-    eprintln!("  {}", status::highlight("ana feature enable main-x --pixi"));
+    eprintln!(
+        "  {}",
+        status::highlight("ana feature enable main-x --pixi")
+    );
 
     Ok(())
 }
