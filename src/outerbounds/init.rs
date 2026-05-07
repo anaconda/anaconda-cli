@@ -436,10 +436,7 @@ mod tests {
     {
         let home_str = home.to_str().unwrap();
         temp_env::with_vars(
-            [
-                ("HOME", Some(home_str)),
-                ("USERPROFILE", Some(home_str)),
-            ],
+            [("HOME", Some(home_str)), ("USERPROFILE", Some(home_str))],
             f,
         )
     }
