@@ -5,11 +5,16 @@ use crate::help;
 use crate::tools;
 use crate::ui::status;
 
-use super::{init_project, open_app, print_init_help, view_app, InitOptions};
+use super::{InitOptions, init_project, open_app, print_init_help, view_app};
 
 /// Run the outerbounds CLI wrapper with the given arguments.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
-    if args.is_empty() || args.first().map(|a| a == "--help" || a == "-h").unwrap_or(false) {
+    if args.is_empty()
+        || args
+            .first()
+            .map(|a| a == "--help" || a == "-h")
+            .unwrap_or(false)
+    {
         help::outerbounds::print_outerbounds_help();
         return Ok(());
     }
