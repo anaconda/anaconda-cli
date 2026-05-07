@@ -87,35 +87,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ github.ref_name }}
         run: |
-          # Check if release exists (draft, prerelease, or published)
-          if gh release view "$VERSION" &>/dev/null; then
-            echo "Uploading assets to existing release $VERSION"
-            gh release upload "$VERSION" release-assets/* --clobber
-            gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.sh"
-            gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.ps1"
+          echo "Uploading assets to existing release $VERSION"
+          gh release upload "$VERSION" release-assets/* --clobber
+          gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.sh"
+          gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.ps1"
 
-            # Publish as full release (remove draft/prerelease flags, mark as latest)
-            echo "Publishing release $VERSION"
-            gh release edit "$VERSION" --draft=false --prerelease=false --latest
-          fi
-
-          # Update the 'latest' release to point to this version
-          if gh release view latest &>/dev/null; then
-            echo "Removing existing 'latest' release, for replacement"
-            gh release delete latest --yes
-            git push origin :refs/tags/latest 2>/dev/null || true
-          fi
-
-          NOTES=$(cat <<EOF
-          This release always points to the most recent build.
-
-          **Version:** ${VERSION}
-          EOF
-          )
-
-          echo "Publishing release 'latest'"
-          gh release create latest \
-            --title "Latest Release" \
-            --prerelease \
-            --notes "$NOTES" \
-            release-assets/*
+          echo "Publishing release $VERSION"
+          gh release edit "$VERSION" --draft=false
