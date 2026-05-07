@@ -509,6 +509,11 @@ pub fn parse() -> (Action, LogLevel) {
                         args.extend(spc_args);
                         Action::ObProxy { args }
                     }
+                    Some(ObCommands::Flowproject { args: fp_args }) => {
+                        let mut args = vec!["flowproject".to_string()];
+                        args.extend(fp_args);
+                        Action::ObProxy { args }
+                    }
                 },
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
@@ -1012,6 +1017,13 @@ enum ObCommands {
     /// Authenticate service principals using JWT
     #[command(trailing_var_arg = true, name = "service-principal-configure")]
     ServicePrincipalConfigure {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Commands for pushing Deployments metadata
+    #[command(trailing_var_arg = true)]
+    Flowproject {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
