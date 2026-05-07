@@ -453,6 +453,31 @@ pub fn parse() -> (Action, LogLevel) {
                             }
                             Action::ObProxy { args }
                         }
+                        Some(ObAppCommands::Delete { args: cmd_args }) => {
+                            let mut args = vec!["app".to_string(), "delete".to_string()];
+                            args.extend(cmd_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObAppCommands::Deploy { args: cmd_args }) => {
+                            let mut args = vec!["app".to_string(), "deploy".to_string()];
+                            args.extend(cmd_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObAppCommands::Info { args: cmd_args }) => {
+                            let mut args = vec!["app".to_string(), "info".to_string()];
+                            args.extend(cmd_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObAppCommands::List { args: cmd_args }) => {
+                            let mut args = vec!["app".to_string(), "list".to_string()];
+                            args.extend(cmd_args);
+                            Action::ObProxy { args }
+                        }
+                        Some(ObAppCommands::Logs { args: cmd_args }) => {
+                            let mut args = vec!["app".to_string(), "logs".to_string()];
+                            args.extend(cmd_args);
+                            Action::ObProxy { args }
+                        }
                     },
                     Some(ObCommands::Check { args: check_args }) => {
                         let mut args = vec!["check".to_string()];
@@ -1002,17 +1027,52 @@ enum ObCommands {
 
 #[derive(Subcommand)]
 enum ObAppCommands {
-    /// Open a deployed app in the browser
+    /// Open a deployed app in the browser (ana-specific)
     Open {
         /// Name of the app to open
         name: String,
     },
 
-    /// View the current project's deployed app
+    /// View the current project's deployed app (ana-specific)
     View {
         /// Open in browser
         #[arg(long)]
         web: bool,
+    },
+
+    /// Delete an app from the Outerbounds Platform
+    #[command(trailing_var_arg = true)]
+    Delete {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Deploy an app to the Outerbounds Platform
+    #[command(trailing_var_arg = true)]
+    Deploy {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Get detailed information about an app
+    #[command(trailing_var_arg = true)]
+    Info {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// List apps in the Outerbounds Platform
+    #[command(trailing_var_arg = true)]
+    List {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Get logs for an app worker
+    #[command(trailing_var_arg = true)]
+    Logs {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 }
 
