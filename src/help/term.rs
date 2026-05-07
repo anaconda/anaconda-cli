@@ -317,8 +317,14 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     let _ = term.write_line("");
 
     // After help (e.g., experimental warnings)
-    if let Some(after_help) = cmd.get_after_help() {
-        let styled = crate::ui::status::note_experimental(&after_help.to_string());
+    // Show experimental warning for all ob subcommands
+    let after_help = if path.starts_with("ob") {
+        Some("Note: Outerbounds integration is an experimental alpha feature.".to_string())
+    } else {
+        cmd.get_after_help().map(|h| h.to_string())
+    };
+    if let Some(help_text) = after_help {
+        let styled = crate::ui::status::note_experimental(&help_text);
         let _ = term.write_line(&format!("{}{}", ind, styled));
         let _ = term.write_line("");
     }
