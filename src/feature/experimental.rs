@@ -120,6 +120,7 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
+    #[cfg(unix)]
     fn test_is_valid_feature() {
         assert!(is_valid_feature("outerbounds"));
         assert!(!is_valid_feature("unknown"));
@@ -127,6 +128,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
+    fn test_is_valid_feature_windows() {
+        // On Windows, no experimental features are available
+        assert!(!is_valid_feature("outerbounds"));
+        assert!(!is_valid_feature("unknown"));
+    }
+
+    #[test]
+    #[cfg(unix)]
     fn test_enable_disable_feature() {
         let tmp = TempDir::new().unwrap();
 
@@ -165,6 +175,19 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
+    fn test_enable_outerbounds_invalid_on_windows() {
+        let tmp = TempDir::new().unwrap();
+
+        temp_env::with_var("ANA_HOME", Some(tmp.path().to_str().unwrap()), || {
+            // On Windows, outerbounds is not a valid feature
+            let result = enable_feature("outerbounds");
+            assert!(result.is_err());
+            assert!(result.unwrap_err().to_string().contains("Unknown"));
+        });
+    }
+
+    #[test]
     fn test_load_config_missing_file() {
         let tmp = TempDir::new().unwrap();
 
@@ -176,6 +199,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_load_config_preserves_other_content() {
         let tmp = TempDir::new().unwrap();
 
@@ -191,7 +215,7 @@ key = "value"
             fs::write(tmp.path().join("config.toml"), initial).unwrap();
 
             // Enable feature (should preserve structure)
-            let config = load_config();
+            let _config = load_config();
             assert!(is_feature_enabled("outerbounds"));
 
             // Disable and re-enable
