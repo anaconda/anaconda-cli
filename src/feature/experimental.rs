@@ -57,8 +57,8 @@ fn save_config(config: &AnaConfig) -> miette::Result<()> {
             .map_err(|e| miette::miette!("Failed to create config directory: {}", e))?;
     }
 
-    let content =
-        toml::to_string_pretty(config).map_err(|e| miette::miette!("Failed to serialize config: {}", e))?;
+    let content = toml::to_string_pretty(config)
+        .map_err(|e| miette::miette!("Failed to serialize config: {}", e))?;
 
     fs::write(&path, content).map_err(|e| miette::miette!("Failed to write config file: {}", e))
 }
