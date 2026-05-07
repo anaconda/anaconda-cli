@@ -70,16 +70,11 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
       - name: Set up ana with pixi
-        if: matrix.os != 'ubuntu-24.04-arm'
         uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
         with:
           ana-version: v0.1.1
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-
-      - name: Set up pixi (fallback)
-        if: matrix.os == 'ubuntu-24.04-arm'
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
       - name: Run unit tests
         if: ${{ !inputs.skip-tests }}
