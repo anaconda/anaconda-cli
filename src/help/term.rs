@@ -16,9 +16,22 @@ fn left_margin() -> String {
 }
 
 /// Print a command row: "    command      description"
+/// If the description contains "(experimental)", it will be styled in amber.
 fn print_command_row(term: &Term, name: &str, desc: &str) {
     let styled_name = HelpStyle::Command.style().apply_to(name);
-    let styled_desc = HelpStyle::Desc.style().apply_to(desc);
+    let styled_desc = if let Some(idx) = desc.find("(experimental)") {
+        let before = &desc[..idx];
+        let tag = "(experimental)";
+        let after = &desc[idx + tag.len()..];
+        format!(
+            "{}{}{}",
+            HelpStyle::Desc.style().apply_to(before),
+            crate::ui::status::note_experimental(tag),
+            HelpStyle::Desc.style().apply_to(after)
+        )
+    } else {
+        HelpStyle::Desc.style().apply_to(desc).to_string()
+    };
     let _ = term.write_line(&format!(
         "{}  {styled_name:<20} {styled_desc}",
         left_margin()
@@ -302,6 +315,13 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     }
     print_option_row(&term, Some("-h"), Some("--help"), "Show this message");
     let _ = term.write_line("");
+
+    // After help (e.g., experimental warnings)
+    if let Some(after_help) = cmd.get_after_help() {
+        let styled = crate::ui::status::note_experimental(&after_help.to_string());
+        let _ = term.write_line(&format!("{}{}", ind, styled));
+        let _ = term.write_line("");
+    }
 
     print_footer(&term);
 }

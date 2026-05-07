@@ -735,11 +735,12 @@ enum Commands {
         args: Vec<String>,
     },
 
-    /// Outerbounds platform CLI
+    /// Outerbounds platform CLI (experimental)
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
-        override_usage = "ana ob <command> [options]"
+        override_usage = "ana ob <command> [options]",
+        after_help = "Note: Outerbounds integration is an experimental alpha feature."
     )]
     Ob {
         #[command(subcommand)]

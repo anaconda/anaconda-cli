@@ -7,6 +7,8 @@ struct Tool {
     name: &'static str,
     lockfile: &'static str,
     binaries: &'static [&'static [&'static str]],
+    /// If set, the tool is experimental and this message will be shown as a warning.
+    experimental: Option<&'static str>,
 }
 
 /// Embedded tool configurations.
@@ -19,6 +21,7 @@ const TOOLS: &[Tool] = &[
         } else {
             &[&["Scripts", "anaconda"]]
         },
+        experimental: None,
     },
     Tool {
         name: "outerbounds",
@@ -28,11 +31,13 @@ const TOOLS: &[Tool] = &[
         } else {
             &[&[]] // No Windows support currently
         },
+        experimental: Some("Outerbounds integration is an experimental alpha feature."),
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
+        experimental: None,
     },
 ];
 
@@ -71,6 +76,11 @@ pub fn binary_names(name: &str) -> Option<Vec<&'static str>> {
 /// Returns all available tool names.
 pub fn all_tools() -> Vec<&'static str> {
     TOOLS.iter().map(|t| t.name).collect()
+}
+
+/// Returns the experimental warning message for a tool, if any.
+pub fn experimental_message(name: &str) -> Option<&'static str> {
+    find_tool(name).and_then(|t| t.experimental)
 }
 
 #[cfg(test)]

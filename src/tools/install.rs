@@ -27,6 +27,12 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
+    // Show experimental warning if applicable
+    if let Some(msg) = tools::experimental_message(name) {
+        crate::ui::status::warn(msg);
+        eprintln!();
+    }
+
     let prefix = paths::tool_prefix(name);
 
     let lock_content =
