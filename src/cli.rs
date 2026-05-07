@@ -15,7 +15,7 @@ use crate::feature;
 use crate::feedback::{self, FeedbackType};
 use crate::fetch::api_fetch;
 use crate::help;
-use crate::outerbounds::{self, ObAppCommands, ObCommands, ObFlowprojectCommands};
+use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::update;
 
@@ -408,139 +408,9 @@ pub fn parse() -> (Action, LogLevel) {
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
                 Some(Commands::Ob { command }) => match command {
                     None => Action::ShowSubcommandHelp("ob".to_string()),
-                    Some(ObCommands::Init {
-                        path,
-                        name,
-                        title,
-                        no_git_init,
-                    }) => {
-                        let mut args = vec!["init".to_string()];
-                        if let Some(p) = path {
-                            args.push(p);
-                        }
-                        if let Some(n) = name {
-                            args.push("--name".to_string());
-                            args.push(n);
-                        }
-                        if let Some(t) = title {
-                            args.push("--title".to_string());
-                            args.push(t);
-                        }
-                        if no_git_init {
-                            args.push("--no-git-init".to_string());
-                        }
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::Deploy { args: deploy_args }) => {
-                        let mut args = vec!["deploy".to_string()];
-                        args.extend(deploy_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::App { command: app_cmd }) => match app_cmd {
-                        None => Action::ShowSubcommandHelp("ob app".to_string()),
-                        Some(ObAppCommands::Open { name }) => Action::ObProxy {
-                            args: vec!["app".to_string(), "open".to_string(), name],
-                        },
-                        Some(ObAppCommands::View { web }) => {
-                            let mut args = vec!["app".to_string(), "view".to_string()];
-                            if web {
-                                args.push("--web".to_string());
-                            }
-                            Action::ObProxy { args }
-                        }
-                        Some(ObAppCommands::Delete { args: cmd_args }) => {
-                            let mut args = vec!["app".to_string(), "delete".to_string()];
-                            args.extend(cmd_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObAppCommands::Deploy { args: cmd_args }) => {
-                            let mut args = vec!["app".to_string(), "deploy".to_string()];
-                            args.extend(cmd_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObAppCommands::Info { args: cmd_args }) => {
-                            let mut args = vec!["app".to_string(), "info".to_string()];
-                            args.extend(cmd_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObAppCommands::List { args: cmd_args }) => {
-                            let mut args = vec!["app".to_string(), "list".to_string()];
-                            args.extend(cmd_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObAppCommands::Logs { args: cmd_args }) => {
-                            let mut args = vec!["app".to_string(), "logs".to_string()];
-                            args.extend(cmd_args);
-                            Action::ObProxy { args }
-                        }
-                    },
-                    Some(ObCommands::Check { args: check_args }) => {
-                        let mut args = vec!["check".to_string()];
-                        args.extend(check_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::Configure { args: cfg_args }) => {
-                        let mut args = vec!["configure".to_string()];
-                        args.extend(cfg_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::FastBakery { args: fb_args }) => {
-                        let mut args = vec!["fast-bakery".to_string()];
-                        args.extend(fb_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::Integrations { args: int_args }) => {
-                        let mut args = vec!["integrations".to_string()];
-                        args.extend(int_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::Kubernetes { args: k8s_args }) => {
-                        let mut args = vec!["kubernetes".to_string()];
-                        args.extend(k8s_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::Perimeter { args: perm_args }) => {
-                        let mut args = vec!["perimeter".to_string()];
-                        args.extend(perm_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::ServicePrincipalConfigure { args: spc_args }) => {
-                        let mut args = vec!["service-principal-configure".to_string()];
-                        args.extend(spc_args);
-                        Action::ObProxy { args }
-                    }
-                    Some(ObCommands::Flowproject { command: fp_cmd }) => match fp_cmd {
-                        None => Action::ShowSubcommandHelp("ob flowproject".to_string()),
-                        Some(ObFlowprojectCommands::DeleteMetadata { args: dm_args }) => {
-                            let mut args =
-                                vec!["flowproject".to_string(), "delete-metadata".to_string()];
-                            args.extend(dm_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObFlowprojectCommands::GetMetadata { args: gm_args }) => {
-                            let mut args =
-                                vec!["flowproject".to_string(), "get-metadata".to_string()];
-                            args.extend(gm_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObFlowprojectCommands::ListTemplates { args: lt_args }) => {
-                            let mut args =
-                                vec!["flowproject".to_string(), "list-templates".to_string()];
-                            args.extend(lt_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObFlowprojectCommands::SetMetadata { args: sm_args }) => {
-                            let mut args =
-                                vec!["flowproject".to_string(), "set-metadata".to_string()];
-                            args.extend(sm_args);
-                            Action::ObProxy { args }
-                        }
-                        Some(ObFlowprojectCommands::TeardownBranch { args: tb_args }) => {
-                            let mut args =
-                                vec!["flowproject".to_string(), "teardown-branch".to_string()];
-                            args.extend(tb_args);
-                            Action::ObProxy { args }
-                        }
+                    Some(cmd) => match cmd.into_action() {
+                        ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                        ObAction::Proxy(args) => Action::ObProxy { args },
                     },
                 },
                 Some(Commands::Tool { command }) => match command {
