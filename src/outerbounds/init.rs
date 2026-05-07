@@ -398,7 +398,10 @@ mod tests {
         write_template(&path, template, &replacements).unwrap();
 
         let content = fs::read_to_string(&path).unwrap();
-        assert_eq!(content, "Project: myproj, Platform: example.com, Title: My Title");
+        assert_eq!(
+            content,
+            "Project: myproj, Platform: example.com, Title: My Title"
+        );
     }
 
     #[test]
@@ -458,9 +461,21 @@ mod tests {
 
             // Verify app structure
             assert!(project_path.join("deployments/hello_app/app.py").exists());
-            assert!(project_path.join("deployments/hello_app/config.yaml").exists());
-            assert!(project_path.join("deployments/hello_app/requirements.txt").exists());
-            assert!(project_path.join("deployments/hello_app/README.md").exists());
+            assert!(
+                project_path
+                    .join("deployments/hello_app/config.yaml")
+                    .exists()
+            );
+            assert!(
+                project_path
+                    .join("deployments/hello_app/requirements.txt")
+                    .exists()
+            );
+            assert!(
+                project_path
+                    .join("deployments/hello_app/README.md")
+                    .exists()
+            );
         });
     }
 
@@ -559,7 +574,11 @@ mod tests {
             let result = init_project(opts);
             assert!(result.is_err());
             let err = result.unwrap_err().to_string();
-            assert!(err.contains("not configured"), "error should mention not configured: {}", err);
+            assert!(
+                err.contains("not configured"),
+                "error should mention not configured: {}",
+                err
+            );
         });
     }
 
