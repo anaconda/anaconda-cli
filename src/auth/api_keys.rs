@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::errors::AuthError;
 use crate::VERSION;
-use crate::config::Config;
+use crate::http::Client;
 
 /// Request body for creating an API key.
 #[derive(Debug, Serialize)]
@@ -60,12 +60,7 @@ pub fn is_valid_api_key(api_key: &str) -> bool {
 }
 
 /// Create a new API key using the access token.
-pub async fn create_api_key(
-    client: &reqwest_middleware::ClientWithMiddleware,
-    config: &Config,
-    access_token: &str,
-) -> Result<String, AuthError> {
-    let url = format!("{}/api/auth/api-keys", config.base_url());
+pub async fn create_api_key(client: &Client, access_token: &str) -> Result<String, AuthError> {
     let payload = CreateApiKeyRequest {
         scopes: vec![
             "cloud:read".to_string(),
@@ -76,7 +71,7 @@ pub async fn create_api_key(
     };
 
     let response = client
-        .post(&url)
+        .post("/api/auth/api-keys")
         .bearer_auth(access_token)
         .json(&payload)
         .send()

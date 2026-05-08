@@ -182,10 +182,9 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
 /// Returns the user's email if valid, or an error if invalid.
 async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> Result<String, AuthError> {
     let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
-    let url = format!("{}/api/account", ctx.config.base_url());
 
     let response = client
-        .get(&url)
+        .get("/api/account")
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
         .await?;
@@ -301,7 +300,7 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
-        .get(ctx.config.well_known_url())
+        .get(&ctx.config.well_known_url())
         .send()
         .await?
         .json()
@@ -440,7 +439,7 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
             status::success("Authentication complete");
 
             // Create API key
-            let api_key = create_api_key(&client, &ctx.config, &token.access_token).await?;
+            let api_key = create_api_key(client, &token.access_token).await?;
 
             return save_and_display_login(ctx, &api_key).await;
         }
