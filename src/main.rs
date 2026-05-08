@@ -17,6 +17,7 @@ mod outerbounds;
 mod paths;
 mod qr;
 mod table;
+mod telemetry;
 mod tools;
 mod ua;
 mod ui;
