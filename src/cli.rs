@@ -14,6 +14,8 @@ use crate::feature;
 use crate::feedback::{self, FeedbackType};
 use crate::fetch::api_fetch;
 use crate::help;
+#[cfg(unix)]
+use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::update;
 
@@ -76,7 +78,7 @@ pub async fn execute() {
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {:?}", e);
         std::process::exit(1);
     }
 }
@@ -115,6 +117,14 @@ pub enum Action {
     Bootstrap,
     OrgProxy {
         args: Vec<String>,
+    },
+    #[cfg(unix)]
+    ObProxy {
+        args: Vec<String>,
+    },
+    #[cfg(unix)]
+    ObAutoConfigure {
+        instance: String,
     },
     UserAgent {
         prefix: Option<String>,
@@ -172,6 +182,10 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            #[cfg(unix)]
+            Action::ObProxy { .. } => "ob",
+            #[cfg(unix)]
+            Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
@@ -255,6 +269,12 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
+            #[cfg(unix)]
+            Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
+            #[cfg(unix)]
+            Action::ObAutoConfigure { instance } => {
+                outerbounds::auto_configure(ctx, &instance).await
+            }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -330,6 +350,25 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::enable_main_x(ctx, force).await?,
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
+                    name if feature::is_valid_feature(name) => {
+                        crate::ui::status::warn(&format!(
+                            "The '{}' feature is experimental and may change or be removed.",
+                            name
+                        ));
+                        if !force
+                            && !crate::input::prompt_yes_no(
+                                "Enable this experimental feature?",
+                                false,
+                            )
+                        {
+                            return Ok(());
+                        }
+                        feature::enable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' enabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 Ok(())
@@ -343,6 +382,13 @@ impl Action {
                 match feature.as_str() {
                     "main-x" => feature::disable_main_x(ctx, force).await?,
                     "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
+                    name if feature::is_valid_feature(name) => {
+                        feature::disable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' disabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 Ok(())
@@ -439,6 +485,33 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
+                #[cfg(unix)]
+                Some(Commands::Ob { command }) => {
+                    if !feature::is_feature_enabled("outerbounds") {
+                        use crate::ui::status::{blank_line, highlight, tip, warn};
+                        warn(&format!(
+                            "The {} command requires the experimental {} feature.",
+                            highlight("ob"),
+                            highlight("outerbounds")
+                        ));
+                        tip(&format!(
+                            "Enable it with {}",
+                            highlight("ana feature enable outerbounds")
+                        ));
+                        blank_line();
+                        std::process::exit(1);
+                    }
+                    match command {
+                        None => Action::ShowSubcommandHelp("ob".to_string()),
+                        Some(cmd) => match cmd.into_action() {
+                            ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                            ObAction::Proxy(args) => Action::ObProxy { args },
+                            ObAction::AutoConfigure { instance } => {
+                                Action::ObAutoConfigure { instance }
+                            }
+                        },
+                    }
+                }
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -547,10 +620,17 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-/// Get subcommand names and descriptions from clap for help introspection
+/// Get subcommand names and descriptions from clap for help introspection.
+/// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
+    #[cfg(unix)]
+    let show_ob = feature::is_feature_enabled("outerbounds");
+    #[cfg(not(unix))]
+    let show_ob = false;
+
     Cli::command()
         .get_subcommands()
+        .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
             (
                 s.get_name().to_string(),
@@ -660,6 +740,19 @@ enum Commands {
         /// Arguments to pass to anaconda org
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
+    },
+
+    /// Outerbounds platform CLI (experimental)
+    #[cfg(unix)]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana ob <command> [options]",
+        after_help = "Note: Outerbounds integration is an experimental alpha feature."
+    )]
+    Ob {
+        #[command(subcommand)]
+        command: Option<ObCommands>,
     },
 
     /// Manage tools
@@ -878,9 +971,11 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
+        // "ob" is conditionally hidden based on experimental feature state
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
             "config",
+            "ob",
             "telemetry-submit",
             "telemetry-kill",
             "telemetry-status",
