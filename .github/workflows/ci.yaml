@@ -5,6 +5,10 @@ on:
   merge_group:
   workflow_call:
     inputs:
+      environment:
+        description: The GitHub environment to use
+        type: string
+        default: dev
       skip-tests:
         description: Whether to skip tests
         type: boolean
@@ -25,6 +29,7 @@ permissions: {}
 
 jobs:
   build:
+    environment: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
@@ -90,12 +95,29 @@ jobs:
       - name: Build release binary
         run: pixi run build-release
 
+      - name: Sign and notarize binary (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        id: sign-notarize-macos
+        uses: ./.github/actions/sign-notarize-macos
+        with:
+          binary-path: target/release/ana
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.AULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.VAULT_URL }}
+
       - name: Run integration tests
         if: ${{ !inputs.skip-tests }}
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
+          MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
+          MACOS_IS_NOTARIZED: ${{ steps.sign-notarize-macos.outputs.notarized }}
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)

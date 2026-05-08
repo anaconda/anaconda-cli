@@ -19,10 +19,9 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yaml
     with:
+      environment: ${{ github.event_name == 'release' && 'prod' || 'dev' }}
       skip-tests: ${{ github.event_name == 'push' }}
-    secrets:
-      PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+    secrets: inherit  # zizmor: ignore[secrets-inherit] reusable workflows must inherit environment secrets
 
   publish-to-anaconda-dot-org:
     name: Publish to Anaconda.org
