@@ -48,6 +48,26 @@ Available types:
 - `build` - Build system changes
 - `ci` - CI/CD changes
 
+### PR descriptions
+Follow this format for PR descriptions:
+
+```markdown
+## Summary
+<Brief description of changes - can be bullet points or paragraphs>
+
+## Test plan
+- [ ] <Checklist of manual testing steps>
+- [ ] <Include specific commands to run>
+
+Jira: [CLI-XXX](https://anaconda.atlassian.net/browse/CLI-XXX)
+```
+
+Notes:
+- The `## Summary` section is required
+- Include `## Test plan` with checkboxes for manual testing when applicable
+- If there's a linked Jira ticket, add it at the bottom with the format `Jira: [CLI-XXX](url)`
+- Omit the Jira line if there's no associated ticket
+
 ## Release Process
 
 When creating a new release:
