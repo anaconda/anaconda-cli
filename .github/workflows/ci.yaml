@@ -117,7 +117,7 @@ jobs:
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
           MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
-          MACOS_IS_NOTARIZED: ${{ steps.sign-notarize-macos.outputs.notarized }}
+          MACOS_IS_NOTARIZED: ${{ inputs.environment == 'prod' }}
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)
