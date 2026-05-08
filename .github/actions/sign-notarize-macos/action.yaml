@@ -48,7 +48,7 @@ runs:
             echo "::error::Unrecognized vault mount point `${VAULT_MOUNT}`"
             exit 1
         fi
-        if ! [[ -f "${BINARY_PATH}" ]]; then
+        if [[ ! -f "${BINARY_PATH}" ]]; then
             echo "::error::${BINARY_PATH} does not exist."
             exit 1
         fi
