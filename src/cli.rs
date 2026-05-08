@@ -116,6 +116,10 @@ pub enum Action {
     ObProxy {
         args: Vec<String>,
     },
+    #[cfg(unix)]
+    ObAutoConfigure {
+        instance: String,
+    },
     UserAgent {
         prefix: Option<String>,
     },
@@ -171,6 +175,8 @@ impl Action {
             Action::OrgProxy { .. } => "org",
             #[cfg(unix)]
             Action::ObProxy { .. } => "ob",
+            #[cfg(unix)]
+            Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
@@ -251,6 +257,10 @@ impl Action {
             ),
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
+            #[cfg(unix)]
+            Action::ObAutoConfigure { instance } => {
+                outerbounds::auto_configure(ctx, &instance).await
+            }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -442,6 +452,9 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(cmd) => match cmd.into_action() {
                         ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
                         ObAction::Proxy(args) => Action::ObProxy { args },
+                        ObAction::AutoConfigure { instance } => {
+                            Action::ObAutoConfigure { instance }
+                        }
                     },
                 },
                 Some(Commands::Tool { command }) => match command {

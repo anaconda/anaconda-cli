@@ -6,6 +6,8 @@ pub enum ObAction {
     ShowHelp(String),
     /// Proxy args to the outerbounds CLI
     Proxy(Vec<String>),
+    /// Auto-configure using Anaconda SSO
+    AutoConfigure { instance: String },
 }
 
 #[derive(Subcommand)]
@@ -53,6 +55,10 @@ pub enum ObCommands {
     /// Decode Outerbounds Platform configuration
     #[command(trailing_var_arg = true)]
     Configure {
+        /// Auto-configure using Anaconda SSO for this instance (e.g., some-instance.outerbounds.com)
+        #[arg(long)]
+        instance: Option<String>,
+
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
@@ -250,10 +256,17 @@ impl ObCommands {
                 args.extend(check_args);
                 ObAction::Proxy(args)
             }
-            ObCommands::Configure { args: cfg_args } => {
-                let mut args = vec!["configure".to_string()];
-                args.extend(cfg_args);
-                ObAction::Proxy(args)
+            ObCommands::Configure {
+                instance,
+                args: cfg_args,
+            } => {
+                if let Some(instance) = instance {
+                    ObAction::AutoConfigure { instance }
+                } else {
+                    let mut args = vec!["configure".to_string()];
+                    args.extend(cfg_args);
+                    ObAction::Proxy(args)
+                }
             }
             ObCommands::FastBakery { args: fb_args } => {
                 let mut args = vec!["fast-bakery".to_string()];
