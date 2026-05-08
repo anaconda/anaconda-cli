@@ -25,8 +25,23 @@ pub const VERSION: &str = env!("PKG_VERSION");
 #[cfg(feature = "feedback")]
 pub const FEEDBACK_BASE_URL: &str = "https://docs.google.com/forms/d/e/1FAIpQLSeGd9p7pQSHvjIc6RNShjTQCGmM-5_3xkPNpNfYk102-HZB8Q/viewform";
 
+/// Reset SIGPIPE to default behavior so the process terminates cleanly when
+/// output is piped to commands like `head` or `grep -q`. Rust ignores SIGPIPE
+/// by default, which causes panics on broken pipe errors.
+#[cfg(unix)]
+fn reset_sigpipe() {
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
+#[cfg(not(unix))]
+fn reset_sigpipe() {}
+
 #[tokio::main]
 async fn main() {
+    reset_sigpipe();
+
     let config = config::Config::load();
     let _diagnostics_guard = diagnostics::init(&config);
     cli::execute().await;
