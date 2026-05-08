@@ -550,13 +550,13 @@ fn get_configured_channels_conda(conda_bin: &Path) -> miette::Result<Vec<String>
 
     Ok(channels)
 }
-/// Get the list of currently configured channels from pixi info --json.
+/// Get the list of currently configured global default channels from pixi config.
 fn get_configured_channels_pixi(pixi_bin: &Path) -> miette::Result<Vec<String>> {
     let output = Command::new(pixi_bin)
-        .args(["info", "--json"])
+        .args(["config", "list", "--json", "--global"])
         .output()
         .into_diagnostic()
-        .context("failed to run pixi info --json")?;
+        .context("failed to run pixi config list --json --global")?;
 
     if !output.status.success() {
         // If command fails, assume no channels configured
@@ -565,16 +565,16 @@ fn get_configured_channels_pixi(pixi_bin: &Path) -> miette::Result<Vec<String>> 
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    let obj: Value = serde_json::from_str(&stdout).expect("failed to parse json output");
+    let obj: Value = serde_json::from_str(&stdout).unwrap_or(Value::Null);
 
-    let channels: Vec<String> = obj["environment_info"]["channels"]
+    let channels: Vec<String> = obj["default-channels"]
         .as_array()
         .map(|arr| {
             arr.iter()
                 .filter_map(|v| v.as_str().map(|s| s.to_string()))
                 .collect()
         })
-        .unwrap_or_else(|| vec!["conda-forge".to_string()]);
+        .unwrap_or_default();
 
     Ok(channels)
 }
