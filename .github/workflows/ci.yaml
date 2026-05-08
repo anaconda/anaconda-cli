@@ -13,13 +13,6 @@ on:
         description: Whether to skip tests
         type: boolean
         default: false
-    secrets:
-      PRIVATE_REPO_TOKEN:
-        description: Token for accessing private repositories
-        required: true
-      SENTRY_DSN:
-        description: Sentry DSN for error reporting (only for release builds)
-        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -29,7 +22,11 @@ permissions: {}
 
 jobs:
   build:
-    environment: ${{ inputs.environment || 'dev' }}
+    environment:
+      # Only deploy when calling this workflow via pushes to main or releases
+      # Otherwise, pull requests will be cluttered with deployment messages
+      deployment: ${{ github.event_name == 'workflow_call' }}
+      name: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
@@ -108,7 +105,7 @@ jobs:
           vault-role-id: ${{ secrets.AULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
           vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
           vault-mount: ${{ inputs.environment || 'dev' }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
       - name: Run integration tests
         if: ${{ !inputs.skip-tests }}
