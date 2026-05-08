@@ -589,6 +589,26 @@ pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
 
     let data: serde_json::Value = response.json().await?;
 
+    // Check if account has been deleted/anonymized
+    // Deleted accounts have email set to "{random}@anonym.ized"
+    let profile = data.get("passport").and_then(|p| p.get("profile"));
+    let is_anonymized = profile
+        .and_then(|p| p.get("email"))
+        .and_then(|v| v.as_str())
+        .is_some_and(|email| email.ends_with("@anonym.ized"));
+
+    if is_anonymized {
+        // Clear stored credentials for the deleted account
+        delete_api_key(&ctx.config)?;
+
+        status::error("Your account has been deleted.");
+        status::info(&format!(
+            "Run {} to authenticate with a different account.",
+            status::highlight("ana login")
+        ));
+        return Ok(());
+    }
+
     // JSON output mode
     if json {
         let pretty = serde_json::to_string_pretty(&data).unwrap_or_default();
@@ -597,9 +617,6 @@ pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
     }
 
     // Styled output mode
-    // Data is nested under passport.profile for user info
-    let profile = data.get("passport").and_then(|p| p.get("profile"));
-
     // Account section
     eprintln!("{}", status::section("account"));
 
