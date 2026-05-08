@@ -51,7 +51,6 @@ description = "Run the unit tests in release mode"
 
 [tasks.test-integration]
 cmd = "pytest tests -v"
-depends-on = ["build-release"]
 description = "Run integration tests"
 
 [tasks.sbom]

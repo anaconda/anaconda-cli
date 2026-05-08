@@ -74,7 +74,7 @@ class TestMacOSSigning:
         self,
         certificate_info: dict[str, str],
     ) -> None:
-        assert certificate_info, "Binary is not signed"
+        assert certificate_info.get("Executable"), "Binary is not signed"
 
     def test_certificate_fingerprint(
         self,
