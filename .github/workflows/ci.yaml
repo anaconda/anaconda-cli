@@ -102,12 +102,13 @@ jobs:
         with:
           binary-path: target/release/ana
           vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
           vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
           vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
           vault-role-id: ${{ secrets.AULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
           vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
           vault-mount: ${{ inputs.environment || 'dev' }}
-          vault-url: ${{ secrets.VAULT_URL }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
 
       - name: Run integration tests
         if: ${{ !inputs.skip-tests }}
