@@ -27,6 +27,8 @@ def get_signing_cert_fingerprint(binary_path: Path) -> str:
         )
 
         cert_path = Path(tmpdir) / "codesign0"
+        if not cert_path.exists():
+            return ""
         cert_der = cert_path.read_bytes()
 
     cert = x509.load_der_x509_certificate(cert_der)
@@ -35,7 +37,7 @@ def get_signing_cert_fingerprint(binary_path: Path) -> str:
 
 
 def parse_codesign_output(output: str) -> dict[str, str]:
-    """Parse codesign -dv --verbose=4 output into a dictionary."""
+    """Parse codesign output into a dictionary."""
     result = {}
     for line in output.splitlines():
         if "=" in line:
@@ -53,7 +55,7 @@ def certificate_info(ana_binary: Path | None) -> dict[str, str]:
         )
 
     result = subprocess.run(
-        ["codesign", "-dv", "--verbose=4", ana_binary],
+        ["codesign", "-dvvvv", ana_binary],
         capture_output=True,
         text=True,
     )
@@ -85,6 +87,7 @@ class TestMacOSSigning:
             pytest.skip("MACOS_CERTIFICATE_FINGERPRINT not set")
 
         actual = certificate_info.get("fingerprint")
+        assert actual, "Fingerprint not found"
         expected = expected_fingerprint.upper().replace(":", "")
         assert actual == expected, (
             f"Certificate fingerprint mismatch.\n"
