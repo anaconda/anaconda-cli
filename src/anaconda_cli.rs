@@ -37,7 +37,33 @@ pub fn run_subcommand(
         return Err(msg);
     }
 
-    let status = Command::new(&anaconda_bin)
+    run_anaconda_command(&anaconda_bin, subcommand, args)
+}
+
+/// Run a subcommand, auto-installing anaconda-cli if not present.
+pub async fn run_subcommand_with_bootstrap(
+    ctx: &mut CommandContext,
+    subcommand: &str,
+    args: &[String],
+) -> Result<(), String> {
+    let anaconda_bin = paths::bin_path("anaconda");
+
+    if !anaconda_bin.exists() {
+        eprintln!("anaconda-cli not installed, installing...");
+        tools::install::install_tool(ctx, "anaconda-cli")
+            .await
+            .map_err(|e| format!("{:?}", e))?;
+    }
+
+    run_anaconda_command(&anaconda_bin, subcommand, args)
+}
+
+fn run_anaconda_command(
+    anaconda_bin: &std::path::Path,
+    subcommand: &str,
+    args: &[String],
+) -> Result<(), String> {
+    let status = Command::new(anaconda_bin)
         .arg(subcommand)
         .args(args)
         .status()

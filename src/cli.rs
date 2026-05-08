@@ -277,9 +277,11 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
-            Action::McpProxy { args } => Ok(
-                anaconda_cli::run_subcommand(ctx, "mcp", &args).map_err(|e| miette!("{}", e))?
-            ),
+            Action::McpProxy { args } => Ok(anaconda_cli::run_subcommand_with_bootstrap(
+                ctx, "mcp", &args,
+            )
+            .await
+            .map_err(|e| miette!("{}", e))?),
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
