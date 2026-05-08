@@ -32,7 +32,7 @@ async fn get_jwt_via_device_flow(ctx: &CommandContext) -> miette::Result<String>
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
-        .get(ctx.config.well_known_url())
+        .get(&ctx.config.well_known_url())
         .send()
         .await
         .map_err(|e| miette!("Failed to fetch OpenID config: {}", e))?

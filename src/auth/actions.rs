@@ -100,46 +100,29 @@ fn print_token_expiration(expires_at: &str) {
     }
 }
 
-/// Save API key and display login success information.
+/// Validate, save API key, and display login success information.
 ///
 /// This is the common "finalize login" logic shared by both device flow and direct API key login.
+/// Validates the key against the server before saving to catch invalid or cross-environment tokens.
 async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
+
+    // Validate the API key against the server before saving
+    let email = validate_api_key(ctx, api_key)
+        .await
+        .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
 
     // Save to keyring
     save_api_key(&ctx.config, api_key)?;
     status::success("API key stored in keyring");
 
-    // Fetch and display user info (ctx.client() will pick up the newly saved key via middleware)
-    if let Ok(login_info) = fetch_login_info(ctx).await {
-        print_logged_in_status(&login_info.email);
-        if let Some(expires_at) = get_expiration(api_key) {
-            print_token_expiration(&expires_at);
-        }
+    // Display login success
+    print_logged_in_status(&email);
+    if let Some(expires_at) = get_expiration(api_key) {
+        print_token_expiration(&expires_at);
     }
 
     Ok(())
-}
-
-/// Combined login information for display.
-struct LoginInfo {
-    email: String,
-}
-
-/// Fetch login info for display after login.
-async fn fetch_login_info(ctx: &CommandContext) -> Result<LoginInfo, AuthError> {
-    // Auth middleware will add the API key from keyring automatically
-    let account_response = ctx.client().get("/api/account").send().await?;
-    let account: AccountResponse = account_response.json().await?;
-
-    let email = account
-        .user
-        .as_ref()
-        .and_then(|u| u.email.clone())
-        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
-        .unwrap_or_else(|| "unknown".to_string());
-
-    Ok(LoginInfo { email })
 }
 
 /// Check if stdin is a pipe (non-TTY).
@@ -176,6 +159,40 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
     eprintln!("{} {}", status::dim("API key:"), status::dim(&mask));
 
     Ok(api_key.trim().to_string())
+}
+
+/// Validate an API key by making a request to the account endpoint.
+/// Returns the user's email if valid, or an error if invalid.
+async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result<String> {
+    let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
+
+    let response = client
+        .get("/api/account")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .send()
+        .await
+        .map_err(|e| miette::miette!("Failed to validate API key: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(miette::miette!(
+            "API key rejected by server ({})",
+            response.status()
+        ));
+    }
+
+    let account: AccountResponse = response
+        .json()
+        .await
+        .map_err(|e| miette::miette!("Failed to parse account response: {}", e))?;
+
+    let email = account
+        .user
+        .as_ref()
+        .and_then(|u| u.email.clone())
+        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
+        .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
+
+    Ok(email)
 }
 
 /// Login with a provided API key (bypassing device flow).
@@ -257,7 +274,7 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
 
     // Fetch OpenID configuration
     let openid_config: OpenIdConfig = client
-        .get(ctx.config.well_known_url())
+        .get(&ctx.config.well_known_url())
         .send()
         .await?
         .json()
@@ -396,7 +413,7 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
             status::success("Authentication complete");
 
             // Create API key
-            let api_key = create_api_key(&client, &ctx.config, &token.access_token).await?;
+            let api_key = create_api_key(client, &token.access_token).await?;
 
             return save_and_display_login(ctx, &api_key).await;
         }

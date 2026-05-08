@@ -100,7 +100,7 @@ pub struct CommandContext {
     /// Download client (lazy initialized).
     download_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Unauthenticated client (lazy initialized).
-    unauthenticated_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
+    unauthenticated_client: OnceLock<Client>,
 }
 
 impl CommandContext {
@@ -153,13 +153,13 @@ impl CommandContext {
 
     /// Get or create an unauthenticated client with a timeout.
     /// Used for login flows where the user isn't authenticated yet.
-    pub fn unauthenticated_client(
-        &self,
-        timeout: Duration,
-    ) -> &reqwest_middleware::ClientWithMiddleware {
+    pub fn unauthenticated_client(&self, timeout: Duration) -> &Client {
         self.unauthenticated_client.get_or_init(|| {
-            http::build_client(reqwest::Client::builder().timeout(timeout))
-                .expect("failed to create unauthenticated client")
+            Client::new(
+                reqwest::Client::builder().timeout(timeout),
+                self.config.base_url(),
+            )
+            .expect("failed to create unauthenticated client")
         })
     }
 }
