@@ -180,30 +180,34 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
 
 /// Validate an API key by making a request to the account endpoint.
 /// Returns the user's email if valid, or an error if invalid.
-async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> Result<String, AuthError> {
+async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result<String> {
     let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
 
     let response = client
         .get("/api/account")
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
-        .await?;
+        .await
+        .map_err(|e| miette::miette!("Failed to validate API key: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(AuthError::InvalidApiKey(format!(
+        return Err(miette::miette!(
             "API key rejected by server ({})",
             response.status()
-        )));
+        ));
     }
 
-    let account: AccountResponse = response.json().await?;
+    let account: AccountResponse = response
+        .json()
+        .await
+        .map_err(|e| miette::miette!("Failed to parse account response: {}", e))?;
 
     let email = account
         .user
         .as_ref()
         .and_then(|u| u.email.clone())
         .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
-        .ok_or_else(|| AuthError::InvalidApiKey("API key is not associated with a user".into()))?;
+        .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
 
     Ok(email)
 }
@@ -245,7 +249,9 @@ async fn login_with_api_key(
     }
 
     // Validate the API key against the server before saving
-    let email = validate_api_key(ctx, &api_key).await?;
+    let email = validate_api_key(ctx, &api_key)
+        .await
+        .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
 
     // Save to keyring
     save_api_key(&ctx.config, &api_key)?;
