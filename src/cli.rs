@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{CommandFactory, Parser, Subcommand};
 use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::{self, Config};
+use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
 #[cfg(feature = "feedback")]
@@ -62,11 +61,18 @@ pub async fn execute() {
     let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
-    config::setup_telemetry();
+    let skip_telemetry_spawn = matches!(
+        &action,
+        Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
+    );
 
     let result = action.execute().await;
 
-    shutdown_telemetry();
+    if !skip_telemetry_spawn {
+        if let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
+            tracing::debug!("Failed to spawn telemetry submitter: {}", e);
+        }
+    }
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
@@ -145,6 +151,9 @@ pub enum Action {
         pip: bool,
         uv: bool,
     },
+    TelemetrySubmit,
+    TelemetryKill,
+    TelemetryStatus,
 }
 
 impl Action {
@@ -180,15 +189,20 @@ impl Action {
                 "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
+            Action::TelemetrySubmit => "telemetry-submit",
+            Action::TelemetryKill => "telemetry-kill",
+            Action::TelemetryStatus => "telemetry-status",
         }
     }
 
     /// Execute the action with telemetry middleware
     pub async fn execute(self) -> miette::Result<()> {
         let name = self.match_action_name();
+        let is_telemetry_submit = matches!(&self, Action::TelemetrySubmit);
+
         let mut ctx = CommandContext::new();
         ctx.telemetry.add("command", name);
-        increment_counter("cli_command_invoked", 1, ctx.telemetry.attrs());
+        ctx.telemetry.record_counter("cli_command_invoked", 1);
 
         let start = Instant::now();
         let result = self.run(&mut ctx).await;
@@ -196,20 +210,20 @@ impl Action {
 
         match &result {
             Ok(_) => {
-                increment_counter("cli_command_success", 1, ctx.telemetry.attrs());
-                record_histogram(
-                    "cli_command_success_duration_ms",
-                    duration_ms,
-                    ctx.telemetry.into_attrs(),
-                );
+                ctx.telemetry.record_counter("cli_command_success", 1);
+                ctx.telemetry
+                    .record_histogram("cli_command_success_duration_ms", duration_ms);
             }
             Err(_) => {
-                increment_counter("cli_command_failure", 1, ctx.telemetry.attrs());
-                record_histogram(
-                    "cli_command_failure_duration_ms",
-                    duration_ms,
-                    ctx.telemetry.into_attrs(),
-                );
+                ctx.telemetry.record_counter("cli_command_failure", 1);
+                ctx.telemetry
+                    .record_histogram("cli_command_failure_duration_ms", duration_ms);
+            }
+        }
+
+        if !is_telemetry_submit {
+            if let Err(e) = ctx.telemetry.flush_to_spool() {
+                tracing::debug!("Failed to spool telemetry: {}", e);
             }
         }
 
@@ -333,6 +347,31 @@ impl Action {
                 }
                 Ok(())
             }
+            Action::TelemetrySubmit => {
+                crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
+                Ok(())
+            }
+            Action::TelemetryKill => {
+                match crate::telemetry::kill_submitters() {
+                    Ok(0) => println!("No telemetry processes found"),
+                    Ok(n) => println!("Killed {} telemetry process(es)", n),
+                    Err(e) => return Err(miette!("Failed to kill processes: {}", e)),
+                }
+                Ok(())
+            }
+            Action::TelemetryStatus => {
+                match crate::telemetry::list_submitters() {
+                    Ok(pids) if pids.is_empty() => println!("No telemetry processes running"),
+                    Ok(pids) => {
+                        println!("{} telemetry process(es) running:", pids.len());
+                        for pid in pids {
+                            println!("  PID {}", pid);
+                        }
+                    }
+                    Err(e) => return Err(miette!("Failed to list processes: {}", e)),
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -449,6 +488,9 @@ pub fn parse() -> (Action, LogLevel) {
                         uv,
                     },
                 },
+                Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
+                Some(Commands::TelemetryKill) => Action::TelemetryKill,
+                Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
             };
             (action, level)
         }
@@ -652,6 +694,18 @@ enum Commands {
         #[command(subcommand)]
         command: Option<FeatureCommands>,
     },
+
+    /// Submit pending telemetry batches (internal use only)
+    #[command(hide = true)]
+    TelemetrySubmit,
+
+    /// Kill background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryKill,
+
+    /// Check status of background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryStatus,
 }
 
 #[derive(Subcommand)]
@@ -824,8 +878,15 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
-        let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config"].into_iter().collect();
+        let hidden_from_help: std::collections::HashSet<_> = [
+            "org",
+            "config",
+            "telemetry-submit",
+            "telemetry-kill",
+            "telemetry-status",
+        ]
+        .into_iter()
+        .collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd
