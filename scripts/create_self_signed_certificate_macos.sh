@@ -2,19 +2,21 @@
 
 set -eu
 
-mkdir -p "${ROOT_DIR}"
+ROOT_DIR="$(mktemp -d)"
 
 # Array assignment may leave the first element empty, so run cut twice
 openssl_lib=$(openssl version | cut -d' ' -f1)
 openssl_version=$(openssl version | cut -d' ' -f2)
 if [[ "${openssl_lib}" == "OpenSSL" ]] && [[ "${openssl_version}" == 3.* ]]; then
     legacy='-legacy'
+else
+    legacy=''
 fi
 
 keyusage="codeSigning"
 certtype="1.2.840.113635.100.6.1.13"
-commonname="${APPLICATION_SIGNING_ID}"
-password="${APPLICATION_SIGNING_PASSWORD}"
+commonname="${APPLICATION_SIGNING_ID:-"anaTest"}"
+password="$(openssl rand -base64 24)"
 keyfile="${ROOT_DIR}/application.key"
 p12file="${ROOT_DIR}/application.p12"
 crtfile="${ROOT_DIR}/application.crt"
@@ -37,3 +39,11 @@ openssl pkcs12 -export\
     -in "${crtfile}"\
     -passout pass:"${password}"\
     ${legacy}
+
+printf "\nBase64: %s\n" "$(cat "${p12file}" | base64)"
+printf "\nDeveloper ID: %s\n" "${commonname}"
+printf "\nFingerprint: %s\n" \
+  "$(openssl x509 -in "${crtfile}" -fingerprint -sha256 -noout | cut -d'=' -f2 | sed 's/://g')"
+printf "\nPassword: %s\n" "${password}"
+
+rm -rf "${ROOT_DIR}"
