@@ -176,7 +176,7 @@ fn plan_pixi_disable_actions(current_channels: &[String]) -> Vec<PixiChannelActi
 /// 2. Shows planned changes and prompts for confirmation
 /// 3. Adds the main-x channel to conda configuration
 /// 4. Provides instructions for reverting the changes
-pub async fn enable_main_x(ctx: &CommandContext, force: bool) -> miette::Result<()> {
+pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Enabling {} feature via {}...",
         status::highlight("main-x"),
@@ -315,7 +315,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
 /// Disable main-x channel configuration for conda.
 ///
 /// This command removes the main-x channel from conda configuration.
-pub async fn disable_main_x(_ctx: &CommandContext, force: bool) -> miette::Result<()> {
+pub async fn disable_main_x_conda(_ctx: &CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Disabling {} feature via {}...",
         status::highlight("main-x"),

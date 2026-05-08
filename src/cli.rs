@@ -359,7 +359,7 @@ impl Action {
                             feature::enable_main_x_pixi(ctx, force).await?
                         } else {
                             // Default to conda (--conda flag or no flag)
-                            feature::enable_main_x(ctx, force).await?
+                            feature::enable_main_x_conda(ctx, force).await?
                         }
                     }
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
@@ -402,7 +402,7 @@ impl Action {
                             feature::disable_main_x_pixi(ctx, force).await?
                         } else {
                             // Default to conda (--conda flag or no flag)
-                            feature::disable_main_x(ctx, force).await?
+                            feature::disable_main_x_conda(ctx, force).await?
                         }
                     }
                     "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
