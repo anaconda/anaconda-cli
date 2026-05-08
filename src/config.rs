@@ -117,7 +117,9 @@ impl Default for Config {
 impl Config {
     /// Load configuration from environment variables.
     pub fn load() -> Self {
-        let domain = env::var("ANA_DOMAIN").unwrap_or_else(|_| DEFAULT_DOMAIN.to_string());
+        let domain = normalize_domain(
+            &env::var("ANA_DOMAIN").unwrap_or_else(|_| DEFAULT_DOMAIN.to_string()),
+        );
         let client_id =
             env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
         let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
@@ -215,6 +217,24 @@ impl Config {
 /// Get the default keyring path
 fn default_keyring_path() -> PathBuf {
     crate::paths::home_dir().join(".anaconda").join("keyring")
+}
+
+/// Normalize a domain by stripping scheme (http://, https://) and path components.
+/// e.g., "https://stage.anaconda.com/app" -> "stage.anaconda.com"
+fn normalize_domain(domain: &str) -> String {
+    let domain = domain.trim();
+
+    // If it looks like a URL (has scheme), parse it properly
+    if domain.starts_with("http://") || domain.starts_with("https://") {
+        if let Ok(url) = url::Url::parse(domain) {
+            if let Some(host) = url.host_str() {
+                return host.to_string();
+            }
+        }
+    }
+
+    // Otherwise treat as bare domain - strip any path component
+    domain.split('/').next().unwrap_or(domain).to_string()
 }
 
 /// Parse a boolean from a string value.
@@ -509,6 +529,63 @@ mod tests {
         temp_env::with_var("ANA_SELF_UPDATE_URL", Some("GitHub"), || {
             let config = Config::load();
             assert_eq!(config.self_update_url, None);
+        });
+    }
+
+    #[test]
+    fn test_normalize_domain_plain() {
+        assert_eq!(normalize_domain("anaconda.com"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_https() {
+        assert_eq!(normalize_domain("https://anaconda.com"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_http() {
+        assert_eq!(normalize_domain("http://anaconda.com"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_path() {
+        assert_eq!(normalize_domain("anaconda.com/app"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_scheme_and_path() {
+        assert_eq!(
+            normalize_domain("https://stage.anaconda.com/app"),
+            "stage.anaconda.com"
+        );
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_deep_path() {
+        assert_eq!(
+            normalize_domain("https://example.com/foo/bar/baz"),
+            "example.com"
+        );
+    }
+
+    #[test]
+    fn test_normalize_domain_trims_whitespace() {
+        assert_eq!(normalize_domain("  anaconda.com  "), "anaconda.com");
+    }
+
+    #[test]
+    fn test_config_load_domain_strips_path() {
+        temp_env::with_var("ANA_DOMAIN", Some("stage.anaconda.com/app"), || {
+            let config = Config::load();
+            assert_eq!(config.domain, "stage.anaconda.com");
+        });
+    }
+
+    #[test]
+    fn test_config_load_domain_strips_scheme() {
+        temp_env::with_var("ANA_DOMAIN", Some("https://stage.anaconda.com"), || {
+            let config = Config::load();
+            assert_eq!(config.domain, "stage.anaconda.com");
         });
     }
 }
