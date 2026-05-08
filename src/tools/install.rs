@@ -1,6 +1,6 @@
 //! Package installation from lockfiles via rattler.
 
-use std::{path::Path, path::PathBuf, str::FromStr, time::Instant};
+use std::{path::Path, path::PathBuf, time::Instant};
 
 use indicatif::{MultiProgress, ProgressDrawTarget};
 use miette::{Context, IntoDiagnostic};
@@ -51,11 +51,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
 /// Install packages from a lockfile string to a prefix.
 pub async fn install_from_lockfile(
-    ctx: &CommandContext,
+    _ctx: &CommandContext,
     prefix: &Path,
     lock_content: &str,
 ) -> miette::Result<()> {
-    let lock_file = LockFile::from_str(lock_content)
+    let lock_file = LockFile::from_str_with_base_directory(lock_content, None)
         .into_diagnostic()
         .context("failed to parse lockfile")?;
 
@@ -63,17 +63,24 @@ pub async fn install_from_lockfile(
         .default_environment()
         .ok_or_else(|| miette::miette!("lockfile has no default environment"))?;
 
-    let platform = Platform::current();
-    let records = env
-        .conda_repodata_records(platform)
+    let current_platform = Platform::current();
+    let records_by_platform = env
+        .conda_repodata_records_by_platform()
         .into_diagnostic()
-        .context("failed to extract records from lockfile")?
-        .ok_or_else(|| miette::miette!("lockfile has no records for platform {}", platform))?;
+        .context("failed to extract records from lockfile")?;
+
+    let records = records_by_platform
+        .into_iter()
+        .find(|(p, _)| p.subdir() == current_platform)
+        .map(|(_, records)| records)
+        .ok_or_else(|| {
+            miette::miette!("lockfile has no records for platform {}", current_platform)
+        })?;
 
     eprintln!(
         "   Lockfile contains {} packages for {}",
         records.len(),
-        platform
+        current_platform
     );
 
     // Ensure prefix directory exists
@@ -84,8 +91,13 @@ pub async fn install_from_lockfile(
     // Check what's already installed
     let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix).into_diagnostic()?;
 
-    // Build HTTP client
-    let client = ctx.download_client().clone();
+    // Build HTTP client for rattler (plain reqwest client, not middleware-wrapped)
+    let client = reqwest::Client::builder()
+        .no_gzip()
+        .user_agent(crate::ua::user_agent())
+        .build()
+        .into_diagnostic()
+        .context("failed to create download client")?;
 
     // Ensure cache directory exists
     // TODO(mattkram): Consider a custom cache dir
@@ -101,7 +113,7 @@ pub async fn install_from_lockfile(
     let result = Installer::new()
         .with_download_client(client)
         .with_package_cache(package_cache)
-        .with_target_platform(platform)
+        .with_target_platform(current_platform)
         .with_installed_packages(installed)
         // TODO(mattkram): Review whether we should execute link scripts by default or not
         .with_execute_link_scripts(true)
