@@ -35,5 +35,17 @@
   ],
   "lockFileMaintenance": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Group all rattler crates together",
+      "groupName": "rattler",
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackagePatterns": [
+        "^rattler"
+      ]
+    }
+  ]
 }
