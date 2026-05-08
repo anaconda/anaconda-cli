@@ -37,7 +37,7 @@ jobs:
       - name: Set up ana with pixi
         uses: anaconda/github-actions/setup-ana@3d7b08cd24c1c5fc8a92a20caa9564bda187d7c1 # v0.2.1
         with:
-          ana-version: v0.1.1
+          ana-version: v0.2.0
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
 
