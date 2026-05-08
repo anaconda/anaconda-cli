@@ -223,12 +223,17 @@ fn default_keyring_path() -> PathBuf {
 /// e.g., "https://stage.anaconda.com/app" -> "stage.anaconda.com"
 fn normalize_domain(domain: &str) -> String {
     let domain = domain.trim();
-    // Strip scheme
-    let domain = domain
-        .strip_prefix("https://")
-        .or_else(|| domain.strip_prefix("http://"))
-        .unwrap_or(domain);
-    // Strip path (everything after first /)
+
+    // If it looks like a URL (has scheme), parse it properly
+    if domain.starts_with("http://") || domain.starts_with("https://") {
+        if let Ok(url) = url::Url::parse(domain) {
+            if let Some(host) = url.host_str() {
+                return host.to_string();
+            }
+        }
+    }
+
+    // Otherwise treat as bare domain - strip any path component
     domain.split('/').next().unwrap_or(domain).to_string()
 }
 
