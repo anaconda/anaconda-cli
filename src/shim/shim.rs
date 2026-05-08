@@ -16,6 +16,10 @@ use std::env;
 use std::path::PathBuf;
 use std::process::{Command, exit};
 
+/// Environment variable set to indicate wrapper invocation to ana.exe.
+/// Must match the constant in src/tools/conda_wrapper.rs.
+const WRAPPER_INVOCATION_ENV_VAR: &str = "_ANA_INTERNAL_WRAPPER_INVOCATION";
+
 fn main() {
     if let Err(e) = run() {
         eprintln!("shim error: {}", e);
@@ -44,20 +48,31 @@ fn run() -> Result<(), String> {
         .map(|(_, path)| path)
         .ok_or_else(|| format!("no config found for '{}'", shim_name))?;
 
-    // Parse the path components and build a proper PathBuf
-    // This handles both forward and back slashes in the config
-    let target_path: PathBuf = shim_dir
-        .join("..\\tools")
-        .join(target_rel.replace('/', "\\"));
+    // Parse the path and check if it's a wrapper invocation (pointing to ana.exe)
+    let target_rel_path = PathBuf::from(target_rel.replace('/', "\\"));
+    let is_wrapper_invocation = target_rel_path
+        .file_name()
+        .map(|name| name == "ana.exe")
+        .unwrap_or(false);
 
-    if !target_path.exists() {
-        return Err(format!("target not found: {}", target_path.display()));
-    }
+    let target_path = if is_wrapper_invocation {
+        target_rel_path
+    } else {
+        let path = shim_dir.join("..\\tools").join(&target_rel_path);
+        if !path.exists() {
+            return Err(format!("target not found: {}", path.display()));
+        }
+        path
+    };
 
     // Execute with all arguments
     let args: Vec<String> = env::args().skip(1).collect();
-    let status = Command::new(&target_path)
-        .args(&args)
+    let mut cmd = Command::new(&target_path);
+    cmd.args(&args);
+    if is_wrapper_invocation {
+        cmd.env(WRAPPER_INVOCATION_ENV_VAR, &shim_name.as_ref());
+    }
+    let status = cmd
         .status()
         .map_err(|e| format!("failed to execute {}: {}", target_path.display(), e))?;
 

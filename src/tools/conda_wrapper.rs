@@ -8,12 +8,18 @@
 use std::io::{BufRead, BufReader, Write};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(unix)]
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 use console::style;
 
 use crate::paths;
+
+/// Environment variable set by the Windows shim to indicate wrapper invocation.
+/// The shim sets this to the tool name (e.g., "conda") when invoking ana.exe as a wrapper.
+#[cfg(windows)]
+const WRAPPER_INVOCATION_ENV_VAR: &str = "_ANA_INTERNAL_WRAPPER_INVOCATION";
 
 /// Run the conda wrapper.
 ///
@@ -221,6 +227,8 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
     let prefix = paths::tool_prefix("conda");
 
     let mut cmd = Command::new(&conda_bin);
+    #[cfg(windows)]
+    cmd.env_remove(WRAPPER_INVOCATION_ENV_VAR);
     cmd.args(args);
 
     // Set CONDA_ROOT_PREFIX so conda knows where its root environment is
@@ -255,10 +263,19 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
 
 /// Check if the current binary is being invoked as "conda".
 pub fn is_conda_invocation() -> bool {
-    std::env::args()
-        .next()
-        .and_then(|arg0| Path::new(&arg0).file_name().map(|name| name == "conda"))
-        .unwrap_or(false)
+    #[cfg(unix)]
+    {
+        std::env::args()
+            .next()
+            .and_then(|arg0| Path::new(&arg0).file_name().map(|name| name == "conda"))
+            .unwrap_or(false)
+    }
+    #[cfg(windows)]
+    {
+        std::env::var(WRAPPER_INVOCATION_ENV_VAR)
+            .map(|val| val == "conda")
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
