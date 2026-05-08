@@ -447,16 +447,32 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
                 #[cfg(unix)]
-                Some(Commands::Ob { command }) => match command {
-                    None => Action::ShowSubcommandHelp("ob".to_string()),
-                    Some(cmd) => match cmd.into_action() {
-                        ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                        ObAction::Proxy(args) => Action::ObProxy { args },
-                        ObAction::AutoConfigure { instance } => {
-                            Action::ObAutoConfigure { instance }
-                        }
-                    },
-                },
+                Some(Commands::Ob { command }) => {
+                    if !feature::is_feature_enabled("outerbounds") {
+                        use crate::ui::status::{blank_line, highlight, tip, warn};
+                        warn(&format!(
+                            "The {} command requires the experimental {} feature.",
+                            highlight("ob"),
+                            highlight("outerbounds")
+                        ));
+                        tip(&format!(
+                            "Enable it with {}",
+                            highlight("ana feature enable outerbounds")
+                        ));
+                        blank_line();
+                        std::process::exit(1);
+                    }
+                    match command {
+                        None => Action::ShowSubcommandHelp("ob".to_string()),
+                        Some(cmd) => match cmd.into_action() {
+                            ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                            ObAction::Proxy(args) => Action::ObProxy { args },
+                            ObAction::AutoConfigure { instance } => {
+                                Action::ObAutoConfigure { instance }
+                            }
+                        },
+                    }
+                }
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
