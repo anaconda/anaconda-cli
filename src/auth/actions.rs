@@ -178,13 +178,44 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
     Ok(api_key.trim().to_string())
 }
 
+/// Validate an API key by making a request to the account endpoint.
+/// Returns the user's email if valid, or an error if invalid.
+async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> Result<String, AuthError> {
+    let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
+    let url = format!("{}/api/account", ctx.config.base_url());
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        return Err(AuthError::InvalidApiKey(format!(
+            "API key rejected by server ({})",
+            response.status()
+        )));
+    }
+
+    let account: AccountResponse = response.json().await?;
+
+    let email = account
+        .user
+        .as_ref()
+        .and_then(|u| u.email.clone())
+        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
+        .ok_or_else(|| AuthError::InvalidApiKey("API key is not associated with a user".into()))?;
+
+    Ok(email)
+}
+
 /// Login with a provided API key (bypassing device flow).
 async fn login_with_api_key(
     ctx: &CommandContext,
     api_key: String,
     force: bool,
 ) -> Result<(), AuthError> {
-    use super::api_keys::is_valid_api_key;
+    use super::api_keys::{get_expiration, is_valid_api_key};
 
     // Validate the API key format
     if !is_valid_api_key(&api_key) {
@@ -214,7 +245,20 @@ async fn login_with_api_key(
         }
     }
 
-    save_and_display_login(ctx, &api_key).await
+    // Validate the API key against the server before saving
+    let email = validate_api_key(ctx, &api_key).await?;
+
+    // Save to keyring
+    save_api_key(&ctx.config, &api_key)?;
+    status::success("API key stored in keyring");
+
+    // Display login success
+    print_logged_in_status(&email);
+    if let Some(expires_at) = get_expiration(&api_key) {
+        print_token_expiration(&expires_at);
+    }
+
+    Ok(())
 }
 
 /// Try to read API key from stdin if data is available.
