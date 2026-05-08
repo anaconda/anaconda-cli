@@ -41,6 +41,7 @@ pub fn run_subcommand(
 }
 
 /// Run a subcommand, auto-installing anaconda-cli if not present.
+#[allow(dead_code)]
 pub async fn run_subcommand_with_bootstrap(
     ctx: &mut CommandContext,
     subcommand: &str,

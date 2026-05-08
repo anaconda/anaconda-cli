@@ -14,6 +14,7 @@ use crate::feature;
 use crate::feedback::{self, FeedbackType};
 use crate::fetch::api_fetch;
 use crate::help;
+use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
@@ -126,7 +127,7 @@ pub enum Action {
     ObAutoConfigure {
         instance: String,
     },
-    McpProxy {
+    McpRun {
         args: Vec<String>,
     },
     UserAgent {
@@ -193,7 +194,7 @@ impl Action {
             Action::ObProxy { .. } => "ob",
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
-            Action::McpProxy { .. } => "mcp",
+            Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
@@ -277,11 +278,7 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
-            Action::McpProxy { args } => Ok(anaconda_cli::run_subcommand_with_bootstrap(
-                ctx, "mcp", &args,
-            )
-            .await
-            .map_err(|e| miette!("{}", e))?),
+            Action::McpRun { args } => mcp::run(ctx, &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -520,7 +517,13 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
-                Some(Commands::Mcp { args }) => Action::McpProxy { args },
+                Some(Commands::Mcp { command }) => match command {
+                    None => Action::ShowSubcommandHelp("mcp".to_string()),
+                    Some(cmd) => match cmd.into_action() {
+                        McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                        McpAction::Run(args) => Action::McpRun { args },
+                    },
+                },
                 #[cfg(unix)]
                 Some(Commands::Ob { command }) => {
                     if !feature::is_feature_enabled("outerbounds") {
@@ -786,12 +789,15 @@ enum Commands {
         args: Vec<String>,
     },
 
-    /// Run the Anaconda MCP server
-    #[command(trailing_var_arg = true, override_usage = "ana mcp [options]")]
+    /// Anaconda MCP — Model Context Protocol tools for AI assistants
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana mcp <command> [options]"
+    )]
     Mcp {
-        /// Arguments to pass to anaconda mcp
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
+        #[command(subcommand)]
+        command: Option<McpCommands>,
     },
 
     /// Outerbounds platform CLI (experimental)
