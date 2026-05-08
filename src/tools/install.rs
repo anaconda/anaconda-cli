@@ -262,9 +262,8 @@ fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Resu
 ///
 /// This is used for tools that ana wraps (like conda), where ana detects
 /// the binary name and acts as a wrapper for the underlying tool.
-fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
-    let binary_name = paths::binary_name(binary);
-    let symlink_path = bin_dir.join(&binary_name);
+fn create_wrapper_symlink(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let symlink_path = bin_dir.join(binary.file_name().unwrap());
 
     // Get the path to the current ana executable
     let ana_bin = std::env::current_exe()
@@ -357,11 +356,11 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 /// Write .condarc configuration for the conda environment.
 ///
 /// This sets up the default channels (similar to miniconda) and other
-/// ana-specific configuration. The config is stored in lockfiles/conda/.condarc
+/// ana-specific configuration. The config is stored in tool-specs/conda/.condarc
 /// and compiled into the binary.
 fn write_conda_config(prefix: &Path) -> miette::Result<()> {
     let condarc_path = prefix.join(".condarc");
-    let contents = include_str!("../../lockfiles/conda/.condarc");
+    let contents = include_str!("../../tool-specs/conda/.condarc");
 
     std::fs::write(&condarc_path, contents)
         .into_diagnostic()
