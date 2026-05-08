@@ -100,46 +100,29 @@ fn print_token_expiration(expires_at: &str) {
     }
 }
 
-/// Save API key and display login success information.
+/// Validate, save API key, and display login success information.
 ///
 /// This is the common "finalize login" logic shared by both device flow and direct API key login.
+/// Validates the key against the server before saving to catch invalid or cross-environment tokens.
 async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
+
+    // Validate the API key against the server before saving
+    let email = validate_api_key(ctx, api_key)
+        .await
+        .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
 
     // Save to keyring
     save_api_key(&ctx.config, api_key)?;
     status::success("API key stored in keyring");
 
-    // Fetch and display user info (ctx.client() will pick up the newly saved key via middleware)
-    if let Ok(login_info) = fetch_login_info(ctx).await {
-        print_logged_in_status(&login_info.email);
-        if let Some(expires_at) = get_expiration(api_key) {
-            print_token_expiration(&expires_at);
-        }
+    // Display login success
+    print_logged_in_status(&email);
+    if let Some(expires_at) = get_expiration(api_key) {
+        print_token_expiration(&expires_at);
     }
 
     Ok(())
-}
-
-/// Combined login information for display.
-struct LoginInfo {
-    email: String,
-}
-
-/// Fetch login info for display after login.
-async fn fetch_login_info(ctx: &CommandContext) -> Result<LoginInfo, AuthError> {
-    // Auth middleware will add the API key from keyring automatically
-    let account_response = ctx.client().get("/api/account").send().await?;
-    let account: AccountResponse = account_response.json().await?;
-
-    let email = account
-        .user
-        .as_ref()
-        .and_then(|u| u.email.clone())
-        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
-        .unwrap_or_else(|| "unknown".to_string());
-
-    Ok(LoginInfo { email })
 }
 
 /// Check if stdin is a pipe (non-TTY).
@@ -218,7 +201,7 @@ async fn login_with_api_key(
     api_key: String,
     force: bool,
 ) -> Result<(), AuthError> {
-    use super::api_keys::{get_expiration, is_valid_api_key};
+    use super::api_keys::is_valid_api_key;
 
     // Validate the API key format
     if !is_valid_api_key(&api_key) {
@@ -248,22 +231,7 @@ async fn login_with_api_key(
         }
     }
 
-    // Validate the API key against the server before saving
-    let email = validate_api_key(ctx, &api_key)
-        .await
-        .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
-
-    // Save to keyring
-    save_api_key(&ctx.config, &api_key)?;
-    status::success("API key stored in keyring");
-
-    // Display login success
-    print_logged_in_status(&email);
-    if let Some(expires_at) = get_expiration(&api_key) {
-        print_token_expiration(&expires_at);
-    }
-
-    Ok(())
+    save_and_display_login(ctx, &api_key).await
 }
 
 /// Try to read API key from stdin if data is available.
