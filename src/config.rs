@@ -31,42 +31,14 @@
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
-use anaconda_otel_rs::{
-    attributes::ResourceAttributes, config::Configuration, signals::initialize_telemetry,
-};
-use miette::{IntoDiagnostic, miette};
 use std::env;
 use std::path::PathBuf;
 
-use crate::VERSION;
-use crate::auth;
 use crate::table;
 
-pub fn setup_telemetry() {
-    if !parse_bool_env("ANA_ENABLE_TELEMETRY", true) {
-        return;
-    }
-    let _ = try_setup_telemetry();
-}
-
-fn try_setup_telemetry() -> miette::Result<()> {
-    let app_config = Config::load();
-
-    let mut otel_config =
-        Configuration::new(Some(&app_config.metrics_endpoint), None).into_diagnostic()?;
-
-    let api_key = auth::get_api_key(&app_config).ok().flatten();
-    otel_config.set_auth_token(api_key);
-    otel_config.set_console_exporter(app_config.metrics_console_exporter);
-    otel_config.set_metrics_export_interval_ms(app_config.metrics_export_interval_ms);
-    otel_config.skip_internet_check = app_config.metrics_skip_internet_check;
-
-    let attrs = ResourceAttributes::new("ana-cli", VERSION).map_err(|e| miette!("{}", e))?;
-
-    initialize_telemetry(otel_config, attrs, vec!["metrics"])
-        .map_err(|e| miette!("Telemetry initialization failed: {}", e))?;
-
-    Ok(())
+/// Check if telemetry is enabled.
+pub fn telemetry_enabled() -> bool {
+    parse_bool_env("ANA_ENABLE_TELEMETRY", true)
 }
 
 const DEFAULT_DOMAIN: &str = "anaconda.com";

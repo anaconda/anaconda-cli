@@ -1,20 +1,21 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{CommandFactory, Parser, Subcommand};
 use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::{self, Config};
+use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
 #[cfg(feature = "feedback")]
 use crate::feedback::{self, FeedbackType};
 use crate::fetch::api_fetch;
 use crate::help;
+#[cfg(unix)]
+use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::update;
 
@@ -62,15 +63,22 @@ pub async fn execute() {
     let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
-    config::setup_telemetry();
+    let skip_telemetry_spawn = matches!(
+        &action,
+        Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
+    );
 
     let result = action.execute().await;
 
-    shutdown_telemetry();
+    if !skip_telemetry_spawn {
+        if let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
+            tracing::debug!("Failed to spawn telemetry submitter: {}", e);
+        }
+    }
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {:?}", e);
         std::process::exit(1);
     }
 }
@@ -109,6 +117,14 @@ pub enum Action {
     Bootstrap,
     OrgProxy {
         args: Vec<String>,
+    },
+    #[cfg(unix)]
+    ObProxy {
+        args: Vec<String>,
+    },
+    #[cfg(unix)]
+    ObAutoConfigure {
+        instance: String,
     },
     UserAgent {
         prefix: Option<String>,
@@ -149,6 +165,9 @@ pub enum Action {
         conda: bool,
         pixi: bool,
     },
+    TelemetrySubmit,
+    TelemetryKill,
+    TelemetryStatus,
 }
 
 impl Action {
@@ -167,6 +186,10 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            #[cfg(unix)]
+            Action::ObProxy { .. } => "ob",
+            #[cfg(unix)]
+            Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::UserAgent { .. } => "user-agent",
             #[cfg(feature = "feedback")]
             Action::OpenFeedback { .. } => "feedback",
@@ -184,15 +207,20 @@ impl Action {
                 "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
+            Action::TelemetrySubmit => "telemetry-submit",
+            Action::TelemetryKill => "telemetry-kill",
+            Action::TelemetryStatus => "telemetry-status",
         }
     }
 
     /// Execute the action with telemetry middleware
     pub async fn execute(self) -> miette::Result<()> {
         let name = self.match_action_name();
+        let is_telemetry_submit = matches!(&self, Action::TelemetrySubmit);
+
         let mut ctx = CommandContext::new();
         ctx.telemetry.add("command", name);
-        increment_counter("cli_command_invoked", 1, ctx.telemetry.attrs());
+        ctx.telemetry.record_counter("cli_command_invoked", 1);
 
         let start = Instant::now();
         let result = self.run(&mut ctx).await;
@@ -200,20 +228,20 @@ impl Action {
 
         match &result {
             Ok(_) => {
-                increment_counter("cli_command_success", 1, ctx.telemetry.attrs());
-                record_histogram(
-                    "cli_command_success_duration_ms",
-                    duration_ms,
-                    ctx.telemetry.into_attrs(),
-                );
+                ctx.telemetry.record_counter("cli_command_success", 1);
+                ctx.telemetry
+                    .record_histogram("cli_command_success_duration_ms", duration_ms);
             }
             Err(_) => {
-                increment_counter("cli_command_failure", 1, ctx.telemetry.attrs());
-                record_histogram(
-                    "cli_command_failure_duration_ms",
-                    duration_ms,
-                    ctx.telemetry.into_attrs(),
-                );
+                ctx.telemetry.record_counter("cli_command_failure", 1);
+                ctx.telemetry
+                    .record_histogram("cli_command_failure_duration_ms", duration_ms);
+            }
+        }
+
+        if !is_telemetry_submit {
+            if let Err(e) = ctx.telemetry.flush_to_spool() {
+                tracing::debug!("Failed to spool telemetry: {}", e);
             }
         }
 
@@ -245,6 +273,12 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
+            #[cfg(unix)]
+            Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
+            #[cfg(unix)]
+            Action::ObAutoConfigure { instance } => {
+                outerbounds::auto_configure(ctx, &instance).await
+            }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -329,6 +363,25 @@ impl Action {
                         }
                     }
                     "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
+                    name if feature::is_valid_feature(name) => {
+                        crate::ui::status::warn(&format!(
+                            "The '{}' feature is experimental and may change or be removed.",
+                            name
+                        ));
+                        if !force
+                            && !crate::input::prompt_yes_no(
+                                "Enable this experimental feature?",
+                                false,
+                            )
+                        {
+                            return Ok(());
+                        }
+                        feature::enable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' enabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 // Silence unused variable warning for conda - it's the default when pixi is false
@@ -353,10 +406,42 @@ impl Action {
                         }
                     }
                     "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
+                    name if feature::is_valid_feature(name) => {
+                        feature::disable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' disabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
                 // Silence unused variable warning for conda - it's the default when pixi is false
                 let _ = conda;
+                Ok(())
+            }
+            Action::TelemetrySubmit => {
+                crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
+                Ok(())
+            }
+            Action::TelemetryKill => {
+                match crate::telemetry::kill_submitters() {
+                    Ok(0) => println!("No telemetry processes found"),
+                    Ok(n) => println!("Killed {} telemetry process(es)", n),
+                    Err(e) => return Err(miette!("Failed to kill processes: {}", e)),
+                }
+                Ok(())
+            }
+            Action::TelemetryStatus => {
+                match crate::telemetry::list_submitters() {
+                    Ok(pids) if pids.is_empty() => println!("No telemetry processes running"),
+                    Ok(pids) => {
+                        println!("{} telemetry process(es) running:", pids.len());
+                        for pid in pids {
+                            println!("  PID {}", pid);
+                        }
+                    }
+                    Err(e) => return Err(miette!("Failed to list processes: {}", e)),
+                }
                 Ok(())
             }
         }
@@ -426,6 +511,33 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
+                #[cfg(unix)]
+                Some(Commands::Ob { command }) => {
+                    if !feature::is_feature_enabled("outerbounds") {
+                        use crate::ui::status::{blank_line, highlight, tip, warn};
+                        warn(&format!(
+                            "The {} command requires the experimental {} feature.",
+                            highlight("ob"),
+                            highlight("outerbounds")
+                        ));
+                        tip(&format!(
+                            "Enable it with {}",
+                            highlight("ana feature enable outerbounds")
+                        ));
+                        blank_line();
+                        std::process::exit(1);
+                    }
+                    match command {
+                        None => Action::ShowSubcommandHelp("ob".to_string()),
+                        Some(cmd) => match cmd.into_action() {
+                            ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                            ObAction::Proxy(args) => Action::ObProxy { args },
+                            ObAction::AutoConfigure { instance } => {
+                                Action::ObAutoConfigure { instance }
+                            }
+                        },
+                    }
+                }
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -483,6 +595,9 @@ pub fn parse() -> (Action, LogLevel) {
                         pixi,
                     },
                 },
+                Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
+                Some(Commands::TelemetryKill) => Action::TelemetryKill,
+                Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
             };
             (action, level)
         }
@@ -539,10 +654,17 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-/// Get subcommand names and descriptions from clap for help introspection
+/// Get subcommand names and descriptions from clap for help introspection.
+/// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
+    #[cfg(unix)]
+    let show_ob = feature::is_feature_enabled("outerbounds");
+    #[cfg(not(unix))]
+    let show_ob = false;
+
     Cli::command()
         .get_subcommands()
+        .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
             (
                 s.get_name().to_string(),
@@ -654,6 +776,19 @@ enum Commands {
         args: Vec<String>,
     },
 
+    /// Outerbounds platform CLI (experimental)
+    #[cfg(unix)]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana ob <command> [options]",
+        after_help = "Note: Outerbounds integration is an experimental alpha feature."
+    )]
+    Ob {
+        #[command(subcommand)]
+        command: Option<ObCommands>,
+    },
+
     /// Manage tools
     #[command(
         subcommand_required = false,
@@ -686,6 +821,18 @@ enum Commands {
         #[command(subcommand)]
         command: Option<FeatureCommands>,
     },
+
+    /// Submit pending telemetry batches (internal use only)
+    #[command(hide = true)]
+    TelemetrySubmit,
+
+    /// Kill background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryKill,
+
+    /// Check status of background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryStatus,
 }
 
 #[derive(Subcommand)]
@@ -874,8 +1021,17 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
-        let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config"].into_iter().collect();
+        // "ob" is conditionally hidden based on experimental feature state
+        let hidden_from_help: std::collections::HashSet<_> = [
+            "org",
+            "config",
+            "ob",
+            "telemetry-submit",
+            "telemetry-kill",
+            "telemetry-status",
+        ]
+        .into_iter()
+        .collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd

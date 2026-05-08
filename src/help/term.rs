@@ -16,9 +16,22 @@ fn left_margin() -> String {
 }
 
 /// Print a command row: "    command      description"
+/// If the description contains "(experimental)", it will be styled in amber.
 fn print_command_row(term: &Term, name: &str, desc: &str) {
     let styled_name = HelpStyle::Command.style().apply_to(name);
-    let styled_desc = HelpStyle::Desc.style().apply_to(desc);
+    let styled_desc = if let Some(idx) = desc.find("(experimental)") {
+        let before = &desc[..idx];
+        let tag = "(experimental)";
+        let after = &desc[idx + tag.len()..];
+        format!(
+            "{}{}{}",
+            HelpStyle::Desc.style().apply_to(before),
+            crate::ui::status::note_experimental(tag),
+            HelpStyle::Desc.style().apply_to(after)
+        )
+    } else {
+        HelpStyle::Desc.style().apply_to(desc).to_string()
+    };
     let _ = term.write_line(&format!(
         "{}  {styled_name:<20} {styled_desc}",
         left_margin()
@@ -202,8 +215,10 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
         print_section(term, section.name);
 
         for cmd in section.commands {
-            let desc = subcommands.get(*cmd).map(|s| s.as_str()).unwrap_or("");
-            print_command_row(term, cmd, desc);
+            // Skip commands that aren't in the subcommands map (e.g., disabled experimental features)
+            if let Some(desc) = subcommands.get(*cmd) {
+                print_command_row(term, cmd, desc);
+            }
         }
 
         let _ = term.write_line("");
@@ -302,6 +317,22 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     }
     print_option_row(&term, Some("-h"), Some("--help"), "Show this message");
     let _ = term.write_line("");
+
+    // After help (e.g., experimental warnings)
+    // Show experimental warning for all ob subcommands (unix only)
+    #[cfg(unix)]
+    let after_help = if path.starts_with("ob") {
+        Some("Note: Outerbounds integration is an experimental alpha feature.".to_string())
+    } else {
+        cmd.get_after_help().map(|h| h.to_string())
+    };
+    #[cfg(not(unix))]
+    let after_help = cmd.get_after_help().map(|h| h.to_string());
+    if let Some(help_text) = after_help {
+        let styled = crate::ui::status::note_experimental(&help_text);
+        let _ = term.write_line(&format!("{}{}", ind, styled));
+        let _ = term.write_line("");
+    }
 
     print_footer(&term);
 }
