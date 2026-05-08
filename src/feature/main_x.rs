@@ -14,11 +14,13 @@ use crate::input::prompt_yes_no;
 use crate::paths;
 use crate::ui::status;
 
+const MAIN_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main";
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
 const REPO_HOST: &str = "repo.anaconda.cloud";
 
 /// Represents a channel configuration action to be executed for conda.
 enum CondaChannelAction {
+    AddMain,
     AddMainX,
     RemoveMainX,
 }
@@ -26,6 +28,9 @@ enum CondaChannelAction {
 impl CondaChannelAction {
     fn commands(&self) -> Vec<(&'static str, &'static str)> {
         match self {
+            CondaChannelAction::AddMain => {
+                vec![("--add", MAIN_CHANNEL)]
+            }
             CondaChannelAction::AddMainX => {
                 vec![("--add", MAIN_X_CHANNEL)]
             }
@@ -48,6 +53,7 @@ impl CondaChannelAction {
 
 /// Represents a channel configuration action to be executed for pixi.
 enum PixiChannelAction {
+    AddMain,
     AddMainX,
     RemoveMainX,
 }
@@ -55,6 +61,12 @@ enum PixiChannelAction {
 impl PixiChannelAction {
     fn command_display(&self) -> String {
         match self {
+            PixiChannelAction::AddMain => {
+                format!(
+                    "pixi config prepend --global default-channels {}",
+                    MAIN_CHANNEL
+                )
+            }
             PixiChannelAction::AddMainX => {
                 format!(
                     "pixi config prepend --global default-channels {}",
@@ -71,6 +83,12 @@ impl PixiChannelAction {
         let cmd = self.command_display();
         status::running(&format!("Running {}", status::highlight(&cmd)));
         match self {
+            PixiChannelAction::AddMain => {
+                run_pixi_config(
+                    pixi_bin,
+                    &["prepend", "--global", "default-channels", MAIN_CHANNEL],
+                )?;
+            }
             PixiChannelAction::AddMainX => {
                 run_pixi_config(
                     pixi_bin,
@@ -130,13 +148,30 @@ fn run_pixi_auth_logout(pixi_bin: &Path) -> miette::Result<()> {
 }
 
 /// Plan the actions needed to enable main-x channel for conda.
+///
+/// Ensures both main and main-x channels are added with priority main -> main-x.
+/// Since `conda config --add` prepends, we add main-x first, then main.
+/// Note: "defaults" is treated as equivalent to main channel.
 fn plan_conda_enable_actions(current_channels: &[String]) -> Vec<CondaChannelAction> {
+    let has_main = current_channels
+        .iter()
+        .any(|c| c == MAIN_CHANNEL || c == "defaults");
     let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
-    if has_main_x {
-        vec![]
-    } else {
-        vec![CondaChannelAction::AddMainX]
+
+    let mut actions = vec![];
+
+    // Add main-x first (will be second after main is prepended)
+    if !has_main_x {
+        actions.push(CondaChannelAction::AddMainX);
     }
+
+    // Add main second (prepends, so it ends up first)
+    // Skip if "defaults" is present since it's equivalent to main
+    if !has_main {
+        actions.push(CondaChannelAction::AddMain);
+    }
+
+    actions
 }
 
 /// Plan the actions needed to disable main-x channel for conda.
@@ -150,13 +185,26 @@ fn plan_conda_disable_actions(current_channels: &[String]) -> Vec<CondaChannelAc
 }
 
 /// Plan the actions needed to enable main-x channel for pixi.
+///
+/// Ensures both main and main-x channels are added with priority main -> main-x.
+/// Since `pixi config prepend` prepends, we add main-x first, then main.
 fn plan_pixi_enable_actions(current_channels: &[String]) -> Vec<PixiChannelAction> {
+    let has_main = current_channels.iter().any(|c| c == MAIN_CHANNEL);
     let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
-    if has_main_x {
-        vec![]
-    } else {
-        vec![PixiChannelAction::AddMainX]
+
+    let mut actions = vec![];
+
+    // Add main-x first (will be second after main is prepended)
+    if !has_main_x {
+        actions.push(PixiChannelAction::AddMainX);
     }
+
+    // Add main second (prepends, so it ends up first)
+    if !has_main {
+        actions.push(PixiChannelAction::AddMain);
+    }
+
+    actions
 }
 
 /// Plan the actions needed to disable main-x channel for pixi.
@@ -680,8 +728,10 @@ mod tests {
         let current_channels: Vec<String> = vec![];
         let actions = plan_conda_enable_actions(&current_channels);
 
-        assert_eq!(actions.len(), 1);
+        // Adds main-x first, then main (so main ends up first after prepending)
+        assert_eq!(actions.len(), 2);
         assert!(matches!(actions[0], CondaChannelAction::AddMainX));
+        assert!(matches!(actions[1], CondaChannelAction::AddMain));
     }
 
     #[test]
@@ -689,6 +739,7 @@ mod tests {
         let current_channels = vec!["defaults".to_string()];
         let actions = plan_conda_enable_actions(&current_channels);
 
+        // "defaults" is equivalent to main, so only need to add main-x
         assert_eq!(actions.len(), 1);
         assert!(matches!(actions[0], CondaChannelAction::AddMainX));
     }
@@ -698,13 +749,15 @@ mod tests {
         let current_channels = vec!["conda-forge".to_string(), "defaults".to_string()];
         let actions = plan_conda_enable_actions(&current_channels);
 
+        // "defaults" is equivalent to main, so only need to add main-x
         assert_eq!(actions.len(), 1);
         assert!(matches!(actions[0], CondaChannelAction::AddMainX));
     }
 
     #[test]
-    fn test_plan_conda_enable_actions_main_x_already_present() {
+    fn test_plan_conda_enable_actions_main_and_main_x_already_present() {
         let current_channels = vec![
+            MAIN_CHANNEL.to_string(),
             MAIN_X_CHANNEL.to_string(),
             "conda-forge".to_string(),
             "defaults".to_string(),
@@ -713,7 +766,7 @@ mod tests {
 
         assert!(
             actions.is_empty(),
-            "No actions needed when main-x already configured"
+            "No actions needed when main and main-x already configured"
         );
     }
 
@@ -722,7 +775,19 @@ mod tests {
         let current_channels = vec![MAIN_X_CHANNEL.to_string()];
         let actions = plan_conda_enable_actions(&current_channels);
 
-        assert!(actions.is_empty());
+        // Still need to add main
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], CondaChannelAction::AddMain));
+    }
+
+    #[test]
+    fn test_plan_conda_enable_actions_main_only() {
+        let current_channels = vec![MAIN_CHANNEL.to_string()];
+        let actions = plan_conda_enable_actions(&current_channels);
+
+        // Still need to add main-x
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], CondaChannelAction::AddMainX));
     }
 
     // ========================================================================
@@ -734,13 +799,35 @@ mod tests {
         let current_channels: Vec<String> = vec![];
         let actions = plan_pixi_enable_actions(&current_channels);
 
-        assert_eq!(actions.len(), 1);
+        // Adds main-x first, then main (so main ends up first after prepending)
+        assert_eq!(actions.len(), 2);
         assert!(matches!(actions[0], PixiChannelAction::AddMainX));
+        assert!(matches!(actions[1], PixiChannelAction::AddMain));
     }
 
     #[test]
     fn test_plan_pixi_enable_actions_main_x_already_present() {
         let current_channels = vec![MAIN_X_CHANNEL.to_string()];
+        let actions = plan_pixi_enable_actions(&current_channels);
+
+        // Still need to add main
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], PixiChannelAction::AddMain));
+    }
+
+    #[test]
+    fn test_plan_pixi_enable_actions_main_already_present() {
+        let current_channels = vec![MAIN_CHANNEL.to_string()];
+        let actions = plan_pixi_enable_actions(&current_channels);
+
+        // Still need to add main-x
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], PixiChannelAction::AddMainX));
+    }
+
+    #[test]
+    fn test_plan_pixi_enable_actions_both_already_present() {
+        let current_channels = vec![MAIN_CHANNEL.to_string(), MAIN_X_CHANNEL.to_string()];
         let actions = plan_pixi_enable_actions(&current_channels);
 
         assert!(actions.is_empty());
