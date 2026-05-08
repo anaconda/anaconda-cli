@@ -1,5 +1,3 @@
-use miette::miette;
-
 use crate::context::CommandContext;
 use crate::tools;
 use crate::ui::status;
@@ -17,13 +15,13 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
 
     // Handle `ob app open <name>`
     if args.len() >= 3 && args[0] == "app" && args[1] == "open" {
-        return open_app(&args[2]).map_err(|e| miette!("{}", e));
+        return open_app(&args[2]);
     }
 
     // Handle `ob app view [--web]`
     if args.len() >= 2 && args[0] == "app" && args[1] == "view" {
         let web = args.get(2).map(|a| a == "--web").unwrap_or(false);
-        return view_app(web).map_err(|e| miette!("{}", e));
+        return view_app(web);
     }
 
     // Handle `ob init [path] [options]`
@@ -36,16 +34,13 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
     // Handle `ob check` - verify configuration first to give a nicer error
     if !args.is_empty() && args[0] == "check" {
         ensure_configured()?;
-        // Pass through to outerbounds check
-        return tools::run_tool_binary("outerbounds", "outerbounds", args)
-            .map_err(|e| miette!("{}", e));
+        return tools::run_tool_binary("outerbounds", "outerbounds", args);
     }
 
     // Handle `ob deploy` by running obproject-deploy from the outerbounds tool
     if !args.is_empty() && args[0] == "deploy" {
         let deploy_args: Vec<String> = args[1..].to_vec();
-        tools::run_tool_binary("outerbounds", "obproject-deploy", &deploy_args)
-            .map_err(|e| miette!("{}", e))?;
+        tools::run_tool_binary("outerbounds", "obproject-deploy", &deploy_args)?;
         status::blank_line();
         status::celebrate("Deployment complete!");
         status::blank_line();
@@ -55,5 +50,5 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
     }
 
     // Pass through to the outerbounds CLI
-    tools::run_tool_binary("outerbounds", "outerbounds", args).map_err(|e| miette!("{}", e))
+    tools::run_tool_binary("outerbounds", "outerbounds", args)
 }

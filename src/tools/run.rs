@@ -1,9 +1,11 @@
 use std::process::Command;
 
+use miette::miette;
+
 use crate::paths;
 
 /// Run a binary from within a tool's installation directory.
-pub fn run_tool_binary(tool_name: &str, binary_name: &str, args: &[String]) -> Result<(), String> {
+pub fn run_tool_binary(tool_name: &str, binary_name: &str, args: &[String]) -> miette::Result<()> {
     let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
     let binary = paths::binary_name(binary_name);
     let tool_bin = paths::tool_prefix(tool_name).join(bin_subdir).join(&binary);
@@ -16,13 +18,13 @@ pub fn run_tool_binary(tool_name: &str, binary_name: &str, args: &[String]) -> R
             tool_name
         );
         tracing::error!("{}", msg);
-        return Err(msg);
+        return Err(miette!(msg));
     }
 
     let status = Command::new(&tool_bin)
         .args(args)
         .status()
-        .map_err(|e| format!("Failed to run {}: {}", binary_name, e))?;
+        .map_err(|e| miette!("Failed to run {}: {}", binary_name, e))?;
 
     if status.success() {
         Ok(())
@@ -33,6 +35,6 @@ pub fn run_tool_binary(tool_name: &str, binary_name: &str, args: &[String]) -> R
             status.code().unwrap_or(1)
         );
         tracing::error!("{}", msg);
-        Err(msg)
+        Err(miette!(msg))
     }
 }
