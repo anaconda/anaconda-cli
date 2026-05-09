@@ -15,6 +15,7 @@ use std::process::{Command, Stdio};
 use console::style;
 
 use crate::paths;
+use crate::tools::tools::binaries;
 
 /// Environment variable set by the Windows shim to indicate wrapper invocation.
 /// The shim sets this to the tool name (e.g., "conda") when invoking ana.exe as a wrapper.
@@ -212,7 +213,13 @@ fn print_activation_hint(env_name: &Option<String>) {
 
 /// Get the path to the real conda binary.
 fn get_conda_bin() -> std::path::PathBuf {
-    paths::tool_prefix("conda").join("bin").join("conda")
+    let mut conda_bin = binaries("conda")
+        .and_then(|b| b.into_iter().next())
+        .expect("conda tool should have binaries defined");
+    if cfg!(windows) {
+        conda_bin.set_extension("exe");
+    }
+    paths::tool_prefix("conda").join(conda_bin)
 }
 
 /// Hand off to conda, replacing the current process (Unix) or spawning and exiting (Windows).
