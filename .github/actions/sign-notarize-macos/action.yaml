@@ -1,0 +1,180 @@
+name: Sign and notarize Mach-O binary
+description: Signs and notarizes macOS binaries
+
+inputs:
+  binary-path:
+    description: The path to the binary to sign and notarize.
+    required: true
+  vault-approle-path:
+    description: The approle for the HashiCorp Vault namespace.
+    required: true
+  vault-cf-client-id:
+    description: CloudFlare client ID to access the HashiCorp Vault from a public GitHub runner.
+    required: true
+  vault-cf-client-secret:
+    description: CloudFlare secret to access the HashiCorp Vault from a public GitHub runner.
+    required: true
+  vault-role-id:
+    description: Role ID for the HashiCorp Vault namespace.
+    required: true
+  vault-secret-id:
+    description: Secret ID for the HashiCorp Vault namespace.
+    required: true
+  vault-mount:
+    description: HashiCorp Vault mount to retrieve secrets from (`dev` or `prod`).
+    required: true
+  vault-url:
+    description: URL to the HashiCorp Vault.
+    required: true
+
+outputs:
+  developer-id:
+    description: The developer ID for the application certificate. Used for testing.
+    value: ${{ steps.application-certificate.outputs.developer-id }}
+  fingerprint:
+    description: The fingerprint of the public certificate. Used for testing.
+    value: ${{ steps.application-certificate.outputs.fingerprint }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate input
+      env:
+        BINARY_PATH: ${{ inputs.binary-path }}
+        VAULT_MOUNT: ${{ inputs.vault-mount }}
+      run: |
+        # Validate inputs
+        if [[ "${VAULT_MOUNT}" != "dev" ]] && [[ "${VAULT_MOUNT}" != "prod" ]]; then
+            echo "::error::Unrecognized vault mount point `${VAULT_MOUNT}`"
+            exit 1
+        fi
+        if [[ ! -f "${BINARY_PATH}" ]]; then
+            echo "::error::${BINARY_PATH} does not exist."
+            exit 1
+        fi
+      shell: bash
+
+    - name: Get application certificate
+      id: application-certificate
+      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      with:
+        exportEnv: false
+        extraHeaders: |
+          CF-Access-Client-Id: ${{ inputs.vault-cf-client-id }}
+          CF-Access-Client-Secret: ${{ inputs.vault-cf-client-secret }}
+        method: approle
+        namespace: admin
+        path: ${{ inputs.vault-approle-path }}
+        roleId: ${{ inputs.vault-role-id }}
+        secretId: ${{ inputs.vault-secret-id }}
+        url: ${{ inputs.vault-url }}
+        secrets: |
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate base64 | base64 ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate developer_id | developer-id ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate fingerprint | fingerprint ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate password | password
+
+    - name: Sign binary
+      env:
+        APPLICATION_CERTIFICATE_BASE64: ${{ steps.application-certificate.outputs.base64 }}
+        APPLICATION_CERTIFICATE_PASSWORD: ${{ steps.application-certificate.outputs.password }}
+        APPLICATION_CERTIFICATE_DEVELOPER_ID: ${{ steps.application-certificate.outputs.developer-id }}
+        BINARY_PATH: ${{ inputs.binary-path }}
+      run: |
+        # Sign binary
+
+        # create temporary keychain
+        KEYCHAIN_PATH="${RUNNER_TEMP}/app-signing.keychain-db"
+        KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+        security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+        security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+        security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+
+        # import certificate to keychain
+        APPLICATION_CERTIFICATE_PATH="${RUNNER_TEMP}/application_certificate.p12"
+        echo -n "${APPLICATION_CERTIFICATE_BASE64}" | \
+          base64 --d -o "${APPLICATION_CERTIFICATE_PATH}"
+
+        security import "${APPLICATION_CERTIFICATE_PATH}" \
+          -P "${APPLICATION_CERTIFICATE_PASSWORD}" \
+          -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
+        rm -f "${APPLICATION_CERTIFICATE_PATH}"
+
+        # Back up keychains to restore after signing
+        KEYCHAINS="$(security list-keychains -d user | xargs)"
+        # shellcheck disable=SC2046
+        security list-keychains -d user -s "${KEYCHAIN_PATH}" ${KEYCHAINS}
+
+        codesign --sign "${APPLICATION_CERTIFICATE_DEVELOPER_ID}" \
+          --options runtime \
+          "${BINARY_PATH}"
+
+        # Clean up
+        security lock-keychain "${KEYCHAIN_PATH}"
+        security delete-keychain "${KEYCHAIN_PATH}"
+        # shellcheck disable=SC2046
+        security list-keychains -d user -s ${KEYCHAINS}
+      shell: bash
+
+    - name: Get notarization credentials
+      id: notarization-credentials
+      if: ${{ inputs.vault-mount == 'prod' }}
+      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      with:
+        exportEnv: false
+        extraHeaders: |
+          CF-Access-Client-Id: ${{ inputs.vault-cf-client-id }}
+          CF-Access-Client-Secret: ${{ inputs.vault-cf-client-secret }}
+        method: approle
+        namespace: admin
+        path: ${{ inputs.vault-approle-path }}
+        roleId: ${{ inputs.vault-role-id }}
+        secretId: ${{ inputs.vault-secret-id }}
+        url: ${{ inputs.vault-url }}
+        secrets: |
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/notarization_credentials key | key ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/notarization_credentials key_id | key-id ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/macos/notarization_credentials key_issuer_id | key-issuer-id
+
+    - name: Notarize binary
+      if: ${{ steps.notarization-credentials.outputs.key }}
+      id: notarize-binary
+      env:
+        BINARY_PATH: ${{ inputs.binary-path }}
+        NOTARIZATION_KEY: ${{ steps.notarization-credentials.outputs.key }}
+        NOTARIZATION_KEY_ID: ${{ steps.notarization-credentials.outputs.key-id }}
+        NOTARIZATION_KEY_ISSUER_ID: ${{ steps.notarization-credentials.outputs.key-issuer-id }}
+      run: |
+        # Notarize binary
+        # Verify that binary was signed
+        codesign --verify --strict "${BINARY_PATH}"
+        BINARY_ZIP="${RUNNER_TEMP}/$(basename "${BINARY_PATH}").zip"
+        zip -j "${BINARY_ZIP}" "${BINARY_PATH}"
+
+        NOTARIZATION_KEY_PATH="${RUNNER_TEMP}/notarization.key"
+        echo -n "${NOTARIZATION_KEY}" > "${NOTARIZATION_KEY_PATH}"
+
+        json_output_file="${RUNNER_TEMP}/notarization.json"
+        set +e
+        xcrun notarytool submit "${BINARY_ZIP}" \
+          -k "${NOTARIZATION_KEY_PATH}" \
+          -d "${NOTARIZATION_KEY_ID}" \
+          -i "${NOTARIZATION_KEY_ISSUER_ID}" \
+          --output-format json \
+          --wait \
+          | tee "$json_output_file"
+        exit_code=$?
+        if [[ ${exit_code} != 0 ]]; then
+          submission_id=$(jq -r '.id' "$json_output_file")
+          xcrun notarytool log "$submission_id" \
+            -k "${NOTARIZATION_KEY_PATH}" \
+            -d "${NOTARIZATION_KEY_ID}" \
+            -i "${NOTARIZATION_KEY_ISSUER_ID}"
+          rm -f "${NOTARIZATION_KEY_PATH}" "${BINARY_ZIP}"
+          exit ${exit_code}
+        fi
+
+        set -e
+        # Clean
+        rm -f "${NOTARIZATION_KEY_PATH}" "${BINARY_ZIP}"
+      shell: bash

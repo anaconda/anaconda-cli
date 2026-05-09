@@ -5,17 +5,14 @@ on:
   merge_group:
   workflow_call:
     inputs:
+      environment:
+        description: The GitHub environment to use
+        type: string
+        default: dev
       skip-tests:
         description: Whether to skip tests
         type: boolean
         default: false
-    secrets:
-      PRIVATE_REPO_TOKEN:
-        description: Token for accessing private repositories
-        required: true
-      SENTRY_DSN:
-        description: Sentry DSN for error reporting (only for release builds)
-        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -25,6 +22,11 @@ permissions: {}
 
 jobs:
   build:
+    environment:
+      # Only deploy when calling this workflow via pushes to main or releases
+      # Otherwise, pull requests will be cluttered with deployment messages
+      deployment: ${{ github.event_name == 'workflow_call' }}
+      name: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
@@ -85,12 +87,30 @@ jobs:
       - name: Build release binary
         run: pixi run build-release
 
+      - name: Sign and notarize binary (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        id: sign-notarize-macos
+        uses: ./.github/actions/sign-notarize-macos
+        with:
+          binary-path: target/release/ana
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
       - name: Run integration tests
         if: ${{ !inputs.skip-tests }}
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
+          MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
+          MACOS_IS_NOTARIZED: ${{ inputs.environment == 'prod' }}
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)
