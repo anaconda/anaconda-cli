@@ -56,6 +56,13 @@ fn run() -> Result<(), String> {
         .unwrap_or(false);
 
     let target_path = if is_wrapper_invocation {
+        if !target_rel_path.exists() {
+            return Err(format!(
+                "ana binary not found at {}\nReinstall with: ana tool install {}",
+                target_rel_path.display(),
+                shim_name
+            ));
+        }
         target_rel_path
     } else {
         let path = shim_dir.join("..\\tools").join(&target_rel_path);
