@@ -56,10 +56,6 @@ class TestMacOSSigning:
         tmp_path: Path,
     ) -> None:
         """Verify the signing certificate matches expected fingerprint."""
-        if not (
-            expected_fingerprint := os.environ.get("MACOS_CERTIFICATE_FINGERPRINT")
-        ):
-            pytest.skip("MACOS_CERTIFICATE_FINGERPRINT not set")
         if ana_binary is None:
             pytest.skip("ana binary not found")
 
@@ -79,6 +75,7 @@ class TestMacOSSigning:
         assert fingerprint, "Fingerprint not found"
         actual_fingerprint = fingerprint.hex().upper().replace(":", "")
 
+        expected_fingerprint = os.environ.get("MACOS_CERTIFICATE_FINGERPRINT")
         assert actual_fingerprint == expected_fingerprint, (
             f"Certificate fingerprint mismatch.\n"
             f"Expected: {expected_fingerprint}\n"
