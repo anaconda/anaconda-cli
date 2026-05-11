@@ -8,15 +8,21 @@ on:
       - opened
       - edited
 
-permissions:
-  pull-requests: write
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   label:
+    name: Add label to PR
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # required to create PRs
     steps:
       - name: Apply conventional commit label
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const title = context.payload.pull_request.title;

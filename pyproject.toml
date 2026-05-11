@@ -8,3 +8,20 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 # Version derived from git tags (e.g., v0.1.0 -> 0.1.0)
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+ignore = ["E501"]
+select = ["F", "E", "W", "I", "UP", "TID"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["TID252"]

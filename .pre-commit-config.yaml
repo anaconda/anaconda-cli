@@ -2,7 +2,7 @@
 #   Check out the docs at: https://pre-commit.com/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: check-json
       - id: check-yaml
@@ -10,16 +10,51 @@ repos:
       - id: end-of-file-fixer
       - id: pretty-format-json
         args: [--autofix]
+        exclude: ^SBOM\.json$
       - id: trailing-whitespace
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 6fec9b7edb08fd9989088709d864a7826dc74e80  # frozen: v0.15.12
+    hooks:
+      # lint & attempt to correct failures (e.g. pyupgrade)
+      - id: ruff-check
+        args: [--fix]
+      # compatible replacement for black
+      - id: ruff-format
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.16.0
+    rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
     hooks:
       - id: pretty-format-yaml
         args: [--autofix, --indent, '2', --offset, '2']
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.37.0
+    rev: f805888065fdb6162e1f800e50bb9460cbd223d6  # frozen: 0.37.2
     hooks:
       - id: check-github-workflows
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: 745eface02aef23e168a8afb6b5737818efbea95  # frozen: v0.11.0.1
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: a4727cbbcd26d7098e96b9cb738169b59711ae51  # frozen: v1.24.1
+    hooks:
+      - id: zizmor
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: rustfmt
+        entry: cargo fmt --
+        language: system
+        types: [rust]
+      - id: sbom
+        name: SBOM freshness
+        entry: pixi run sbom
+        language: system
+        pass_filenames: false
+        files: ^(Cargo\.(toml|lock)|scripts/(sbom-process\.py|update_lockfiles\.sh))$
+      - id: tool-spec-lock
+        name: tool-spec lockfiles
+        entry: ./tool-specs/lock-all.sh
+        language: system
+        files: ^tool-specs/.+/pixi\.toml$
   - repo: meta
     hooks:
       - id: check-hooks-apply

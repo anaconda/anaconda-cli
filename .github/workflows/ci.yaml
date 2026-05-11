@@ -4,47 +4,136 @@ on:
   pull_request:
   merge_group:
   workflow_call:
+    inputs:
+      environment:
+        description: The GitHub environment to use
+        type: string
+        default: dev
+      skip-tests:
+        description: Whether to skip tests
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   build:
+    environment:
+      # Only deploy when calling this workflow via pushes to main or releases
+      # Otherwise, pull requests will be cluttered with deployment messages
+      deployment: ${{ github.event_name == 'workflow_call' }}
+      name: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+    permissions:
+      contents: read  # To check out private repository
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Set up pixi
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
+      - name: Configure git for private repos
+        env:
+          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
+
+      - name: Hash SENTRY_DSN for cache key
+        id: dsn-hash
+        run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Cargo registry and build
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          pixi-version: v0.66.0
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          # Include a hash of SENTRY_DSN so cached artifacts are invalidated
+          # when the DSN changes (build.rs embeds it at compile time).
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
-      - name: Run tests
-        run: |
-          pixi run test
+      - name: Set up ana with pixi
+        uses: anaconda/github-actions/setup-ana@3d7b08cd24c1c5fc8a92a20caa9564bda187d7c1 # v0.2.1
+        with:
+          ana-version: v0.1.2
+          tools: pixi
+          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
-      - name: Build as standalone binary
-        run: |
-          pixi run build-release
+      - name: Run unit tests
+        if: ${{ !inputs.skip-tests }}
+        env:
+          RUST_BACKTRACE: 1
+        run: pixi run test-release
 
-      - name: Build as conda package
-        run: |
-          pixi run build-conda
+      - name: Build release binary
+        run: pixi run build-release
+
+      - name: Sign and notarize binary (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        id: sign-notarize-macos
+        uses: ./.github/actions/sign-notarize-macos
+        with:
+          binary-path: target/release/ana
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
+      - name: Run integration tests
+        if: ${{ !inputs.skip-tests }}
+        env:
+          ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
+          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
+          MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
+          MACOS_IS_NOTARIZED: ${{ inputs.environment == 'prod' }}
+        run: pixi run test-integration
+
+      - name: Run integration tests (PowerShell)
+        if: ${{ !inputs.skip-tests && runner.os == 'Windows' }}
+        env:
+          ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
+          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        run: pixi run test-integration
+        shell: powershell
+
+      - name: Build conda package
+        run: pixi run build-conda
 
       - name: Upload conda package
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: conda-package-${{ matrix.os }}
           path: output/
           retention-days: 7
 
       - name: Upload binary
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binary-${{ matrix.os }}
           path: target/release/ana${{ matrix.os == 'windows-latest' && '.exe' || '' }}

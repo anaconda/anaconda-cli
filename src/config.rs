@@ -1,0 +1,591 @@
+//! Global configuration for ana.
+//!
+//! Configuration is loaded from environment variables. In the future, this will
+//! also support reading from `~/.ana/config.toml`.
+//!
+//! # Environment Variables
+//!
+//! | Variable                         | Default                    | Description                     |
+//! |--------------------------------- |----------------------------|---------------------------------|
+//! | `ANA_DOMAIN`                     | `anaconda.com`             | Authentication domain           |
+//! | `ANA_AUTH_CLIENT_ID`             | (Anaconda's ID)            | OAuth client ID                 |
+//! | `ANA_SSL_VERIFY`                 | `true`                     | SSL certificate verification    |
+//! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser during login  |
+//! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint  |
+//! | `ANA_METRICS_EXPORT_INTERVAL_MS` | `1000`                     | Metrics export interval in ms   |
+//! | `ANA_METRICS_CONSOLE_EXPORTER`   | `false`                    | Enable console metrics exporter |
+//! | `ANA_METRICS_SKIP_INTERNET_CHECK`| `true`                     | Skip internet connectivity check|
+//! | `ANA_USE_HTTPS`                  | `true`                     | Use HTTPS (set false for HTTP)  |
+//! | `ANA_ENABLE_TELEMETRY`           | `true`                     | Enable/disable telemetry        |
+//! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
+//! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
+//! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
+//!
+//! When the `diagnostics` feature is enabled:
+//!
+//! | Variable                         | Default                    | Description                     |
+//! |--------------------------------- |----------------------------|---------------------------------|
+//! | `ANA_SENTRY_DISABLED`            | `false`                    | Disable Sentry error reporting  |
+//! | `ANA_SENTRY_ENVIRONMENT`         | `production`               | Sentry environment tag          |
+//!
+//! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
+//! and `true` for any other value.
+
+use std::env;
+use std::path::PathBuf;
+
+use crate::table;
+
+/// Check if telemetry is enabled.
+pub fn telemetry_enabled() -> bool {
+    parse_bool_env("ANA_ENABLE_TELEMETRY", true)
+}
+
+const DEFAULT_DOMAIN: &str = "anaconda.com";
+const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
+const DEFAULT_SSL_VERIFY: bool = true;
+const DEFAULT_OPEN_BROWSER: bool = true;
+const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.anaconda.com/v1/metrics";
+const DEFAULT_METRICS_EXPORT_INTERVAL_MS: i64 = 1000;
+const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
+const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
+const DEFAULT_USE_HTTPS: bool = true;
+const DEFAULT_INCLUDE_PRERELEASES: bool = false;
+const DEFAULT_PIP_INDEX_URL: &str = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
+const DEFAULT_SELF_UPDATE_URL: &str = "https://anaconda.sh";
+#[cfg(feature = "diagnostics")]
+const DEFAULT_SENTRY_DISABLED: bool = false;
+#[cfg(feature = "diagnostics")]
+const DEFAULT_SENTRY_ENVIRONMENT: &str = "production";
+
+/// Global configuration for ana.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct Config {
+    /// The domain for authentication (e.g., "anaconda.com")
+    pub domain: String,
+
+    /// OAuth client ID
+    pub client_id: String,
+
+    /// Whether to verify SSL certificates
+    pub ssl_verify: bool,
+
+    /// Whether to automatically open browser during login
+    pub open_browser: bool,
+
+    /// OpenTelemetry metrics endpoint URL
+    pub metrics_endpoint: String,
+
+    /// Metrics export interval in milliseconds
+    pub metrics_export_interval_ms: i64,
+
+    /// Enable console metrics exporter
+    pub metrics_console_exporter: bool,
+
+    /// Skip internet connectivity check
+    pub metrics_skip_internet_check: bool,
+
+    /// Path to the keyring file for storing API keys
+    pub keyring_path: PathBuf,
+
+    /// Whether to use HTTPS (set false for HTTP, e.g. testing)
+    pub use_https: bool,
+
+    /// Whether to include prereleases when checking for updates
+    pub include_prereleases: bool,
+
+    /// Pip index URL for package installation
+    pub pip_index_url: String,
+    /// Base URL for static self-update; if None, uses GitHub Releases
+    pub self_update_url: Option<String>,
+
+    /// Whether Sentry error reporting is disabled
+    #[cfg(feature = "diagnostics")]
+    pub sentry_disabled: bool,
+
+    /// Sentry environment tag (e.g., "production", "integration-test")
+    #[cfg(feature = "diagnostics")]
+    pub sentry_environment: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::load()
+    }
+}
+
+impl Config {
+    /// Load configuration from environment variables.
+    pub fn load() -> Self {
+        let domain = normalize_domain(
+            &env::var("ANA_DOMAIN").unwrap_or_else(|_| DEFAULT_DOMAIN.to_string()),
+        );
+        let client_id =
+            env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
+        let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
+        let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
+        let metrics_endpoint = env::var("ANA_METRICS_ENDPOINT")
+            .unwrap_or_else(|_| DEFAULT_METRICS_ENDPOINT.to_string());
+        let metrics_export_interval_ms = env::var("ANA_METRICS_EXPORT_INTERVAL_MS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(DEFAULT_METRICS_EXPORT_INTERVAL_MS);
+        let metrics_console_exporter = parse_bool_env(
+            "ANA_METRICS_CONSOLE_EXPORTER",
+            DEFAULT_METRICS_CONSOLE_EXPORTER,
+        );
+        let metrics_skip_internet_check = parse_bool_env(
+            "ANA_METRICS_SKIP_INTERNET_CHECK",
+            DEFAULT_METRICS_SKIP_INTERNET_CHECK,
+        );
+        let keyring_path = env::var("ANA_KEYRING_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| default_keyring_path());
+        let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
+        let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
+        let pip_index_url =
+            env::var("ANA_PIP_INDEX_URL").unwrap_or_else(|_| DEFAULT_PIP_INDEX_URL.to_string());
+        let self_update_url = match env::var("ANA_SELF_UPDATE_URL") {
+            Ok(s) if s.trim().eq_ignore_ascii_case("github") => None,
+            Ok(s) if !s.trim().is_empty() => Some(s.trim().to_string()),
+            _ => Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+        };
+        #[cfg(feature = "diagnostics")]
+        let sentry_disabled = parse_bool_env("ANA_SENTRY_DISABLED", DEFAULT_SENTRY_DISABLED);
+        #[cfg(feature = "diagnostics")]
+        let sentry_environment = env::var("ANA_SENTRY_ENVIRONMENT")
+            .unwrap_or_else(|_| DEFAULT_SENTRY_ENVIRONMENT.to_string());
+
+        Self {
+            domain,
+            client_id,
+            ssl_verify,
+            open_browser,
+            metrics_endpoint,
+            metrics_export_interval_ms,
+            metrics_console_exporter,
+            metrics_skip_internet_check,
+            keyring_path,
+            use_https,
+            include_prereleases,
+            pip_index_url,
+            self_update_url,
+            #[cfg(feature = "diagnostics")]
+            sentry_disabled,
+            #[cfg(feature = "diagnostics")]
+            sentry_environment,
+        }
+    }
+
+    /// Get the protocol (http or https) based on configuration.
+    fn protocol(&self) -> &'static str {
+        if self.use_https { "https" } else { "http" }
+    }
+
+    /// Get the base URL for API requests.
+    pub fn base_url(&self) -> String {
+        format!("{}://{}", self.protocol(), self.domain)
+    }
+
+    /// Get the OpenID Connect well-known configuration URL.
+    pub fn well_known_url(&self) -> String {
+        format!("{}/.well-known/openid-configuration", self.base_url())
+    }
+}
+
+impl Config {
+    /// Print the configuration as a table.
+    pub fn print_table(&self) {
+        let mut table = table::new(["Setting", "Value"]);
+
+        if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(self) {
+            for (key, value) in map {
+                let value_str = match value {
+                    serde_json::Value::String(s) => s,
+                    serde_json::Value::Bool(b) => b.to_string(),
+                    serde_json::Value::Number(n) => n.to_string(),
+                    _ => value.to_string(),
+                };
+                table.add_row([key, value_str]);
+            }
+        }
+
+        println!("{table}");
+    }
+}
+
+/// Get the default keyring path
+fn default_keyring_path() -> PathBuf {
+    crate::paths::home_dir().join(".anaconda").join("keyring")
+}
+
+/// Normalize a domain by stripping scheme (http://, https://) and path components.
+/// e.g., "https://stage.anaconda.com/app" -> "stage.anaconda.com"
+fn normalize_domain(domain: &str) -> String {
+    let domain = domain.trim();
+
+    // If it looks like a URL (has scheme), parse it properly
+    if domain.starts_with("http://") || domain.starts_with("https://") {
+        if let Ok(url) = url::Url::parse(domain) {
+            if let Some(host) = url.host_str() {
+                return host.to_string();
+            }
+        }
+    }
+
+    // Otherwise treat as bare domain - strip any path component
+    domain.split('/').next().unwrap_or(domain).to_string()
+}
+
+/// Parse a boolean from a string value.
+///
+/// Whitespace is trimmed before parsing.
+/// Returns `false` if the value is empty, "0", or "false" (case-insensitive).
+/// Returns `true` for any other value.
+fn parse_bool(val: &str) -> bool {
+    let val = val.trim().to_lowercase();
+    !(val.is_empty() || val == "0" || val == "false")
+}
+
+/// Parse a boolean from an environment variable.
+///
+/// Returns `default` if the variable is not set.
+fn parse_bool_env(name: &str, default: bool) -> bool {
+    match env::var(name) {
+        Ok(val) => parse_bool(&val),
+        Err(_) => default,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Helper to create a config with specific values for testing
+    fn test_config(domain: &str, ssl_verify: bool, open_browser: bool) -> Config {
+        Config {
+            domain: domain.to_string(),
+            client_id: DEFAULT_CLIENT_ID.to_string(),
+            ssl_verify,
+            open_browser,
+            metrics_endpoint: DEFAULT_METRICS_ENDPOINT.to_string(),
+            metrics_export_interval_ms: DEFAULT_METRICS_EXPORT_INTERVAL_MS,
+            metrics_console_exporter: DEFAULT_METRICS_CONSOLE_EXPORTER,
+            metrics_skip_internet_check: DEFAULT_METRICS_SKIP_INTERNET_CHECK,
+            keyring_path: default_keyring_path(),
+            use_https: true,
+            include_prereleases: false,
+            pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
+            self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+            #[cfg(feature = "diagnostics")]
+            sentry_disabled: false,
+            #[cfg(feature = "diagnostics")]
+            sentry_environment: DEFAULT_SENTRY_ENVIRONMENT.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_parse_bool_env_nonexistent_returns_default() {
+        // When not set, returns default
+        assert!(parse_bool_env("NONEXISTENT_VAR_12345", true));
+        assert!(!parse_bool_env("NONEXISTENT_VAR_12345", false));
+    }
+
+    #[test]
+    fn test_parse_bool_env_values() {
+        // Test that "0" and "false" are all interpreted as false
+        // We can't easily test this without setting env vars, so we test the logic directly
+        let test_cases = vec![
+            ("0", false),
+            ("false", false),
+            ("FALSE", false),
+            ("False", false),
+            ("1", true),
+            ("true", true),
+            ("TRUE", true),
+            ("anything", true),
+            ("", false),
+            ("  ", false),
+            ("  true  ", true),
+            ("  false  ", false),
+        ];
+
+        for (input, expected) in test_cases {
+            assert_eq!(
+                parse_bool(input),
+                expected,
+                "Expected parse of '{}' to be {}",
+                input,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_default_values() {
+        let config = test_config("anaconda.com", true, true);
+        assert_eq!(config.domain, "anaconda.com");
+        assert_eq!(config.client_id, DEFAULT_CLIENT_ID);
+        assert!(config.ssl_verify);
+        assert!(config.open_browser);
+    }
+
+    #[test]
+    fn test_config_equality() {
+        let base_config = test_config("anaconda.com", true, true);
+        let same_config = test_config("anaconda.com", true, true);
+        let different_config = test_config("other.com", true, true);
+
+        assert_eq!(base_config, same_config);
+        assert_ne!(base_config, different_config);
+    }
+
+    #[test]
+    fn test_config_clone() {
+        let base_config = test_config("anaconda.com", true, false);
+        let cloned_config = base_config.clone();
+
+        assert_eq!(base_config, cloned_config);
+        assert_eq!(base_config.domain, cloned_config.domain);
+        assert_eq!(base_config.ssl_verify, cloned_config.ssl_verify);
+        assert_eq!(base_config.open_browser, cloned_config.open_browser);
+    }
+
+    #[test]
+    fn test_config_load_returns_valid_config() {
+        // This test verifies Config::load() doesn't panic and returns valid data
+        let config = Config::load();
+
+        // Domain should never be empty
+        assert!(!config.domain.is_empty());
+        // Client ID should never be empty
+        assert!(!config.client_id.is_empty());
+    }
+
+    #[test]
+    fn test_config_default_is_load() {
+        // Default implementation should be equivalent to load() (for now)
+        let default_config = Config::default();
+        let loaded_config = Config::load();
+
+        assert_eq!(default_config, loaded_config);
+    }
+
+    #[test]
+    fn test_config_load_domain_from_env() {
+        temp_env::with_var("ANA_DOMAIN", Some("custom.example.com"), || {
+            let config = Config::load();
+            assert_eq!(config.domain, "custom.example.com");
+        });
+    }
+
+    #[test]
+    fn test_config_load_client_id_from_env() {
+        temp_env::with_var("ANA_AUTH_CLIENT_ID", Some("my-custom-client-id"), || {
+            let config = Config::load();
+            assert_eq!(config.client_id, "my-custom-client-id");
+        });
+    }
+
+    #[test]
+    fn test_config_load_ssl_verify_false_from_env() {
+        temp_env::with_var("ANA_SSL_VERIFY", Some("false"), || {
+            let config = Config::load();
+            assert!(!config.ssl_verify);
+        });
+    }
+
+    #[test]
+    fn test_config_load_open_browser_false_from_env() {
+        temp_env::with_var("ANA_OPEN_BROWSER", Some("0"), || {
+            let config = Config::load();
+            assert!(!config.open_browser);
+        });
+    }
+
+    #[test]
+    fn test_config_load_keyring_path_from_env() {
+        temp_env::with_var("ANA_KEYRING_PATH", Some("/custom/path/keyring"), || {
+            let config = Config::load();
+            assert_eq!(config.keyring_path, PathBuf::from("/custom/path/keyring"));
+        });
+    }
+
+    #[test]
+    fn test_config_default_keyring_path() {
+        let config = Config::load();
+        // Should end with .anaconda/keyring
+        assert!(config.keyring_path.ends_with(".anaconda/keyring"));
+    }
+
+    #[test]
+    fn test_config_load_use_https_false_from_env() {
+        temp_env::with_var("ANA_USE_HTTPS", Some("false"), || {
+            let config = Config::load();
+            assert!(!config.use_https);
+        });
+    }
+
+    #[test]
+    fn test_config_default_use_https_is_true() {
+        temp_env::with_var("ANA_USE_HTTPS", None::<&str>, || {
+            let config = Config::load();
+            assert!(config.use_https);
+        });
+    }
+
+    #[test]
+    fn test_config_base_url_https() {
+        let config = test_config("example.com", true, true);
+        assert_eq!(config.base_url(), "https://example.com");
+    }
+
+    #[test]
+    fn test_config_base_url_http() {
+        let mut config = test_config("example.com", true, true);
+        config.use_https = false;
+        assert_eq!(config.base_url(), "http://example.com");
+    }
+
+    #[test]
+    fn test_config_load_include_prereleases_false_from_env() {
+        temp_env::with_var("ANA_PRERELEASES", Some("false"), || {
+            let config = Config::load();
+            assert!(!config.include_prereleases);
+        });
+    }
+
+    #[test]
+    fn test_config_default_include_prereleases_is_false() {
+        temp_env::with_var("ANA_PRERELEASES", None::<&str>, || {
+            let config = Config::load();
+            assert!(!config.include_prereleases);
+        });
+    }
+
+    #[test]
+    fn test_config_load_include_prereleases_true_from_env() {
+        temp_env::with_var("ANA_PRERELEASES", Some("true"), || {
+            let config = Config::load();
+            assert!(config.include_prereleases);
+        });
+    }
+
+    #[test]
+    fn test_config_default_pip_index_url() {
+        temp_env::with_var("ANA_PIP_INDEX_URL", None::<&str>, || {
+            let config = Config::load();
+            assert_eq!(
+                config.pip_index_url,
+                "https://repo.anaconda.cloud/repo/anaconda-wheels/simple"
+            );
+        });
+    }
+
+    #[test]
+    fn test_config_default_self_update_url() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", None::<&str>, || {
+            let config = Config::load();
+            assert_eq!(
+                config.self_update_url,
+                Some(DEFAULT_SELF_UPDATE_URL.to_string())
+            );
+        });
+    }
+
+    #[test]
+    fn test_config_load_pip_index_url_from_env() {
+        temp_env::with_var(
+            "ANA_PIP_INDEX_URL",
+            Some("https://custom.example.com/simple/"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.pip_index_url, "https://custom.example.com/simple/");
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_self_update_url_custom() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", Some("https://example.com"), || {
+            let config = Config::load();
+            assert_eq!(
+                config.self_update_url,
+                Some("https://example.com".to_string())
+            );
+        });
+    }
+
+    #[test]
+    fn test_config_self_update_url_github_magic_value() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", Some("github"), || {
+            let config = Config::load();
+            assert_eq!(config.self_update_url, None);
+        });
+    }
+
+    #[test]
+    fn test_config_self_update_url_github_case_insensitive() {
+        temp_env::with_var("ANA_SELF_UPDATE_URL", Some("GitHub"), || {
+            let config = Config::load();
+            assert_eq!(config.self_update_url, None);
+        });
+    }
+
+    #[test]
+    fn test_normalize_domain_plain() {
+        assert_eq!(normalize_domain("anaconda.com"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_https() {
+        assert_eq!(normalize_domain("https://anaconda.com"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_http() {
+        assert_eq!(normalize_domain("http://anaconda.com"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_path() {
+        assert_eq!(normalize_domain("anaconda.com/app"), "anaconda.com");
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_scheme_and_path() {
+        assert_eq!(
+            normalize_domain("https://stage.anaconda.com/app"),
+            "stage.anaconda.com"
+        );
+    }
+
+    #[test]
+    fn test_normalize_domain_strips_deep_path() {
+        assert_eq!(
+            normalize_domain("https://example.com/foo/bar/baz"),
+            "example.com"
+        );
+    }
+
+    #[test]
+    fn test_normalize_domain_trims_whitespace() {
+        assert_eq!(normalize_domain("  anaconda.com  "), "anaconda.com");
+    }
+
+    #[test]
+    fn test_config_load_domain_strips_path() {
+        temp_env::with_var("ANA_DOMAIN", Some("stage.anaconda.com/app"), || {
+            let config = Config::load();
+            assert_eq!(config.domain, "stage.anaconda.com");
+        });
+    }
+
+    #[test]
+    fn test_config_load_domain_strips_scheme() {
+        temp_env::with_var("ANA_DOMAIN", Some("https://stage.anaconda.com"), || {
+            let config = Config::load();
+            assert_eq!(config.domain, "stage.anaconda.com");
+        });
+    }
+}
