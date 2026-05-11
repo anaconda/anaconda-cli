@@ -10,7 +10,6 @@ use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
-#[cfg(feature = "feedback")]
 use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
@@ -133,7 +132,6 @@ pub enum Action {
     UserAgent {
         prefix: Option<String>,
     },
-    #[cfg(feature = "feedback")]
     OpenFeedback,
     ToolInstall {
         name: String,
@@ -193,7 +191,6 @@ impl Action {
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
-            #[cfg(feature = "feedback")]
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
@@ -323,7 +320,6 @@ impl Action {
                 println!("{}", crate::ua::user_agent());
                 Ok(())
             }
-            #[cfg(feature = "feedback")]
             Action::OpenFeedback => {
                 feedback::open_feedback();
                 Ok(())
@@ -486,7 +482,6 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSubcommandHelp("self".to_string()),
-                    #[cfg(feature = "feedback")]
                     Some(SelfCommands::Feedback) => Action::OpenFeedback,
                     Some(SelfCommands::Update {
                         version,
@@ -879,7 +874,6 @@ enum AuthCommands {
 #[derive(Subcommand)]
 enum SelfCommands {
     /// Open GitHub issues page to report bugs or request features
-    #[cfg(feature = "feedback")]
     Feedback,
 
     /// Manage your ana version

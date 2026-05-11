@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-11T17:20:34Z<br>
+Generated: 2026-05-11T17:51:18Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 474 (67 platform-specific)<br>
+Packages: 475 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -52,12 +52,13 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [blake2](https://crates.io/crates/blake2) | 0.10.6 | MIT OR Apache-2.0 |  |  |
 | [block-buffer](https://crates.io/crates/block-buffer) | 0.10.4 | MIT OR Apache-2.0 |  |  |
 | [boxcar](https://crates.io/crates/boxcar) | 0.2.14 | MIT |  |  |
+| [bs58](https://crates.io/crates/bs58) | 0.5.1 | MIT OR Apache-2.0 |  |  |
 | [bumpalo](https://crates.io/crates/bumpalo) | 3.20.2 | MIT OR Apache-2.0 |  |  |
 | [bytes](https://crates.io/crates/bytes) | 1.11.1 | MIT |  |  |
 | [bytestring](https://crates.io/crates/bytestring) | 1.5.1 | MIT OR Apache-2.0 |  |  |
 | [bzip2](https://crates.io/crates/bzip2) | 0.6.1 | MIT OR Apache-2.0 |  |  |
 | [cargo-lock](https://crates.io/crates/cargo-lock) | 11.0.1 | Apache-2.0 OR MIT |  |  |
-| [cc](https://crates.io/crates/cc) | 1.2.61 | MIT OR Apache-2.0 |  |  |
+| [cc](https://crates.io/crates/cc) | 1.2.62 | MIT OR Apache-2.0 |  |  |
 | [cfg-if](https://crates.io/crates/cfg-if) | 1.0.4 | MIT OR Apache-2.0 |  |  |
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.1 | MIT |  |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.0 | MIT OR Apache-2.0 |  |  |
@@ -109,7 +110,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [fancy-regex](https://crates.io/crates/fancy-regex) | 0.17.0 | MIT |  |  |
 | [fastrand](https://crates.io/crates/fastrand) | 2.4.1 | Apache-2.0 OR MIT |  |  |
 | [file\_url](https://crates.io/crates/file_url) | 0.3.0 | BSD-3-Clause |  |  |
-| [filetime](https://crates.io/crates/filetime) | 0.2.27 | MIT OR Apache-2.0 |  |  |
+| [filetime](https://crates.io/crates/filetime) | 0.2.28 | MIT OR Apache-2.0 |  |  |
 | [find-msvc-tools](https://crates.io/crates/find-msvc-tools) | 0.1.9 | MIT OR Apache-2.0 |  |  |
 | [findshlibs](https://crates.io/crates/findshlibs) | 0.10.2 | MIT OR Apache-2.0 |  |  |
 | [flate2](https://crates.io/crates/flate2) | 1.1.9 | MIT OR Apache-2.0 |  |  |
@@ -143,7 +144,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.12.3 | MIT OR Apache-2.0 |  |  |
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.14.5 | MIT OR Apache-2.0 |  |  |
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.16.1 | MIT OR Apache-2.0 |  |  |
-| [hashbrown](https://crates.io/crates/hashbrown) | 0.17.0 | MIT OR Apache-2.0 |  |  |
+| [hashbrown](https://crates.io/crates/hashbrown) | 0.17.1 | MIT OR Apache-2.0 |  |  |
 | [heck](https://crates.io/crates/heck) | 0.5.0 | MIT OR Apache-2.0 |  |  |
 | [hex](https://crates.io/crates/hex) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [hostname](https://crates.io/crates/hostname) | 0.4.2 | MIT |  |  |
@@ -257,7 +258,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [purl](https://crates.io/crates/purl) | 0.1.6 | MIT |  |  |
 | [quick-error](https://crates.io/crates/quick-error) | 1.2.3 | MIT OR Apache-2.0 |  |  |
 | [quick-xml](https://crates.io/crates/quick-xml) | 0.37.5 | MIT | linux |  |
-| [quick-xml](https://crates.io/crates/quick-xml) | 0.39.3 | MIT | macos |  |
+| [quick-xml](https://crates.io/crates/quick-xml) | 0.39.4 | MIT | macos |  |
 | [quote](https://crates.io/crates/quote) | 1.0.45 | MIT OR Apache-2.0 |  |  |
 | [rand](https://crates.io/crates/rand) | 0.10.1 | MIT OR Apache-2.0 |  |  |
 | [rand](https://crates.io/crates/rand) | 0.9.4 | MIT OR Apache-2.0 |  |  |
@@ -290,7 +291,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [reqwest](https://crates.io/crates/reqwest) | 0.12.28 | MIT OR Apache-2.0 |  |  |
 | [reqwest](https://crates.io/crates/reqwest) | 0.13.3 | MIT OR Apache-2.0 |  |  |
 | [reqwest-middleware](https://crates.io/crates/reqwest-middleware) | 0.4.2 | MIT OR Apache-2.0 |  |  |
-| [retry-policies](https://crates.io/crates/retry-policies) | 0.5.1 | MIT OR Apache-2.0 |  |  |
+| [retry-policies](https://crates.io/crates/retry-policies) | 0.5.2 | MIT OR Apache-2.0 |  |  |
 | [ring](https://crates.io/crates/ring) | 0.17.14 | Apache-2.0 AND ISC |  |  |
 | [rpassword](https://crates.io/crates/rpassword) | 7.5.2 | Apache-2.0 |  |  |
 | [rtoolbox](https://crates.io/crates/rtoolbox) | 0.0.5 | Apache-2.0 |  |  |
@@ -312,15 +313,15 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [security-framework-sys](https://crates.io/crates/security-framework-sys) | 2.17.0 | MIT OR Apache-2.0 | macos |  |
 | [self-replace](https://crates.io/crates/self-replace) | 1.5.0 | Apache-2.0 |  |  |
 | [semver](https://crates.io/crates/semver) | 1.0.28 | MIT OR Apache-2.0 |  |  |
-| [sentry](https://crates.io/crates/sentry) | 0.48.1 | MIT |  |  |
-| [sentry-actix](https://crates.io/crates/sentry-actix) | 0.48.1 | MIT |  |  |
-| [sentry-backtrace](https://crates.io/crates/sentry-backtrace) | 0.48.1 | MIT |  |  |
-| [sentry-contexts](https://crates.io/crates/sentry-contexts) | 0.48.1 | MIT |  |  |
-| [sentry-core](https://crates.io/crates/sentry-core) | 0.48.1 | MIT |  |  |
-| [sentry-debug-images](https://crates.io/crates/sentry-debug-images) | 0.48.1 | MIT |  |  |
-| [sentry-panic](https://crates.io/crates/sentry-panic) | 0.48.1 | MIT |  |  |
-| [sentry-tracing](https://crates.io/crates/sentry-tracing) | 0.48.1 | MIT |  |  |
-| [sentry-types](https://crates.io/crates/sentry-types) | 0.48.1 | MIT |  |  |
+| [sentry](https://crates.io/crates/sentry) | 0.48.2 | MIT |  |  |
+| [sentry-actix](https://crates.io/crates/sentry-actix) | 0.48.2 | MIT |  |  |
+| [sentry-backtrace](https://crates.io/crates/sentry-backtrace) | 0.48.2 | MIT |  |  |
+| [sentry-contexts](https://crates.io/crates/sentry-contexts) | 0.48.2 | MIT |  |  |
+| [sentry-core](https://crates.io/crates/sentry-core) | 0.48.2 | MIT |  |  |
+| [sentry-debug-images](https://crates.io/crates/sentry-debug-images) | 0.48.2 | MIT |  |  |
+| [sentry-panic](https://crates.io/crates/sentry-panic) | 0.48.2 | MIT |  |  |
+| [sentry-tracing](https://crates.io/crates/sentry-tracing) | 0.48.2 | MIT |  |  |
+| [sentry-types](https://crates.io/crates/sentry-types) | 0.48.2 | MIT |  |  |
 | [serde](https://crates.io/crates/serde) | 1.0.228 | MIT OR Apache-2.0 |  |  |
 | [serde-untagged](https://crates.io/crates/serde-untagged) | 0.1.9 | MIT OR Apache-2.0 |  |  |
 | [serde-value](https://crates.io/crates/serde-value) | 0.7.0 | MIT |  |  |
@@ -331,8 +332,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.20 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_urlencoded](https://crates.io/crates/serde_urlencoded) | 0.7.1 | MIT OR Apache-2.0 |  |  |
-| [serde\_with](https://crates.io/crates/serde_with) | 3.19.0 | MIT OR Apache-2.0 |  |  |
-| [serde\_with\_macros](https://crates.io/crates/serde_with_macros) | 3.19.0 | MIT OR Apache-2.0 |  |  |
+| [serde\_with](https://crates.io/crates/serde_with) | 3.20.0 | MIT OR Apache-2.0 |  |  |
+| [serde\_with\_macros](https://crates.io/crates/serde_with_macros) | 3.20.0 | MIT OR Apache-2.0 |  |  |
 | [serde\_yaml](https://crates.io/crates/serde_yaml) | 0.9.34+deprecated | MIT OR Apache-2.0 |  |  |
 | [sha2](https://crates.io/crates/sha2) | 0.10.9 | MIT OR Apache-2.0 |  |  |
 | [sharded-slab](https://crates.io/crates/sharded-slab) | 0.1.7 | MIT |  |  |
@@ -489,7 +490,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 255 |
+| MIT OR Apache-2.0 | 256 |
 | MIT | 97 |
 | Apache-2.0 OR MIT | 34 |
 | Apache-2.0 | 21 |
