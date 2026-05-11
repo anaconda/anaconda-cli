@@ -6,7 +6,7 @@ platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
 [dependencies]
 python = ">=3.12,<3.14"
 # renovate: datasource=conda depName=main/anaconda-auth
-anaconda-auth = "==0.13.0"
+anaconda-auth = "==0.14.4"
 # renovate: datasource=conda depName=main/anaconda-ai
 anaconda-ai = "==0.5.0"
 # renovate: datasource=conda depName=main/anaconda-client
