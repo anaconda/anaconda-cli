@@ -318,8 +318,9 @@ fn create_wrapper_shim(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
     update_shims_cfg(&shim_name, &ana_bin.to_string_lossy())?;
 
     eprintln!(
-        "   Created shim {} -> ana.exe (wrapper)",
+        "   Created shim {} -> {} (wrapper)",
         shim_path.display(),
+        ana_bin.display()
     );
 
     Ok(())

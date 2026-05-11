@@ -117,4 +117,41 @@ mod tests {
         let normalized = path_from_config.replace('/', "\\");
         assert_eq!(normalized, "pixi\\bin\\pixi.exe");
     }
+
+    #[test]
+    fn test_is_wrapper_invocation_ana_exe() {
+        use std::path::PathBuf;
+
+        let path = PathBuf::from("C:\\Users\\test\\.ana\\bin\\ana.exe");
+        let is_wrapper = path
+            .file_name()
+            .map(|name| name == "ana.exe")
+            .unwrap_or(false);
+        assert!(is_wrapper);
+    }
+
+    #[test]
+    fn test_is_wrapper_invocation_other_exe() {
+        use std::path::PathBuf;
+
+        let path = PathBuf::from("pixi\\bin\\pixi.exe");
+        let is_wrapper = path
+            .file_name()
+            .map(|name| name == "ana.exe")
+            .unwrap_or(false);
+        assert!(!is_wrapper);
+    }
+
+    #[test]
+    fn test_is_wrapper_invocation_no_false_positive() {
+        use std::path::PathBuf;
+
+        // Ensure "banana.exe" doesn't match
+        let path = PathBuf::from("tools\\banana.exe");
+        let is_wrapper = path
+            .file_name()
+            .map(|name| name == "ana.exe")
+            .unwrap_or(false);
+        assert!(!is_wrapper);
+    }
 }

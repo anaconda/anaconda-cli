@@ -394,4 +394,30 @@ mod tests {
         let args: Vec<String> = vec![];
         assert_eq!(extract_env_name(&args), None);
     }
+
+    #[cfg(windows)]
+    mod windows_tests {
+        use super::*;
+
+        #[test]
+        fn test_is_conda_invocation_with_env_var() {
+            temp_env::with_var(WRAPPER_INVOCATION_ENV_VAR, Some("conda"), || {
+                assert!(is_conda_invocation());
+            });
+        }
+
+        #[test]
+        fn test_is_conda_invocation_with_other_tool() {
+            temp_env::with_var(WRAPPER_INVOCATION_ENV_VAR, Some("mamba"), || {
+                assert!(!is_conda_invocation());
+            });
+        }
+
+        #[test]
+        fn test_is_conda_invocation_without_env_var() {
+            temp_env::with_var(WRAPPER_INVOCATION_ENV_VAR, None::<&str>, || {
+                assert!(!is_conda_invocation());
+            });
+        }
+    }
 }
