@@ -87,6 +87,21 @@ jobs:
       - name: Build release binary
         run: pixi run build-release
 
+      - name: Sign binary (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        id: sign-windows
+        uses: ./.github/actions/sign-windows
+        with:
+          binary-path: target/release/ana.exe
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
       - name: Sign and notarize binary (macOS)
         if: ${{ runner.os == 'macOS' }}
         id: sign-notarize-macos
