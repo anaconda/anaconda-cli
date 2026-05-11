@@ -36,13 +36,11 @@ runs:
         VAULT_MOUNT: ${{ inputs.vault-mount }}
       run: |
         # Validate inputs
-        if ("$env:VAULT_MOUNT" -ne "dev" -and "$env:VAULT_MOUNT" -ne "prod") {
-            Write-Host "::error::Unrecognized vault mount point `$env:VAULT_MOUNT`"
-            exit 1
+        if ($env:VAULT_MOUNT -ne "dev" -and $env:VAULT_MOUNT -ne "prod") {
+            throw "Unrecognized vault mount point: $env:VAULT_MOUNT"
         }
-        if (-not (Test-Path -Path "$env:BINARY_PATH}" -PathType Leaf)) {
-            Write-Host "::error::$env:BINARY_PATH does not exist."
-            exit 1
+        if (-not (Test-Path -Path $env:BINARY_PATH -PathType Leaf)) {
+            throw "$env:BINARY_PATH does not exist."
         }
       shell: pwsh
 
