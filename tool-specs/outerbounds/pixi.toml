@@ -1,0 +1,9 @@
+[workspace]
+name = "outerbounds"
+channels = [ "https://repo.anaconda.com/pkgs/main" ]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.12,<3.14"
+# renovate: datasource=conda depName=main/outerbounds
+outerbounds = "==0.12.30"

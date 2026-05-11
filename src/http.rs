@@ -125,7 +125,6 @@ impl Client {
     }
 
     /// POST request.
-    #[allow(dead_code)]
     pub fn post(&self, url: &str) -> reqwest_middleware::RequestBuilder {
         self.inner.post(self.resolve_url(url))
     }

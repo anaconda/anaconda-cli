@@ -8,7 +8,7 @@ conda = ">=24"
 pre-commit = ">=4.5.1,<5"
 pytest = ">=8"
 python = ">=3.10"
-rattler-build = ">=0.63,<0.64"
+rattler-build = ">=0.64,<0.65"
 rust = "*"
 setuptools-scm = ">=8"
 anaconda-client = ">=1.14.1,<2"
@@ -16,6 +16,7 @@ cargo-auditable = ">=0.7,<1"
 cargo-audit = ">=0.22,<1"
 cargo-cyclonedx = ">=0.5,<1"
 requests = ">=2.33.1,<3"
+cryptography = ">=48.0.0,<49"
 
 [target.linux-aarch64.dependencies]
 pkg-config = ">=0.29.2,<0.30"
@@ -50,7 +51,6 @@ description = "Run the unit tests in release mode"
 
 [tasks.test-integration]
 cmd = "pytest tests -v"
-depends-on = ["build-release"]
 description = "Run integration tests"
 
 [tasks.sbom]

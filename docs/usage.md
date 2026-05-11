@@ -21,3 +21,8 @@ Currently supported tools:
 |--------------|----------------------------------|
 | anaconda-cli | Anaconda.org CLI                 |
 | pixi         | Fast conda/PyPI package manager  |
+
+
+> [!IMPORTANT]
+> Using `ana` for the first time on macOS requires an internet connection
+> so that Gatekeeper can look up the notarization record with Apple.

@@ -11,6 +11,7 @@ import pytest
 from helpers import AnaRunner
 from mock_auth_server import MockAuthServer
 
+MAIN_CHANNEL = "https://repo.anaconda.cloud/repo/main"
 MAIN_X_CHANNEL = "https://repo.anaconda.cloud/repo/main-x"
 
 
@@ -812,16 +813,23 @@ class TestMainXPixiEnable:
         pixi_feature_env: dict[str, str],
     ) -> None:
         """Enabling main-x with --pixi when already enabled should succeed."""
-        # Pre-configure main-x channel via pixi config
+        # Pre-configure both main and main-x channels via pixi config
+        # (both are required for "already enabled" since the feature adds both)
         subprocess.run(
             ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
             env=pixi_feature_env,
             check=True,
         )
+        subprocess.run(
+            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
+            env=pixi_feature_env,
+            check=True,
+        )
 
-        # Verify main-x is in channels
+        # Verify both channels are configured
         initial_channels = get_pixi_channels(pixi_feature_env)
         assert MAIN_X_CHANNEL in initial_channels
+        assert MAIN_CHANNEL in initial_channels
 
         # Login with API key
         api_key = get_test_api_key()

@@ -22,6 +22,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "bootstrap",
             "feature",
             "api",
+            "ob",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",
@@ -37,6 +38,10 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
     },
+    HelpSection {
+        name: "AI",
+        commands: &["mcp"],
+    },
 ];
 
 /// Examples for the main help output
@@ -48,7 +53,7 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
         },
         HelpExample {
             desc: "Install a tool".to_string(),
-            command: "ana tool install pixi".to_string(),
+            command: "ana tool install outerbounds".to_string(),
         },
         HelpExample {
             desc: "Manage your ana version".to_string(),
