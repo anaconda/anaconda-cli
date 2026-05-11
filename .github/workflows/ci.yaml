@@ -149,7 +149,7 @@ jobs:
           CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
           MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
-          WINDOWS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-windows.outputs.fingerprint }}
+          TEST_WINDOWS_SIGNING: 1
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)

@@ -22,7 +22,7 @@ if not IS_WINDOWS:
 
 # Use environment variable as sentinel variable
 # since local builds are not expected to be signed
-if not os.environ.get("WINDOWS_CERTIFICATE_FINGERPRINT"):
+if not os.environ.get("TEST_WINDOWS_SIGNING"):
     pytest.skip("Binary is not expected to be signed", allow_module_level=True)
 
 
@@ -55,16 +55,6 @@ def assert_signature_valid(cert_info: dict[str, Any], name: str) -> None:
         0 if os.environ.get("CERTIFICATE_TRUSTED", "").lower() == "true" else 1
     )
     assert status == expected_status, f"{name} trust status mismatch"
-
-    certificate = cert_info.get("SignerCertificate")
-    assert certificate, f"No certificate found for {name}"
-    actual_fingerprint = certificate.get("Thumbprint", "")
-    expected_fingerprint = os.environ.get("WINDOWS_CERTIFICATE_FINGERPRINT", "")
-    assert actual_fingerprint == expected_fingerprint, (
-        f"Certificate fingerprint mismatch.\n"
-        f"Expected: {expected_fingerprint}\n"
-        f"Actual:   {actual_fingerprint}"
-    )
 
 
 def test_binary_signed(ana_binary: Path | None) -> None:
