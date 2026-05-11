@@ -558,11 +558,11 @@ fn run_pixi_config(pixi_bin: &Path, args: &[&str]) -> miette::Result<()> {
 
 /// Find the conda binary.
 ///
-/// First checks if conda is installed via ana (in ~/.ana/tools/conda),
+/// First checks if conda is installed via ana (in ~/.ana/tools/miniconda),
 /// then falls back to looking in PATH.
 fn find_conda() -> miette::Result<std::path::PathBuf> {
-    // Check ana-managed conda first
-    let ana_conda = paths::tool_prefix("conda")
+    // Check ana-managed miniconda first
+    let ana_conda = paths::tool_prefix("miniconda")
         .join("bin")
         .join(paths::binary_name("conda"));
     if ana_conda.exists() {

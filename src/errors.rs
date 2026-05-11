@@ -169,6 +169,23 @@ pub enum ToolError {
 )]
 pub struct OuterboundsNotConfiguredError;
 
+/// Error when conda is not found.
+#[derive(Error, Debug, Diagnostic)]
+#[error("conda not found")]
+#[diagnostic(
+    code(ana::conda::not_found),
+    help(
+        "To install conda, you can either:\n\
+         \n\
+         1. Download from https://anaconda.com/installers\n\
+         \n\
+         2. Install via ana:\n\
+         \n\
+            ana tool install miniconda"
+    )
+)]
+pub struct CondaNotFoundError;
+
 /// Authentication errors (re-exported from auth module for convenience).
 pub use crate::auth::errors::AuthError;
 
@@ -225,5 +242,11 @@ mod tests {
 
         let err = ToolError::AlreadyInstalled("pixi".to_string());
         assert_eq!(err.to_string(), "Tool already installed: pixi");
+    }
+
+    #[test]
+    fn test_conda_not_found_error_display() {
+        let err = CondaNotFoundError;
+        assert_eq!(err.to_string(), "conda not found");
     }
 }

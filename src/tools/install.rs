@@ -23,9 +23,21 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
     mp
 });
 
-/// Install a tool from its lockfile.
+/// Install a tool from its lockfile or installer.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
+
+    if !tools::is_known_tool(name) {
+        return Err(miette::miette!("unknown tool: {}", name));
+    }
+
+    // Handle installer-based tools (like miniconda)
+    if tools::is_installer_tool(name) {
+        return match name {
+            "miniconda" => super::miniconda::install(ctx).await,
+            _ => Err(miette::miette!("unknown installer tool: {}", name)),
+        };
+    }
 
     // Show experimental warning if applicable
     if let Some(msg) = specs::experimental_message(name) {
@@ -208,6 +220,11 @@ const SHIM_BINARY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/shim.exe"))
 ///
 /// Copies the shim executable to bin_dir/<name>.exe and updates shims.cfg
 /// with the mapping from shim name to target binary.
+pub fn create_bin_shim_public(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
+    create_bin_shim(bin_dir, prefix, binary)
+}
+
+#[cfg(windows)]
 fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
     let tool_bin = prefix.join(binary).with_extension("exe");
     let shim_name = binary.file_stem().unwrap().to_string_lossy();

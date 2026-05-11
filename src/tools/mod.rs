@@ -1,5 +1,6 @@
 pub mod install;
 pub mod list;
+pub mod miniconda;
 #[cfg(feature = "unstable")]
 pub mod pip;
 mod pixi_config;
