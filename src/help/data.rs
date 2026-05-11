@@ -52,6 +52,10 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
             command: "ana login".to_string(),
         },
         HelpExample {
+            desc: "Enable access to Anaconda's main-x (beta) channel".to_string(),
+            command: "ana feature enable main-x".to_string(),
+        },
+        HelpExample {
             desc: "Manage your ana version".to_string(),
             command: "ana self update".to_string(),
         },
