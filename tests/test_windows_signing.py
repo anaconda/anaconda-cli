@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any
 
+    from helpers import AnaRunner
+
 if not IS_WINDOWS:
     pytest.skip("Windows signing tests", allow_module_level=True)
 
@@ -24,19 +26,13 @@ if not os.environ.get("WINDOWS_CERTIFICATE_FINGERPRINT"):
     pytest.skip("Binary is not expected to be signed", allow_module_level=True)
 
 
-@pytest.fixture(scope="class")
-def certificate_info(ana_binary: Path | None) -> dict[str, Any]:
-    """Get codesign information for the binary."""
-    if ana_binary is None:
-        pytest.skip(
-            "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
-        )
-
+def get_authenticode_signature(binary_path: Path) -> dict[str, Any]:
+    """Get Authenticode signature information for a Windows binary."""
     result = subprocess.run(
         [
             "powershell",
             "-c",
-            f"ConvertTo-Json (Get-AuthenticodeSignature '{ana_binary}')",
+            f"ConvertTo-Json (Get-AuthenticodeSignature '{binary_path}')",
         ],
         text=True,
         check=True,
@@ -45,34 +41,52 @@ def certificate_info(ana_binary: Path | None) -> dict[str, Any]:
     return json.loads(result.stdout)
 
 
-class TestWindowsSigning:
-    """Tests for Windows code signing verification."""
+def assert_signature_valid(cert_info: dict[str, Any], name: str) -> None:
+    """Assert that a binary is signed with the expected certificate.
 
-    def test_binary_signed(
-        self,
-        certificate_info: dict[str, Any],
-    ) -> None:
-        """Test whether the binary is signed.
+    Status codes:
+      0: Signed with a trusted certificate.
+      1: Signed with an untrusted certificate.
+      2: Not signed
+    """
+    status = cert_info.get("Status", -1)
+    assert status < 2, f"{name} is not signed"
+    expected_status = (
+        0 if os.environ.get("CERTIFICATE_TRUSTED", "").lower() == "true" else 1
+    )
+    assert status == expected_status, f"{name} trust status mismatch"
 
-        Status codes:
-          0: Signed with a trusted certificate.
-          1: Signed with an untrusted certificate.
-          2: Not signed
-        """
-        status = certificate_info.get("Status", -1)
-        assert status < 2, "Binary is not signed"
-        expected_status = (
-            0 if os.environ.get("CERTIFICATE_TRUSTED", "").lower() == "true" else 1
+    certificate = cert_info.get("SignerCertificate")
+    assert certificate, f"No certificate found for {name}"
+    actual_fingerprint = certificate.get("Thumbprint", "")
+    expected_fingerprint = os.environ.get("WINDOWS_CERTIFICATE_FINGERPRINT", "")
+    assert actual_fingerprint == expected_fingerprint, (
+        f"Certificate fingerprint mismatch.\n"
+        f"Expected: {expected_fingerprint}\n"
+        f"Actual:   {actual_fingerprint}"
+    )
+
+
+def test_binary_signed(ana_binary: Path | None) -> None:
+    """Test whether the ana binary is signed with the expected certificate."""
+    if ana_binary is None:
+        pytest.skip(
+            "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
         )
-        assert status == expected_status
+    cert_info = get_authenticode_signature(ana_binary)
+    assert_signature_valid(cert_info, "ana binary")
 
-    def test_certificate_fingerprint(
-        self,
-        certificate_info: dict[str, Any],
-    ) -> None:
-        """Verify the signature fingerprint (thumbprint)."""
 
-        certificate = certificate_info.get("SignerCertificate")
-        assert certificate, "No certificate found"
-        fingerprint = certificate.get("Thumbprint", "")
-        assert fingerprint == os.environ.get("WINDOWS_CERTIFICATE_FINGERPRINT")
+def test_shim_signed(
+    run_ana: AnaRunner,
+    fake_home: Path,
+) -> None:
+    """Test whether the installed shim is signed with the expected certificate."""
+    result = run_ana("tool", "install", "pixi")
+    assert result.returncode == 0, f"Failed to install pixi: {result.stderr}"
+
+    shim_path = fake_home / ".ana" / "bin" / "pixi.exe"
+    assert shim_path.exists(), f"Shim not found at {shim_path}"
+
+    cert_info = get_authenticode_signature(shim_path)
+    assert_signature_valid(cert_info, "pixi shim")

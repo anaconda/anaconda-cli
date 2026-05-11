@@ -31,6 +31,10 @@ description = "Run pre-commit hooks on all files"
 cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
 description = "Build the conda package"
 
+[tasks.build-shim]
+cmd = "mkdir -p target/shim; rustc --edition=2024 -O -o target/shim/shim.exe src/shim/shim.rs"
+description = "Build the Windows shim binary"
+
 [tasks.build-debug]
 cmd = "python scripts/with_version.py cargo auditable build"
 description = "Build the standalone Rust binary in debug mode"
