@@ -200,7 +200,8 @@ def uv_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str, 
     - Linux: ~/.config/uv/uv.toml
     - Windows: %APPDATA%\\uv\\uv.toml
     """
-    from helpers import IS_MACOS, IS_WINDOWS
+    from helpers import IS_MACOS
+    from helpers import IS_WINDOWS
 
     if IS_WINDOWS:
         appdata = fake_home / "AppData" / "Roaming"
@@ -474,7 +475,8 @@ def get_pip_index_url(env: dict[str, str]) -> str | None:
 
 def get_uv_default_index(env: dict[str, str]) -> str | None:
     """Get the configured default index from uv config."""
-    from helpers import IS_MACOS, IS_WINDOWS
+    from helpers import IS_MACOS
+    from helpers import IS_WINDOWS
 
     if IS_WINDOWS:
         appdata = env.get("APPDATA")
@@ -816,7 +818,14 @@ class TestMainXPixiEnable:
         # Pre-configure both main and main-x channels via pixi config
         # (both are required for "already enabled" since the feature adds both)
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
             env=pixi_feature_env,
             check=True,
         )
@@ -891,7 +900,14 @@ class TestMainXPixiDisable:
         """Disabling main-x --pixi should remove the main-x channel from pixi config."""
         # Pre-configure main-x channel
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
             env=pixi_feature_env,
             check=True,
         )
@@ -939,7 +955,9 @@ class TestMainXPixiUserInteraction:
         assert login_result.returncode == 0
 
         # Run enable without -f, answer 'n' to abort
-        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", input="n\n")
+        result = run_ana_pixi_feature(
+            "feature", "enable", "main-x", "--pixi", input="n\n"
+        )
 
         # Should show the command to be executed
         assert "pixi" in result.stderr.lower()
@@ -955,13 +973,22 @@ class TestMainXPixiUserInteraction:
         """Disable --pixi should show pixi commands and prompt for confirmation."""
         # Pre-configure main-x
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
             env=pixi_feature_env,
             check=True,
         )
 
         # Run disable without -f, answer 'n' to abort
-        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", input="n\n")
+        result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", input="n\n"
+        )
 
         # Should show the commands to be executed
         assert "pixi" in result.stderr.lower()
@@ -990,7 +1017,9 @@ class TestMainXPixiEndToEnd:
         assert login_result.returncode == 0
 
         # Step 2: Enable main-x
-        enable_result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        enable_result = run_ana_pixi_feature(
+            "feature", "enable", "main-x", "--pixi", "-f"
+        )
         assert enable_result.returncode == 0
 
         # Step 3: Verify channel was added
@@ -998,7 +1027,9 @@ class TestMainXPixiEndToEnd:
         assert MAIN_X_CHANNEL in channels_after_enable
 
         # Step 4: Disable main-x
-        disable_result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        disable_result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f"
+        )
         assert disable_result.returncode == 0
 
         # Step 5: Verify channel was removed
@@ -1017,7 +1048,9 @@ class TestMainXPixiEndToEnd:
         assert login_result.returncode == 0
 
         # Enable main-x
-        enable_result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        enable_result = run_ana_pixi_feature(
+            "feature", "enable", "main-x", "--pixi", "-f"
+        )
         assert enable_result.returncode == 0
 
         # Try to search for a package from main-x channel
@@ -1141,7 +1174,13 @@ class TestWheelsPipDisable:
         for cmd in ["pip", "pip3"]:
             try:
                 subprocess.run(
-                    [cmd, "config", "set", "global.index-url", "https://example.com/simple/"],
+                    [
+                        cmd,
+                        "config",
+                        "set",
+                        "global.index-url",
+                        "https://example.com/simple/",
+                    ],
                     env=pip_feature_env,
                     check=True,
                     capture_output=True,
@@ -1176,7 +1215,9 @@ class TestWheelsPipEndToEnd:
         assert login_result.returncode == 0
 
         # Enable wheels
-        enable_result = run_ana_pip_feature("feature", "enable", "wheels", "--pip", "-f")
+        enable_result = run_ana_pip_feature(
+            "feature", "enable", "wheels", "--pip", "-f"
+        )
         assert enable_result.returncode == 0
 
         # Verify config was added
@@ -1185,7 +1226,9 @@ class TestWheelsPipEndToEnd:
         assert "repo.anaconda.cloud" in index_after_enable
 
         # Disable wheels
-        disable_result = run_ana_pip_feature("feature", "disable", "wheels", "--pip", "-f")
+        disable_result = run_ana_pip_feature(
+            "feature", "disable", "wheels", "--pip", "-f"
+        )
         assert disable_result.returncode == 0
 
         # Verify config was removed
@@ -1319,7 +1362,9 @@ class TestWheelsUvEndToEnd:
         assert "repo.anaconda.cloud" in index_after_enable
 
         # Disable wheels
-        disable_result = run_ana_uv_feature("feature", "disable", "wheels", "--uv", "-f")
+        disable_result = run_ana_uv_feature(
+            "feature", "disable", "wheels", "--uv", "-f"
+        )
         assert disable_result.returncode == 0
 
         # Verify config was removed
@@ -1358,7 +1403,15 @@ class TestWheelsUvEndToEnd:
         # Try to install a package that doesn't exist locally
         # Using a non-existent package ensures uv must fetch from the index
         result = subprocess.run(
-            ["uv", "pip", "install", "--dry-run", "anaconda-nonexistent-test-pkg-12345", "--index-url", WHEELS_INDEX_URL],
+            [
+                "uv",
+                "pip",
+                "install",
+                "--dry-run",
+                "anaconda-nonexistent-test-pkg-12345",
+                "--index-url",
+                WHEELS_INDEX_URL,
+            ],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -1368,5 +1421,14 @@ class TestWheelsUvEndToEnd:
         # Should fail due to authentication (401/403) or package not found after auth fails
         assert result.returncode != 0, "Install should fail without auth"
         # Accept either auth errors or "not found" (which happens when index can't be accessed)
-        error_indicators = ["401", "403", "Unauthorized", "Forbidden", "not found", "No solution"]
-        assert any(indicator in result.stderr for indicator in error_indicators), f"Unexpected error: {result.stderr}"
+        error_indicators = [
+            "401",
+            "403",
+            "Unauthorized",
+            "Forbidden",
+            "not found",
+            "No solution",
+        ]
+        assert any(indicator in result.stderr for indicator in error_indicators), (
+            f"Unexpected error: {result.stderr}"
+        )
