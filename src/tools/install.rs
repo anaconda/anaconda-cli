@@ -166,7 +166,10 @@ fn create_bin_symlinks(
 
     for binary in binaries {
         if uses_wrapper {
+            #[cfg(unix)]
             create_wrapper_symlink(&bin_dir, binary)?;
+            #[cfg(windows)]
+            create_wrapper_shim(&bin_dir, binary)?;
         } else {
             #[cfg(unix)]
             create_bin_symlink(&bin_dir, prefix, binary)?;
@@ -209,6 +212,41 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::R
         "   Linked {} -> {}",
         symlink_path.display(),
         tool_bin.display()
+    );
+
+    Ok(())
+}
+
+#[cfg(unix)]
+/// Create a symlink that points to the ana binary itself.
+///
+/// This is used for tools that ana wraps (like conda), where ana detects
+/// the binary name and acts as a wrapper for the underlying tool.
+fn create_wrapper_symlink(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let symlink_path = bin_dir.join(binary.file_name().unwrap());
+
+    // Get the path to the current ana executable
+    let ana_bin = std::env::current_exe()
+        .into_diagnostic()
+        .context("failed to get current executable path")?;
+
+    // Remove existing symlink if present
+    if symlink_path.exists() || symlink_path.is_symlink() {
+        std::fs::remove_file(&symlink_path)
+            .into_diagnostic()
+            .context("failed to remove existing symlink")?;
+    }
+
+    {
+        std::os::unix::fs::symlink(&ana_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    eprintln!(
+        "   Linked {} -> {} (wrapper)",
+        symlink_path.display(),
+        ana_bin.display()
     );
 
     Ok(())
@@ -258,43 +296,30 @@ fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Resu
     Ok(())
 }
 
-/// Create a symlink that points to the ana binary itself.
+#[cfg(windows)]
+/// Create a shim that points to the ana binary itself.
 ///
 /// This is used for tools that ana wraps (like conda), where ana detects
 /// the binary name and acts as a wrapper for the underlying tool.
-fn create_wrapper_symlink(bin_dir: &Path, binary: &str) -> miette::Result<()> {
-    let binary_name = paths::binary_name(binary);
-    let symlink_path = bin_dir.join(&binary_name);
+fn create_wrapper_shim(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let shim_name = binary.file_stem().unwrap().to_string_lossy();
+    let shim_path = bin_dir.join(format!("{}.exe", shim_name));
 
     // Get the path to the current ana executable
     let ana_bin = std::env::current_exe()
         .into_diagnostic()
         .context("failed to get current executable path")?;
 
-    // Remove existing symlink if present
-    if symlink_path.exists() || symlink_path.is_symlink() {
-        std::fs::remove_file(&symlink_path)
-            .into_diagnostic()
-            .context("failed to remove existing symlink")?;
-    }
+    // Copy shim binary to bin_dir
+    std::fs::write(&shim_path, SHIM_BINARY)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write shim: {}", shim_path.display()))?;
 
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(&ana_bin, &symlink_path)
-            .into_diagnostic()
-            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
-    }
-
-    #[cfg(windows)]
-    {
-        std::os::windows::fs::symlink_file(&ana_bin, &symlink_path)
-            .into_diagnostic()
-            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
-    }
+    update_shims_cfg(&shim_name, &ana_bin.to_string_lossy())?;
 
     eprintln!(
-        "   Linked {} -> {} (wrapper)",
-        symlink_path.display(),
+        "   Created shim {} -> {} (wrapper)",
+        shim_path.display(),
         ana_bin.display()
     );
 
@@ -357,11 +382,11 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 /// Write .condarc configuration for the conda environment.
 ///
 /// This sets up the default channels (similar to miniconda) and other
-/// ana-specific configuration. The config is stored in lockfiles/conda/.condarc
+/// ana-specific configuration. The config is stored in tool-specs/conda/.condarc
 /// and compiled into the binary.
 fn write_conda_config(prefix: &Path) -> miette::Result<()> {
     let condarc_path = prefix.join(".condarc");
-    let contents = include_str!("../../lockfiles/conda/.condarc");
+    let contents = include_str!("../../tool-specs/conda/.condarc");
 
     std::fs::write(&condarc_path, contents)
         .into_diagnostic()

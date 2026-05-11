@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
+from helpers import IS_WINDOWS
 from helpers import AnaRunner
 
-IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
 
@@ -237,16 +236,20 @@ class TestToolInstallConda:
         assert result.returncode == 0
         assert "(wrapper)" in result.stderr
 
-        bin_path = fake_home / ".ana" / "bin" / "conda"
-        assert bin_path.exists(), f"Binary not found: {bin_path}"
-        assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
+        if IS_WINDOWS:
+            shim_cfg = fake_home / ".ana" / "tools" / "shims.cfg"
+            assert f"conda={ana_binary}\r\n" in shim_cfg.read_text(newline="")
+        else:
+            bin_path = fake_home / ".ana" / "bin" / "conda"
+            assert bin_path.exists(), f"Binary not found: {bin_path}"
+            assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
 
-        # Verify the symlink points to the ana binary, not to the actual conda
-        target = bin_path.resolve()
-        assert target == ana_binary.resolve(), (
-            f"Wrapper symlink should point to ana binary, "
-            f"got {target} instead of {ana_binary.resolve()}"
-        )
+            # Verify the symlink points to the ana binary, not to the actual conda
+            target = bin_path.resolve()
+            assert target == ana_binary.resolve(), (
+                f"Wrapper symlink should point to ana binary, "
+                f"got {target} instead of {ana_binary.resolve()}"
+            )
 
 
 class TestCondaWrapper:
@@ -267,9 +270,13 @@ class TestCondaWrapper:
 
         def cleanup():
             # Use system rm for faster cleanup of many files (conda installs ~127 packages)
-            subprocess.run(["rm", "-rf", str(home)], check=False)
+            if IS_WINDOWS:
+                subprocess.run(["cmd.exe", "/C", f'RMDIR /S /Q "{home}"'], check=False)
+            else:
+                subprocess.run(["rm", "-rf", str(home)], check=False)
 
         request.addfinalizer(cleanup)
+
         return home
 
     @pytest.fixture(scope="class")
@@ -282,7 +289,13 @@ class TestCondaWrapper:
             for key, val in os.environ.copy().items()
             if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
         }
-        env["HOME"] = str(conda_home)
+        if IS_WINDOWS:
+            env["USERPROFILE"] = str(conda_home)
+            # Rattler does not reliably detect the default cache for Windows tests
+            env["RATTLER_CACHE_DIR"] = str(conda_home / "cache" / "rattler")
+        else:
+            env["HOME"] = str(conda_home)
+        env["CONDA_PLUGINS_AUTO_ACCEPT_TOS"] = "yes"
         return env
 
     @pytest.fixture(scope="class")
@@ -290,7 +303,6 @@ class TestCondaWrapper:
         self, ana_binary: Path | None, conda_home: Path, conda_env: dict[str, str]
     ) -> Path:
         """Install conda once and return the wrapper binary path."""
-        import sys
 
         if ana_binary is None:
             pytest.skip(
@@ -306,7 +318,7 @@ class TestCondaWrapper:
         assert result.returncode == 0, f"Failed to install conda: {result.stderr}"
 
         # On Windows, the wrapper is conda.exe; on Unix it's just conda
-        wrapper_name = "conda.exe" if sys.platform == "win32" else "conda"
+        wrapper_name = "conda.exe" if IS_WINDOWS else "conda"
         wrapper = conda_home / ".ana" / "bin" / wrapper_name
         assert wrapper.exists(), f"Wrapper not found at {wrapper}"
         return wrapper
@@ -423,7 +435,7 @@ class TestCondaWrapper:
 
         # Test that conda install to base is blocked
         proc = subprocess.run(
-            [str(conda_wrapper), "install", "-n", "base", "numpy", "-y"],
+            [str(conda_wrapper), "install", "-n", "base", "numpy", "--dry-run"],
             capture_output=True,
             text=True,
             env=conda_env,
