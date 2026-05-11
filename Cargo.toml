@@ -10,7 +10,7 @@ libc = "0.2"
 # Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
 default = ["feedback"]
 diagnostics = ["dep:sentry"]
-feedback = ["dep:urlencoding"]
+feedback = []
 
 [dependencies]
 anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }
@@ -44,7 +44,6 @@ toml_edit = "0.25"
 anaconda-otel-rs = { git = "https://github.com/anaconda/anaconda-otel-rs" }
 thiserror = "2"
 tokio = { version = "1.45", features = ["rt-multi-thread", "macros", "time", "fs", "sync"] }
-urlencoding = { version = "2", optional = true }
 webbrowser = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
