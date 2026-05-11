@@ -1,16 +1,16 @@
-# Ana CLI
+# Anaconda CLI
 
-A command-line tool for managing Anaconda tools, authentication, and package channels.
+The command-line interface for the Anaconda platform.
 
 ## When to use this
 
-Ana is the entry point for the Anaconda ecosystem. It handles authentication to Anaconda services, configures tools like conda and pixi, and manages access to package channels, so you don't have to manually edit config files or manage credentials across tools separately.
+The Anaconda CLI is the entry point for the Anaconda ecosystem. It handles authentication to Anaconda services, configures tools like conda and pixi, and manages access to package channels, so you don't have to manually edit config files or manage credentials across tools separately.
 
-If you're building with Anaconda's data science, ML, or AI tooling, ana gets you from zero to a working environment in minutes.
+If you're building with Anaconda's data science, ML, or AI tooling, `ana` gets you from zero to a working environment in minutes.
 
 ## Project status
 
-Ana CLI is under active development and follows semantic versioning. Commands not marked as experimental are considered stable. Features behind `ana feature enable` may change between releases.
+Anaconda CLI is under active development and follows semantic versioning. Commands not marked as experimental are considered stable. Features behind `ana feature enable` may change between releases.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://anaconda.sh/install.ps1 | iex
 ## Quick start
 
 ```bash
-# 1. Verify ana is installed
+# 1. Verify installation
 ana --version
 
 # 2. Log in to your Anaconda account (opens browser)
@@ -63,13 +63,13 @@ conda activate myproject
 
 ### Configuring pixi for Anaconda channels
 
-Ana can configure conda and pixi to use Anaconda channels. Install pixi separately if you prefer it over conda, then point it at main-x:
+The CLI can configure both conda and pixi to use Anaconda channels. Install pixi separately if you prefer it over conda, then point it at main-x:
 
 ```bash
 ana feature enable main-x
 ```
 
-### Using ana in CI/CD
+### CI/CD authentication
 
 For non-interactive environments, authenticate with an API key via stdin:
 
@@ -79,7 +79,7 @@ echo "$ANACONDA_API_KEY" | ana login --api-key
 
 ### Integrating AI assistants with your environment
 
-Ana provides MCP (Model Context Protocol) support so AI assistants like Claude can discover and work with packages in your conda environments:
+`ana` provides MCP (Model Context Protocol) support so AI assistants like Claude can discover and work with packages in your conda environments:
 
 ```bash
 ana mcp setup
@@ -90,7 +90,7 @@ See `ana mcp --help` for the full list of subcommands.
 
 ### Deploying ML workflows to Outerbounds (experimental)
 
-Ana includes an experimental integration with the Outerbounds platform for production ML workflows. See the [Outerbounds integration guide](docs/outerbounds.md) for setup and usage.
+An experimental integration with the Outerbounds platform is available for production ML workflows. See the [Outerbounds integration guide](docs/outerbounds.md) for setup and usage.
 
 ```bash
 ana feature enable outerbounds
@@ -240,4 +240,4 @@ RUST_LOG=ana=debug ana login      # Fine-grained control via RUST_LOG
 
 ## License
 
-Ana CLI is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+Anaconda CLI is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
