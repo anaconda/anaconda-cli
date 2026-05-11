@@ -14,7 +14,7 @@ Anaconda CLI is under active development and follows semantic versioning. Comman
 
 ## Prerequisites
 
-- macOS (Apple Silicon or x86_64), Linux (x86_64 or aarch64), or Windows (x86_64)
+- macOS (Apple Silicon), Linux (x86_64 or aarch64), or Windows (x86_64)
 - [conda](https://www.anaconda.com/download) installed if you plan to create conda environments
 - Internet connection required on first run on macOS (Gatekeeper notarization check)
 
@@ -38,7 +38,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://anaconda.sh/install.ps1 | iex
 |--------|---------------------|---------|-------------|
 | `-d, --install-dir` | `ANA_INSTALL_DIR` | `~/.local/bin` | Installation directory |
 | `-v, --version` | `ANA_VERSION` | `latest` | Specific version to install |
-| `--no-verify-checksum` | `ANA_VERIFY_CHECKSUM=false` | verify | Skip checksum validation |
+| `--no-verify-checksum` | `ANA_VERIFY_CHECKSUM` | verify | Skip checksum validation |
 | `--no-path-update` | `ANA_NO_PATH_UPDATE` | update | Skip shell profile modification |
 | `-f, --force` | `ANA_FORCE_INSTALL` | prompt | Overwrite existing installation |
 
@@ -48,7 +48,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://anaconda.sh/install.ps1 | iex
 # 1. Verify installation
 ana --version
 
-# 2. Log in to your Anaconda account (opens browser)
+# 2. Log in to your Anaconda account (opens browser if available)
 ana login
 
 # 3. Enable early-access packages from the main-x channel
@@ -205,10 +205,6 @@ The installer adds `~/.local/bin` to your PATH via your shell profile. Restart y
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
-
-### First run on macOS hangs or fails
-
-macOS Gatekeeper verifies the binary's notarization on first run, which requires an internet connection. If verification fails, go to System Settings > Privacy & Security and allow the binary to run.
 
 ### Login fails with "invalid API key"
 
