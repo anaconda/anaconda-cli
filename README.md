@@ -34,13 +34,13 @@ powershell -ExecutionPolicy ByPass -c "irm https://anaconda.sh/install.ps1 | iex
 
 ### Installation options
 
-| Option | Environment variable | Default | Description |
-|--------|---------------------|---------|-------------|
-| `-d, --install-dir` | `ANA_INSTALL_DIR` | `~/.local/bin` | Installation directory |
-| `-v, --version` | `ANA_VERSION` | `latest` | Specific version to install |
-| `--no-verify-checksum` | `ANA_VERIFY_CHECKSUM` | verify | Skip checksum validation |
-| `--no-path-update` | `ANA_NO_PATH_UPDATE` | update | Skip shell profile modification |
-| `-f, --force` | `ANA_FORCE_INSTALL` | prompt | Overwrite existing installation |
+| Bash | PowerShell | Environment variable | Default | Description |
+|------|------------|---------------------|---------|-------------|
+| `-d, --install-dir` | `-InstallDir` | `ANA_INSTALL_DIR` | `~/.local/bin` | Installation directory |
+| `-v, --version` | `-Version` | `ANA_VERSION` | `latest` | Version to install |
+| `--no-verify-checksum` | `-NoVerifyChecksum` | `ANA_VERIFY_CHECKSUM` | `true` | Set to `false` to skip checksum validation |
+| `--no-path-update` | `-NoPathUpdate` | `ANA_NO_PATH_UPDATE` | | Set to skip shell profile modification |
+| `-f, --force` | `-Force` | `ANA_FORCE_INSTALL` | | Set to overwrite without prompting |
 
 ## Quick start
 
