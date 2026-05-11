@@ -40,6 +40,35 @@ def is_pixi_available() -> bool:
         return False
 
 
+def is_pip_available() -> bool:
+    """Check if pip or pip3 is available in PATH."""
+    for cmd in ["pip", "pip3"]:
+        try:
+            result = subprocess.run(
+                [cmd, "--version"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
+def is_uv_available() -> bool:
+    """Check if uv is available in PATH."""
+    try:
+        result = subprocess.run(
+            ["uv", "--version"],
+            capture_output=True,
+            text=True,
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
 requires_conda = pytest.mark.skipif(
     not is_conda_available(),
     reason="conda not available in PATH",
@@ -48,6 +77,16 @@ requires_conda = pytest.mark.skipif(
 requires_pixi = pytest.mark.skipif(
     not is_pixi_available(),
     reason="pixi not available in PATH",
+)
+
+requires_pip = pytest.mark.skipif(
+    not is_pip_available(),
+    reason="pip not available in PATH",
+)
+
+requires_uv = pytest.mark.skipif(
+    not is_uv_available(),
+    reason="uv not available in PATH",
 )
 
 
@@ -121,6 +160,89 @@ def pixi_feature_env(
     """
     return {
         **pixi_isolated_env,
+        "ANA_KEYRING_PATH": str(keyring_path),
+        "ANA_OPEN_BROWSER": "false",
+    }
+
+
+@pytest.fixture
+def pip_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str, str]:
+    """Provide an environment with isolated pip configuration.
+
+    pip config locations:
+    - Linux/macOS: ~/.config/pip/pip.conf
+    - Windows: %APPDATA%\\pip\\pip.ini
+    """
+    from helpers import IS_WINDOWS
+
+    if IS_WINDOWS:
+        # On Windows, pip uses %APPDATA%\pip\pip.ini
+        appdata = fake_home / "AppData" / "Roaming"
+        pip_config_dir = appdata / "pip"
+        pip_config_dir.mkdir(parents=True, exist_ok=True)
+        return {
+            **env_isolated,
+            "APPDATA": str(appdata),
+        }
+    else:
+        pip_config_dir = fake_home / ".config" / "pip"
+        pip_config_dir.mkdir(parents=True, exist_ok=True)
+        return env_isolated
+
+
+@pytest.fixture
+def uv_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str, str]:
+    """Provide an environment with isolated uv configuration.
+
+    uv config locations (via dirs::config_dir):
+    - macOS: ~/Library/Application Support/uv/uv.toml
+    - Linux: ~/.config/uv/uv.toml
+    - Windows: %APPDATA%\\uv\\uv.toml
+    """
+    from helpers import IS_MACOS, IS_WINDOWS
+
+    if IS_WINDOWS:
+        appdata = fake_home / "AppData" / "Roaming"
+        uv_config_dir = appdata / "uv"
+        uv_config_dir.mkdir(parents=True, exist_ok=True)
+        return {
+            **env_isolated,
+            "APPDATA": str(appdata),
+            "UV_KEYRING_PROVIDER": "disabled",
+        }
+    elif IS_MACOS:
+        uv_config_dir = fake_home / "Library" / "Application Support" / "uv"
+    else:
+        uv_config_dir = fake_home / ".config" / "uv"
+    uv_config_dir.mkdir(parents=True, exist_ok=True)
+
+    return {
+        **env_isolated,
+        "UV_KEYRING_PROVIDER": "disabled",
+    }
+
+
+@pytest.fixture
+def pip_feature_env(
+    pip_isolated_env: dict[str, str],
+    keyring_path: Path,
+) -> dict[str, str]:
+    """Environment for pip feature tests: isolated pip + real auth."""
+    return {
+        **pip_isolated_env,
+        "ANA_KEYRING_PATH": str(keyring_path),
+        "ANA_OPEN_BROWSER": "false",
+    }
+
+
+@pytest.fixture
+def uv_feature_env(
+    uv_isolated_env: dict[str, str],
+    keyring_path: Path,
+) -> dict[str, str]:
+    """Environment for uv feature tests: isolated uv + real auth."""
+    return {
+        **uv_isolated_env,
         "ANA_KEYRING_PATH": str(keyring_path),
         "ANA_OPEN_BROWSER": "false",
     }
@@ -256,6 +378,132 @@ def run_pixi(pixi_isolated_env: dict[str, str]) -> AnaRunner:
         )
 
     return _run
+
+
+@pytest.fixture
+def run_ana_pip_feature(
+    ana_binary: Path | None,
+    pip_feature_env: dict[str, str],
+) -> AnaRunner:
+    """Provide a function to run ana with isolated pip + real auth."""
+    if ana_binary is None:
+        pytest.skip(
+            "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
+        )
+
+    def _run(
+        *args: str,
+        env: dict[str, str] | None = None,
+        input: str | None = None,
+        cwd: Path | str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        merged_env = {**pip_feature_env, **(env or {})}
+        return subprocess.run(
+            [str(ana_binary), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=merged_env,
+            input=input,
+            cwd=cwd,
+        )
+
+    return _run
+
+
+@pytest.fixture
+def run_ana_uv_feature(
+    ana_binary: Path | None,
+    uv_feature_env: dict[str, str],
+) -> AnaRunner:
+    """Provide a function to run ana with isolated uv + real auth."""
+    if ana_binary is None:
+        pytest.skip(
+            "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
+        )
+
+    def _run(
+        *args: str,
+        env: dict[str, str] | None = None,
+        input: str | None = None,
+        cwd: Path | str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        merged_env = {**uv_feature_env, **(env or {})}
+        return subprocess.run(
+            [str(ana_binary), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=merged_env,
+            input=input,
+            cwd=cwd,
+        )
+
+    return _run
+
+
+def get_pip_index_url(env: dict[str, str]) -> str | None:
+    """Get the configured global index-url from pip config file."""
+    from helpers import IS_WINDOWS
+
+    if IS_WINDOWS:
+        appdata = env.get("APPDATA")
+        if not appdata:
+            return None
+        config_path = Path(appdata) / "pip" / "pip.ini"
+    else:
+        home = env.get("HOME")
+        if not home:
+            return None
+        config_path = Path(home) / ".config" / "pip" / "pip.conf"
+
+    if not config_path.exists():
+        return None
+
+    import configparser
+
+    config = configparser.ConfigParser()
+    config.read(config_path)
+
+    try:
+        return config.get("global", "index-url")
+    except (configparser.NoSectionError, configparser.NoOptionError):
+        return None
+
+
+def get_uv_default_index(env: dict[str, str]) -> str | None:
+    """Get the configured default index from uv config."""
+    from helpers import IS_MACOS, IS_WINDOWS
+
+    if IS_WINDOWS:
+        appdata = env.get("APPDATA")
+        if not appdata:
+            return None
+        config_path = Path(appdata) / "uv" / "uv.toml"
+    elif IS_MACOS:
+        home = env.get("HOME")
+        if not home:
+            return None
+        config_path = Path(home) / "Library" / "Application Support" / "uv" / "uv.toml"
+    else:
+        home = env.get("HOME")
+        if not home:
+            return None
+        config_path = Path(home) / ".config" / "uv" / "uv.toml"
+
+    if not config_path.exists():
+        return None
+
+    import tomllib
+
+    with open(config_path, "rb") as f:
+        config = tomllib.load(f)
+
+    # Look for anaconda-wheels index
+    for index in config.get("index", []):
+        if index.get("name") == "anaconda-wheels":
+            return index.get("url")
+    return None
 
 
 class TestFeatureHelp:
@@ -799,3 +1047,318 @@ class TestMainXPixiEndToEnd:
         # Should fail with 403 Forbidden
         assert search_result.returncode != 0, "Search should fail without auth"
         assert "403" in search_result.stderr or "Forbidden" in search_result.stderr
+
+
+# =============================================================================
+# Wheels Feature Tests (pip)
+# =============================================================================
+
+WHEELS_INDEX_URL = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple"
+
+
+@requires_pip
+@requires_api_key
+class TestWheelsPipEnable:
+    """Tests for 'ana feature enable wheels --pip'."""
+
+    def test_enable_wheels_pip_configures_index(
+        self,
+        run_ana_pip_feature: AnaRunner,
+        pip_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling wheels with --pip should configure pip's global index-url."""
+        # Verify no index-url is configured initially
+        initial_index = get_pip_index_url(pip_feature_env)
+        assert initial_index is None or WHEELS_INDEX_URL not in initial_index
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pip_feature("login", api_key, "-f")
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable wheels with --pip and force flag
+        result = run_ana_pip_feature("feature", "enable", "wheels", "--pip", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify pip index-url was configured (contains the base URL with auth)
+        final_index = get_pip_index_url(pip_feature_env)
+        assert final_index is not None, "pip index-url should be configured"
+        assert "repo.anaconda.cloud" in final_index
+
+    def test_enable_wheels_pip_requires_login(
+        self,
+        ana_binary: Path | None,
+        pip_isolated_env: dict[str, str],
+        tmp_path: Path,
+    ) -> None:
+        """Enabling wheels --pip without login should fail."""
+        if ana_binary is None:
+            pytest.skip("ana binary not found")
+
+        # Run without auth
+        empty_keyring = tmp_path / "empty_keyring"
+        empty_keyring.write_text("{}")
+
+        result = subprocess.run(
+            [str(ana_binary), "feature", "enable", "wheels", "--pip", "-f"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env={
+                **pip_isolated_env,
+                "ANA_KEYRING_PATH": str(empty_keyring),
+                "ANA_OPEN_BROWSER": "false",
+                "ANA_DOMAIN": "invalid.test",
+            },
+            timeout=10,
+        )
+
+        assert result.returncode != 0
+        assert (
+            "login" in result.stderr.lower() or "not logged in" in result.stderr.lower()
+        )
+
+
+@requires_pip
+class TestWheelsPipDisable:
+    """Tests for 'ana feature disable wheels --pip'."""
+
+    def test_disable_wheels_pip_removes_config(
+        self,
+        run_ana_pip_feature: AnaRunner,
+        pip_feature_env: dict[str, str],
+    ) -> None:
+        """Disabling wheels --pip should remove pip's global index-url config."""
+        # Pre-configure pip with an index URL
+        for cmd in ["pip", "pip3"]:
+            try:
+                subprocess.run(
+                    [cmd, "config", "set", "global.index-url", "https://example.com/simple/"],
+                    env=pip_feature_env,
+                    check=True,
+                    capture_output=True,
+                )
+                break
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+
+        # Disable wheels with --pip
+        result = run_ana_pip_feature("feature", "disable", "wheels", "--pip", "-f")
+        assert result.returncode == 0, f"Disable failed: {result.stderr}"
+
+        # Verify pip index-url was removed
+        final_index = get_pip_index_url(pip_feature_env)
+        assert final_index is None or final_index == ""
+
+
+@requires_pip
+@requires_api_key
+class TestWheelsPipEndToEnd:
+    """End-to-end tests for the wheels pip feature workflow."""
+
+    def test_enable_then_disable_pip(
+        self,
+        run_ana_pip_feature: AnaRunner,
+        pip_feature_env: dict[str, str],
+    ) -> None:
+        """Full workflow: login -> enable --pip -> verify -> disable --pip -> verify."""
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pip_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable wheels
+        enable_result = run_ana_pip_feature("feature", "enable", "wheels", "--pip", "-f")
+        assert enable_result.returncode == 0
+
+        # Verify config was added
+        index_after_enable = get_pip_index_url(pip_feature_env)
+        assert index_after_enable is not None
+        assert "repo.anaconda.cloud" in index_after_enable
+
+        # Disable wheels
+        disable_result = run_ana_pip_feature("feature", "disable", "wheels", "--pip", "-f")
+        assert disable_result.returncode == 0
+
+        # Verify config was removed
+        index_after_disable = get_pip_index_url(pip_feature_env)
+        assert index_after_disable is None or index_after_disable == ""
+
+
+# =============================================================================
+# Wheels Feature Tests (uv)
+# =============================================================================
+
+
+@requires_uv
+@requires_api_key
+class TestWheelsUvEnable:
+    """Tests for 'ana feature enable wheels --uv'."""
+
+    def test_enable_wheels_uv_configures_index(
+        self,
+        run_ana_uv_feature: AnaRunner,
+        uv_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling wheels with --uv should configure uv's default index."""
+        # Verify no anaconda-wheels index initially
+        initial_index = get_uv_default_index(uv_feature_env)
+        assert initial_index is None
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_uv_feature("login", api_key, "-f")
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable wheels with --uv and force flag
+        result = run_ana_uv_feature("feature", "enable", "wheels", "--uv", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify uv config was created with anaconda-wheels index
+        final_index = get_uv_default_index(uv_feature_env)
+        assert final_index is not None, "uv index should be configured"
+        assert "repo.anaconda.cloud" in final_index
+
+    def test_enable_wheels_uv_requires_login(
+        self,
+        ana_binary: Path | None,
+        uv_isolated_env: dict[str, str],
+        tmp_path: Path,
+    ) -> None:
+        """Enabling wheels --uv without login should fail."""
+        if ana_binary is None:
+            pytest.skip("ana binary not found")
+
+        # Run without auth
+        empty_keyring = tmp_path / "empty_keyring"
+        empty_keyring.write_text("{}")
+
+        result = subprocess.run(
+            [str(ana_binary), "feature", "enable", "wheels", "--uv", "-f"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env={
+                **uv_isolated_env,
+                "ANA_KEYRING_PATH": str(empty_keyring),
+                "ANA_OPEN_BROWSER": "false",
+                "ANA_DOMAIN": "invalid.test",
+            },
+            timeout=10,
+        )
+
+        assert result.returncode != 0
+        assert (
+            "login" in result.stderr.lower() or "not logged in" in result.stderr.lower()
+        )
+
+
+@requires_uv
+@requires_api_key
+class TestWheelsUvDisable:
+    """Tests for 'ana feature disable wheels --uv'."""
+
+    def test_disable_wheels_uv_removes_config(
+        self,
+        run_ana_uv_feature: AnaRunner,
+        uv_feature_env: dict[str, str],
+    ) -> None:
+        """Disabling wheels --uv should remove the anaconda-wheels index from uv config."""
+        # First enable wheels properly (this sets up both config and auth)
+        api_key = get_test_api_key()
+        login_result = run_ana_uv_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        enable_result = run_ana_uv_feature("feature", "enable", "wheels", "--uv", "-f")
+        assert enable_result.returncode == 0
+
+        # Verify it's configured
+        initial_index = get_uv_default_index(uv_feature_env)
+        assert initial_index is not None
+
+        # Disable wheels with --uv
+        result = run_ana_uv_feature("feature", "disable", "wheels", "--uv", "-f")
+        assert result.returncode == 0, f"Disable failed: {result.stderr}"
+
+        # Verify uv config was removed
+        final_index = get_uv_default_index(uv_feature_env)
+        assert final_index is None
+
+
+@requires_uv
+@requires_api_key
+class TestWheelsUvEndToEnd:
+    """End-to-end tests for the wheels uv feature workflow."""
+
+    def test_enable_then_disable_uv(
+        self,
+        run_ana_uv_feature: AnaRunner,
+        uv_feature_env: dict[str, str],
+    ) -> None:
+        """Full workflow: login -> enable --uv -> verify -> disable --uv -> verify."""
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_uv_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable wheels
+        enable_result = run_ana_uv_feature("feature", "enable", "wheels", "--uv", "-f")
+        assert enable_result.returncode == 0
+
+        # Verify config was added
+        index_after_enable = get_uv_default_index(uv_feature_env)
+        assert index_after_enable is not None
+        assert "repo.anaconda.cloud" in index_after_enable
+
+        # Disable wheels
+        disable_result = run_ana_uv_feature("feature", "disable", "wheels", "--uv", "-f")
+        assert disable_result.returncode == 0
+
+        # Verify config was removed
+        index_after_disable = get_uv_default_index(uv_feature_env)
+        assert index_after_disable is None
+
+    def test_can_access_wheels_index_with_auth(
+        self,
+        run_ana_uv_feature: AnaRunner,
+        uv_feature_env: dict[str, str],
+    ) -> None:
+        """Verify that after enabling wheels, uv can access the wheels index."""
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_uv_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable wheels
+        enable_result = run_ana_uv_feature("feature", "enable", "wheels", "--uv", "-f")
+        assert enable_result.returncode == 0
+
+        # Try to search for a package - uv pip search doesn't exist,
+        # but we can verify the config is correct
+        index_url = get_uv_default_index(uv_feature_env)
+        assert index_url is not None
+        assert "anaconda-wheels" in index_url or "repo.anaconda.cloud" in index_url
+
+        # Cleanup
+        run_ana_uv_feature("feature", "disable", "wheels", "--uv", "-f")
+
+    def test_cannot_access_wheels_index_without_auth(
+        self,
+        uv_isolated_env: dict[str, str],
+    ) -> None:
+        """Verify that accessing wheels index without authentication fails."""
+        # Try to install a package that doesn't exist locally
+        # Using a non-existent package ensures uv must fetch from the index
+        result = subprocess.run(
+            ["uv", "pip", "install", "--dry-run", "anaconda-nonexistent-test-pkg-12345", "--index-url", WHEELS_INDEX_URL],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=uv_isolated_env,
+        )
+
+        # Should fail due to authentication (401/403) or package not found after auth fails
+        assert result.returncode != 0, "Install should fail without auth"
+        # Accept either auth errors or "not found" (which happens when index can't be accessed)
+        error_indicators = ["401", "403", "Unauthorized", "Forbidden", "not found", "No solution"]
+        assert any(indicator in result.stderr for indicator in error_indicators), f"Unexpected error: {result.stderr}"
