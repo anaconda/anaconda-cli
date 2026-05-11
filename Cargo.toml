@@ -7,9 +7,8 @@ edition = "2024"
 libc = "0.2"
 
 [features]
-# TODO(mattkram): For the early project phase, we will enable diagnostics in our builds by
-#                 default. We will review this behavior before public release.
-default = ["diagnostics", "feedback"]
+# Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
+default = ["feedback"]
 diagnostics = ["dep:sentry"]
 feedback = ["dep:urlencoding"]
 
