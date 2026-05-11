@@ -32,7 +32,8 @@ jobs:
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     permissions:
-      contents: read  # To check out private repository
+      contents: read   # To check out private repository
+      id-token: write  # Required to authenticate with Azure via OIDC
     strategy:
       fail-fast: true
       matrix:
