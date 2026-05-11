@@ -29,7 +29,6 @@ description = "Run pre-commit hooks on all files"
 
 [tasks.build-conda]
 cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
-depends-on = ["build-release"]
 description = "Build the conda package"
 
 [tasks.build-debug]
