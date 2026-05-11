@@ -2,6 +2,20 @@
 
 The command-line interface for the Anaconda platform.
 
+## Table of contents
+
+- [When to use this](#when-to-use-this)
+- [Project status](#project-status)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Common workflows](#common-workflows)
+- [Configuration](#configuration)
+- [Command reference](#command-reference)
+- [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
+- [License](#license)
+
 ## When to use this
 
 The Anaconda CLI is the entry point for the Anaconda ecosystem. It handles authentication to Anaconda services, configures tools like conda and pixi, and manages access to package channels, so you don't have to manually edit config files or manage credentials across tools separately.
