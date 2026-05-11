@@ -1335,9 +1335,9 @@ class TestWheelsPipEndToEnd:
             "Could not find a version",  # pip returns this when index returns empty due to auth failure
             "No matching distribution",
         ]
-        assert any(
-            indicator in result.stderr for indicator in error_indicators
-        ), f"Unexpected error: {result.stderr}"
+        assert any(indicator in result.stderr for indicator in error_indicators), (
+            f"Unexpected error: {result.stderr}"
+        )
 
 
 # =============================================================================
