@@ -1,0 +1,29 @@
+name: Question
+description: Ask a question about ana
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? We're happy to help!
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any relevant context about what you're trying to accomplish.
+
+  - type: input
+    id: version
+    attributes:
+      label: Ana version (if relevant)
+      description: Output of `ana --version`
+      placeholder: ana 0.1.0
