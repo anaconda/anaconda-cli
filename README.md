@@ -75,7 +75,7 @@ conda activate myproject
 
 ## Common workflows
 
-### Configuring pixi for Anaconda channels
+### Configuring conda and pixi for Anaconda channels
 
 The CLI can configure both conda and pixi to use Anaconda channels. Install pixi separately if you prefer it over conda, then point it at main-x:
 
@@ -144,13 +144,12 @@ outerbounds = true
 ### Authentication
 
 ```bash
-ana login                        # Interactive login (browser-based device flow)
-ana login --api-key "your-key"   # Login with API key directly
+ana login                          # Interactive login (browser-based device flow)
+ana login --api-key "your-key"     # Login with API key directly
 echo "$KEY" | ana login --api-key  # Login with API key from stdin
-ana whoami                       # View account info
-ana whoami --json                # Account info as JSON
-ana logout                       # Log out
-```
+ana whoami                         # View account info
+ana whoami --json                  # Account info as JSON
+ana logout                         # Log out
 
 ### Tool management
 
@@ -222,7 +221,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Login fails with "invalid API key"
 
-Verify your API key at [anaconda.cloud](https://anaconda.cloud). Keys are environment-specific (production vs. staging) and won't work cross-environment.
+Verify your API key at [anaconda.com](https://anaconda.com/app/profile/api-keys). 
+Keys are environment-specific (anaconda.com vs. self-hosted) and won't work cross-environment.
 
 ### SSL certificate errors
 
