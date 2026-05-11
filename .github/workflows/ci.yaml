@@ -16,6 +16,9 @@ on:
       SENTRY_DSN:
         description: Sentry DSN for error reporting (only for release builds)
         required: false
+      ANA_TEST_API_KEY:
+        description: API key for integration tests requiring real authentication
+        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -91,6 +94,8 @@ jobs:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
+          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
         run: pixi run test-integration
 
       - name: Run integration tests (PowerShell)
@@ -99,6 +104,8 @@ jobs:
           ANA_SENTRY_ENVIRONMENT: integration-test
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
+          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
         run: pixi run test-integration
         shell: powershell
 
