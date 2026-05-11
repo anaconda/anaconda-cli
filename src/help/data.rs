@@ -59,6 +59,10 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
             desc: "Manage your ana version".to_string(),
             command: "ana self update".to_string(),
         },
+        HelpExample {
+            desc: "Provide feedback or report a bug".to_string(),
+            command: "ana self feedback".to_string(),
+        },
     ]
 }
 
