@@ -92,8 +92,8 @@ runs:
 
         # import certificate to keychain
         APPLICATION_CERTIFICATE_PATH="${RUNNER_TEMP}/application_certificate.p12"
-        echo -n "${APPLICATION_CERTIFICATE_BASE64}" | \
-          base64 --d -o "${APPLICATION_CERTIFICATE_PATH}"
+        echo "${APPLICATION_CERTIFICATE_BASE64}" | \
+          base64 -d -o "${APPLICATION_CERTIFICATE_PATH}"
 
         security import "${APPLICATION_CERTIFICATE_PATH}" \
           -P "${APPLICATION_CERTIFICATE_PASSWORD}" \

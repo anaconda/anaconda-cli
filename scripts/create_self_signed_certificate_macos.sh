@@ -25,7 +25,7 @@ openssl genrsa -out "${keyfile}" 2048
 openssl req -x509 -new -key "${keyfile}"\
     -out "${crtfile}"\
     -sha256\
-    -days 1\
+    -days 36500\
     -subj "/C=XX/ST=State/L=City/O=Company/OU=Org/CN=${commonname}/emailAddress=somebody@somewhere.com"\
     -addext "basicConstraints=critical,CA:FALSE"\
     -addext "extendedKeyUsage=critical,${keyusage}"\

@@ -92,4 +92,4 @@ jobs:
           gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.ps1"
 
           echo "Publishing release $VERSION"
-          gh release edit "$VERSION" --draft=false
+          gh release edit "$VERSION" --draft=false --latest
