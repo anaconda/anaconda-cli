@@ -8,12 +8,19 @@
 use std::io::{BufRead, BufReader, Write};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(unix)]
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 use console::style;
 
 use crate::paths;
+use crate::tools::tools::binaries;
+
+/// Environment variable set by the Windows shim to indicate wrapper invocation.
+/// The shim sets this to the tool name (e.g., "conda") when invoking ana.exe as a wrapper.
+#[cfg(windows)]
+const WRAPPER_INVOCATION_ENV_VAR: &str = "_ANA_INTERNAL_WRAPPER_INVOCATION";
 
 /// Run the conda wrapper.
 ///
@@ -206,7 +213,13 @@ fn print_activation_hint(env_name: &Option<String>) {
 
 /// Get the path to the real conda binary.
 fn get_conda_bin() -> std::path::PathBuf {
-    paths::tool_prefix("conda").join("bin").join("conda")
+    let mut conda_bin = binaries("conda")
+        .and_then(|b| b.into_iter().next())
+        .expect("conda tool should have binaries defined");
+    if cfg!(windows) {
+        conda_bin.set_extension("exe");
+    }
+    paths::tool_prefix("conda").join(conda_bin)
 }
 
 /// Hand off to conda, replacing the current process (Unix) or spawning and exiting (Windows).
@@ -221,6 +234,8 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
     let prefix = paths::tool_prefix("conda");
 
     let mut cmd = Command::new(&conda_bin);
+    #[cfg(windows)]
+    cmd.env_remove(WRAPPER_INVOCATION_ENV_VAR);
     cmd.args(args);
 
     // Set CONDA_ROOT_PREFIX so conda knows where its root environment is
@@ -255,10 +270,19 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
 
 /// Check if the current binary is being invoked as "conda".
 pub fn is_conda_invocation() -> bool {
-    std::env::args()
-        .next()
-        .and_then(|arg0| Path::new(&arg0).file_name().map(|name| name == "conda"))
-        .unwrap_or(false)
+    #[cfg(unix)]
+    {
+        std::env::args()
+            .next()
+            .and_then(|arg0| Path::new(&arg0).file_name().map(|name| name == "conda"))
+            .unwrap_or(false)
+    }
+    #[cfg(windows)]
+    {
+        std::env::var(WRAPPER_INVOCATION_ENV_VAR)
+            .map(|val| val == "conda")
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -369,5 +393,31 @@ mod tests {
     fn test_extract_env_name_empty_args() {
         let args: Vec<String> = vec![];
         assert_eq!(extract_env_name(&args), None);
+    }
+
+    #[cfg(windows)]
+    mod windows_tests {
+        use super::*;
+
+        #[test]
+        fn test_is_conda_invocation_with_env_var() {
+            temp_env::with_var(WRAPPER_INVOCATION_ENV_VAR, Some("conda"), || {
+                assert!(is_conda_invocation());
+            });
+        }
+
+        #[test]
+        fn test_is_conda_invocation_with_other_tool() {
+            temp_env::with_var(WRAPPER_INVOCATION_ENV_VAR, Some("mamba"), || {
+                assert!(!is_conda_invocation());
+            });
+        }
+
+        #[test]
+        fn test_is_conda_invocation_without_env_var() {
+            temp_env::with_var(WRAPPER_INVOCATION_ENV_VAR, None::<&str>, || {
+                assert!(!is_conda_invocation());
+            });
+        }
     }
 }
