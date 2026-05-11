@@ -87,10 +87,10 @@ runs:
         BINARY_PATH: ${{ inputs.binary-path }}
       run: |
         # Sign binary
-        AzureSignTool sign -v -kvm`
-          -kvu "${env:AZURE_URL}" `
-          -kvc "${env:AZURE_CERTIFICATE_NAME}" `
+        AzureSignTool sign -v -kvm `
+          -kvu "$env:AZURE_URL" `
+          -kvc "$env:AZURE_CERTIFICATE_NAME" `
           -tr 'http://timestamp.digicert.com' `
           -td sha512 -fd sha512 `
-          "${env:BINARY_PATH}"
+          "$env:BINARY_PATH"
       shell: pwsh
