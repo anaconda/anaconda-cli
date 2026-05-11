@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-08T04:09:16Z<br>
+Generated: 2026-05-08T21:36:48Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 472 (67 platform-specific)<br>
+Packages: 475 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 2 (2 INFO) across 1 package**
 
 ## Packages
 
@@ -31,14 +31,16 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [anstyle-query](https://crates.io/crates/anstyle-query) | 1.1.5 | MIT OR Apache-2.0 |  |  |
 | [anstyle-wincon](https://crates.io/crates/anstyle-wincon) | 3.0.11 | MIT OR Apache-2.0 | windows |  |
 | [anyhow](https://crates.io/crates/anyhow) | 1.0.102 | MIT OR Apache-2.0 |  |  |
+| [astral-reqwest-middleware](https://crates.io/crates/astral-reqwest-middleware) | 0.4.2 | MIT OR Apache-2.0 |  |  |
 | [astral-tokio-tar](https://crates.io/crates/astral-tokio-tar) | 0.6.1 | MIT OR Apache-2.0 |  |  |
+| [astral\_async\_http\_range\_reader](https://crates.io/crates/astral_async_http_range_reader) | 0.9.1 | MIT |  |  |
 | [astral\_async\_zip](https://crates.io/crates/astral_async_zip) | 0.0.17 | MIT |  |  |
 | [async-compression](https://crates.io/crates/async-compression) | 0.4.42 | MIT OR Apache-2.0 |  |  |
 | [async-once-cell](https://crates.io/crates/async-once-cell) | 0.5.4 | MIT OR Apache-2.0 |  |  |
 | [async-spooled-tempfile](https://crates.io/crates/async-spooled-tempfile) | 0.1.0 | Apache-2.0 OR MIT |  |  |
 | [async-trait](https://crates.io/crates/async-trait) | 0.1.89 | MIT OR Apache-2.0 |  |  |
-| [async\_http\_range\_reader](https://crates.io/crates/async_http_range_reader) | 0.9.1 | MIT |  |  |
 | [atomic-waker](https://crates.io/crates/atomic-waker) | 1.1.2 | Apache-2.0 OR MIT |  |  |
+| [atty](https://crates.io/crates/atty) | 0.2.14 | MIT |  | 2 |
 | [autocfg](https://crates.io/crates/autocfg) | 1.5.0 | Apache-2.0 OR MIT |  |  |
 | [backtrace](https://crates.io/crates/backtrace) | 0.3.76 | MIT OR Apache-2.0 |  |  |
 | [backtrace-ext](https://crates.io/crates/backtrace-ext) | 0.2.1 | MIT OR Apache-2.0 |  |  |
@@ -107,7 +109,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [errno](https://crates.io/crates/errno) | 0.3.14 | MIT OR Apache-2.0 | linux, macos |  |
 | [fancy-regex](https://crates.io/crates/fancy-regex) | 0.17.0 | MIT |  |  |
 | [fastrand](https://crates.io/crates/fastrand) | 2.4.1 | Apache-2.0 OR MIT |  |  |
-| [file\_url](https://crates.io/crates/file_url) | 0.2.7 | BSD-3-Clause |  |  |
+| [file\_url](https://crates.io/crates/file_url) | 0.3.0 | BSD-3-Clause |  |  |
 | [filetime](https://crates.io/crates/filetime) | 0.2.27 | MIT OR Apache-2.0 |  |  |
 | [find-msvc-tools](https://crates.io/crates/find-msvc-tools) | 0.1.9 | MIT OR Apache-2.0 |  |  |
 | [findshlibs](https://crates.io/crates/findshlibs) | 0.10.2 | MIT OR Apache-2.0 |  |  |
@@ -235,7 +237,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [parking](https://crates.io/crates/parking) | 2.2.1 | Apache-2.0 OR MIT |  |  |
 | [parking\_lot](https://crates.io/crates/parking_lot) | 0.12.5 | MIT OR Apache-2.0 |  |  |
 | [parking\_lot\_core](https://crates.io/crates/parking_lot_core) | 0.9.12 | MIT OR Apache-2.0 |  |  |
-| [path\_resolver](https://crates.io/crates/path_resolver) | 0.2.7 | BSD-3-Clause |  |  |
+| [path\_resolver](https://crates.io/crates/path_resolver) | 0.2.8 | BSD-3-Clause |  |  |
 | [pem-rfc7468](https://crates.io/crates/pem-rfc7468) | 1.0.0 | Apache-2.0 OR MIT |  |  |
 | [pep440\_rs](https://crates.io/crates/pep440_rs) | 0.7.3 | Apache-2.0 OR BSD-2-Clause |  |  |
 | [pep508\_rs](https://crates.io/crates/pep508_rs) | 0.9.2 | Apache-2.0 OR BSD-2-Clause |  |  |
@@ -264,19 +266,19 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rand\_core](https://crates.io/crates/rand_core) | 0.10.1 | MIT OR Apache-2.0 |  |  |
 | [rand\_core](https://crates.io/crates/rand_core) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [rand\_xorshift](https://crates.io/crates/rand_xorshift) | 0.4.0 | MIT OR Apache-2.0 |  |  |
-| [rattler](https://crates.io/crates/rattler) | 0.40.5 | BSD-3-Clause |  |  |
-| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.6.20 | BSD-3-Clause |  |  |
-| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.44.5 | BSD-3-Clause |  |  |
-| [rattler\_digest](https://crates.io/crates/rattler_digest) | 1.2.3 | BSD-3-Clause |  |  |
-| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.27.6 | BSD-3-Clause |  |  |
-| [rattler\_macros](https://crates.io/crates/rattler_macros) | 1.0.12 | BSD-3-Clause |  |  |
-| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.55 | BSD-3-Clause |  |  |
-| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.26.8 | BSD-3-Clause |  |  |
-| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.24.8 | BSD-3-Clause |  |  |
-| [rattler\_pty](https://crates.io/crates/rattler_pty) | 0.2.9 | BSD-3-Clause |  |  |
-| [rattler\_redaction](https://crates.io/crates/rattler_redaction) | 0.1.13 | BSD-3-Clause |  |  |
-| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.26.8 | BSD-3-Clause |  |  |
-| [rattler\_solve](https://crates.io/crates/rattler_solve) | 5.2.1 | BSD-3-Clause |  |  |
+| [rattler](https://crates.io/crates/rattler) | 0.42.0 | BSD-3-Clause |  |  |
+| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.7.1 | BSD-3-Clause |  |  |
+| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.46.1 | BSD-3-Clause |  |  |
+| [rattler\_digest](https://crates.io/crates/rattler_digest) | 1.2.4 | BSD-3-Clause |  |  |
+| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.30.0 | BSD-3-Clause |  |  |
+| [rattler\_macros](https://crates.io/crates/rattler_macros) | 1.0.13 | BSD-3-Clause |  |  |
+| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.59 | BSD-3-Clause |  |  |
+| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.26.12 | BSD-3-Clause |  |  |
+| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.25.1 | BSD-3-Clause |  |  |
+| [rattler\_pty](https://crates.io/crates/rattler_pty) | 0.2.10 | BSD-3-Clause |  |  |
+| [rattler\_redaction](https://crates.io/crates/rattler_redaction) | 0.1.15 | BSD-3-Clause |  |  |
+| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.26.12 | BSD-3-Clause |  |  |
+| [rattler\_solve](https://crates.io/crates/rattler_solve) | 6.0.2 | BSD-3-Clause |  |  |
 | [rayon](https://crates.io/crates/rayon) | 1.12.0 | MIT OR Apache-2.0 |  |  |
 | [rayon-core](https://crates.io/crates/rayon-core) | 1.13.0 | MIT OR Apache-2.0 |  |  |
 | [ref-cast](https://crates.io/crates/ref-cast) | 1.0.25 | MIT OR Apache-2.0 |  |  |
@@ -386,8 +388,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.11+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [tonic](https://crates.io/crates/tonic) | 0.14.5 | MIT |  |  |
-| [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.5 | MIT |  |  |
+| [tonic](https://crates.io/crates/tonic) | 0.14.6 | MIT |  |  |
+| [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.6 | MIT |  |  |
 | [tower](https://crates.io/crates/tower) | 0.5.3 | MIT |  |  |
 | [tower-http](https://crates.io/crates/tower-http) | 0.6.10 | MIT |  |  |
 | [tower-layer](https://crates.io/crates/tower-layer) | 0.3.3 | MIT |  |  |
@@ -466,6 +468,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [winnow](https://crates.io/crates/winnow) | 1.0.2 | MIT |  |  |
 | [writeable](https://crates.io/crates/writeable) | 0.6.3 | Unicode-3.0 |  |  |
 | [xattr](https://crates.io/crates/xattr) | 1.6.1 | MIT OR Apache-2.0 | linux, macos |  |
+| [xxhash-rust](https://crates.io/crates/xxhash-rust) | 0.8.15 | BSL-1.0 |  |  |
 | [yoke](https://crates.io/crates/yoke) | 0.8.2 | Unicode-3.0 |  |  |
 | [yoke-derive](https://crates.io/crates/yoke-derive) | 0.8.2 | Unicode-3.0 |  |  |
 | [zerocopy](https://crates.io/crates/zerocopy) | 0.8.48 | BSD-2-Clause OR Apache-2.0 OR MIT |  |  |
@@ -483,12 +486,19 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
 
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| atty | 0.2.14 | [RUSTSEC-2024-0375](https://rustsec.org/advisories/RUSTSEC-2024-0375.html) |  |  | INFO |
+| atty | 0.2.14 | [RUSTSEC-2021-0145](https://rustsec.org/advisories/RUSTSEC-2021-0145.html) |  |  | INFO |
+
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 254 |
-| MIT | 97 |
+| MIT OR Apache-2.0 | 255 |
+| MIT | 98 |
 | Apache-2.0 OR MIT | 34 |
 | Apache-2.0 | 21 |
 | BSD-3-Clause | 18 |
@@ -507,6 +517,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Apache-2.0 AND ISC | 1 |
 | Apache-2.0 OR BSL-1.0 | 1 |
 | BSD-2-Clause OR Apache-2.0 OR MIT | 1 |
+| BSL-1.0 | 1 |
 | CDLA-Permissive-2.0 | 1 |
 | MIT OR Apache-2.0 OR Zlib | 1 |
 | MIT OR LGPL-3.0-or-later | 1 |

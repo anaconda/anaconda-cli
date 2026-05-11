@@ -39,17 +39,24 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = tools::binaries(name).unwrap_or(Vec::new());
+    let uses_wrapper = tools::uses_wrapper(name);
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(ctx, &prefix, &lock_content).await?;
 
     // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, &binaries)?;
+    create_bin_symlinks(&prefix, &binaries, uses_wrapper)?;
 
     // Tool-specific post-install configuration
     if name == "pixi" {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
+    }
+
+    // For conda, write config and frozen marker
+    if name == "conda" {
+        write_conda_config(&prefix)?;
+        write_frozen_marker(&prefix)?;
     }
 
     Ok(())
@@ -147,17 +154,28 @@ pub async fn install_from_lockfile(
 }
 
 /// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()> {
+fn create_bin_symlinks(
+    prefix: &Path,
+    binaries: &[PathBuf],
+    uses_wrapper: bool,
+) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
     for binary in binaries {
-        #[cfg(unix)]
-        create_bin_symlink(&bin_dir, prefix, binary)?;
-        #[cfg(windows)]
-        create_bin_shim(&bin_dir, prefix, binary)?;
+        if uses_wrapper {
+            #[cfg(unix)]
+            create_wrapper_symlink(&bin_dir, binary)?;
+            #[cfg(windows)]
+            create_wrapper_shim(&bin_dir, binary)?;
+        } else {
+            #[cfg(unix)]
+            create_bin_symlink(&bin_dir, prefix, binary)?;
+            #[cfg(windows)]
+            create_bin_shim(&bin_dir, prefix, binary)?;
+        }
     }
 
     Ok(())
@@ -194,6 +212,41 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::R
         "   Linked {} -> {}",
         symlink_path.display(),
         tool_bin.display()
+    );
+
+    Ok(())
+}
+
+#[cfg(unix)]
+/// Create a symlink that points to the ana binary itself.
+///
+/// This is used for tools that ana wraps (like conda), where ana detects
+/// the binary name and acts as a wrapper for the underlying tool.
+fn create_wrapper_symlink(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let symlink_path = bin_dir.join(binary.file_name().unwrap());
+
+    // Get the path to the current ana executable
+    let ana_bin = std::env::current_exe()
+        .into_diagnostic()
+        .context("failed to get current executable path")?;
+
+    // Remove existing symlink if present
+    if symlink_path.exists() || symlink_path.is_symlink() {
+        std::fs::remove_file(&symlink_path)
+            .into_diagnostic()
+            .context("failed to remove existing symlink")?;
+    }
+
+    {
+        std::os::unix::fs::symlink(&ana_bin, &symlink_path)
+            .into_diagnostic()
+            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+    }
+
+    eprintln!(
+        "   Linked {} -> {} (wrapper)",
+        symlink_path.display(),
+        ana_bin.display()
     );
 
     Ok(())
@@ -238,6 +291,36 @@ fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Resu
         "   Created shim {} -> {}",
         shim_path.display(),
         tool_bin.display()
+    );
+
+    Ok(())
+}
+
+#[cfg(windows)]
+/// Create a shim that points to the ana binary itself.
+///
+/// This is used for tools that ana wraps (like conda), where ana detects
+/// the binary name and acts as a wrapper for the underlying tool.
+fn create_wrapper_shim(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let shim_name = binary.file_stem().unwrap().to_string_lossy();
+    let shim_path = bin_dir.join(format!("{}.exe", shim_name));
+
+    // Get the path to the current ana executable
+    let ana_bin = std::env::current_exe()
+        .into_diagnostic()
+        .context("failed to get current executable path")?;
+
+    // Copy shim binary to bin_dir
+    std::fs::write(&shim_path, SHIM_BINARY)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write shim: {}", shim_path.display()))?;
+
+    update_shims_cfg(&shim_name, &ana_bin.to_string_lossy())?;
+
+    eprintln!(
+        "   Created shim {} -> {} (wrapper)",
+        shim_path.display(),
+        ana_bin.display()
     );
 
     Ok(())
@@ -294,6 +377,63 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
         .context("failed to write shims.cfg")?;
 
     Ok(())
+}
+
+/// Write .condarc configuration for the conda environment.
+///
+/// This sets up the default channels (similar to miniconda) and other
+/// ana-specific configuration. The config is stored in tool-specs/conda/.condarc
+/// and compiled into the binary.
+fn write_conda_config(prefix: &Path) -> miette::Result<()> {
+    let condarc_path = prefix.join(".condarc");
+    let contents = include_str!("../../tool-specs/conda/.condarc");
+
+    std::fs::write(&condarc_path, contents)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write .condarc: {}", condarc_path.display()))?;
+
+    eprintln!("   Configured conda channels and settings");
+
+    Ok(())
+}
+
+/// Write a frozen marker file to protect the conda environment (CEP 22).
+///
+/// This prevents users from accidentally modifying the tool's environment
+/// with `conda install`. They should use `conda self install` instead.
+fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
+    let conda_meta = prefix.join("conda-meta");
+    std::fs::create_dir_all(&conda_meta)
+        .into_diagnostic()
+        .context("failed to create conda-meta directory")?;
+
+    let frozen_path = conda_meta.join("frozen");
+    let contents = serde_json::json!({
+        "message": concat!(
+            "This environment is managed by ana.\n",
+            "To install packages, use: conda self install <package>\n",
+            "To update conda, use: conda self update\n",
+            "To override, pass --override-frozen to conda commands."
+        )
+    });
+
+    std::fs::write(
+        &frozen_path,
+        serde_json::to_string_pretty(&contents).unwrap(),
+    )
+    .into_diagnostic()
+    .with_context(|| format!("failed to write frozen marker: {}", frozen_path.display()))?;
+
+    eprintln!("   Froze environment to prevent accidental modifications");
+
+    Ok(())
+}
+
+/// Create an HTTP client for downloading packages.
+fn make_download_client() -> reqwest_middleware::ClientWithMiddleware {
+    // TODO: Add AuthenticationMiddleware for private channel support
+    crate::http::build_client(reqwest::Client::builder().no_gzip())
+        .expect("failed to create HTTP client")
 }
 
 #[cfg(test)]
