@@ -1283,8 +1283,13 @@ class TestWheelsPipEndToEnd:
             return  # unreachable, but helps type checker
 
         # Should succeed (not 401/403)
-        assert install_result.returncode == 0, f"Install failed: {install_result.stderr}"
-        assert "abn" in install_result.stdout.lower() or "abn" in install_result.stderr.lower()
+        assert install_result.returncode == 0, (
+            f"Install failed: {install_result.stderr}"
+        )
+        assert (
+            "abn" in install_result.stdout.lower()
+            or "abn" in install_result.stderr.lower()
+        )
 
         # Cleanup
         run_ana_pip_feature("feature", "disable", "wheels", "--pip", "-f")
@@ -1298,7 +1303,14 @@ class TestWheelsPipEndToEnd:
         for cmd in ["pip", "pip3"]:
             try:
                 result = subprocess.run(
-                    [cmd, "install", "--dry-run", "abn", "--index-url", WHEELS_INDEX_URL],
+                    [
+                        cmd,
+                        "install",
+                        "--dry-run",
+                        "abn",
+                        "--index-url",
+                        WHEELS_INDEX_URL,
+                    ],
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -1315,9 +1327,9 @@ class TestWheelsPipEndToEnd:
         # Should fail with auth error
         assert result.returncode != 0, "Install should fail without auth"
         error_indicators = ["401", "403", "Unauthorized", "Forbidden", "not found"]
-        assert any(
-            indicator in result.stderr for indicator in error_indicators
-        ), f"Unexpected error: {result.stderr}"
+        assert any(indicator in result.stderr for indicator in error_indicators), (
+            f"Unexpected error: {result.stderr}"
+        )
 
 
 # =============================================================================
@@ -1480,7 +1492,9 @@ class TestWheelsUvEndToEnd:
         )
 
         # Should succeed (not 401/403)
-        assert install_result.returncode == 0, f"Install failed: {install_result.stderr}"
+        assert install_result.returncode == 0, (
+            f"Install failed: {install_result.stderr}"
+        )
         # uv shows package info in stdout or stderr during dry-run
         combined_output = install_result.stdout + install_result.stderr
         assert "abn" in combined_output.lower(), f"abn not in output: {combined_output}"
