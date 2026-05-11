@@ -37,7 +37,7 @@ const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "conda",
-        lockfile: include_str!("../../lockfiles/conda/pixi.lock"),
+        lockfile: include_str!("../../tool-specs/conda/pixi.lock"),
         binaries: if cfg![unix] {
             &[&["bin", "conda"]]
         } else {
