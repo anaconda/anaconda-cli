@@ -318,3 +318,32 @@ class TestArgumentErrors:
         result = run_ana("self", "foobar")
         assert result.returncode == 1
         assert "Unknown self command: foobar" in result.stderr
+
+
+class TestBinaryFeatures:
+    """Tests for binary feature configuration."""
+
+    def test_sentry_not_enabled_by_default(self, ana_binary: Path | None) -> None:
+        """Verify that Sentry is not compiled into the default binary.
+
+        The diagnostics feature (Sentry) should be opt-in, not default.
+        This test checks that the binary does not contain Sentry-specific strings
+        that would only be present if the sentry crate is compiled in.
+        """
+        if ana_binary is None:
+            pytest.skip("ana binary not found")
+
+        binary_content = ana_binary.read_bytes()
+
+        # These strings are unique to the Sentry SDK and only appear when compiled with diagnostics
+        sentry_indicators = [
+            b"[sentry] initialized",  # Sentry initialization log message
+            b"X-Sentry-Auth",  # Sentry auth header
+            b"sentry-transport",  # Sentry transport module
+        ]
+
+        for indicator in sentry_indicators:
+            assert indicator not in binary_content, (
+                f"Binary contains Sentry indicator '{indicator.decode()}' - "
+                "diagnostics feature should not be enabled by default"
+            )
