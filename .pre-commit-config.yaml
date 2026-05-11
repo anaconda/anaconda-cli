@@ -52,7 +52,7 @@ repos:
         files: ^(Cargo\.(toml|lock)|scripts/(sbom-process\.py|update_lockfiles\.sh))$
       - id: tool-spec-lock
         name: tool-spec lockfiles
-        entry: ./tool-specs/lock-changed.sh
+        entry: ./tool-specs/lock-all.sh
         language: system
         files: ^tool-specs/.+/pixi\.toml$
   - repo: meta
