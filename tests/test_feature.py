@@ -1246,6 +1246,79 @@ class TestWheelsPipEndToEnd:
         index_after_disable = get_pip_index_url(pip_feature_env)
         assert index_after_disable is None or index_after_disable == ""
 
+    def test_can_install_abn_from_wheels(
+        self,
+        run_ana_pip_feature: AnaRunner,
+        pip_feature_env: dict[str, str],
+    ) -> None:
+        """Verify that after enabling wheels, pip can install abn package."""
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pip_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable wheels
+        enable_result = run_ana_pip_feature(
+            "feature", "enable", "wheels", "--pip", "-f"
+        )
+        assert enable_result.returncode == 0
+
+        # Try to install abn with --dry-run to verify access without side effects
+        install_result: subprocess.CompletedProcess[str] | None = None
+        for cmd in ["pip", "pip3"]:
+            try:
+                install_result = subprocess.run(
+                    [cmd, "install", "--dry-run", "abn"],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    env=pip_feature_env,
+                )
+                break
+            except FileNotFoundError:
+                continue
+
+        if install_result is None:
+            pytest.fail("pip not found")
+            return  # unreachable, but helps type checker
+
+        # Should succeed (not 401/403)
+        assert install_result.returncode == 0, f"Install failed: {install_result.stderr}"
+        assert "abn" in install_result.stdout.lower() or "abn" in install_result.stderr.lower()
+
+        # Cleanup
+        run_ana_pip_feature("feature", "disable", "wheels", "--pip", "-f")
+
+    def test_cannot_install_abn_without_auth(
+        self,
+        pip_isolated_env: dict[str, str],
+    ) -> None:
+        """Verify that installing abn without authentication fails."""
+        result: subprocess.CompletedProcess[str] | None = None
+        for cmd in ["pip", "pip3"]:
+            try:
+                result = subprocess.run(
+                    [cmd, "install", "--dry-run", "abn", "--index-url", WHEELS_INDEX_URL],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    env=pip_isolated_env,
+                )
+                break
+            except FileNotFoundError:
+                continue
+
+        if result is None:
+            pytest.skip("pip not found")
+            return  # unreachable, but helps type checker
+
+        # Should fail with auth error
+        assert result.returncode != 0, "Install should fail without auth"
+        error_indicators = ["401", "403", "Unauthorized", "Forbidden", "not found"]
+        assert any(
+            indicator in result.stderr for indicator in error_indicators
+        ), f"Unexpected error: {result.stderr}"
+
 
 # =============================================================================
 # Wheels Feature Tests (uv)
@@ -1382,12 +1455,12 @@ class TestWheelsUvEndToEnd:
         index_after_disable = get_uv_default_index(uv_feature_env)
         assert index_after_disable is None
 
-    def test_can_access_wheels_index_with_auth(
+    def test_can_install_abn_from_wheels(
         self,
         run_ana_uv_feature: AnaRunner,
         uv_feature_env: dict[str, str],
     ) -> None:
-        """Verify that after enabling wheels, uv can access the wheels index."""
+        """Verify that after enabling wheels, uv can install abn package."""
         # Login with API key
         api_key = get_test_api_key()
         login_result = run_ana_uv_feature("login", api_key, "-f")
@@ -1397,29 +1470,36 @@ class TestWheelsUvEndToEnd:
         enable_result = run_ana_uv_feature("feature", "enable", "wheels", "--uv", "-f")
         assert enable_result.returncode == 0
 
-        # Try to search for a package - uv pip search doesn't exist,
-        # but we can verify the config is correct
-        index_url = get_uv_default_index(uv_feature_env)
-        assert index_url is not None
-        assert "anaconda-wheels" in index_url or "repo.anaconda.cloud" in index_url
+        # Try to install abn with --dry-run to verify access without side effects
+        install_result = subprocess.run(
+            ["uv", "pip", "install", "--dry-run", "abn"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=uv_feature_env,
+        )
+
+        # Should succeed (not 401/403)
+        assert install_result.returncode == 0, f"Install failed: {install_result.stderr}"
+        # uv shows package info in stdout or stderr during dry-run
+        combined_output = install_result.stdout + install_result.stderr
+        assert "abn" in combined_output.lower(), f"abn not in output: {combined_output}"
 
         # Cleanup
         run_ana_uv_feature("feature", "disable", "wheels", "--uv", "-f")
 
-    def test_cannot_access_wheels_index_without_auth(
+    def test_cannot_install_abn_without_auth(
         self,
         uv_isolated_env: dict[str, str],
     ) -> None:
-        """Verify that accessing wheels index without authentication fails."""
-        # Try to install a package that doesn't exist locally
-        # Using a non-existent package ensures uv must fetch from the index
+        """Verify that installing abn without authentication fails."""
         result = subprocess.run(
             [
                 "uv",
                 "pip",
                 "install",
                 "--dry-run",
-                "anaconda-nonexistent-test-pkg-12345",
+                "abn",
                 "--index-url",
                 WHEELS_INDEX_URL,
             ],
