@@ -221,7 +221,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Login fails with "invalid API key"
 
-Verify your API key at [anaconda.com](https://anaconda.com/app/profile/api-keys). 
+Verify your API key at [anaconda.com](https://anaconda.com/app/profile/api-keys).
 Keys are environment-specific (anaconda.com vs. self-hosted) and won't work cross-environment.
 
 ### SSL certificate errors
