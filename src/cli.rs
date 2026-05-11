@@ -1016,10 +1016,12 @@ mod tests {
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
         // "ob" is conditionally hidden based on experimental feature state
+        // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
             "config",
             "ob",
+            "bootstrap",
             "telemetry-submit",
             "telemetry-kill",
             "telemetry-status",
