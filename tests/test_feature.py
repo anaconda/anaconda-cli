@@ -171,7 +171,7 @@ def pip_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str,
     """Provide an environment with isolated pip configuration.
 
     pip config locations:
-    - Linux/macOS: ~/.config/pip/pip.conf
+    - Linux/macOS: $XDG_CONFIG_HOME/pip/pip.conf (or ~/.config/pip/pip.conf)
     - Windows: %APPDATA%\\pip\\pip.ini
     """
     from helpers import IS_WINDOWS
@@ -186,9 +186,15 @@ def pip_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str,
             "APPDATA": str(appdata),
         }
     else:
-        pip_config_dir = fake_home / ".config" / "pip"
+        # On Linux/macOS, pip uses XDG_CONFIG_HOME/pip/pip.conf
+        # We must set XDG_CONFIG_HOME for pip to use the isolated config
+        xdg_config = fake_home / ".config"
+        pip_config_dir = xdg_config / "pip"
         pip_config_dir.mkdir(parents=True, exist_ok=True)
-        return env_isolated
+        return {
+            **env_isolated,
+            "XDG_CONFIG_HOME": str(xdg_config),
+        }
 
 
 @pytest.fixture
@@ -454,10 +460,15 @@ def get_pip_index_url(env: dict[str, str]) -> str | None:
             return None
         config_path = Path(appdata) / "pip" / "pip.ini"
     else:
-        home = env.get("HOME")
-        if not home:
-            return None
-        config_path = Path(home) / ".config" / "pip" / "pip.conf"
+        # On Linux/macOS, pip uses XDG_CONFIG_HOME/pip/pip.conf
+        xdg_config = env.get("XDG_CONFIG_HOME")
+        if xdg_config:
+            config_path = Path(xdg_config) / "pip" / "pip.conf"
+        else:
+            home = env.get("HOME")
+            if not home:
+                return None
+            config_path = Path(home) / ".config" / "pip" / "pip.conf"
 
     if not config_path.exists():
         return None
