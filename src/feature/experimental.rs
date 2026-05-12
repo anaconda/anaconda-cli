@@ -16,10 +16,10 @@ use crate::paths::ana_home;
 
 /// Valid experimental feature names.
 #[cfg(unix)]
-const VALID_FEATURES: &[&str] = &["outerbounds"];
+const VALID_FEATURES: &[&str] = &["outerbounds", "wheels"];
 
 #[cfg(windows)]
-const VALID_FEATURES: &[&str] = &[];
+const VALID_FEATURES: &[&str] = &["wheels"];
 
 /// Root config structure for ~/.ana/config.toml
 #[derive(Default, Serialize, Deserialize)]
