@@ -30,21 +30,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Check for existing pixi
-      id: pixi-check
-      shell: bash
-      run: |
-        if command -v pixi >/dev/null 2>&1; then
-          echo "installed=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "installed=false" >> "$GITHUB_OUTPUT"
-        fi
-
-    - name: Setup pixi
-      if: steps.pixi-check.outputs.installed != 'true'
-      uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
+    - name: Set up ana with anaconda-cli
+      uses: ./.github/actions/setup-ana
       with:
-        pixi-version: v0.67.2
+        tools: anaconda-cli
 
     - name: Upload to anaconda.org
       shell: bash
@@ -58,8 +47,6 @@ runs:
         INPUT_OWNER: ${{ inputs.owner }}
         INPUT_PACKAGES: ${{ inputs.packages }}
       run: |
-        pixi global install anaconda-client
-
         FLAGS=""
 
         if [ "$INPUT_VERBOSE" = "true" ]; then
