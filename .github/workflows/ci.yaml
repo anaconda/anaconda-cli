@@ -204,7 +204,6 @@ jobs:
           path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
           roleId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
           secretId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
-          vault-mount: ${{ inputs.environment || 'dev' }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
             anaconda-cli/${{ inputs.environment || 'dev' }}/data/macos/application_certificate developer_id | developer-id ;
