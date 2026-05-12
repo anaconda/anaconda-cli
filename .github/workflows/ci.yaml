@@ -138,34 +138,6 @@ jobs:
           vault-mount: ${{ inputs.environment || 'dev' }}
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
-      - name: Run integration tests
-        if: ${{ !inputs.skip-tests }}
-        env:
-          ANA_SENTRY_ENVIRONMENT: integration-test
-          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
-          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
-          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
-          CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
-          MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
-          MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
-          TEST_WINDOWS_SIGNING: 1
-        run: pixi run test-integration
-
-      - name: Run integration tests (PowerShell)
-        if: ${{ !inputs.skip-tests && runner.os == 'Windows' }}
-        env:
-          ANA_SENTRY_ENVIRONMENT: integration-test
-          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
-          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
-          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
-        run: pixi run test-integration
-        shell: powershell
-
-      - name: Build conda package
-        run: pixi run build-conda
-
       - name: Upload conda package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -179,6 +151,9 @@ jobs:
           name: binary-${{ matrix.os }}
           path: target/release/ana${{ runner.os == 'Windows' && '.exe' || '' }}
           retention-days: 7
+    outputs:
+      macos-fingerprint: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
+      macos-developer-id: ${{ steps.sign-notarize-macos.outputs.developer-id }}
 
   test-integration:
     name: Integration Tests (${{ matrix.os }}${{ matrix.shell && format(', {0}', matrix.shell) || '' }})
@@ -221,7 +196,14 @@ jobs:
       - name: Run integration tests
         env:
           ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
+          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
+          CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
+          MACOS_CERTIFICATE_FINGERPRINT: ${{ needs.build.outputs.macos-fingerprint }}
+          MACOS_DEVELOPER_ID: ${{ needs.build.outputs.macos-developer-id }}
+          TEST_WINDOWS_SIGNING: 1
         run: pixi run test-integration
 
   check:
