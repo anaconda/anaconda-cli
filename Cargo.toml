@@ -8,8 +8,10 @@ libc = "0.2"
 
 [features]
 # Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
+# Unstable features are hidden and disabled by default.
 default = []
 diagnostics = ["dep:sentry"]
+unstable = []
 
 [dependencies]
 anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }

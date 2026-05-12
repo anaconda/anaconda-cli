@@ -198,11 +198,13 @@ impl Action {
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
+                #[cfg(feature = "unstable")]
                 "wheels" => "feature.enable.wheels",
                 _ => "feature.enable.unknown",
             },
             Action::FeatureDisable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.disable.main-x",
+                #[cfg(feature = "unstable")]
                 "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
@@ -341,6 +343,7 @@ impl Action {
                 )
                 .await
             }
+            #[allow(unused_variables)]
             Action::FeatureEnable {
                 feature,
                 force,
@@ -358,7 +361,52 @@ impl Action {
                             feature::enable_main_x_conda(ctx, force).await?
                         }
                     }
-                    "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
+                    #[cfg(feature = "unstable")]
+                    "wheels" => {
+                        // wheels is an experimental feature that requires the feature flag
+                        // to be enabled first before configuring pip/uv
+                        if pip || uv {
+                            // User wants to configure tools - check if experimental flag is enabled
+                            if !feature::is_feature_enabled("wheels") {
+                                use crate::ui::status::{blank_line, highlight, tip, warn};
+                                warn(&format!(
+                                    "The {} feature is experimental and hidden from public use.",
+                                    highlight("wheels")
+                                ));
+                                tip(&format!(
+                                    "Enable the experimental flag first with {}",
+                                    highlight("ana feature enable wheels")
+                                ));
+                                blank_line();
+                                return Err(miette!(
+                                    "Experimental feature 'wheels' is not enabled"
+                                ));
+                            }
+                            feature::enable_wheels(ctx, force, pip, uv).await?
+                        } else {
+                            // No --pip/--uv flags - treat as enabling the experimental feature
+                            crate::ui::status::warn(&format!(
+                                "The '{}' feature is experimental and may change or be removed.",
+                                "wheels"
+                            ));
+                            if !force
+                                && !crate::input::prompt_yes_no(
+                                    "Enable this experimental feature?",
+                                    false,
+                                )
+                            {
+                                return Ok(());
+                            }
+                            feature::enable_feature("wheels")?;
+                            crate::ui::status::success("Experimental feature 'wheels' enabled.");
+                            crate::ui::status::blank_line();
+                            crate::ui::status::tip(&format!(
+                                "Now configure your tools with {} or {}",
+                                crate::ui::status::highlight("ana feature enable wheels --pip"),
+                                crate::ui::status::highlight("--uv")
+                            ));
+                        }
+                    }
                     name if feature::is_valid_feature(name) => {
                         crate::ui::status::warn(&format!(
                             "The '{}' feature is experimental and may change or be removed.",
@@ -384,6 +432,7 @@ impl Action {
                 let _ = conda;
                 Ok(())
             }
+            #[allow(unused_variables)]
             Action::FeatureDisable {
                 feature,
                 force,
@@ -401,7 +450,18 @@ impl Action {
                             feature::disable_main_x_conda(ctx, force).await?
                         }
                     }
-                    "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
+                    #[cfg(feature = "unstable")]
+                    "wheels" => {
+                        // wheels is an experimental feature
+                        if pip || uv {
+                            // User wants to deconfigure tools
+                            feature::disable_wheels(ctx, force, pip, uv).await?
+                        } else {
+                            // No --pip/--uv flags - disable the experimental feature flag
+                            feature::disable_feature("wheels")?;
+                            crate::ui::status::success("Experimental feature 'wheels' disabled.");
+                        }
+                    }
                     name if feature::is_valid_feature(name) => {
                         feature::disable_feature(name)?;
                         crate::ui::status::success(&format!(
@@ -950,7 +1010,7 @@ enum ApiCommands {
 enum FeatureCommands {
     /// Enable a feature
     Enable {
-        /// Name of the feature to enable (e.g., main-x, wheels)
+        /// Name of the feature to enable (e.g., main-x)
         name: String,
 
         /// Skip confirmation prompt
@@ -958,11 +1018,11 @@ enum FeatureCommands {
         force: bool,
 
         /// Configure pip (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         pip: bool,
 
         /// Configure uv (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         uv: bool,
 
         /// Configure conda (for main-x feature, default if neither --conda nor --pixi specified)
@@ -976,7 +1036,7 @@ enum FeatureCommands {
 
     /// Disable a feature
     Disable {
-        /// Name of the feature to disable (e.g., main-x, wheels)
+        /// Name of the feature to disable (e.g., main-x)
         name: String,
 
         /// Skip confirmation prompt
@@ -984,11 +1044,11 @@ enum FeatureCommands {
         force: bool,
 
         /// Deconfigure pip (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         pip: bool,
 
         /// Deconfigure uv (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         uv: bool,
 
         /// Deconfigure conda (for main-x feature, default if neither --conda nor --pixi specified)
@@ -1052,6 +1112,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels"]).unwrap();
         match cli.command {
@@ -1075,6 +1136,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels"]).unwrap();
         match cli.command {
@@ -1098,6 +1160,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_pip_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip"]).unwrap();
         match cli.command {
@@ -1121,6 +1184,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_uv_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--uv"]).unwrap();
         match cli.command {
@@ -1144,6 +1208,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_both_flags() {
         let cli =
             Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip", "--uv"]).unwrap();
@@ -1168,6 +1233,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_pip_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip"]).unwrap();
         match cli.command {
@@ -1191,6 +1257,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_uv_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--uv"]).unwrap();
         match cli.command {
@@ -1214,6 +1281,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_both_flags() {
         let cli =
             Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip", "--uv"]).unwrap();

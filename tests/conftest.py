@@ -90,6 +90,31 @@ def ana_binary() -> Path | None:
     return None
 
 
+def _binary_supports_wheels(binary_path: Path | None) -> bool:
+    """Check if the ana binary supports the wheels feature.
+
+    The wheels feature is gated behind a compile-time feature flag ('unstable').
+    This detects whether the binary was compiled with that flag enabled.
+    """
+    if binary_path is None:
+        return False
+
+    result = subprocess.run(
+        [str(binary_path), "feature", "enable", "wheels"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=10,
+    )
+    return "Unknown feature: wheels" not in result.stderr
+
+
+@pytest.fixture(scope="session")
+def wheels_feature_available(ana_binary: Path | None) -> bool:
+    """Check if the wheels feature is available in the ana binary."""
+    return _binary_supports_wheels(ana_binary)
+
+
 @pytest.fixture
 def run_ana(ana_binary: Path | None, env_isolated: dict[str, str]) -> AnaRunner:
     """Provide a function to run the ana binary with isolated environment."""
