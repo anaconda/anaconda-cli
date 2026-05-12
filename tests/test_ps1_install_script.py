@@ -13,12 +13,10 @@ from helpers import REPO_ROOT
 
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.ps1"
 
-# Prefer powershell (Windows PowerShell 5) for backwards compatibility testing
-# Fall back to pwsh (PowerShell Core) on non-Windows
-if shutil.which("powershell"):
-    PWSH = "powershell"
-elif shutil.which("pwsh"):
+if shutil.which("pwsh"):
     PWSH = "pwsh"
+elif shutil.which("powershell"):
+    PWSH = "powershell"
 else:
     pytest.skip("Tests require PowerShell.", allow_module_level=True)
 
