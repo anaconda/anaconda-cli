@@ -50,6 +50,18 @@ impl AuthMiddleware {
     }
 }
 
+const AUTH_ALLOWED_DOMAINS: &[&str] = &["anaconda.com"];
+
+fn is_auth_allowed_domain(url: &reqwest::Url) -> bool {
+    url.host_str()
+        .map(|host| {
+            AUTH_ALLOWED_DOMAINS
+                .iter()
+                .any(|domain| host == *domain || host.ends_with(&format!(".{}", domain)))
+        })
+        .unwrap_or(false)
+}
+
 #[async_trait::async_trait]
 impl Middleware for AuthMiddleware {
     async fn handle(
@@ -58,13 +70,15 @@ impl Middleware for AuthMiddleware {
         extensions: &mut http::Extensions,
         next: Next<'_>,
     ) -> Result<Response> {
-        if let Ok(Some(api_key)) = auth::get_api_key(&self.config) {
-            if let Ok(mut value) =
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_key))
-            {
-                value.set_sensitive(true);
-                req.headers_mut()
-                    .insert(reqwest::header::AUTHORIZATION, value);
+        if is_auth_allowed_domain(req.url()) {
+            if let Ok(Some(api_key)) = auth::get_api_key(&self.config) {
+                if let Ok(mut value) =
+                    reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_key))
+                {
+                    value.set_sensitive(true);
+                    req.headers_mut()
+                        .insert(reqwest::header::AUTHORIZATION, value);
+                }
             }
         }
         next.run(req, extensions).await
@@ -284,6 +298,28 @@ mod tests {
 
         // Verify we can create a request
         let _request = client.get("https://example.com/test");
+    }
+
+    #[test]
+    fn test_is_auth_allowed_domain() {
+        let parse = |s| reqwest::Url::parse(s).unwrap();
+
+        // Should match anaconda.com and subdomains
+        assert!(is_auth_allowed_domain(&parse("https://anaconda.com/api")));
+        assert!(is_auth_allowed_domain(&parse(
+            "https://api.anaconda.com/v1"
+        )));
+        assert!(is_auth_allowed_domain(&parse(
+            "https://sub.api.anaconda.com/"
+        )));
+
+        // Should not match other domains
+        assert!(!is_auth_allowed_domain(&parse("https://example.com/")));
+        assert!(!is_auth_allowed_domain(&parse("https://notanaconda.com/")));
+        assert!(!is_auth_allowed_domain(&parse("https://fakeanaconda.com/")));
+        assert!(!is_auth_allowed_domain(&parse(
+            "https://anaconda.com.evil.com/"
+        )));
     }
 
     #[test]
