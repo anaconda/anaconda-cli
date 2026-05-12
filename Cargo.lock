@@ -235,7 +235,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "urlencoding",
  "webbrowser",
 ]
 

@@ -10,8 +10,7 @@ use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
-#[cfg(feature = "feedback")]
-use crate::feedback::{self, FeedbackType};
+use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::mcp::{self, McpAction, McpCommands};
@@ -133,11 +132,7 @@ pub enum Action {
     UserAgent {
         prefix: Option<String>,
     },
-    #[cfg(feature = "feedback")]
-    OpenFeedback {
-        feedback_type: Option<FeedbackType>,
-        description: Option<String>,
-    },
+    OpenFeedback,
     ToolInstall {
         name: String,
     },
@@ -196,8 +191,7 @@ impl Action {
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
-            #[cfg(feature = "feedback")]
-            Action::OpenFeedback { .. } => "feedback",
+            Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
@@ -326,12 +320,8 @@ impl Action {
                 println!("{}", crate::ua::user_agent());
                 Ok(())
             }
-            #[cfg(feature = "feedback")]
-            Action::OpenFeedback {
-                feedback_type,
-                description,
-            } => {
-                feedback::open_feedback(ctx, feedback_type, description);
+            Action::OpenFeedback => {
+                feedback::open_feedback();
                 Ok(())
             }
             Action::ApiFetch {
@@ -492,15 +482,7 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSubcommandHelp("self".to_string()),
-                    #[cfg(feature = "feedback")]
-                    Some(SelfCommands::Feedback {
-                        bug,
-                        feature,
-                        description,
-                    }) => Action::OpenFeedback {
-                        feedback_type: feedback::parse_feedback_type(bug, feature),
-                        description,
-                    },
+                    Some(SelfCommands::Feedback) => Action::OpenFeedback,
                     Some(SelfCommands::Update {
                         version,
                         check,
@@ -891,20 +873,8 @@ enum AuthCommands {
 
 #[derive(Subcommand)]
 enum SelfCommands {
-    /// Open the feedback form
-    #[cfg(feature = "feedback")]
-    Feedback {
-        /// Report a bug
-        #[arg(long, conflicts_with = "feature")]
-        bug: bool,
-
-        /// Request a feature
-        #[arg(long, conflicts_with = "bug")]
-        feature: bool,
-
-        /// Pre-fill the description
-        description: Option<String>,
-    },
+    /// Open GitHub issues page to report bugs or request features
+    Feedback,
 
     /// Manage your ana version
     Update {
@@ -1046,10 +1016,12 @@ mod tests {
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
         // "ob" is conditionally hidden based on experimental feature state
+        // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
             "config",
             "ob",
+            "bootstrap",
             "telemetry-submit",
             "telemetry-kill",
             "telemetry-status",
