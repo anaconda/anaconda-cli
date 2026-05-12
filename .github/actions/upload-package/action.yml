@@ -1,0 +1,84 @@
+name: Upload Package
+description: Upload conda packages to Anaconda.org
+
+inputs:
+  token:
+    description: API token for authentication
+    required: true
+  packages:
+    description: Path or glob pattern to package files (e.g., ./packages/*/*.conda)
+    required: true
+  owner:
+    description: Package owner/channel (e.g., organization name)
+    required: true
+  private:
+    description: Make package private
+    required: false
+    default: 'false'
+  labels:
+    description: Comma-separated list of labels to apply (e.g., "main,dev")
+    required: false
+  force:
+    description: Overwrite existing packages if they already exist
+    required: false
+    default: 'false'
+  verbose:
+    description: Enable verbose output
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Check for existing pixi
+      id: pixi-check
+      shell: bash
+      run: |
+        if command -v pixi >/dev/null 2>&1; then
+          echo "installed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "installed=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Setup pixi
+      if: steps.pixi-check.outputs.installed != 'true'
+      uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
+      with:
+        pixi-version: v0.67.2
+
+    - name: Upload to anaconda.org
+      shell: bash
+      env:
+        ANACONDA_API_TOKEN: ${{ inputs.token }}
+        ANACONDA_CLI_FORCE_NEW: '1'
+        INPUT_VERBOSE: ${{ inputs.verbose }}
+        INPUT_FORCE: ${{ inputs.force }}
+        INPUT_PRIVATE: ${{ inputs.private }}
+        INPUT_LABELS: ${{ inputs.labels }}
+        INPUT_OWNER: ${{ inputs.owner }}
+        INPUT_PACKAGES: ${{ inputs.packages }}
+      run: |
+        pixi global install anaconda-client
+
+        FLAGS=""
+
+        if [ "$INPUT_VERBOSE" = "true" ]; then
+          FLAGS="$FLAGS --verbose"
+        fi
+
+        if [ "$INPUT_FORCE" = "true" ]; then
+          FLAGS="$FLAGS --force"
+        fi
+
+        if [ "$INPUT_PRIVATE" = "true" ]; then
+          FLAGS="$FLAGS --private"
+        fi
+
+        if [ -n "$INPUT_LABELS" ]; then
+          IFS=',' read -ra LABELS <<< "$INPUT_LABELS"
+          for label in "${LABELS[@]}"; do
+            FLAGS="$FLAGS --label $(echo "$label" | xargs)"
+          done
+        fi
+
+        anaconda --verbose --token "$ANACONDA_API_TOKEN" upload --user "$INPUT_OWNER" $FLAGS $INPUT_PACKAGES
