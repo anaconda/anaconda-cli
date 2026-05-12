@@ -156,9 +156,15 @@ jobs:
     name: Integration Tests (${{ matrix.os }}${{ matrix.shell && format(', {0}', matrix.shell) || '' }})
     needs: build
     if: ${{ !inputs.skip-tests }}
+    environment:
+      # Only deploy when calling this workflow via pushes to main or releases
+      # Otherwise, pull requests will be cluttered with deployment messages
+      deployment: ${{ github.event_name == 'workflow_call' }}
+      name: ${{ inputs.environment || 'dev' }}
     runs-on: ${{ matrix.os }}
     permissions:
-      contents: read
+      contents: read   # To check out private repository
+      id-token: write  # Required to authenticate with Azure via OIDC
     strategy:
       fail-fast: true
       matrix:
