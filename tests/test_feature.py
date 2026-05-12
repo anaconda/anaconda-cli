@@ -1113,6 +1113,13 @@ WHEELS_INDEX_URL = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple"
 class TestWheelsPipEnable:
     """Tests for 'ana feature enable wheels --pip'."""
 
+    @pytest.fixture(autouse=True)
+    def _skip_if_no_wheels(self, wheels_feature_available: bool) -> None:
+        if not wheels_feature_available:
+            pytest.skip(
+                "wheels feature requires binary compiled with 'unstable' feature"
+            )
+
     def test_enable_wheels_pip_configures_index(
         self,
         run_ana_pip_feature: AnaRunner,
@@ -1175,6 +1182,13 @@ class TestWheelsPipEnable:
 class TestWheelsPipDisable:
     """Tests for 'ana feature disable wheels --pip'."""
 
+    @pytest.fixture(autouse=True)
+    def _skip_if_no_wheels(self, wheels_feature_available: bool) -> None:
+        if not wheels_feature_available:
+            pytest.skip(
+                "wheels feature requires binary compiled with 'unstable' feature"
+            )
+
     def test_disable_wheels_pip_removes_config(
         self,
         run_ana_pip_feature: AnaRunner,
@@ -1213,6 +1227,13 @@ class TestWheelsPipDisable:
 @requires_api_key
 class TestWheelsPipEndToEnd:
     """End-to-end tests for the wheels pip feature workflow."""
+
+    @pytest.fixture(autouse=True)
+    def _skip_if_no_wheels(self, wheels_feature_available: bool) -> None:
+        if not wheels_feature_available:
+            pytest.skip(
+                "wheels feature requires binary compiled with 'unstable' feature"
+            )
 
     def test_enable_then_disable_pip(
         self,
@@ -1350,6 +1371,13 @@ class TestWheelsPipEndToEnd:
 class TestWheelsUvEnable:
     """Tests for 'ana feature enable wheels --uv'."""
 
+    @pytest.fixture(autouse=True)
+    def _skip_if_no_wheels(self, wheels_feature_available: bool) -> None:
+        if not wheels_feature_available:
+            pytest.skip(
+                "wheels feature requires binary compiled with 'unstable' feature"
+            )
+
     def test_enable_wheels_uv_configures_index(
         self,
         run_ana_uv_feature: AnaRunner,
@@ -1413,6 +1441,13 @@ class TestWheelsUvEnable:
 class TestWheelsUvDisable:
     """Tests for 'ana feature disable wheels --uv'."""
 
+    @pytest.fixture(autouse=True)
+    def _skip_if_no_wheels(self, wheels_feature_available: bool) -> None:
+        if not wheels_feature_available:
+            pytest.skip(
+                "wheels feature requires binary compiled with 'unstable' feature"
+            )
+
     def test_disable_wheels_uv_removes_config(
         self,
         run_ana_uv_feature: AnaRunner,
@@ -1444,6 +1479,13 @@ class TestWheelsUvDisable:
 @requires_api_key
 class TestWheelsUvEndToEnd:
     """End-to-end tests for the wheels uv feature workflow."""
+
+    @pytest.fixture(autouse=True)
+    def _skip_if_no_wheels(self, wheels_feature_available: bool) -> None:
+        if not wheels_feature_available:
+            pytest.skip(
+                "wheels feature requires binary compiled with 'unstable' feature"
+            )
 
     def test_enable_then_disable_uv(
         self,
