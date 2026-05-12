@@ -62,6 +62,10 @@ fn is_auth_allowed_domain(url: &reqwest::Url) -> bool {
         .unwrap_or(false)
 }
 
+fn is_auth_allowed(url: &reqwest::Url, base_url: &str) -> bool {
+    is_auth_allowed_domain(url) || url.as_str().starts_with(base_url)
+}
+
 #[async_trait::async_trait]
 impl Middleware for AuthMiddleware {
     async fn handle(
@@ -70,7 +74,7 @@ impl Middleware for AuthMiddleware {
         extensions: &mut http::Extensions,
         next: Next<'_>,
     ) -> Result<Response> {
-        if is_auth_allowed_domain(req.url()) {
+        if is_auth_allowed(req.url(), &self.config.base_url()) {
             if let Ok(Some(api_key)) = auth::get_api_key(&self.config) {
                 if let Ok(mut value) =
                     reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_key))
