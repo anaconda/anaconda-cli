@@ -4,20 +4,23 @@ from __future__ import annotations
 
 import os
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from helpers import IS_MACOS
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 if not IS_MACOS:
     pytest.skip("macOS signing tests", allow_module_level=True)
 
 # Use environment variable as sentinel variable
 # since local builds are not expected to be signed
-if not os.environ.get("MACOS_DEVELOPER_ID"):
-    pytest.skip("Binary is not expected to be signed")
+if not os.environ.get("MACOS_CERTIFICATE_FINGERPRINT"):
+    pytest.skip("Binary is not expected to be signed", allow_module_level=True)
 
 
 @pytest.fixture(scope="class")
@@ -53,10 +56,6 @@ class TestMacOSSigning:
         tmp_path: Path,
     ) -> None:
         """Verify the signing certificate matches expected fingerprint."""
-        if not (
-            expected_fingerprint := os.environ.get("MACOS_CERTIFICATE_FINGERPRINT")
-        ):
-            pytest.skip("MACOS_CERTIFICATE_FINGERPRINT not set")
         if ana_binary is None:
             pytest.skip("ana binary not found")
 
@@ -76,6 +75,7 @@ class TestMacOSSigning:
         assert fingerprint, "Fingerprint not found"
         actual_fingerprint = fingerprint.hex().upper().replace(":", "")
 
+        expected_fingerprint = os.environ.get("MACOS_CERTIFICATE_FINGERPRINT")
         assert actual_fingerprint == expected_fingerprint, (
             f"Certificate fingerprint mismatch.\n"
             f"Expected: {expected_fingerprint}\n"
@@ -119,7 +119,7 @@ def test_notarization(ana_binary: Path | None) -> None:
     if ana_binary is None:
         pytest.skip("ana binary not found")
 
-    expected_notarized = os.environ.get("MACOS_IS_NOTARIZED", "").lower() == "true"
+    expected_notarized = os.environ.get("CERTIFICATE_TRUSTED", "").lower() == "true"
 
     result = subprocess.run(
         ["spctl", "--assess", "--type", "execute", "-v", ana_binary],
