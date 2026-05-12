@@ -14,6 +14,7 @@ pub struct FeatureInfo {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum FeatureCategory {
     Stable,
+    Beta,
     Experimental,
 }
 
@@ -23,12 +24,7 @@ pub fn list_features() -> Vec<FeatureInfo> {
         FeatureInfo {
             name: "main-x",
             description: "Configure conda/pixi to use Anaconda's main-x channel",
-            category: FeatureCategory::Stable,
-        },
-        FeatureInfo {
-            name: "wheels",
-            description: "Configure pip/uv to use Anaconda's PyPI mirror",
-            category: FeatureCategory::Stable,
+            category: FeatureCategory::Beta,
         },
         #[cfg(unix)]
         FeatureInfo {
@@ -56,6 +52,10 @@ pub fn print_feature_list(_ctx: &mut CommandContext) {
         .iter()
         .filter(|f| f.category == FeatureCategory::Stable)
         .collect();
+    let beta: Vec<_> = features
+        .iter()
+        .filter(|f| f.category == FeatureCategory::Beta)
+        .collect();
     let experimental: Vec<_> = features
         .iter()
         .filter(|f| f.category == FeatureCategory::Experimental)
@@ -64,6 +64,14 @@ pub fn print_feature_list(_ctx: &mut CommandContext) {
     if !stable.is_empty() {
         eprintln!("{}", status::section("stable"));
         for feature in stable {
+            print_kv(feature.name, feature.description);
+        }
+    }
+
+    if !beta.is_empty() {
+        status::blank_line();
+        eprintln!("{}", status::section("beta"));
+        for feature in beta {
             print_kv(feature.name, feature.description);
         }
     }
