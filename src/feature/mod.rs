@@ -1,6 +1,7 @@
 //! Feature commands for Anaconda services.
 
 mod experimental;
+pub mod list;
 mod main_x;
 mod wheels;
 
