@@ -203,36 +203,14 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0
           persist-credentials: false
 
-      - name: Configure git for private repos (bash)
-        if: matrix.shell != 'powershell'
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-        run: |
-          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-
-      - name: Configure git for private repos (powershell)
-        if: matrix.shell == 'powershell'
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-        run: |
-          git config --global url."https://x-access-token:$env:REPO_TOKEN@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:$env:REPO_TOKEN@github.com/".insteadOf "ssh://git@github.com/"
-
       - name: Set up ana with pixi
-        if: matrix.os != 'ubuntu-24.04-arm'
         uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
         with:
-          ana-version: v0.0.9
+          ana-version: v0.1.3
           tools: pixi
           github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-
-      - name: Set up pixi (fallback)
-        if: matrix.os == 'ubuntu-24.04-arm'
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
       - name: Download binary
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
