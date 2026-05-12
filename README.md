@@ -244,7 +244,6 @@ RUST_LOG=ana=debug ana login      # Fine-grained control via RUST_LOG
 
 ## Documentation
 
-- [Official Docs](https://www.anaconda.com/docs/cli-reference/ana/getting-started)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Contributing guide](CONTRIBUTING.md)
 
