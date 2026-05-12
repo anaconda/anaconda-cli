@@ -195,6 +195,10 @@ jobs:
           name: binary-${{ matrix.os }}
           path: target/release/
 
+      - name: Make binary executable
+        if: ${{ runner.os != 'Windows' }}
+        run: chmod u+x target/release/ana*
+
       - name: Get application certificate data
         if: ${{ runner.os == 'macOS' }}
         id: macos-certificate
