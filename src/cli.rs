@@ -198,11 +198,13 @@ impl Action {
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
+                #[cfg(feature = "unstable")]
                 "wheels" => "feature.enable.wheels",
                 _ => "feature.enable.unknown",
             },
             Action::FeatureDisable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.disable.main-x",
+                #[cfg(feature = "unstable")]
                 "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
@@ -341,6 +343,7 @@ impl Action {
                 )
                 .await
             }
+            #[allow(unused_variables)]
             Action::FeatureEnable {
                 feature,
                 force,
@@ -358,6 +361,7 @@ impl Action {
                             feature::enable_main_x_conda(ctx, force).await?
                         }
                     }
+                    #[cfg(feature = "unstable")]
                     "wheels" => {
                         // wheels is an experimental feature that requires the feature flag
                         // to be enabled first before configuring pip/uv
@@ -428,6 +432,7 @@ impl Action {
                 let _ = conda;
                 Ok(())
             }
+            #[allow(unused_variables)]
             Action::FeatureDisable {
                 feature,
                 force,
@@ -445,6 +450,7 @@ impl Action {
                             feature::disable_main_x_conda(ctx, force).await?
                         }
                     }
+                    #[cfg(feature = "unstable")]
                     "wheels" => {
                         // wheels is an experimental feature
                         if pip || uv {
@@ -1106,6 +1112,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels"]).unwrap();
         match cli.command {
@@ -1129,6 +1136,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels"]).unwrap();
         match cli.command {
@@ -1152,6 +1160,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_pip_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip"]).unwrap();
         match cli.command {
@@ -1175,6 +1184,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_uv_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--uv"]).unwrap();
         match cli.command {
@@ -1198,6 +1208,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_both_flags() {
         let cli =
             Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip", "--uv"]).unwrap();
@@ -1222,6 +1233,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_pip_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip"]).unwrap();
         match cli.command {
@@ -1245,6 +1257,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_uv_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--uv"]).unwrap();
         match cli.command {
@@ -1268,6 +1281,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_both_flags() {
         let cli =
             Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip", "--uv"]).unwrap();

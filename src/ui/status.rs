@@ -73,6 +73,7 @@ pub fn highlight(text: &str) -> String {
 }
 
 /// Return a green checkmark.
+#[cfg(feature = "unstable")]
 pub fn checkmark() -> String {
     UiColor::Green.apply_to("✓").to_string()
 }
