@@ -37,7 +37,7 @@ jobs:
       - name: Set up ana with pixi
         uses: ./.github/actions/setup-ana
         with:
-          ana-version: v0.1.2
+          ana-version: v0.1.3
           tools: pixi
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
