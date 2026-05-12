@@ -164,6 +164,7 @@ pub enum Action {
         conda: bool,
         pixi: bool,
     },
+    FeatureList,
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
@@ -208,6 +209,7 @@ impl Action {
                 "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
+            Action::FeatureList => "feature.list",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -475,6 +477,10 @@ impl Action {
                 let _ = conda;
                 Ok(())
             }
+            Action::FeatureList => {
+                feature::list::print_feature_list(ctx);
+                Ok(())
+            }
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
@@ -649,6 +655,7 @@ pub fn parse() -> (Action, LogLevel) {
                         conda,
                         pixi,
                     },
+                    Some(FeatureCommands::List) => Action::FeatureList,
                 },
                 Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
                 Some(Commands::TelemetryKill) => Action::TelemetryKill,
@@ -1008,6 +1015,9 @@ enum ApiCommands {
 
 #[derive(Subcommand)]
 enum FeatureCommands {
+    /// List available features
+    List,
+
     /// Enable a feature
     Enable {
         /// Name of the feature to enable (e.g., main-x)
