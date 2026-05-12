@@ -229,6 +229,7 @@ mod tests {
             keyring_path: path,
             use_https: true,
             metrics_endpoint: "https://metrics.example.com".to_string(),
+            metrics_public_endpoint: "https://public.metrics.example.com".to_string(),
             metrics_export_interval_ms: 1000,
             metrics_console_exporter: false,
             metrics_skip_internet_check: true,

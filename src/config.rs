@@ -11,7 +11,8 @@
 //! | `ANA_AUTH_CLIENT_ID`             | (Anaconda's ID)            | OAuth client ID                 |
 //! | `ANA_SSL_VERIFY`                 | `true`                     | SSL certificate verification    |
 //! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser during login  |
-//! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint  |
+//! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint (authenticated) |
+//! | `ANA_METRICS_PUBLIC_ENDPOINT`    | (Anaconda public URL)      | OpenTelemetry metrics endpoint (unauthenticated) |
 //! | `ANA_METRICS_EXPORT_INTERVAL_MS` | `1000`                     | Metrics export interval in ms   |
 //! | `ANA_METRICS_CONSOLE_EXPORTER`   | `false`                    | Enable console metrics exporter |
 //! | `ANA_METRICS_SKIP_INTERNET_CHECK`| `true`                     | Skip internet connectivity check|
@@ -46,6 +47,7 @@ const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
 const DEFAULT_OPEN_BROWSER: bool = true;
 const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.aa.anaconda.com/v1/metrics";
+const DEFAULT_METRICS_PUBLIC_ENDPOINT: &str = "https://public.telemetry.anaconda.com/v1/metrics";
 const DEFAULT_METRICS_EXPORT_INTERVAL_MS: i64 = 1000;
 const DEFAULT_METRICS_CONSOLE_EXPORTER: bool = false;
 const DEFAULT_METRICS_SKIP_INTERNET_CHECK: bool = true;
@@ -73,8 +75,11 @@ pub struct Config {
     /// Whether to automatically open browser during login
     pub open_browser: bool,
 
-    /// OpenTelemetry metrics endpoint URL
+    /// OpenTelemetry metrics endpoint URL (authenticated)
     pub metrics_endpoint: String,
+
+    /// OpenTelemetry metrics endpoint URL (unauthenticated/public)
+    pub metrics_public_endpoint: String,
 
     /// Metrics export interval in milliseconds
     pub metrics_export_interval_ms: i64,
@@ -126,6 +131,8 @@ impl Config {
         let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
         let metrics_endpoint = env::var("ANA_METRICS_ENDPOINT")
             .unwrap_or_else(|_| DEFAULT_METRICS_ENDPOINT.to_string());
+        let metrics_public_endpoint = env::var("ANA_METRICS_PUBLIC_ENDPOINT")
+            .unwrap_or_else(|_| DEFAULT_METRICS_PUBLIC_ENDPOINT.to_string());
         let metrics_export_interval_ms = env::var("ANA_METRICS_EXPORT_INTERVAL_MS")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -162,6 +169,7 @@ impl Config {
             ssl_verify,
             open_browser,
             metrics_endpoint,
+            metrics_public_endpoint,
             metrics_export_interval_ms,
             metrics_console_exporter,
             metrics_skip_internet_check,
@@ -269,6 +277,7 @@ mod tests {
             ssl_verify,
             open_browser,
             metrics_endpoint: DEFAULT_METRICS_ENDPOINT.to_string(),
+            metrics_public_endpoint: DEFAULT_METRICS_PUBLIC_ENDPOINT.to_string(),
             metrics_export_interval_ms: DEFAULT_METRICS_EXPORT_INTERVAL_MS,
             metrics_console_exporter: DEFAULT_METRICS_CONSOLE_EXPORTER,
             metrics_skip_internet_check: DEFAULT_METRICS_SKIP_INTERNET_CHECK,
