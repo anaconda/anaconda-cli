@@ -61,10 +61,19 @@ pub fn setup() {
 fn try_setup() -> Result<(), Box<dyn std::error::Error>> {
     let app_config = crate::config::Config::load();
 
-    let mut otel_config = Configuration::new(Some(&app_config.metrics_endpoint), None)?;
-
     let api_key = crate::auth::get_api_key(&app_config).ok().flatten();
-    otel_config.set_auth_token(api_key);
+
+    let endpoint = if api_key.is_some() {
+        &app_config.metrics_endpoint
+    } else {
+        &app_config.metrics_public_endpoint
+    };
+
+    let mut otel_config = Configuration::new(Some(endpoint), None)?;
+
+    if let Some(key) = api_key {
+        otel_config.set_auth_token(Some(key));
+    }
     otel_config.set_console_exporter(app_config.metrics_console_exporter);
     otel_config.set_metrics_export_interval_ms(app_config.metrics_export_interval_ms);
     otel_config.skip_internet_check = app_config.metrics_skip_internet_check;
