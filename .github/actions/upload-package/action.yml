@@ -47,11 +47,12 @@ runs:
         INPUT_OWNER: ${{ inputs.owner }}
         INPUT_PACKAGES: ${{ inputs.packages }}
       run: |
-        FLAGS=""
-
+        VERBOSE_FLAG=""
         if [ "$INPUT_VERBOSE" = "true" ]; then
-          FLAGS="$FLAGS --verbose"
+          VERBOSE_FLAG="--verbose"
         fi
+
+        FLAGS=""
 
         if [ "$INPUT_FORCE" = "true" ]; then
           FLAGS="$FLAGS --force"
@@ -68,4 +69,4 @@ runs:
           done
         fi
 
-        anaconda --verbose --token "$ANACONDA_API_TOKEN" upload --user "$INPUT_OWNER" $FLAGS $INPUT_PACKAGES
+        anaconda $VERBOSE_FLAG --token "$ANACONDA_API_TOKEN" upload --user "$INPUT_OWNER" $FLAGS $INPUT_PACKAGES
