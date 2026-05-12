@@ -37,6 +37,13 @@ pub fn warn(msg: &str) {
     eprintln!("{} {}", UiColor::Amber.apply_to("!"), msg);
 }
 
+/// Return an experimental note styled in amber.
+///
+/// Example output: `Note: This feature is experimental.`
+pub fn note_experimental(msg: &str) -> String {
+    UiColor::Amber.apply_to(msg).to_string()
+}
+
 /// Print an info message (plain text).
 ///
 /// Example output: `Opening anaconda.com in your browser...`
@@ -66,6 +73,7 @@ pub fn highlight(text: &str) -> String {
 }
 
 /// Return a green checkmark.
+#[cfg(feature = "unstable")]
 pub fn checkmark() -> String {
     UiColor::Green.apply_to("✓").to_string()
 }

@@ -1,20 +1,21 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use anaconda_otel_rs::signals::{increment_counter, record_histogram, shutdown_telemetry};
 use clap::{CommandFactory, Parser, Subcommand};
 use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::{self, Config};
+use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
-#[cfg(feature = "feedback")]
-use crate::feedback::{self, FeedbackType};
+use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
+use crate::mcp::{self, McpAction, McpCommands};
+#[cfg(unix)]
+use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::update;
 
@@ -62,15 +63,22 @@ pub async fn execute() {
     let filter = build_tracing_filter(level);
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
-    config::setup_telemetry();
+    let skip_telemetry_spawn = matches!(
+        &action,
+        Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
+    );
 
     let result = action.execute().await;
 
-    shutdown_telemetry();
+    if !skip_telemetry_spawn {
+        if let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
+            tracing::debug!("Failed to spawn telemetry submitter: {}", e);
+        }
+    }
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {:?}", e);
         std::process::exit(1);
     }
 }
@@ -110,14 +118,21 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
+    #[cfg(unix)]
+    ObProxy {
+        args: Vec<String>,
+    },
+    #[cfg(unix)]
+    ObAutoConfigure {
+        instance: String,
+    },
+    McpRun {
+        args: Vec<String>,
+    },
     UserAgent {
         prefix: Option<String>,
     },
-    #[cfg(feature = "feedback")]
-    OpenFeedback {
-        feedback_type: Option<FeedbackType>,
-        description: Option<String>,
-    },
+    OpenFeedback,
     ToolInstall {
         name: String,
     },
@@ -138,13 +153,21 @@ pub enum Action {
         force: bool,
         pip: bool,
         uv: bool,
+        conda: bool,
+        pixi: bool,
     },
     FeatureDisable {
         feature: String,
         force: bool,
         pip: bool,
         uv: bool,
+        conda: bool,
+        pixi: bool,
     },
+    FeatureList,
+    TelemetrySubmit,
+    TelemetryKill,
+    TelemetryStatus,
 }
 
 impl Action {
@@ -163,32 +186,44 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
+            #[cfg(unix)]
+            Action::ObProxy { .. } => "ob",
+            #[cfg(unix)]
+            Action::ObAutoConfigure { .. } => "ob.configure.auto",
+            Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
-            #[cfg(feature = "feedback")]
-            Action::OpenFeedback { .. } => "feedback",
+            Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
+                #[cfg(feature = "unstable")]
                 "wheels" => "feature.enable.wheels",
                 _ => "feature.enable.unknown",
             },
             Action::FeatureDisable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.disable.main-x",
+                #[cfg(feature = "unstable")]
                 "wheels" => "feature.disable.wheels",
                 _ => "feature.disable.unknown",
             },
+            Action::FeatureList => "feature.list",
+            Action::TelemetrySubmit => "telemetry-submit",
+            Action::TelemetryKill => "telemetry-kill",
+            Action::TelemetryStatus => "telemetry-status",
         }
     }
 
     /// Execute the action with telemetry middleware
     pub async fn execute(self) -> miette::Result<()> {
         let name = self.match_action_name();
+        let is_telemetry_submit = matches!(&self, Action::TelemetrySubmit);
+
         let mut ctx = CommandContext::new();
         ctx.telemetry.add("command", name);
-        increment_counter("cli_command_invoked", 1, ctx.telemetry.attrs());
+        ctx.telemetry.record_counter("cli_command_invoked", 1);
 
         let start = Instant::now();
         let result = self.run(&mut ctx).await;
@@ -196,20 +231,20 @@ impl Action {
 
         match &result {
             Ok(_) => {
-                increment_counter("cli_command_success", 1, ctx.telemetry.attrs());
-                record_histogram(
-                    "cli_command_success_duration_ms",
-                    duration_ms,
-                    ctx.telemetry.into_attrs(),
-                );
+                ctx.telemetry.record_counter("cli_command_success", 1);
+                ctx.telemetry
+                    .record_histogram("cli_command_success_duration_ms", duration_ms);
             }
             Err(_) => {
-                increment_counter("cli_command_failure", 1, ctx.telemetry.attrs());
-                record_histogram(
-                    "cli_command_failure_duration_ms",
-                    duration_ms,
-                    ctx.telemetry.into_attrs(),
-                );
+                ctx.telemetry.record_counter("cli_command_failure", 1);
+                ctx.telemetry
+                    .record_histogram("cli_command_failure_duration_ms", duration_ms);
+            }
+        }
+
+        if !is_telemetry_submit {
+            if let Err(e) = ctx.telemetry.flush_to_spool() {
+                tracing::debug!("Failed to spool telemetry: {}", e);
             }
         }
 
@@ -241,6 +276,13 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
+            Action::McpRun { args } => mcp::run(ctx, &args).await,
+            #[cfg(unix)]
+            Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
+            #[cfg(unix)]
+            Action::ObAutoConfigure { instance } => {
+                outerbounds::auto_configure(ctx, &instance).await
+            }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -282,12 +324,8 @@ impl Action {
                 println!("{}", crate::ua::user_agent());
                 Ok(())
             }
-            #[cfg(feature = "feedback")]
-            Action::OpenFeedback {
-                feedback_type,
-                description,
-            } => {
-                feedback::open_feedback(ctx, feedback_type, description);
+            Action::OpenFeedback => {
+                feedback::open_feedback();
                 Ok(())
             }
             Action::ApiFetch {
@@ -307,29 +345,164 @@ impl Action {
                 )
                 .await
             }
+            #[allow(unused_variables)]
             Action::FeatureEnable {
                 feature,
                 force,
                 pip,
                 uv,
+                conda,
+                pixi,
             } => {
                 match feature.as_str() {
-                    "main-x" => feature::enable_main_x(ctx, force).await?,
-                    "wheels" => feature::enable_wheels(ctx, force, pip, uv).await?,
+                    "main-x" => {
+                        if pixi {
+                            feature::enable_main_x_pixi(ctx, force).await?
+                        } else {
+                            // Default to conda (--conda flag or no flag)
+                            feature::enable_main_x_conda(ctx, force).await?
+                        }
+                    }
+                    #[cfg(feature = "unstable")]
+                    "wheels" => {
+                        // wheels is an experimental feature that requires the feature flag
+                        // to be enabled first before configuring pip/uv
+                        if pip || uv {
+                            // User wants to configure tools - check if experimental flag is enabled
+                            if !feature::is_feature_enabled("wheels") {
+                                use crate::ui::status::{blank_line, highlight, tip, warn};
+                                warn(&format!(
+                                    "The {} feature is experimental and hidden from public use.",
+                                    highlight("wheels")
+                                ));
+                                tip(&format!(
+                                    "Enable the experimental flag first with {}",
+                                    highlight("ana feature enable wheels")
+                                ));
+                                blank_line();
+                                return Err(miette!(
+                                    "Experimental feature 'wheels' is not enabled"
+                                ));
+                            }
+                            feature::enable_wheels(ctx, force, pip, uv).await?
+                        } else {
+                            // No --pip/--uv flags - treat as enabling the experimental feature
+                            crate::ui::status::warn(&format!(
+                                "The '{}' feature is experimental and may change or be removed.",
+                                "wheels"
+                            ));
+                            if !force
+                                && !crate::input::prompt_yes_no(
+                                    "Enable this experimental feature?",
+                                    false,
+                                )
+                            {
+                                return Ok(());
+                            }
+                            feature::enable_feature("wheels")?;
+                            crate::ui::status::success("Experimental feature 'wheels' enabled.");
+                            crate::ui::status::blank_line();
+                            crate::ui::status::tip(&format!(
+                                "Now configure your tools with {} or {}",
+                                crate::ui::status::highlight("ana feature enable wheels --pip"),
+                                crate::ui::status::highlight("--uv")
+                            ));
+                        }
+                    }
+                    name if feature::is_valid_feature(name) => {
+                        crate::ui::status::warn(&format!(
+                            "The '{}' feature is experimental and may change or be removed.",
+                            name
+                        ));
+                        if !force
+                            && !crate::input::prompt_yes_no(
+                                "Enable this experimental feature?",
+                                false,
+                            )
+                        {
+                            return Ok(());
+                        }
+                        feature::enable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' enabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
                 }
+                // Silence unused variable warning for conda - it's the default when pixi is false
+                let _ = conda;
                 Ok(())
             }
+            #[allow(unused_variables)]
             Action::FeatureDisable {
                 feature,
                 force,
                 pip,
                 uv,
+                conda,
+                pixi,
             } => {
                 match feature.as_str() {
-                    "main-x" => feature::disable_main_x(ctx, force).await?,
-                    "wheels" => feature::disable_wheels(ctx, force, pip, uv).await?,
+                    "main-x" => {
+                        if pixi {
+                            feature::disable_main_x_pixi(ctx, force).await?
+                        } else {
+                            // Default to conda (--conda flag or no flag)
+                            feature::disable_main_x_conda(ctx, force).await?
+                        }
+                    }
+                    #[cfg(feature = "unstable")]
+                    "wheels" => {
+                        // wheels is an experimental feature
+                        if pip || uv {
+                            // User wants to deconfigure tools
+                            feature::disable_wheels(ctx, force, pip, uv).await?
+                        } else {
+                            // No --pip/--uv flags - disable the experimental feature flag
+                            feature::disable_feature("wheels")?;
+                            crate::ui::status::success("Experimental feature 'wheels' disabled.");
+                        }
+                    }
+                    name if feature::is_valid_feature(name) => {
+                        feature::disable_feature(name)?;
+                        crate::ui::status::success(&format!(
+                            "Experimental feature '{}' disabled.",
+                            name
+                        ));
+                    }
                     _ => return Err(miette!("Unknown feature: {}", feature)),
+                }
+                // Silence unused variable warning for conda - it's the default when pixi is false
+                let _ = conda;
+                Ok(())
+            }
+            Action::FeatureList => {
+                feature::list::print_feature_list(ctx);
+                Ok(())
+            }
+            Action::TelemetrySubmit => {
+                crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
+                Ok(())
+            }
+            Action::TelemetryKill => {
+                match crate::telemetry::kill_submitters() {
+                    Ok(0) => println!("No telemetry processes found"),
+                    Ok(n) => println!("Killed {} telemetry process(es)", n),
+                    Err(e) => return Err(miette!("Failed to kill processes: {}", e)),
+                }
+                Ok(())
+            }
+            Action::TelemetryStatus => {
+                match crate::telemetry::list_submitters() {
+                    Ok(pids) if pids.is_empty() => println!("No telemetry processes running"),
+                    Ok(pids) => {
+                        println!("{} telemetry process(es) running:", pids.len());
+                        for pid in pids {
+                            println!("  PID {}", pid);
+                        }
+                    }
+                    Err(e) => return Err(miette!("Failed to list processes: {}", e)),
                 }
                 Ok(())
             }
@@ -375,15 +548,7 @@ pub fn parse() -> (Action, LogLevel) {
                 },
                 Some(Commands::Self_ { command }) => match command {
                     None => Action::ShowSubcommandHelp("self".to_string()),
-                    #[cfg(feature = "feedback")]
-                    Some(SelfCommands::Feedback {
-                        bug,
-                        feature,
-                        description,
-                    }) => Action::OpenFeedback {
-                        feedback_type: feedback::parse_feedback_type(bug, feature),
-                        description,
-                    },
+                    Some(SelfCommands::Feedback) => Action::OpenFeedback,
                     Some(SelfCommands::Update {
                         version,
                         check,
@@ -400,6 +565,40 @@ pub fn parse() -> (Action, LogLevel) {
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
                 },
                 Some(Commands::Org { args }) => Action::OrgProxy { args },
+                Some(Commands::Mcp { command }) => match command {
+                    None => Action::ShowSubcommandHelp("mcp".to_string()),
+                    Some(cmd) => match cmd.into_action() {
+                        McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                        McpAction::Run(args) => Action::McpRun { args },
+                    },
+                },
+                #[cfg(unix)]
+                Some(Commands::Ob { command }) => {
+                    if !feature::is_feature_enabled("outerbounds") {
+                        use crate::ui::status::{blank_line, highlight, tip, warn};
+                        warn(&format!(
+                            "The {} command requires the experimental {} feature.",
+                            highlight("ob"),
+                            highlight("outerbounds")
+                        ));
+                        tip(&format!(
+                            "Enable it with {}",
+                            highlight("ana feature enable outerbounds")
+                        ));
+                        blank_line();
+                        std::process::exit(1);
+                    }
+                    match command {
+                        None => Action::ShowSubcommandHelp("ob".to_string()),
+                        Some(cmd) => match cmd.into_action() {
+                            ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                            ObAction::Proxy(args) => Action::ObProxy { args },
+                            ObAction::AutoConfigure { instance } => {
+                                Action::ObAutoConfigure { instance }
+                            }
+                        },
+                    }
+                }
                 Some(Commands::Tool { command }) => match command {
                     None => Action::ShowSubcommandHelp("tool".to_string()),
                     Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -431,24 +630,36 @@ pub fn parse() -> (Action, LogLevel) {
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     }) => Action::FeatureEnable {
                         feature: name,
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     },
                     Some(FeatureCommands::Disable {
                         name,
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     }) => Action::FeatureDisable {
                         feature: name,
                         force,
                         pip,
                         uv,
+                        conda,
+                        pixi,
                     },
+                    Some(FeatureCommands::List) => Action::FeatureList,
                 },
+                Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
+                Some(Commands::TelemetryKill) => Action::TelemetryKill,
+                Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
             };
             (action, level)
         }
@@ -505,10 +716,17 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     e.exit();
 }
 
-/// Get subcommand names and descriptions from clap for help introspection
+/// Get subcommand names and descriptions from clap for help introspection.
+/// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
+    #[cfg(unix)]
+    let show_ob = feature::is_feature_enabled("outerbounds");
+    #[cfg(not(unix))]
+    let show_ob = false;
+
     Cli::command()
         .get_subcommands()
+        .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
             (
                 s.get_name().to_string(),
@@ -620,6 +838,30 @@ enum Commands {
         args: Vec<String>,
     },
 
+    /// Anaconda MCP — Model Context Protocol tools for AI assistants
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana mcp <command> [options]"
+    )]
+    Mcp {
+        #[command(subcommand)]
+        command: Option<McpCommands>,
+    },
+
+    /// Outerbounds platform CLI (experimental)
+    #[cfg(unix)]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana ob <command> [options]",
+        after_help = "Note: Outerbounds integration is an experimental alpha feature."
+    )]
+    Ob {
+        #[command(subcommand)]
+        command: Option<ObCommands>,
+    },
+
     /// Manage tools
     #[command(
         subcommand_required = false,
@@ -652,6 +894,18 @@ enum Commands {
         #[command(subcommand)]
         command: Option<FeatureCommands>,
     },
+
+    /// Submit pending telemetry batches (internal use only)
+    #[command(hide = true)]
+    TelemetrySubmit,
+
+    /// Kill background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryKill,
+
+    /// Check status of background telemetry processes (internal use only)
+    #[command(hide = true)]
+    TelemetryStatus,
 }
 
 #[derive(Subcommand)]
@@ -686,20 +940,8 @@ enum AuthCommands {
 
 #[derive(Subcommand)]
 enum SelfCommands {
-    /// Open the feedback form
-    #[cfg(feature = "feedback")]
-    Feedback {
-        /// Report a bug
-        #[arg(long, conflicts_with = "feature")]
-        bug: bool,
-
-        /// Request a feature
-        #[arg(long, conflicts_with = "bug")]
-        feature: bool,
-
-        /// Pre-fill the description
-        description: Option<String>,
-    },
+    /// Open GitHub issues page to report bugs or request features
+    Feedback,
 
     /// Manage your ana version
     Update {
@@ -773,9 +1015,12 @@ enum ApiCommands {
 
 #[derive(Subcommand)]
 enum FeatureCommands {
+    /// List available features
+    List,
+
     /// Enable a feature
     Enable {
-        /// Name of the feature to enable (e.g., main-x, wheels)
+        /// Name of the feature to enable (e.g., main-x)
         name: String,
 
         /// Skip confirmation prompt
@@ -783,17 +1028,25 @@ enum FeatureCommands {
         force: bool,
 
         /// Configure pip (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         pip: bool,
 
         /// Configure uv (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         uv: bool,
+
+        /// Configure conda (for main-x feature, default if neither --conda nor --pixi specified)
+        #[arg(long)]
+        conda: bool,
+
+        /// Configure pixi (for main-x feature)
+        #[arg(long)]
+        pixi: bool,
     },
 
     /// Disable a feature
     Disable {
-        /// Name of the feature to disable (e.g., main-x, wheels)
+        /// Name of the feature to disable (e.g., main-x)
         name: String,
 
         /// Skip confirmation prompt
@@ -801,12 +1054,20 @@ enum FeatureCommands {
         force: bool,
 
         /// Deconfigure pip (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         pip: bool,
 
         /// Deconfigure uv (for wheels feature)
-        #[arg(long)]
+        #[arg(long, hide = true)]
         uv: bool,
+
+        /// Deconfigure conda (for main-x feature, default if neither --conda nor --pixi specified)
+        #[arg(long)]
+        conda: bool,
+
+        /// Deconfigure pixi (for main-x feature)
+        #[arg(long)]
+        pixi: bool,
     },
 }
 
@@ -824,8 +1085,19 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
-        let hidden_from_help: std::collections::HashSet<_> =
-            ["org", "config"].into_iter().collect();
+        // "ob" is conditionally hidden based on experimental feature state
+        // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
+        let hidden_from_help: std::collections::HashSet<_> = [
+            "org",
+            "config",
+            "ob",
+            "bootstrap",
+            "telemetry-submit",
+            "telemetry-kill",
+            "telemetry-status",
+        ]
+        .into_iter()
+        .collect();
 
         let cmd = Cli::command();
         let clap_subcommands: std::collections::HashSet<_> = cmd
@@ -850,6 +1122,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels"]).unwrap();
         match cli.command {
@@ -860,6 +1133,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -872,6 +1146,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels"]).unwrap();
         match cli.command {
@@ -882,6 +1157,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -894,6 +1170,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_pip_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip"]).unwrap();
         match cli.command {
@@ -904,6 +1181,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -916,6 +1194,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_uv_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--uv"]).unwrap();
         match cli.command {
@@ -926,6 +1205,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -938,6 +1218,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_enable_wheels_both_flags() {
         let cli =
             Cli::try_parse_from(["ana", "feature", "enable", "wheels", "--pip", "--uv"]).unwrap();
@@ -949,6 +1230,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -961,6 +1243,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_pip_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip"]).unwrap();
         match cli.command {
@@ -971,6 +1254,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -983,6 +1267,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_uv_flag() {
         let cli = Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--uv"]).unwrap();
         match cli.command {
@@ -993,6 +1278,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");
@@ -1005,6 +1291,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable")]
     fn test_feature_disable_wheels_both_flags() {
         let cli =
             Cli::try_parse_from(["ana", "feature", "disable", "wheels", "--pip", "--uv"]).unwrap();
@@ -1016,6 +1303,7 @@ mod tests {
                         force,
                         pip,
                         uv,
+                        ..
                     }),
             }) => {
                 assert_eq!(name, "wheels");

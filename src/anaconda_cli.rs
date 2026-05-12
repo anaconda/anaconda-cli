@@ -37,7 +37,15 @@ pub fn run_subcommand(
         return Err(msg);
     }
 
-    let status = Command::new(&anaconda_bin)
+    run_anaconda_command(&anaconda_bin, subcommand, args)
+}
+
+fn run_anaconda_command(
+    anaconda_bin: &std::path::Path,
+    subcommand: &str,
+    args: &[String],
+) -> Result<(), String> {
+    let status = Command::new(anaconda_bin)
         .arg(subcommand)
         .args(args)
         .status()

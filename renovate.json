@@ -25,6 +25,17 @@
       "matchStrings": [
         "ana-version:\\s*(?<currentValue>v[\\d.]+)"
       ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "conda",
+      "description": "Upgrade conda dependencies in tool-specs pixi.toml files. This allows us to track packages on main.",
+      "managerFilePatterns": [
+        "/^tool-specs/.*pixi\\.toml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=conda depName=(?<depName>.*?)\\n[\\w-]+ = \"==(?<currentValue>[\\d.]+)\""
+      ]
     }
   ],
   "extends": [
@@ -35,5 +46,27 @@
   ],
   "lockFileMaintenance": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Group all rattler crates together",
+      "groupName": "rattler",
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackagePatterns": [
+        "^rattler"
+      ]
+    },
+    {
+      "description": "Disable native pixi manager for tool-specs (use custom regex manager instead)",
+      "enabled": false,
+      "matchFileNames": [
+        "tool-specs/**"
+      ],
+      "matchManagers": [
+        "pixi"
+      ]
+    }
+  ]
 }

@@ -19,9 +19,9 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
         name: "TOOLCHAIN",
         commands: &[
             "tool",
-            "bootstrap",
-            "feature",
-            "api",
+            // Hiding bootstrap, as it's synonymous to `ana tool install anaconda-cli`
+            // "bootstrap",
+            "feature", "api", "mcp", "ob",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",
@@ -47,12 +47,16 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
             command: "ana login".to_string(),
         },
         HelpExample {
-            desc: "Install a tool".to_string(),
-            command: "ana tool install pixi".to_string(),
+            desc: "Enable access to Anaconda's main-x (beta) channel".to_string(),
+            command: "ana feature enable main-x".to_string(),
         },
         HelpExample {
             desc: "Manage your ana version".to_string(),
             command: "ana self update".to_string(),
+        },
+        HelpExample {
+            desc: "Provide feedback or report a bug".to_string(),
+            command: "ana self feedback".to_string(),
         },
     ]
 }

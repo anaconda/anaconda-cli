@@ -1,0 +1,96 @@
+name: Sign Windows binary
+description: Signs a Windows PE file using AzureSignTool
+
+inputs:
+  binary-path:
+    description: The path to the binary to sign and notarize.
+    required: true
+  vault-approle-path:
+    description: The approle for the HashiCorp Vault namespace.
+    required: true
+  vault-cf-client-id:
+    description: CloudFlare client ID to access the HashiCorp Vault from a public GitHub runner.
+    required: true
+  vault-cf-client-secret:
+    description: CloudFlare secret to access the HashiCorp Vault from a public GitHub runner.
+    required: true
+  vault-role-id:
+    description: Role ID for the HashiCorp Vault namespace.
+    required: true
+  vault-secret-id:
+    description: Secret ID for the HashiCorp Vault namespace.
+    required: true
+  vault-mount:
+    description: HashiCorp Vault mount to retrieve secrets from (`dev` or `prod`).
+    required: true
+  vault-url:
+    description: URL to the HashiCorp Vault.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate input
+      env:
+        BINARY_PATH: ${{ inputs.binary-path }}
+        VAULT_MOUNT: ${{ inputs.vault-mount }}
+      run: |
+        # Validate inputs
+        if ($env:VAULT_MOUNT -ne "dev" -and $env:VAULT_MOUNT -ne "prod") {
+            throw "Unrecognized vault mount point: $env:VAULT_MOUNT"
+        }
+        if (-not (Test-Path -Path $env:BINARY_PATH -PathType Leaf)) {
+            throw "$env:BINARY_PATH does not exist."
+        }
+      shell: pwsh
+
+    - name: Get AzureSignTool
+      run: |
+        # Get AzureSignTool
+        if (-not (Get-Command AzureSignTool -ErrorAction SilentlyContinue)) {
+            dotnet tool install --global AzureSignTool
+        }
+      shell: pwsh
+
+    - name: Get credentials
+      id: certificate
+      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      with:
+        exportEnv: false
+        extraHeaders: |
+          CF-Access-Client-Id: ${{ inputs.vault-cf-client-id }}
+          CF-Access-Client-Secret: ${{ inputs.vault-cf-client-secret }}
+        method: approle
+        namespace: admin
+        path: ${{ inputs.vault-approle-path }}
+        roleId: ${{ inputs.vault-role-id }}
+        secretId: ${{ inputs.vault-secret-id }}
+        url: ${{ inputs.vault-url }}
+        secrets: |
+          anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate certificate_name | certificate-name;
+          anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate client_id | client-id ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate subscription_id | subscription-id ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate tenant_id | tenant-id ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate url | url
+
+    - name: Log into Azure
+      uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+      with:
+        client-id: ${{ steps.certificate.outputs.client-id }}
+        subscription-id: ${{ steps.certificate.outputs.subscription-id }}
+        tenant-id: ${{ steps.certificate.outputs.tenant-id }}
+
+    - name: Sign binary
+      env:
+        AZURE_CERTIFICATE_NAME: ${{ steps.certificate.outputs.certificate-name }}
+        AZURE_URL: ${{ steps.certificate.outputs.url }}
+        BINARY_PATH: ${{ inputs.binary-path }}
+      run: |
+        # Sign binary
+        AzureSignTool sign -v -kvm `
+          -kvu "$env:AZURE_URL" `
+          -kvc "$env:AZURE_CERTIFICATE_NAME" `
+          -tr 'http://timestamp.digicert.com' `
+          -td sha512 -fd sha512 `
+          "$env:BINARY_PATH"
+      shell: pwsh

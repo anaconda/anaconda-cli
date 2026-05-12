@@ -5,17 +5,14 @@ on:
   merge_group:
   workflow_call:
     inputs:
+      environment:
+        description: The GitHub environment to use
+        type: string
+        default: dev
       skip-tests:
         description: Whether to skip tests
         type: boolean
         default: false
-    secrets:
-      PRIVATE_REPO_TOKEN:
-        description: Token for accessing private repositories
-        required: true
-      SENTRY_DSN:
-        description: Sentry DSN for error reporting (only for release builds)
-        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -25,12 +22,18 @@ permissions: {}
 
 jobs:
   build:
+    environment:
+      # Only deploy when calling this workflow via pushes to main or releases
+      # Otherwise, pull requests will be cluttered with deployment messages
+      deployment: ${{ github.event_name == 'workflow_call' }}
+      name: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     permissions:
-      contents: read  # To check out private repository
+      contents: read   # To check out private repository
+      id-token: write  # Required to authenticate with Azure via OIDC
     strategy:
       fail-fast: true
       matrix:
@@ -70,16 +73,10 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
       - name: Set up ana with pixi
-        if: matrix.os != 'ubuntu-24.04-arm'
-        uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
+        uses: ./.github/actions/setup-ana
         with:
-          ana-version: v0.0.9
+          ana-version: v0.1.3
           tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-
-      - name: Set up pixi (fallback)
-        if: matrix.os == 'ubuntu-24.04-arm'
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e  # v0.9.4
 
       - name: Run unit tests
         if: ${{ !inputs.skip-tests }}
@@ -87,8 +84,84 @@ jobs:
           RUST_BACKTRACE: 1
         run: pixi run test-release
 
+      - name: Pre-compile shim for signing (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: pixi run build-shim
+
+      - name: Sign shim (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        id: sign-shim
+        uses: ./.github/actions/sign-windows
+        with:
+          binary-path: target/shim/shim.exe
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
       - name: Build release binary
+        env:
+          WINDOWS_SHIM_PATH: ${{ runner.os == 'Windows' && 'target/shim/shim.exe' || '' }}
         run: pixi run build-release
+
+      - name: Sign binary (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        id: sign-windows
+        uses: ./.github/actions/sign-windows
+        with:
+          binary-path: target/release/ana.exe
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
+      - name: Sign and notarize binary (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        id: sign-notarize-macos
+        uses: ./.github/actions/sign-notarize-macos
+        with:
+          binary-path: target/release/ana
+          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          # Created by CORE-10231
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
+      - name: Run integration tests
+        if: ${{ !inputs.skip-tests }}
+        env:
+          ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
+          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
+          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
+          CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
+          MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
+          MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
+          TEST_WINDOWS_SIGNING: 1
+        run: pixi run test-integration
+
+      - name: Run integration tests (PowerShell)
+        if: ${{ !inputs.skip-tests && runner.os == 'Windows' }}
+        env:
+          ANA_SENTRY_ENVIRONMENT: integration-test
+          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
+          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
+          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
+        run: pixi run test-integration
+        shell: powershell
 
       - name: Build conda package
         run: pixi run build-conda

@@ -14,11 +14,13 @@ use opentelemetry::Value;
 use crate::VERSION;
 use crate::config::Config;
 use crate::http::{self, Client};
+use crate::telemetry::{SerializableValue, TelemetryEvent};
 
 /// Telemetry context for collecting command-specific attributes.
 #[derive(Debug, Default)]
 pub struct TelemetryContext {
     attrs: HashMap<String, Value>,
+    events: Vec<TelemetryEvent>,
 }
 
 impl TelemetryContext {
@@ -28,7 +30,10 @@ impl TelemetryContext {
         attrs.insert("os".to_string(), OS.into());
         attrs.insert("arch".to_string(), ARCH.into());
         attrs.insert("version".to_string(), VERSION.into());
-        Self { attrs }
+        Self {
+            attrs,
+            events: Vec::new(),
+        }
     }
 
     /// Add an attribute.
@@ -36,14 +41,49 @@ impl TelemetryContext {
         self.attrs.insert(key.into(), value.into());
     }
 
-    /// Get the attributes for recording.
-    pub(crate) fn into_attrs(self) -> HashMap<String, Value> {
-        self.attrs
+    /// Record a counter metric (buffered locally).
+    pub fn record_counter(&mut self, name: &str, value: u64) {
+        let attrs = self
+            .attrs
+            .iter()
+            .map(|(k, v)| (k.clone(), SerializableValue::from(v.clone())))
+            .collect();
+
+        self.events.push(TelemetryEvent::Counter {
+            name: name.to_string(),
+            value,
+            attributes: attrs,
+        });
     }
 
-    /// Clone attributes for intermediate recording.
-    pub(crate) fn attrs(&self) -> HashMap<String, Value> {
-        self.attrs.clone()
+    /// Record a histogram metric (buffered locally).
+    pub fn record_histogram(&mut self, name: &str, value: f64) {
+        let attrs = self
+            .attrs
+            .iter()
+            .map(|(k, v)| (k.clone(), SerializableValue::from(v.clone())))
+            .collect();
+
+        self.events.push(TelemetryEvent::Histogram {
+            name: name.to_string(),
+            value,
+            attributes: attrs,
+        });
+    }
+
+    /// Flush buffered events to spool file.
+    ///
+    /// Returns Ok(None) if telemetry is disabled or no events.
+    pub fn flush_to_spool(self) -> std::io::Result<Option<std::path::PathBuf>> {
+        if self.events.is_empty() {
+            return Ok(None);
+        }
+
+        if !crate::config::telemetry_enabled() {
+            return Ok(None);
+        }
+
+        crate::telemetry::write_batch(self.events, VERSION).map(Some)
     }
 }
 
@@ -60,7 +100,7 @@ pub struct CommandContext {
     /// Download client (lazy initialized).
     download_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Unauthenticated client (lazy initialized).
-    unauthenticated_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
+    unauthenticated_client: OnceLock<Client>,
 }
 
 impl CommandContext {
@@ -113,13 +153,13 @@ impl CommandContext {
 
     /// Get or create an unauthenticated client with a timeout.
     /// Used for login flows where the user isn't authenticated yet.
-    pub fn unauthenticated_client(
-        &self,
-        timeout: Duration,
-    ) -> &reqwest_middleware::ClientWithMiddleware {
+    pub fn unauthenticated_client(&self, timeout: Duration) -> &Client {
         self.unauthenticated_client.get_or_init(|| {
-            http::build_client(reqwest::Client::builder().timeout(timeout))
-                .expect("failed to create unauthenticated client")
+            Client::new(
+                reqwest::Client::builder().timeout(timeout),
+                self.config.base_url(),
+            )
+            .expect("failed to create unauthenticated client")
         })
     }
 }
