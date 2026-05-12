@@ -306,6 +306,7 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     let option_args: Vec<_> = cmd
         .get_arguments()
         .filter(|a| !is_builtin_arg(a))
+        .filter(|a| !a.is_hide_set())
         .filter(|a| a.get_long().is_some() || a.get_short().is_some())
         .collect();
     print_section(&term, "OPTIONS");

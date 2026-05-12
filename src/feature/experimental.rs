@@ -15,10 +15,16 @@ use serde::{Deserialize, Serialize};
 use crate::paths::ana_home;
 
 /// Valid experimental feature names.
-#[cfg(unix)]
+#[cfg(all(unix, feature = "unstable"))]
+const VALID_FEATURES: &[&str] = &["outerbounds", "wheels"];
+
+#[cfg(all(unix, not(feature = "unstable")))]
 const VALID_FEATURES: &[&str] = &["outerbounds"];
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "unstable"))]
+const VALID_FEATURES: &[&str] = &["wheels"];
+
+#[cfg(all(windows, not(feature = "unstable")))]
 const VALID_FEATURES: &[&str] = &[];
 
 /// Root config structure for ~/.ana/config.toml
