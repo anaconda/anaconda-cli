@@ -22,6 +22,9 @@ jobs:
       environment: ${{ github.event_name == 'release' && 'prod' || 'dev' }}
       skip-tests: ${{ github.event_name == 'push' }}
     secrets: inherit  # zizmor: ignore[secrets-inherit] reusable workflows must inherit environment secrets
+    permissions:
+      contents: read   # To check out private repository
+      id-token: write  # Required for Azure OIDC authentication
 
   publish-to-anaconda-dot-org:
     name: Publish to Anaconda.org
