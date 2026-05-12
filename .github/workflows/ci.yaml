@@ -39,10 +39,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
-    defaults:
-      run:
-        shell: bash -el {0}
-
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -56,10 +52,12 @@ jobs:
           git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
+        shell: bash
 
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash
         run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+        shell: bash
 
       - name: Cache Cargo registry and build
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -151,11 +149,11 @@ jobs:
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
           TEST_WINDOWS_SIGNING: 1
         run: pixi run test-integration
-        shell: ${{ runner.os == 'Windows' && 'powershell' || 'bash -el {0}' }}
 
       - name: Run Windows SH integration tests
         if: ${{ !inputs.skip-tests && runner.os == 'Windows' }}
         run: pixi run pytest -v test/test_sh_install_script.py
+        shell: bash
 
       - name: Build conda package
         run: pixi run build-conda
