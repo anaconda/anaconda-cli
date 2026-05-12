@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 import stat
 import subprocess
 from pathlib import Path
@@ -10,14 +9,11 @@ from pathlib import Path
 import pytest
 from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
+from helpers import get_powershell_binary
 
 SCRIPT_PATH = REPO_ROOT / "scripts" / "install.ps1"
 
-if shutil.which("pwsh"):
-    PWSH = "pwsh"
-elif shutil.which("powershell"):
-    PWSH = "powershell"
-else:
+if not (PWSH := get_powershell_binary()):
     pytest.skip("Tests require PowerShell.", allow_module_level=True)
 
 BINARY_SUFFIX = ".exe" if IS_WINDOWS else ""

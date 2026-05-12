@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from helpers import IS_WINDOWS
+from helpers import get_powershell_binary
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -19,6 +20,8 @@ if TYPE_CHECKING:
 if not IS_WINDOWS:
     pytest.skip("Windows signing tests", allow_module_level=True)
 
+if not (PWSH := get_powershell_binary()):
+    pytest.skip("Tests require PowerShell.", allow_module_level=True)
 
 # Use environment variable as sentinel variable
 # since local builds are not expected to be signed
@@ -30,7 +33,7 @@ def get_authenticode_signature(binary_path: Path) -> dict[str, Any]:
     """Get Authenticode signature information for a Windows binary."""
     result = subprocess.run(
         [
-            "powershell",
+            PWSH,
             "-c",
             f"ConvertTo-Json (Get-AuthenticodeSignature '{binary_path}')",
         ],
