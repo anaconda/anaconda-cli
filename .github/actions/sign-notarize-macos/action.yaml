@@ -27,14 +27,6 @@ inputs:
     description: URL to the HashiCorp Vault.
     required: true
 
-outputs:
-  developer-id:
-    description: The developer ID for the application certificate. Used for testing.
-    value: ${{ steps.application-certificate.outputs.developer-id }}
-  fingerprint:
-    description: The fingerprint of the public certificate. Used for testing.
-    value: ${{ steps.application-certificate.outputs.fingerprint }}
-
 runs:
   using: composite
   steps:
@@ -71,7 +63,6 @@ runs:
         secrets: |
           anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate base64 | base64 ;
           anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate developer_id | developer-id ;
-          anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate fingerprint | fingerprint ;
           anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate password | password
 
     - name: Sign binary

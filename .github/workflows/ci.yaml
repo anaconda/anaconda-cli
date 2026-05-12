@@ -151,9 +151,6 @@ jobs:
           name: binary-${{ matrix.os }}
           path: target/release/ana${{ runner.os == 'Windows' && '.exe' || '' }}
           retention-days: 7
-    outputs:
-      macos-fingerprint: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
-      macos-developer-id: ${{ steps.sign-notarize-macos.outputs.developer-id }}
 
   test-integration:
     name: Integration Tests (${{ matrix.os }}${{ matrix.shell && format(', {0}', matrix.shell) || '' }})
@@ -181,17 +178,37 @@ jobs:
           persist-credentials: false
 
       - name: Set up ana with pixi
-        uses: anaconda/github-actions/setup-ana@fd7a6d41f5b751fe36e01155fd8eee7f1c51e598 # v0.2.0
+        uses: ./.github/actions/setup-ana
         with:
           ana-version: v0.1.3
           tools: pixi
-          github-token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - name: Download binary
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: binary-${{ matrix.os }}
           path: target/release/
+
+      - name: Get application certificate data
+        if: ${{ runner.os == 'macOS' }}
+        id: macos-certificate
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          exportEnv: false
+          # Created by CORE-10231
+          extraHeaders: |
+            CF-Access-Client-Id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          method: approle
+          namespace: admin
+          path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          roleId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          url: ${{ secrets.EXT_VAULT_ADDR }}
+          secrets: |
+            anaconda-cli/${{ inputs.environment || 'dev' }}/data/macos/application_certificate developer_id | developer-id ;
+            anaconda-cli/${{ inputs.environment || 'dev' }}/data/macos/application_certificate fingerprint | fingerprint
 
       - name: Run integration tests
         env:
@@ -201,8 +218,8 @@ jobs:
           # API key for tests requiring real authentication (pixi, uv, pip feature tests)
           ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
           CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
-          MACOS_CERTIFICATE_FINGERPRINT: ${{ needs.build.outputs.macos-fingerprint }}
-          MACOS_DEVELOPER_ID: ${{ needs.build.outputs.macos-developer-id }}
+          MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.macos-certificate.outputs.fingerprint }}
+          MACOS_DEVELOPER_ID: ${{ steps.macos-certificate.outputs.developer-id }}
           TEST_WINDOWS_SIGNING: 1
         run: pixi run test-integration
 
