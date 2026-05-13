@@ -25,37 +25,29 @@ mod update;
 
 pub const VERSION: &str = env!("PKG_VERSION");
 
-/// Reset SIGPIPE to default behavior so the process terminates cleanly when
-/// output is piped to commands like `head` or `grep -q`. Rust ignores SIGPIPE
-/// by default, which causes panics on broken pipe errors.
-#[cfg(unix)]
-fn reset_sigpipe() {
-    unsafe {
-        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+fn prepare_runtime() {
+    #[cfg(unix)]
+    {
+        // Reset SIGPIPE to default behavior so the process terminates cleanly when
+        // output is piped to commands like `head` or `grep -q`. Rust ignores SIGPIPE
+        // by default, which causes panics on broken pipe errors.
+        unsafe {
+            libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+        }
+
+        // Raise RLIMIT_NOFILE for rattler installations. On macOS, respects
+        // kern.maxfilesperproc (the real hard ceiling).
+        match rlimit::increase_nofile_limit(2048) {
+            Ok(n) => tracing::debug!(limit = n, "RLIMIT_NOFILE raised"),
+            Err(e) => tracing::warn!(error = %e, "Failed to raise RLIMIT_NOFILE"),
+        }
     }
 }
-
-#[cfg(not(unix))]
-fn reset_sigpipe() {}
-
-/// Attempt to raise RLIMIT_NOFILE to a value suitable for rattler installations.
-/// On macOS, respects kern.maxfilesperproc (the real hard ceiling).
-/// Logs a warning if the limit could not be raised; never fatal.
-#[cfg(unix)]
-fn raise_open_file_limit(target: u64) {
-    match rlimit::increase_nofile_limit(target) {
-        Ok(n) => tracing::debug!(limit = n, "RLIMIT_NOFILE raised"),
-        Err(e) => tracing::warn!(error = %e, target, "Failed to raise RLIMIT_NOFILE"),
-    }
-}
-
-#[cfg(not(unix))]
-fn raise_open_file_limit(_target: u64) {}
 
 #[tokio::main]
 async fn main() {
-    reset_sigpipe();
-    raise_open_file_limit(2048);
+    // Apply platform-specific runtime modifications
+    prepare_runtime();
 
     let config = config::Config::load();
     let _diagnostics_guard = diagnostics::init(&config);
