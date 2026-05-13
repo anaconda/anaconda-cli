@@ -166,6 +166,15 @@ impl Client {
     }
 }
 
+/// Create a `HeaderMap` with a sensitive `Authorization: Bearer` header.
+pub fn bearer_header(token: &str) -> reqwest::header::HeaderMap {
+    let mut headers = reqwest::header::HeaderMap::new();
+    let mut value = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap();
+    value.set_sensitive(true);
+    headers.insert(reqwest::header::AUTHORIZATION, value);
+    headers
+}
+
 /// Get Cloudflare Zero Trust headers if environment variables are set.
 /// Returns None if either CF_ACCESS_CLIENT_ID or CF_ACCESS_CLIENT_SECRET is missing.
 pub fn cloudflare_headers() -> Option<reqwest::header::HeaderMap> {
