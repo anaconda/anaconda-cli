@@ -42,23 +42,15 @@ fn reset_sigpipe() {}
 /// On macOS, respects kern.maxfilesperproc (the real hard ceiling).
 /// Logs a warning if the limit could not be raised; never fatal.
 #[cfg(unix)]
-pub fn raise_open_file_limit(target: u64) -> u64 {
+fn raise_open_file_limit(target: u64) {
     match rlimit::increase_nofile_limit(target) {
-        Ok(n) => {
-            tracing::debug!(limit = n, "RLIMIT_NOFILE raised");
-            n
-        }
-        Err(e) => {
-            tracing::warn!(error = %e, target, "Failed to raise RLIMIT_NOFILE");
-            0
-        }
+        Ok(n) => tracing::debug!(limit = n, "RLIMIT_NOFILE raised"),
+        Err(e) => tracing::warn!(error = %e, target, "Failed to raise RLIMIT_NOFILE"),
     }
 }
 
 #[cfg(not(unix))]
-pub fn raise_open_file_limit(_target: u64) -> u64 {
-    0
-}
+fn raise_open_file_limit(_target: u64) {}
 
 #[tokio::main]
 async fn main() {
