@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
+import pytest
 from helpers import AnaRunner
 
 
 class TestSelfUpdateSameVersion:
     """Tests for 'ana self update <version>' when already on that version."""
 
+    @pytest.mark.parametrize("prefix", ["v", ""])
     def test_update_to_same_version_shows_up_to_date(
-        self, run_ana: AnaRunner, ana_version: str
+        self, run_ana: AnaRunner, ana_version: str, prefix: str
     ) -> None:
         """When updating to the current version, show 'up to date' instead of downloading."""
-
-        # Try to update to the same version (with v prefix)
-        result = run_ana("self", "update", f"v{ana_version}")
+        result = run_ana("self", "update", f"{prefix}{ana_version}")
         assert result.returncode == 0
 
         # Should show "UP TO DATE" status, not "UPDATED"
@@ -23,18 +23,6 @@ class TestSelfUpdateSameVersion:
         # Should show current version
         assert ana_version in result.stderr
         # Should NOT show download progress
-        assert "Downloading" not in result.stderr
-
-    def test_update_to_same_version_without_v_prefix(
-        self, run_ana: AnaRunner, ana_version: str
-    ) -> None:
-        """Version comparison should work without 'v' prefix."""
-        # Try to update to the same version (without v prefix)
-        result = run_ana("self", "update", ana_version)
-        assert result.returncode == 0
-
-        # Should show "UP TO DATE" status
-        assert "UP TO DATE" in result.stderr
         assert "Downloading" not in result.stderr
 
     def test_update_to_same_version_with_force_flag(
