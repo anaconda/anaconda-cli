@@ -111,6 +111,7 @@ pub enum Action {
     },
     Update {
         version: Option<String>,
+        force: bool,
     },
     CheckForUpdate,
     ShowAvailableVersions,
@@ -305,8 +306,8 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
-            Action::Update { version } => {
-                update::run_update(ctx, VERSION, version).await;
+            Action::Update { version, force } => {
+                update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
             }
             Action::CheckForUpdate => {
@@ -553,13 +554,14 @@ pub fn parse() -> (Action, LogLevel) {
                         version,
                         check,
                         list,
+                        force,
                     }) => {
                         if check {
                             Action::CheckForUpdate
                         } else if list {
                             Action::ShowAvailableVersions
                         } else {
-                            Action::Update { version }
+                            Action::Update { version, force }
                         }
                     }
                     Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
@@ -949,12 +951,16 @@ enum SelfCommands {
         version: Option<String>,
 
         /// Check if an update is available
-        #[arg(long, conflicts_with_all = ["list", "version"])]
+        #[arg(long, conflicts_with_all = ["list", "version", "force"])]
         check: bool,
 
         /// List available versions
-        #[arg(long, conflicts_with_all = ["check", "version"])]
+        #[arg(long, conflicts_with_all = ["check", "version", "force"])]
         list: bool,
+
+        /// Force reinstall even if already on the target version
+        #[arg(long, conflicts_with_all = ["check", "list"])]
+        force: bool,
     },
 
     /// Display the user-agent string

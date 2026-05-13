@@ -413,15 +413,37 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
     eprintln!();
 }
 
+fn print_up_to_date(current_version: &str) {
+    use crate::ui::status;
+    eprintln!("  {}", status::section("UP TO DATE"));
+    eprintln!();
+    eprintln!("  {:<10} v{}", "Current:", current_version);
+    eprintln!();
+}
+
 pub async fn run_update(
     ctx: &CommandContext,
     current_version: &str,
     target_version: Option<String>,
+    force: bool,
 ) {
     use crate::ui::status;
 
     if let Some(version) = target_version {
-        // Install specific version
+        // Normalize version tag (ensure v prefix)
+        let target_tag = if version.starts_with('v') {
+            version
+        } else {
+            format!("v{}", version)
+        };
+
+        // Check if already on this version (unless --force is used)
+        let current_tag = format!("v{}", current_version);
+        if !force && target_tag == current_tag {
+            print_up_to_date(current_version);
+            return;
+        }
+
         let releases = match fetch_available_releases(ctx).await {
             Ok(r) => r,
             Err(e) => {
@@ -429,13 +451,6 @@ pub async fn run_update(
                 status::error(&format!("Failed to fetch releases: {}", e));
                 return;
             }
-        };
-
-        // Normalize version tag (ensure v prefix)
-        let target_tag = if version.starts_with('v') {
-            version
-        } else {
-            format!("v{}", version)
         };
 
         let release = match releases.into_iter().find(|r| r.tag_name == target_tag) {
@@ -482,10 +497,7 @@ pub async fn run_update(
                 }
             }
             UpdateCheck::AlreadyUpToDate => {
-                eprintln!("  {}", status::section("UP TO DATE"));
-                eprintln!();
-                eprintln!("  {:<10} v{}", "Current:", current_version);
-                eprintln!();
+                print_up_to_date(current_version);
             }
             UpdateCheck::NoReleases => {
                 status::warn("No releases available.");

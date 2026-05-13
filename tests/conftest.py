@@ -286,3 +286,11 @@ def ana_install_env_with_mock_server(
     """Provide isolated environment with mock server URL."""
     ana_install_env_isolated["ANA_BASE_URL"] = ana_binary_mock_server
     return ana_install_env_isolated
+
+
+@pytest.fixture
+def ana_version(run_ana: AnaRunner) -> str:
+    """Get the current ana version."""
+    result = run_ana("--version")
+    assert result.returncode == 0
+    return result.stdout.strip()
