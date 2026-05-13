@@ -55,7 +55,7 @@ fn raise_open_file_limit(_target: u64) {}
 #[tokio::main]
 async fn main() {
     reset_sigpipe();
-    raise_open_file_limit(10240);
+    raise_open_file_limit(2048);
 
     let config = config::Config::load();
     let _diagnostics_guard = diagnostics::init(&config);
