@@ -170,23 +170,34 @@ class TestSelfUpdateStaticHosting:
 class TestSelfUpdateGitHubFallback:
     """Tests for self update with GitHub fallback."""
 
-    def test_update_list(self, run_ana: AnaRunner) -> None:
+    @pytest.fixture(scope="class")
+    def self_update_env(self):
+        env = {"ANA_SELF_UPDATE_URL": "github"}
+        if token := os.environ.get("GITHUB_TOKEN"):
+            env["GITHUB_TOKEN"] = token
+        return env
+
+    def test_update_list(
+        self, run_ana: AnaRunner, self_update_env: dict[str, str]
+    ) -> None:
         result = run_ana(
             "self",
             "update",
             "--list",
-            env={"ANA_SELF_UPDATE_URL": "github"},
+            env=self_update_env,
         )
         assert result.returncode == 0
         # Should show version list
         assert "v0.0" in result.stderr
 
-    def test_update_check_shows_status(self, run_ana: AnaRunner) -> None:
+    def test_update_check_shows_status(
+        self, run_ana: AnaRunner, self_update_env: dict[str, str]
+    ) -> None:
         result = run_ana(
             "self",
             "update",
             "--check",
-            env={"ANA_SELF_UPDATE_URL": "github"},
+            env=self_update_env,
         )
         assert result.returncode == 0
         # Should show either "Update available" or "Already up to date"

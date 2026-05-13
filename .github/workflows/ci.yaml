@@ -146,6 +146,7 @@ jobs:
           # API key for tests requiring real authentication (pixi, uv, pip feature tests)
           ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
           CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
           TEST_WINDOWS_SIGNING: 1
@@ -159,6 +160,7 @@ jobs:
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
           # API key for tests requiring real authentication (pixi, uv, pip feature tests)
           ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pixi run test-integration
         shell: powershell
 

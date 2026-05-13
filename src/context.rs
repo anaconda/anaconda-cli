@@ -4,6 +4,7 @@
 //! (telemetry, config, etc.) without polluting function signatures.
 
 use std::collections::HashMap;
+use std::env;
 use std::env::consts::{ARCH, OS};
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -123,9 +124,15 @@ impl CommandContext {
     }
 
     /// Get or create a GitHub API client.
+    /// Uses GITHUB_TOKEN for authentication if available (higher rate limits).
     pub fn github_client(&self) -> &reqwest_middleware::ClientWithMiddleware {
         self.github_client.get_or_init(|| {
-            http::build_client(reqwest::Client::builder()).expect("failed to create GitHub client")
+            let builder = reqwest::Client::builder();
+            let builder = match env::var("GITHUB_TOKEN").ok().filter(|t| !t.is_empty()) {
+                Some(token) => builder.default_headers(http::bearer_header(&token)),
+                None => builder,
+            };
+            http::build_client(builder).expect("failed to create GitHub client")
         })
     }
 
