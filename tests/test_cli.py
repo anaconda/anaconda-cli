@@ -152,37 +152,56 @@ requires_cloudflare = pytest.mark.skipif(
 
 @requires_cloudflare
 class TestSelfUpdateStaticHosting:
-    """Tests for self update with static hosting (default, no token required)."""
+    """Tests for self update with static hosting."""
 
-    def test_update_check_works_without_token(self, run_ana: AnaRunner) -> None:
-        result = run_ana("self", "update", "--check")
-        assert result.returncode == 0
-        # Should show update status, not token error
-        assert "GITHUB_TOKEN" not in result.stderr
-
-    def test_update_list_works_without_token(self, run_ana: AnaRunner) -> None:
+    def test_update_list(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "update", "--list")
         assert result.returncode == 0
         # Should show version list
-        assert "v0.0" in result.stdout
+        assert "v0.0" in result.stderr
 
     def test_update_check_shows_status(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "update", "--check")
         assert result.returncode == 0
         # Should show either "Update available" or "Already up to date"
-        assert "Update available" in result.stdout or "up to date" in result.stdout
+        assert "Update available" in result.stderr or "UP TO DATE" in result.stderr
 
 
 class TestSelfUpdateGitHubFallback:
-    """Tests for self update with GitHub fallback (requires token)."""
+    """Tests for self update with GitHub fallback."""
 
-    def test_github_fallback_requires_token(self, run_ana: AnaRunner) -> None:
-        # Force GitHub mode by setting ANA_SELF_UPDATE_URL=github
+    @pytest.fixture(scope="class")
+    def self_update_env(self):
+        env = {"ANA_SELF_UPDATE_URL": "github"}
+        if token := os.environ.get("GITHUB_TOKEN"):
+            env["GITHUB_TOKEN"] = token
+        return env
+
+    def test_update_list(
+        self, run_ana: AnaRunner, self_update_env: dict[str, str]
+    ) -> None:
         result = run_ana(
-            "self", "update", "--list", env={"ANA_SELF_UPDATE_URL": "github"}
+            "self",
+            "update",
+            "--list",
+            env=self_update_env,
         )
-        # Should fail due to missing token
-        assert "GITHUB_TOKEN" in result.stderr or result.returncode != 0
+        assert result.returncode == 0
+        # Should show version list
+        assert "v0.0" in result.stderr
+
+    def test_update_check_shows_status(
+        self, run_ana: AnaRunner, self_update_env: dict[str, str]
+    ) -> None:
+        result = run_ana(
+            "self",
+            "update",
+            "--check",
+            env=self_update_env,
+        )
+        assert result.returncode == 0
+        # Should show either "Update available" or "Already up to date"
+        assert "Update available" in result.stderr or "UP TO DATE" in result.stderr
 
 
 class TestConfig:

@@ -60,7 +60,7 @@ class TestHelp:
         assert "--version" in result.stdout
         assert "--no-verify-checksum" in result.stdout
         assert "--no-path-update" in result.stdout
-        assert "--token" in result.stdout
+        assert "--channel" in result.stdout
         assert "--force" in result.stdout
         assert "--help" in result.stdout
 
@@ -71,7 +71,8 @@ class TestHelp:
         assert "ANA_VERIFY_CHECKSUM" in result.stdout
         assert "ANA_NO_PATH_UPDATE" in result.stdout
         assert "ANA_FORCE_INSTALL" in result.stdout
-        assert "GITHUB_TOKEN" in result.stdout
+        assert "ANA_BASE_URL" in result.stdout
+        assert "ANA_CHANNEL" in result.stdout
 
     def test_help_shows_examples(self) -> None:
         result = run_script("--help")
@@ -120,45 +121,11 @@ class TestArgumentParsing:
         assert result.returncode == 1
         assert "Missing argument" in result.stderr
 
-    def test_missing_token_argument(self) -> None:
-        result = run_script("--token")
-        assert result.returncode == 1
-        assert "Missing argument" in result.stderr
-
     def test_short_flags_work(self) -> None:
         # -h is tested above, test -d and -v require more setup
         # Just verify -h works as a smoke test for short flags
         result = run_script("-h")
         assert result.returncode == 0
-
-
-# TODO(mattkram): Remove this test class once we don't need GitHub tokens
-class TestGithubTokenEnvVar:
-    """Tests for environment variable handling."""
-
-    def test_github_token_env_var(
-        self, ana_install_env_isolated: dict[str, str]
-    ) -> None:
-        """Test that GITHUB_TOKEN is recognized."""
-        ana_install_env_isolated["GITHUB_TOKEN"] = "test_token_12345"
-        # This will fail because the token is fake, but we can check it tried to use it
-        result = run_script(env=ana_install_env_isolated)
-        # Should try to use the token (will fail at API call)
-        assert result.returncode == 1
-        assert "GitHub API" in result.stderr or "Download failed" in result.stderr
-
-    def test_github_token_missing_errors(
-        self, ana_install_env_isolated: dict[str, str]
-    ) -> None:
-        """Test that missing GitHub token produces an error."""
-        # Ensure no token is available
-        ana_install_env_isolated.pop("GITHUB_TOKEN", None)
-        # Set PATH to only include essential system paths (no gh CLI)
-        ana_install_env_isolated["PATH"] = "/usr/bin:/bin"
-
-        result = run_script(env=ana_install_env_isolated)
-        assert result.returncode == 1
-        assert "GitHub token" in result.stderr or "token" in result.stderr.lower()
 
 
 class TestInstallation:

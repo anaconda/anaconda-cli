@@ -32,7 +32,6 @@ jobs:
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     permissions:
-      contents: read   # To check out private repository
       id-token: write  # Required to authenticate with Azure via OIDC
     strategy:
       fail-fast: true
@@ -79,7 +78,7 @@ jobs:
       - name: Set up ana with pixi
         uses: ./.github/actions/setup-ana
         with:
-          ana-version: v0.1.3
+          ana-version: v0.1.4
           tools: pixi
 
       - name: Run unit tests
@@ -151,9 +150,10 @@ jobs:
           # API key for tests requiring real authentication (pixi, uv, pip feature tests)
           ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
           CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
-          TEST_WINDOWS_SIGNING: 1
+          WINDOWS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-windows.outputs.fingerprint }}
         run: pixi run test-integration
 
       - name: Build conda package

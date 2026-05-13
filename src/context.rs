@@ -123,24 +123,17 @@ impl CommandContext {
         })
     }
 
-    /// Get or create a GitHub API client (uses GITHUB_TOKEN).
-    /// Returns None if GITHUB_TOKEN is not set or client creation fails.
-    pub fn github_client(&self) -> Option<&reqwest_middleware::ClientWithMiddleware> {
-        if self.github_client.get().is_none() {
-            if let Some(client) = env::var("GITHUB_TOKEN")
-                .ok()
-                .filter(|t| !t.is_empty())
-                .and_then(|token| {
-                    http::build_client(
-                        reqwest::Client::builder().default_headers(http::bearer_header(&token)),
-                    )
-                    .ok()
-                })
-            {
-                let _ = self.github_client.set(client);
-            }
-        }
-        self.github_client.get()
+    /// Get or create a GitHub API client.
+    /// Uses GITHUB_TOKEN for authentication if available (higher rate limits).
+    pub fn github_client(&self) -> &reqwest_middleware::ClientWithMiddleware {
+        self.github_client.get_or_init(|| {
+            let builder = reqwest::Client::builder();
+            let builder = match env::var("GITHUB_TOKEN").ok().filter(|t| !t.is_empty()) {
+                Some(token) => builder.default_headers(http::bearer_header(&token)),
+                None => builder,
+            };
+            http::build_client(builder).expect("failed to create GitHub client")
+        })
     }
 
     /// Get or create a download client optimized for binary downloads (no gzip).

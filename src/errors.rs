@@ -86,15 +86,6 @@ pub enum UpdateError {
     #[diagnostic(code(ana::update::version_parse))]
     VersionParse(String),
 
-    #[error(
-        "GITHUB_TOKEN not set. Required for accessing private repo.\n  Run: export GITHUB_TOKEN=$(gh auth token)"
-    )]
-    #[diagnostic(
-        code(ana::update::missing_token),
-        help("Set GITHUB_TOKEN environment variable using: export GITHUB_TOKEN=$(gh auth token)")
-    )]
-    MissingToken,
-
     #[error("No release asset found for platform: {0}")]
     #[diagnostic(code(ana::update::asset_not_found))]
     AssetNotFound(String),
