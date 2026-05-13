@@ -43,7 +43,7 @@ jobs:
       run:
         # Use native shells unless bash is necessary.
         # Prefer PowerShell 5 on Windows since this is the default version.
-        shell: ${{ runner.os == 'Windows' && 'powershell' || 'bash' }}
+        shell: ${{ startsWith(matrix.os, 'windows-') && 'powershell' || 'bash' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
