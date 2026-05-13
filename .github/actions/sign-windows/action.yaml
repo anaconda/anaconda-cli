@@ -27,6 +27,11 @@ inputs:
     description: URL to the HashiCorp Vault.
     required: true
 
+outputs:
+  fingerprint:
+    description: The fingerprint of the public certificate. Used for testing.
+    value: ${{ steps.certificate.outputs.thumbprint }}
+
 runs:
   using: composite
   steps:
@@ -71,6 +76,7 @@ runs:
           anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate client_id | client-id ;
           anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate subscription_id | subscription-id ;
           anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate tenant_id | tenant-id ;
+          anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate thumbprint | thumbprint ;
           anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate url | url
 
     - name: Log into Azure
