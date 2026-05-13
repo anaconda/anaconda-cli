@@ -40,7 +40,9 @@ jobs:
 
     defaults:
       run:
-        shell: bash -el {0}
+        # Use native shells unless bash is necessary.
+        # Prefer PowerShell 5 on Windows since this is the default version.
+        shell: ${{ startsWith(matrix.os, 'windows-') && 'powershell' || 'bash' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -55,10 +57,12 @@ jobs:
           git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
+        shell: bash
 
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash
         run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+        shell: bash
 
       - name: Cache Cargo registry and build
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -151,18 +155,6 @@ jobs:
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
           WINDOWS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-windows.outputs.fingerprint }}
         run: pixi run test-integration
-
-      - name: Run integration tests (PowerShell)
-        if: ${{ !inputs.skip-tests && runner.os == 'Windows' }}
-        env:
-          ANA_SENTRY_ENVIRONMENT: integration-test
-          # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
-          ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-          # API key for tests requiring real authentication (pixi, uv, pip feature tests)
-          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pixi run test-integration
-        shell: powershell
 
       - name: Build conda package
         run: pixi run build-conda

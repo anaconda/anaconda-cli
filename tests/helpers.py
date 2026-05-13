@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -24,6 +25,22 @@ def _find_repo_root() -> Path:
 REPO_ROOT = _find_repo_root()
 
 AnaRunner = Callable[..., subprocess.CompletedProcess[str]]
+
+
+def get_powershell_binary() -> str:
+    """Find the PowerShell binary installed for the system.
+
+    Prefer `powershell`, which typically points to PowerShell 5,
+    since this is the default version on Windows. The shell used
+    in the CI should be the same - mixing will lead to missing
+    module errors.
+    """
+
+    if shutil.which("powershell"):
+        return "powershell"
+    if shutil.which("pwsh"):
+        return "pwsh"
+    return ""
 
 
 def assert_output_contains(text: str, *patterns: str) -> None:
