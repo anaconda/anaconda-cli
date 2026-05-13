@@ -28,12 +28,18 @@ AnaRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
 def get_powershell_binary() -> str:
-    """Find the PowerShell binary installed for the system."""
+    """Find the PowerShell binary installed for the system.
 
-    if shutil.which("pwsh"):
-        return "pwsh"
+    Prefer `powershell`, which typically points to PowerShell 5,
+    since this is the default version on Windows. The shell used
+    in the CI should be the same - mixing will lead to missing
+    module errors.
+    """
+
     if shutil.which("powershell"):
         return "powershell"
+    if shutil.which("pwsh"):
+        return "pwsh"
     return ""
 
 
