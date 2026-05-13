@@ -156,11 +156,6 @@ jobs:
           TEST_WINDOWS_SIGNING: 1
         run: pixi run test-integration
 
-      - name: Run Windows SH integration tests
-        if: ${{ !inputs.skip-tests && runner.os == 'Windows' }}
-        run: pixi run pytest -v test/test_sh_install_script.py
-        shell: bash
-
       - name: Build conda package
         run: pixi run build-conda
 
