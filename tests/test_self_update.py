@@ -54,6 +54,13 @@ class TestSelfUpdateSameVersion:
             or "Already on version" not in result.stderr
         )
 
+    def test_update_check_still_works(self, run_ana: AnaRunner) -> None:
+        """The --check flag should still work as before."""
+        result = run_ana("self", "update", "--check")
+        assert result.returncode == 0
+        # Should show either update available or up to date
+        assert "UPDATE" in result.stderr or "UP TO DATE" in result.stderr
+
 
 class TestSelfUpdateCli:
     """Tests for self update CLI interface (no network required)."""
@@ -87,10 +94,3 @@ class TestSelfUpdateDifferentVersion:
         result = run_ana("self", "update", "v999.999.999")
         assert result.returncode == 0  # Command runs but shows error
         assert "not found" in result.stderr.lower()
-
-    def test_update_check_still_works(self, run_ana: AnaRunner) -> None:
-        """The --check flag should still work as before."""
-        result = run_ana("self", "update", "--check")
-        assert result.returncode == 0
-        # Should show either update available or up to date
-        assert "UPDATE" in result.stderr or "UP TO DATE" in result.stderr
