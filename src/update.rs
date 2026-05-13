@@ -426,6 +426,7 @@ pub async fn run_update(
     ctx: &CommandContext,
     current_version: &str,
     target_version: Option<String>,
+    force: bool,
 ) {
     use crate::ui::status;
 
@@ -437,9 +438,9 @@ pub async fn run_update(
             format!("v{}", version)
         };
 
-        // Check if already on this version
+        // Check if already on this version (unless --force is used)
         let current_tag = format!("v{}", current_version);
-        if target_tag == current_tag {
+        if !force && target_tag == current_tag {
             print_up_to_date(current_version);
             return;
         }

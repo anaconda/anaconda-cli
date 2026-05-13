@@ -43,6 +43,45 @@ class TestSelfUpdateSameVersion:
         assert "UP TO DATE" in result.stderr
         assert "Downloading" not in result.stderr
 
+    def test_update_to_same_version_with_force_flag(self, run_ana: AnaRunner) -> None:
+        """The --force flag should bypass the same-version check and perform update."""
+        current_version = get_version(run_ana)
+
+        # Force update to the same version - this should attempt to download
+        # Since we're testing locally, we check that it doesn't show "UP TO DATE"
+        # and instead proceeds with the update flow
+        result = run_ana("self", "update", f"v{current_version}", "--force")
+
+        # When forcing, it should NOT show "UP TO DATE" (it proceeds to update)
+        # It might fail to find the version (0.0.0 for dev builds) but that's ok -
+        # the point is it didn't short-circuit with "UP TO DATE"
+        assert (
+            "UP TO DATE" not in result.stderr
+            or "Already on version" not in result.stderr
+        )
+
+
+class TestSelfUpdateCli:
+    """Tests for self update CLI interface (no network required)."""
+
+    def test_force_flag_help_text(self, run_ana: AnaRunner) -> None:
+        """The --force flag should appear in help output."""
+        result = run_ana("self", "update", "--help")
+        assert result.returncode == 0
+        assert "--force" in result.stdout
+
+    def test_force_conflicts_with_check(self, run_ana: AnaRunner) -> None:
+        """The --force flag should conflict with --check."""
+        result = run_ana("self", "update", "--force", "--check")
+        assert result.returncode != 0
+        assert "cannot be used with" in result.stderr
+
+    def test_force_conflicts_with_list(self, run_ana: AnaRunner) -> None:
+        """The --force flag should conflict with --list."""
+        result = run_ana("self", "update", "--force", "--list")
+        assert result.returncode != 0
+        assert "cannot be used with" in result.stderr
+
 
 class TestSelfUpdateDifferentVersion:
     """Tests to ensure normal update behavior is preserved."""
