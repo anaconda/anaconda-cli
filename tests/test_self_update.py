@@ -5,52 +5,46 @@ from __future__ import annotations
 from helpers import AnaRunner
 
 
-def get_version(run_ana: AnaRunner) -> str:
-    """Get the current ana version."""
-    result = run_ana("--version")
-    assert result.returncode == 0
-    return result.stdout.strip()
-
-
 class TestSelfUpdateSameVersion:
     """Tests for 'ana self update <version>' when already on that version."""
 
-    def test_update_to_same_version_shows_up_to_date(self, run_ana: AnaRunner) -> None:
+    def test_update_to_same_version_shows_up_to_date(
+        self, run_ana: AnaRunner, ana_version: str
+    ) -> None:
         """When updating to the current version, show 'up to date' instead of downloading."""
-        current_version = get_version(run_ana)
 
         # Try to update to the same version (with v prefix)
-        result = run_ana("self", "update", f"v{current_version}")
+        result = run_ana("self", "update", f"v{ana_version}")
         assert result.returncode == 0
 
         # Should show "UP TO DATE" status, not "UPDATED"
         assert "UP TO DATE" in result.stderr
         assert "UPDATED" not in result.stderr
         # Should show current version
-        assert current_version in result.stderr
+        assert ana_version in result.stderr
         # Should NOT show download progress
         assert "Downloading" not in result.stderr
 
-    def test_update_to_same_version_without_v_prefix(self, run_ana: AnaRunner) -> None:
+    def test_update_to_same_version_without_v_prefix(
+        self, run_ana: AnaRunner, ana_version: str
+    ) -> None:
         """Version comparison should work without 'v' prefix."""
-        current_version = get_version(run_ana)
-
         # Try to update to the same version (without v prefix)
-        result = run_ana("self", "update", current_version)
+        result = run_ana("self", "update", ana_version)
         assert result.returncode == 0
 
         # Should show "UP TO DATE" status
         assert "UP TO DATE" in result.stderr
         assert "Downloading" not in result.stderr
 
-    def test_update_to_same_version_with_force_flag(self, run_ana: AnaRunner) -> None:
+    def test_update_to_same_version_with_force_flag(
+        self, run_ana: AnaRunner, ana_version: str
+    ) -> None:
         """The --force flag should bypass the same-version check and perform update."""
-        current_version = get_version(run_ana)
-
         # Force update to the same version - this should attempt to download
         # Since we're testing locally, we check that it doesn't show "UP TO DATE"
         # and instead proceeds with the update flow
-        result = run_ana("self", "update", f"v{current_version}", "--force")
+        result = run_ana("self", "update", f"v{ana_version}", "--force")
 
         # When forcing, it should NOT show "UP TO DATE" (it proceeds to update)
         # It might fail to find the version (0.0.0 for dev builds) but that's ok -
