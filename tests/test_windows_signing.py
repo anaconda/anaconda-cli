@@ -35,7 +35,10 @@ def get_authenticode_signature(binary_path: Path) -> dict[str, Any]:
         [
             PWSH,
             "-c",
-            f"ConvertTo-Json (Get-AuthenticodeSignature '{binary_path}')",
+            # ConvertTo-Json truncates after a maximum nesting depth.
+            # In PowerShell 7, this emits a warning, which makes the
+            # output invalid JSON.
+            f"ConvertTo-Json -Depth 5 (Get-AuthenticodeSignature '{binary_path}')",
         ],
         text=True,
         check=True,
