@@ -232,7 +232,10 @@ if "%1"=="--version" (
 
     executable_mode = 0o755  # rwxr-xr-x
     # Create mock binaries for different platforms
+    # URL structure: {base_url}/releases/{channel}/{version}/{asset}
     root = tmp_path_factory.mktemp("mock_server")
+    release_dir = root / "releases" / "stable" / "latest"
+    release_dir.mkdir(parents=True)
 
     for platform in supported_platforms:
         is_windows_platform = platform.startswith("windows")
@@ -240,7 +243,7 @@ if "%1"=="--version" (
         # but tests need to rename the file to .cmd because Windows
         # expects .exe files to be PE files no matter the content
         suffix = ".exe" if is_windows_platform else ""
-        binary = root / f"ana-{platform}{suffix}"
+        binary = release_dir / f"ana-{platform}{suffix}"
 
         binary_content = (
             mock_cmd_script.encode() if is_windows_platform else mock_sh_script.encode()
@@ -252,7 +255,7 @@ if "%1"=="--version" (
 
         # Create corresponding checksum file
         checksum = hashlib.sha256(binary_content).hexdigest()
-        checksum_file = root / f"{binary.name}.sha256"
+        checksum_file = release_dir / f"{binary.name}.sha256"
         checksum_file.write_text(f"{checksum}  {binary.name}\n")
 
     class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
