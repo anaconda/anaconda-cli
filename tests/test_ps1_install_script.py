@@ -119,7 +119,8 @@ class TestHelp:
         assert "ANA_VERIFY_CHECKSUM" in result.stdout
         assert "ANA_NO_PATH_UPDATE" in result.stdout
         assert "ANA_FORCE_INSTALL" in result.stdout
-        assert "GITHUB_TOKEN" in result.stdout
+        assert "ANA_BASE_URL" in result.stdout
+        assert "ANA_CHANNEL" in result.stdout
 
     def test_help_shows_examples(self) -> None:
         result = subprocess.run(
