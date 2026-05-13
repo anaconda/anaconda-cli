@@ -81,8 +81,7 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
 
     let is_github = asset.url.contains("api.github.com");
     let response = if is_github {
-        let gh_client = ctx.github_client().ok_or(UpdateError::MissingToken)?;
-        gh_client
+        ctx.github_client()
             .get(&asset.url)
             .header("Accept", "application/octet-stream")
             .send()
@@ -165,12 +164,12 @@ pub fn parse_version(tag: &str) -> Result<semver::Version, UpdateError> {
 }
 
 async fn fetch_github_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
-    let gh_client = ctx.github_client().ok_or(UpdateError::MissingToken)?;
     let url = format!(
         "https://api.github.com/repos/{}/releases?per_page=100",
         GITHUB_REPO
     );
-    let releases: Vec<Release> = gh_client
+    let releases: Vec<Release> = ctx
+        .github_client()
         .get(&url)
         .header("Accept", "application/vnd.github+json")
         .send()
@@ -585,19 +584,6 @@ pub async fn show_available_versions(ctx: &CommandContext, current_version: &str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
-
-    #[tokio::test]
-    async fn test_fetch_github_releases_missing_token_error() {
-        // This test will fail if GITHUB_TOKEN is set in the environment
-        // In CI, ensure it's not set, or skip this test
-        if env::var("GITHUB_TOKEN").is_ok() {
-            return; // Skip test if token is set
-        }
-        let ctx = CommandContext::new();
-        let result = fetch_github_releases(&ctx).await;
-        assert_eq!(result.unwrap_err(), UpdateError::MissingToken);
-    }
 
     #[test]
     fn test_parse_version_stable() {
