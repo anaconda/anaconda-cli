@@ -3,12 +3,10 @@
 #
 # Usage:
 #
-#   TODO: The URLs below will be updated once the final URLs are determined.
-#
 #   Direct download:
-#   > curl -fsSL https://anaconda.com/ana/install.sh | sh
+#   > curl -fsSL https://anaconda.sh/install.sh | sh
 #   or:
-#   > wget -qO- https://anaconda.com/ana/install.sh | sh
+#   > wget -qO- https://anaconda.sh/install.sh | sh
 #
 #   Direct script invocation:
 #   > ./install.sh [OPTIONS]
@@ -24,13 +22,16 @@ set -eu
 # definition and then initially call it.
 __wrap__() {
 
-REPO="anaconda/ana-cli"
 BINARY_NAME="ana"
+
+# Base URL for downloads - override with ANA_BASE_URL env var
+DEFAULT_BASE_URL="https://anaconda.sh"
 
 # Defaults (can be overridden via environment variables or CLI options)
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
 DEFAULT_VERSION="latest"
 DEFAULT_VERIFY_CHECKSUM="true"
+DEFAULT_CHANNEL="stable"
 
 usage() {
     # Replace $HOME with ~ for display
@@ -45,25 +46,26 @@ Install the ana CLI tool.
 Options:
   -d, --install-dir DIR    Install directory (default: ${_display_dir})
   -v, --version VERSION    Version to install (default: ${DEFAULT_VERSION})
+  -c, --channel CHANNEL    Release channel: stable or dev (default: ${DEFAULT_CHANNEL})
       --no-verify-checksum Disable checksum validation after download (default: false)
       --no-path-update     Skip shell profile modification
       --no-bootstrap       Skip running 'ana bootstrap' after installation
-  -t, --token TOKEN        GitHub token for private repo access
   -f, --force              Overwrite existing installation without prompting
   -h, --help               Show this help message
 
 Environment variables:
   ANA_INSTALL_DIR          Same as --install-dir
   ANA_VERSION              Same as --version
+  ANA_CHANNEL              Same as --channel (stable, dev)
+  ANA_BASE_URL             Override download base URL (for testing)
   ANA_VERIFY_CHECKSUM      Set to "false" to skip checksum verification
   ANA_NO_PATH_UPDATE       Set to non-empty to skip PATH update
   ANA_BOOTSTRAP            Set to "false" to skip bootstrap
   ANA_FORCE_INSTALL        Set to non-empty to overwrite without prompting
-  GITHUB_TOKEN             Same as --token
 
 Examples:
   # Direct download via pipe:
-  > curl -fsSL https://anaconda.com/ana/install.sh | sh
+  > curl -fsSL ${DEFAULT_BASE_URL}/install.sh | sh
 
   # Script invocation with options:
   > ./install.sh --version 1.0.0 --install-dir /usr/local/bin
@@ -90,9 +92,9 @@ parse_args() {
                 ANA_VERSION="$2"
                 shift 2
                 ;;
-            -t|--token)
+            -c|--channel)
                 [ $# -ge 2 ] || err "Missing argument for $1"
-                GITHUB_TOKEN="$2"
+                ANA_CHANNEL="$2"
                 shift 2
                 ;;
             --no-verify-checksum)
@@ -143,42 +145,34 @@ main() {
     fi
     local _asset_name="ana-${_target}${_exe_suffix}"
 
+    # Configuration
+    local _base_url="${ANA_BASE_URL:-$DEFAULT_BASE_URL}"
+    local _channel="${ANA_CHANNEL:-$DEFAULT_CHANNEL}"
+
     # Resolve download URLs
-    local _url _checksum_url _auth_header=""
-    if [ -n "${ANA_BASE_URL:-}" ]; then
-        # ANA_BASE_URL can override the download URL (useful for testing)
-        _url="${ANA_BASE_URL}/${_asset_name}"
-        _checksum_url="${_url}.sha256"
-    else
-        _auth_header="$(get_auth_header)"
-        if [ -n "$_auth_header" ]; then
-            # Private repo: use GitHub API to resolve asset URL
-            _url="$(resolve_github_asset_url "$_version" "$_asset_name" "$_auth_header")"
-            _checksum_url="$(resolve_github_asset_url "$_version" "${_asset_name}.sha256" "$_auth_header" 2>/dev/null)" || _checksum_url=""
-        elif [ "$_version" = "latest" ]; then
-            # Public repo: use direct download URL
-            _url="https://github.com/${REPO}/releases/latest/download/${_asset_name}"
-            _checksum_url="${_url}.sha256"
-        else
-            _url="https://github.com/${REPO}/releases/download/v${_version#v}/${_asset_name}"
-            _checksum_url="${_url}.sha256"
-        fi
-    fi
+    # URL structure: {base_url}/releases/{channel}/{version}/{asset}
+    local _url="${_base_url}/releases/${_channel}/${_version}/${_asset_name}"
+    local _checksum_url="${_url}.sha256"
 
     info "Installing ana for %s %s" "$_os" "$_arch"
+
+    # Check for existing installation before downloading
+    local _dest="${_install_dir}/${BINARY_NAME}${_exe_suffix}"
+    check_existing_install "$_dest"
+
     info "Downloading %s" "$_url"
 
     local _tmp
     _tmp="$(mktemp "${TMPDIR:-/tmp}/.ana_install.XXXXXXXX")"
     trap 'rm -f "$_tmp"' EXIT
 
-    download "$_url" "$_tmp" "$_auth_header"
+    download "$_url" "$_tmp"
 
     if [ ! -s "$_tmp" ]; then
         err "Downloaded file is empty. Check the URL or try again."
     fi
 
-    verify_checksum "$_checksum_url" "$_tmp" "$_auth_header"
+    verify_checksum "$_checksum_url" "$_tmp"
 
     install_binary "$_tmp" "$_install_dir" "$_exe_suffix"
 
@@ -224,55 +218,8 @@ map_target() {
     esac
 }
 
-get_auth_header() {
-    local _token
-
-    # Use GITHUB_TOKEN if provided, otherwise try gh auth token
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
-        _token="$GITHUB_TOKEN"
-    elif check_cmd gh; then
-        _token="$(gh auth token 2>/dev/null)" || true
-    fi
-
-    if [ -n "${_token:-}" ]; then
-        printf 'Authorization: token %s' "$_token"
-    else
-        err "Must provide GitHub token to access private repo."
-    fi
-}
-
-# --- Private repo support (remove this section when repo is public) ---
-# GitHub's /releases/download/ URLs don't work for private repos even with auth.
-# We must use the API to get the asset URL instead.
-
-resolve_github_asset_url() {
-    local _version="$1" _asset_name="$2" _auth_header="$3" _api_url _response _asset_url
-
-    if [ "$_version" = "latest" ]; then
-        _api_url="https://api.github.com/repos/${REPO}/releases/tags/latest"
-    else
-        _api_url="https://api.github.com/repos/${REPO}/releases/tags/v${_version#v}"
-    fi
-
-    _response="$(curl -fsSL -H "$_auth_header" "$_api_url")" || {
-        err "Failed to fetch release info from GitHub API for version: (%s)" "$_version"
-    }
-
-    # Parse asset URL from JSON without jq
-    # Looks for: "name": "ana-darwin-arm64" ... "url": "https://api.github.com/.../assets/12345"
-    _asset_url="$(printf '%s' "$_response" | grep -B5 "\"name\": \"${_asset_name}\"" | grep '"url":' | head -1 | sed 's/.*"url": "\([^"]*\)".*/\1/')"
-
-    if [ -z "$_asset_url" ]; then
-        err "Asset '%s' not found in release %s" "$_asset_name" "$_version"
-    fi
-
-    printf '%s' "$_asset_url"
-}
-
-# --- End private repo support ---
-
 download() {
-    local _url="$1" _dest="$2" _auth_header="${3:-}"
+    local _url="$1" _dest="$2"
 
     if [ ! -t 1 ]; then
         CURL_OPTS="--silent"
@@ -285,8 +232,6 @@ download() {
     if check_cmd curl; then
         local _http_code
         _http_code="$(curl -fSL $CURL_OPTS \
-            ${_auth_header:+-H "$_auth_header"} \
-            ${_auth_header:+-H "Accept: application/octet-stream"} \
             "$_url" --output "$_dest" --write-out "%{http_code}")" || {
             err "Download failed. Is curl working? URL: %s" "$_url"
         }
@@ -294,10 +239,7 @@ download() {
             err "Download failed with HTTP %s: %s" "$_http_code" "$_url"
         fi
     elif check_cmd wget; then
-        wget $WGET_OPTS \
-            ${_auth_header:+--header="$_auth_header"} \
-            ${_auth_header:+--header="Accept: application/octet-stream"} \
-            --output-document="$_dest" "$_url" || {
+        wget $WGET_OPTS --output-document="$_dest" "$_url" || {
             err "Download failed. Is wget working? URL: %s" "$_url"
         }
     else
@@ -306,7 +248,7 @@ download() {
 }
 
 verify_checksum() {
-    local _checksum_url="$1" _file="$2" _auth_header="${3:-}"
+    local _checksum_url="$1" _file="$2"
     local _verify="${ANA_VERIFY_CHECKSUM:-$DEFAULT_VERIFY_CHECKSUM}"
 
     case "$_verify" in
@@ -329,7 +271,7 @@ verify_checksum() {
 
     local _expected _actual _tmp_sha
     _tmp_sha="$(mktemp "${TMPDIR:-/tmp}/.ana_sha.XXXXXXXX")"
-    if ! download "$_checksum_url" "$_tmp_sha" "$_auth_header" 2>/dev/null; then
+    if ! download "$_checksum_url" "$_tmp_sha" 2>/dev/null; then
         warn "Checksum file not available, skipping verification"
         rm -f "$_tmp_sha"
         return 0
@@ -354,9 +296,8 @@ verify_checksum() {
     info "Checksum OK"
 }
 
-install_binary() {
-    local _src="$1" _install_dir="$2" _exe_suffix="${3:-}"
-    local _dest="${_install_dir}/${BINARY_NAME}${_exe_suffix}"
+check_existing_install() {
+    local _dest="$1"
 
     if [ -f "$_dest" ] && [ -z "${ANA_FORCE_INSTALL:-}" ]; then
         if [ -t 0 ]; then
@@ -367,9 +308,14 @@ install_binary() {
                 *) err "Installation cancelled." ;;
             esac
         else
-            err "%s already exists. Use --force to overwrite." "$_dest"
+            err "%s already exists. Use --force or ANA_FORCE_INSTALL=1 to overwrite." "$_dest"
         fi
     fi
+}
+
+install_binary() {
+    local _src="$1" _install_dir="$2" _exe_suffix="${3:-}"
+    local _dest="${_install_dir}/${BINARY_NAME}${_exe_suffix}"
 
     chmod +x "$_src"
     mkdir -p "$_install_dir"

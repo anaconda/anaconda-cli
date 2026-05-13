@@ -8,17 +8,21 @@
     Environment variables
       ANA_INSTALL_DIR          Same as -InstallDir
       ANA_VERSION              Same as -Version
+      ANA_CHANNEL              Same as -Channel (stable, dev)
+      ANA_BASE_URL             Override download base URL (for testing)
       ANA_VERIFY_CHECKSUM      Set to "false" to skip checksum verification
       ANA_NO_PATH_UPDATE       Set to non-empty to skip PATH update
       ANA_BOOTSTRAP            Set to "false" to skip bootstrap
       ANA_FORCE_INSTALL        Set to non-empty to overwrite without prompting
-      GITHUB_TOKEN             Same as -Token
 
 .PARAMETER InstallDir
     Installation directory (default: ${env:USERPROFILE}\.local\bin (Windows) or ${env:HOME}/.local/bin).
 
 .PARAMETER Version
     Version to install (default: latest).
+
+.PARAMETER Channel
+    Release channel: stable or dev (default: stable).
 
 .PARAMETER Force
     Overwrite existing installation without prompting.
@@ -32,28 +36,31 @@
 .PARAMETER NoBootstrap
     Skip running 'ana bootstrap' after installation.
 
-.PARAMETER Token
-    GitHub token for private repo access.
-
 .EXAMPLE
-    PS> & .\setup.ps1
+    PS> & .\install.ps1
 
     Installs ana and bootstraps anaconda-cli.
 
 .EXAMPLE
-    PS> & .\setup.ps1 -Version '0.0.9'
+    PS> & .\install.ps1 -Version '0.0.9'
 
     Installs a specific version
 
 .EXAMPLE
-    PS> & .\setup.ps1 -Force
+    PS> & .\install.ps1 -Force
 
     Overwrites an existing installation without prompting..
 
 .EXAMPLE
-    PS> & .\setup.ps1 -NoBootstrap -NoPathUpdate
+    PS> & .\install.ps1 -NoBootstrap -NoPathUpdate
 
     Installs without bootstrapping and updating PATH.
+
+.LINK
+    https://anaconda.sh
+
+.LINK
+    https://anaconda.com
 
 .LINK
     https://github.com/anaconda/ana-cli
@@ -67,14 +74,15 @@ param(
     [switch] $NoBootstrap,
     [switch] $NoPathUpdate,
     [switch] $NoVerifyChecksum,
-    [string] $Version = "latest"
+    [string] $Version = "latest",
+    [string] $Channel = "stable"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$Repo = "anaconda/ana-cli"
 $BinaryName = "ana"
+$DefaultBaseUrl = "https://anaconda.sh"
 
 function Get-OS {
     # PowerShell 6+ has $IsWindows, $IsLinux, $IsMacOS
@@ -85,7 +93,6 @@ function Get-OS {
         if ($IsMacOS) { return "macOS" }
         throw "Unsupported operating system"
     } else {
-        # PowerShell 5.x is Windows-only
         return "Windows"
     }
 }
@@ -98,7 +105,6 @@ function Get-Arch {
             default { throw "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" }
         }
     } else {
-        # Linux/macOS - use uname
         $arch = uname -m
         switch ($arch) {
             "x86_64"  { return "x86_64" }
@@ -126,79 +132,17 @@ function Get-Target {
     }
 }
 
-function Get-AuthHeader {
-    $token = $env:GITHUB_TOKEN
-    if (-not $token) {
-        # Try gh CLI
-        try {
-            $token = gh auth token 2>$null
-        } catch {
-            $token = $null
-        }
-    }
-
-    if ($token) {
-        return @{ Authorization = "token $token" }
-    }
-    return @{}
-}
-
-function Resolve-GitHubAssetUrl {
-    param(
-        [string]$Version,
-        [string]$BinaryName,
-        [hashtable]$Headers
-    )
-
-    if ($Version -eq "latest") {
-        $apiUrl = "https://api.github.com/repos/$Repo/releases/tags/latest"
-    } else {
-        $ver = $Version -replace "^v", ""
-        $apiUrl = "https://api.github.com/repos/$Repo/releases/tags/v$ver"
-    }
-
-    try {
-        $response = Invoke-RestMethod -Uri $apiUrl -Headers $Headers -UseBasicParsing
-    } catch {
-        throw "Failed to fetch release info from GitHub API for version: $Version"
-    }
-
-    $asset = $response.assets | Where-Object { $_.name -eq $BinaryName } | Select-Object -First 1
-    if (-not $asset) {
-        throw "Asset '$BinaryName' not found in release $Version"
-    }
-
-    return $asset.url
-}
-
 function Resolve-DownloadUrl {
     param(
         [string]$Version,
-        [string]$BinaryName,
-        [hashtable]$AuthHeader
+        [string]$Channel,
+        [string]$AssetName
     )
 
-    if ($env:ANA_BASE_URL) {
-        $url = "$env:ANA_BASE_URL/$BinaryName"
-        $checksumUrl = "$url.sha256"
-    } elseif ($AuthHeader.Count -gt 0) {
-        $url = Resolve-GitHubAssetUrl -Version $Version -BinaryName $BinaryName -Headers $AuthHeader
-        try {
-            $checksumUrl = Resolve-GitHubAssetUrl `
-                -Version $Version `
-                -BinaryName "$BinaryName.sha256" `
-                -Headers $AuthHeader
-        } catch {
-            $checksumUrl = $null
-        }
-    } elseif ($Version -eq "latest") {
-        $url = "https://github.com/$Repo/releases/latest/download/$BinaryName"
-        $checksumUrl = "$url.sha256"
-    } else {
-        $ver = $Version -replace "^v", ""
-        $url = "https://github.com/$Repo/releases/download/v$ver/$BinaryName"
-        $checksumUrl = "$url.sha256"
-    }
+    $baseUrl = if ($env:ANA_BASE_URL) { $env:ANA_BASE_URL } else { $DefaultBaseUrl }
+
+    $url = "$baseUrl/releases/$Channel/$Version/$AssetName"
+    $checksumUrl = "$url.sha256"
 
     return @{
         Url = $url
@@ -211,18 +155,12 @@ function Invoke-Download {
         [string]$Url,
         [string]$Destination,
         [string]$ChecksumUrl = $null,
-        [bool]$VerifyChecksum = $true,
-        [hashtable]$Headers = @{}
+        [bool]$VerifyChecksum = $true
     )
-
-    $downloadHeaders = $Headers.Clone()
-    if ($downloadHeaders.Count -gt 0) {
-        $downloadHeaders["Accept"] = "application/octet-stream"
-    }
 
     try {
         $ProgressPreference = "SilentlyContinue"
-        Invoke-WebRequest -Uri $Url -OutFile $Destination -Headers $downloadHeaders -UseBasicParsing
+        Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing
     } catch {
         throw "Download failed: $Url`n$($_.Exception.Message)"
     }
@@ -231,7 +169,6 @@ function Invoke-Download {
         throw "Downloaded file is empty. Check the URL or try again."
     }
 
-    # Checksum verification
     if (-not $VerifyChecksum) {
         Write-Host "! Checksum verification disabled" -ForegroundColor Yellow
         return
@@ -318,10 +255,9 @@ function Add-ToUserPath {
     $pathDirs = $currentPath -split ";"
 
     if ($pathDirs -contains $Directory) {
-        Write-Host "$Directory is already in PATH"
+        Write-Host "> $Directory is already in PATH" -ForegroundColor Green
         return
     }
-    Write-Host "Setting envvar"
 
     $newPath = "$Directory;$currentPath"
     [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
@@ -372,17 +308,17 @@ function Main {
     $arch = Get-Arch
     $target = Get-Target -OS $os -Arch $arch
 
-    if ($env:ANA_VERSION) {$Version = $env:ANA_VERSION }
-    if ($env:ANA_INSTALL_DIR) {$InstallDir = $env:ANA_INSTALL_DIR }
+    if ($env:ANA_VERSION) { $Version = $env:ANA_VERSION }
+    if ($env:ANA_INSTALL_DIR) { $InstallDir = $env:ANA_INSTALL_DIR }
+    if ($env:ANA_CHANNEL) { $Channel = $env:ANA_CHANNEL }
 
     $exeSuffix = if ($os -eq "Windows") { ".exe" } else { "" }
-    $binaryName = "ana-$target$exeSuffix"
+    $assetName = "ana-$target$exeSuffix"
 
-    $authHeader = Get-AuthHeader
     $urls = Resolve-DownloadUrl `
-        -Version $version `
-        -BinaryName $binaryName `
-        -AuthHeader $authHeader
+        -Version $Version `
+        -Channel $Channel `
+        -AssetName $assetName
 
     Write-Host "> Installing ana for $os $arch" -ForegroundColor Green
     Write-Host "> Downloading $($urls.Url)" -ForegroundColor Green
@@ -399,8 +335,7 @@ function Main {
             -Url $urls.Url `
             -Destination $tempFile `
             -ChecksumUrl $urls.ChecksumUrl `
-            -VerifyChecksum $VerifyChecksum `
-            -Headers $authHeader
+            -VerifyChecksum $VerifyChecksum
 
         $forceInstall = $Force -or $env:ANA_FORCE_INSTALL
         $anaBin = Join-Path -Path $InstallDir "ana$exeSuffix"
