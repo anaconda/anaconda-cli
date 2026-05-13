@@ -13,7 +13,7 @@ def get_version(run_ana: AnaRunner) -> str:
 
 
 class TestSelfUpdateSameVersion:
-    """Tests for 'ana self update <version>' when already on that version (CLI-626)."""
+    """Tests for 'ana self update <version>' when already on that version."""
 
     def test_update_to_same_version_shows_up_to_date(self, run_ana: AnaRunner) -> None:
         """When updating to the current version, show 'up to date' instead of downloading."""
