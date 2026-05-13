@@ -5,6 +5,7 @@ edition = "2024"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+rlimit = "0.10"
 
 [features]
 # Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
