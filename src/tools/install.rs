@@ -16,6 +16,53 @@ use super::{pixi_config, tools};
 use crate::context::CommandContext;
 use crate::paths;
 
+/// Check if a tool needs updating by comparing installed vs embedded lockfile versions.
+///
+/// Returns `Some(installed_version)` if the tool is installed but at a different version
+/// than what's in the embedded lockfile. Returns `None` if the tool is not installed
+/// or is already at the correct version.
+pub fn check_tool_needs_update(tool_name: &str, package_name: &str) -> Option<String> {
+    let prefix = paths::tool_prefix(tool_name);
+    if !prefix.exists() {
+        return None;
+    }
+
+    // Get installed version from prefix
+    let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(&prefix).ok()?;
+    let installed_version = installed
+        .iter()
+        .find(|r| r.repodata_record.package_record.name.as_normalized() == package_name)
+        .map(|r| r.repodata_record.package_record.version.to_string())?;
+
+    // Get expected version from embedded lockfile
+    let lock_content = tools::content(tool_name)?;
+    let expected_version = get_package_version_from_lockfile(&lock_content, package_name)?;
+
+    if installed_version != expected_version {
+        Some(installed_version)
+    } else {
+        None
+    }
+}
+
+/// Extract a package version from a lockfile string for the current platform.
+fn get_package_version_from_lockfile(lock_content: &str, package_name: &str) -> Option<String> {
+    let lock_file = LockFile::from_str_with_base_directory(lock_content, None).ok()?;
+    let env = lock_file.default_environment()?;
+    let current_platform = Platform::current();
+    let records_by_platform = env.conda_repodata_records_by_platform().ok()?;
+
+    let records = records_by_platform
+        .into_iter()
+        .find(|(p, _)| p.subdir() == current_platform)
+        .map(|(_, records)| records)?;
+
+    records
+        .iter()
+        .find(|r| r.package_record.name.as_normalized() == package_name)
+        .map(|r| r.package_record.version.to_string())
+}
+
 /// Global progress bar for installation feedback.
 static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock::new(|| {
     let mp = MultiProgress::new();
@@ -313,6 +360,32 @@ mod tests {
             "error should mention parsing: {}",
             err
         );
+    }
+
+    #[test]
+    fn test_get_package_version_from_lockfile_finds_package() {
+        let lock_content = tools::content("anaconda-cli").unwrap();
+        let version = get_package_version_from_lockfile(&lock_content, "anaconda-cli-base");
+        assert!(version.is_some(), "should find anaconda-cli-base version");
+        assert!(
+            !version.as_ref().unwrap().is_empty(),
+            "version should not be empty"
+        );
+    }
+
+    #[test]
+    fn test_get_package_version_from_lockfile_unknown_package() {
+        let lock_content = tools::content("anaconda-cli").unwrap();
+        let version = get_package_version_from_lockfile(&lock_content, "nonexistent-package");
+        assert!(version.is_none(), "should not find nonexistent package");
+    }
+
+    #[test]
+    fn test_check_tool_needs_update_nonexistent_tool() {
+        temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
+            let result = check_tool_needs_update("anaconda-cli", "anaconda-cli-base");
+            assert!(result.is_none(), "nonexistent tool should return None");
+        });
     }
 
     #[cfg(windows)]
