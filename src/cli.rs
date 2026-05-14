@@ -670,10 +670,31 @@ pub fn parse() -> (Action, LogLevel) {
 }
 
 /// Check if a string is a valid subcommand name
-fn is_valid_subcommand(name: &str) -> bool {
-    Cli::command()
-        .get_subcommands()
-        .any(|s| s.get_name() == name)
+/// Build a valid subcommand path from args, stopping when a part is not a subcommand.
+/// Returns None if no valid subcommand path can be built.
+fn build_valid_subcommand_path(parts: &[&str]) -> Option<String> {
+    if parts.is_empty() {
+        return None;
+    }
+
+    let mut cmd = Cli::command();
+    let mut valid_parts = Vec::new();
+
+    for part in parts {
+        let maybe_subcmd = cmd.get_subcommands().find(|s| s.get_name() == *part).cloned();
+        if let Some(subcmd) = maybe_subcmd {
+            valid_parts.push(*part);
+            cmd = subcmd;
+        } else {
+            break;
+        }
+    }
+
+    if valid_parts.is_empty() {
+        None
+    } else {
+        Some(valid_parts.join(" "))
+    }
 }
 
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
@@ -688,8 +709,7 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
             .map(|s| s.as_str())
             .collect();
 
-        if !subcommand_parts.is_empty() && is_valid_subcommand(subcommand_parts[0]) {
-            let subcommand_path = subcommand_parts.join(" ");
+        if let Some(subcommand_path) = build_valid_subcommand_path(&subcommand_parts) {
             return (Action::ShowSubcommandHelp(subcommand_path), LogLevel::Off);
         }
         return (Action::ShowHelp, LogLevel::Off);
