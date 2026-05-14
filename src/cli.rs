@@ -1343,4 +1343,53 @@ mod tests {
             _ => panic!("Expected Feature Disable command"),
         }
     }
+
+    #[test]
+    fn test_build_valid_subcommand_path_with_argument() {
+        // "ana feature enable main-x --help" should resolve to "feature enable"
+        // since "main-x" is an argument, not a subcommand
+        let parts = vec!["feature", "enable", "main-x"];
+        let result = build_valid_subcommand_path(&parts);
+        assert_eq!(result, Some("feature enable".to_string()));
+    }
+
+    #[test]
+    fn test_build_valid_subcommand_path_without_argument() {
+        // "ana feature enable --help" should also resolve to "feature enable"
+        let parts = vec!["feature", "enable"];
+        let result = build_valid_subcommand_path(&parts);
+        assert_eq!(result, Some("feature enable".to_string()));
+    }
+
+    #[test]
+    fn test_help_with_feature_argument_matches_help_without() {
+        // Both "ana feature enable main-x --help" and "ana feature enable --help"
+        // should produce the same subcommand path for help
+        let with_arg = build_valid_subcommand_path(&["feature", "enable", "main-x"]);
+        let without_arg = build_valid_subcommand_path(&["feature", "enable"]);
+        assert_eq!(with_arg, without_arg);
+    }
+
+    #[test]
+    fn test_build_valid_subcommand_path_nested() {
+        // Nested subcommands like "self update" should work
+        let parts = vec!["self", "update"];
+        let result = build_valid_subcommand_path(&parts);
+        assert_eq!(result, Some("self update".to_string()));
+    }
+
+    #[test]
+    fn test_build_valid_subcommand_path_invalid_start() {
+        // Starting with a non-subcommand should return None
+        let parts = vec!["not-a-command"];
+        let result = build_valid_subcommand_path(&parts);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_build_valid_subcommand_path_empty() {
+        let parts: Vec<&str> = vec![];
+        let result = build_valid_subcommand_path(&parts);
+        assert_eq!(result, None);
+    }
 }
