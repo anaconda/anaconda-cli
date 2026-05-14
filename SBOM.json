@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:8e1d8ce3-9901-40c5-a2b3-32b7f2125320",
+  "serialNumber": "urn:uuid:72d377c5-2c9c-45d3-95fd-eff2aac56a73",
   "metadata": {
-    "timestamp": "2026-05-13T19:42:48Z",
+    "timestamp": "2026-05-14T02:37:38Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -7558,16 +7558,16 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.10.2",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.11.0",
       "author": "Nugine <nugine@foxmail.com>",
       "name": "rlimit",
-      "version": "0.10.2",
+      "version": "0.11.0",
       "description": "Resource limits",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "7043b63bd0cd1aaa628e476b80e6d4023a3b50eb32789f2728908107bd0c793a"
+          "content": "f35ee2729c56bb610f6dba436bf78135f728b7373bdffae2ec815b2d3eb98cc3"
         }
       ],
       "licenses": [
@@ -7575,7 +7575,7 @@
           "expression": "MIT"
         }
       ],
-      "purl": "pkg:cargo/rlimit@0.10.2",
+      "purl": "pkg:cargo/rlimit@0.11.0",
       "externalReferences": [
         {
           "type": "documentation",
@@ -13500,7 +13500,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#rattler_lock@0.30.0",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest-middleware@0.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.12.28",
-        "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.10.2",
+        "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.11.0",
         "registry+https://github.com/rust-lang/crates.io-index#rpassword@7.5.2",
         "registry+https://github.com/rust-lang/crates.io-index#self-replace@1.5.0",
         "registry+https://github.com/rust-lang/crates.io-index#semver@1.0.28",
@@ -15491,7 +15491,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.10.2",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.11.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.186"
       ]
