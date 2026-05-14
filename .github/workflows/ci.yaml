@@ -78,7 +78,7 @@ jobs:
       - name: Set up ana with pixi
         uses: ./.github/actions/setup-ana
         with:
-          ana-version: v0.1.4
+          ana-version: v0.1.5
           tools: pixi
 
       - name: Run unit tests
