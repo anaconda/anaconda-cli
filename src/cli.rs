@@ -681,7 +681,10 @@ fn build_valid_subcommand_path(parts: &[&str]) -> Option<String> {
     let mut valid_parts = Vec::new();
 
     for part in parts {
-        let maybe_subcmd = cmd.get_subcommands().find(|s| s.get_name() == *part).cloned();
+        let maybe_subcmd = cmd
+            .get_subcommands()
+            .find(|s| s.get_name() == *part)
+            .cloned();
         if let Some(subcmd) = maybe_subcmd {
             valid_parts.push(*part);
             cmd = subcmd;
