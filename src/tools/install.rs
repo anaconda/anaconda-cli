@@ -53,7 +53,7 @@ pub fn check_tool_needs_update(tool_name: &str, package_name: &str) -> Option<St
     let lock_content = tools::content(tool_name)?;
     let expected_version = get_package_version_from_lockfile(&lock_content, package_name)?;
 
-    if installed_version != expected_version {
+    if installed_version < expected_version {
         Some(installed_version)
     } else {
         None
