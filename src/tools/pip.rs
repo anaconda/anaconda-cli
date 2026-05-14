@@ -36,8 +36,10 @@ pub fn deconfigure() -> miette::Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        // "no such key" means it wasn't configured, which is fine
-        if !stderr.contains("no such key") {
+        // "no such key" means it wasn't configured, which is fine.
+        // "KeyError" can occur on Linux when the pip.conf doesn't exist or
+        // the key was never set - also safe to ignore.
+        if !stderr.contains("no such key") && !stderr.contains("KeyError") {
             return Err(miette!("Failed to deconfigure pip: {}", stderr));
         }
     }
