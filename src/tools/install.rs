@@ -16,6 +16,21 @@ use super::{pixi_config, tools};
 use crate::context::CommandContext;
 use crate::paths;
 
+/// Check all installed tools and return the names of those that need updating.
+///
+/// Returns a list of tool names that are installed but at a different version
+/// than what's in the embedded lockfile.
+pub fn check_all_tools_need_update() -> Vec<&'static str> {
+    tools::all_tools()
+        .into_iter()
+        .filter(|tool_name| {
+            tools::package_name(tool_name)
+                .and_then(|pkg| check_tool_needs_update(tool_name, pkg))
+                .is_some()
+        })
+        .collect()
+}
+
 /// Check if a tool needs updating by comparing installed vs embedded lockfile versions.
 ///
 /// Returns `Some(installed_version)` if the tool is installed but at a different version

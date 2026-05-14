@@ -5,6 +5,8 @@ use std::path::PathBuf;
 /// Tool configuration.
 struct Tool {
     name: &'static str,
+    /// The primary package name in the lockfile (used for version checking).
+    package_name: &'static str,
     lockfile: &'static str,
     binaries: &'static [&'static [&'static str]],
     /// If set, the tool is experimental and this message will be shown as a warning.
@@ -15,6 +17,7 @@ struct Tool {
 const TOOLS: &[Tool] = &[
     Tool {
         name: "anaconda-cli",
+        package_name: "anaconda-cli-base",
         lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
         binaries: if cfg![unix] {
             &[&["bin", "anaconda"]]
@@ -26,12 +29,14 @@ const TOOLS: &[Tool] = &[
     #[cfg(unix)]
     Tool {
         name: "outerbounds",
+        package_name: "outerbounds",
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
     },
     Tool {
         name: "pixi",
+        package_name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
         experimental: None,
@@ -73,6 +78,11 @@ pub fn binary_names(name: &str) -> Option<Vec<&'static str>> {
 /// Returns all available tool names.
 pub fn all_tools() -> Vec<&'static str> {
     TOOLS.iter().map(|t| t.name).collect()
+}
+
+/// Returns the primary package name for a tool (used for version checking).
+pub fn package_name(tool_name: &str) -> Option<&'static str> {
+    find_tool(tool_name).map(|t| t.package_name)
 }
 
 /// Returns the experimental warning message for a tool, if any.

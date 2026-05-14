@@ -411,6 +411,27 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
     );
     eprintln!("  was v{} → now {}", current_version, new_version);
     eprintln!();
+
+    warn_outdated_tools();
+}
+
+fn warn_outdated_tools() {
+    use crate::tools::install::check_all_tools_need_update;
+    use crate::ui::status;
+
+    let outdated = check_all_tools_need_update();
+    if outdated.is_empty() {
+        return;
+    }
+
+    let tool_list = outdated.join(", ");
+
+    status::warn(&format!(
+        "The following tools may also need updating: {}",
+        tool_list
+    ));
+    eprintln!("  Run: ana tool install <tool-name>");
+    eprintln!();
 }
 
 fn print_up_to_date(current_version: &str) {
