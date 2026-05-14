@@ -1013,7 +1013,7 @@ enum ApiCommands {
         #[arg(short = 'd', long, conflicts_with = "json")]
         data: Option<String>,
 
-        /// JSON request body
+        /// JSON request body (use @file.json to read from file, or - for stdin)
         #[arg(short = 'j', long, conflicts_with = "data")]
         json: Option<String>,
     },
