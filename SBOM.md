@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-13T19:42:48Z<br>
+Generated: 2026-05-14T02:37:38Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 433 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -266,7 +266,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [reqwest-middleware](https://crates.io/crates/reqwest-middleware) | 0.4.2 | MIT OR Apache-2.0 |  |  |
 | [retry-policies](https://crates.io/crates/retry-policies) | 0.5.2 | MIT OR Apache-2.0 |  |  |
 | [ring](https://crates.io/crates/ring) | 0.17.14 | Apache-2.0 AND ISC |  |  |
-| [rlimit](https://crates.io/crates/rlimit) | 0.10.2 | MIT | linux, macos |  |
+| [rlimit](https://crates.io/crates/rlimit) | 0.11.0 | MIT | linux, macos |  |
 | [rpassword](https://crates.io/crates/rpassword) | 7.5.2 | Apache-2.0 |  |  |
 | [rtoolbox](https://crates.io/crates/rtoolbox) | 0.0.5 | Apache-2.0 |  |  |
 | [rustc-demangle](https://crates.io/crates/rustc-demangle) | 0.1.27 | MIT OR Apache-2.0 |  |  |
