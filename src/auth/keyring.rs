@@ -441,10 +441,7 @@ mod tests {
         save_credential(&config, "test-api-key", Some("user-456")).unwrap();
 
         // Retrieve user_id
-        assert_eq!(
-            get_user_id(&config).unwrap(),
-            Some("user-456".to_string())
-        );
+        assert_eq!(get_user_id(&config).unwrap(), Some("user-456".to_string()));
     }
 
     #[test]
