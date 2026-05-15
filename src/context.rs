@@ -106,9 +106,17 @@ pub struct CommandContext {
 impl CommandContext {
     /// Create a new command context.
     pub fn new() -> Self {
+        let config = Config::load();
+        let mut telemetry = TelemetryContext::new();
+
+        // Add cached user_id to telemetry if available
+        if let Ok(Some(user_id)) = crate::auth::get_user_id(&config) {
+            telemetry.add("user_id", user_id);
+        }
+
         Self {
-            telemetry: TelemetryContext::new(),
-            config: Config::load(),
+            telemetry,
+            config,
             client: OnceLock::new(),
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),

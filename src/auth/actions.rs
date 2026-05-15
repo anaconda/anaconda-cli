@@ -6,7 +6,7 @@ use tokio::time::sleep;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
-use super::keyring::{delete_api_key, get_api_key, save_api_key};
+use super::keyring::{delete_api_key, get_api_key, save_credential};
 use super::responses::{
     AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
 };
@@ -112,8 +112,11 @@ async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(
         .await
         .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
 
-    // Save to keyring
-    save_api_key(&ctx.config, api_key)?;
+    // Fetch user_id for telemetry (best-effort, don't fail login if this fails)
+    let user_id = fetch_user_id(ctx, api_key).await;
+
+    // Save to keyring (including user_id if available)
+    save_credential(&ctx.config, api_key, user_id.as_deref())?;
     status::success("API key stored in keyring");
 
     // Display login success
@@ -159,6 +162,31 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
     eprintln!("{} {}", status::dim("API key:"), status::dim(&mask));
 
     Ok(api_key.trim().to_string())
+}
+
+/// Fetch user_id from the whoami endpoint.
+/// Returns None if the request fails or user_id is not found.
+async fn fetch_user_id(ctx: &CommandContext, api_key: &str) -> Option<String> {
+    let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
+
+    let response = client
+        .get("/api/auth/sessions/whoami")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .send()
+        .await
+        .ok()?;
+
+    if !response.status().is_success() {
+        return None;
+    }
+
+    let data: serde_json::Value = response.json().await.ok()?;
+
+    data.get("passport")
+        .and_then(|p| p.get("profile"))
+        .and_then(|p| p.get("user_id"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 /// Validate an API key by making a request to the account endpoint.

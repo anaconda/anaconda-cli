@@ -28,10 +28,22 @@ struct Credential {
     api_key: String,
     repo_tokens: Vec<String>,
     version: u32,
+    #[serde(default)]
+    user_id: Option<String>,
 }
 
-/// Save an API key to the keyring file.
-pub fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
+/// Save an API key to the keyring file (without user_id).
+#[cfg(test)]
+fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
+    save_credential(config, api_key, None)
+}
+
+/// Save an API key and optional user_id to the keyring file.
+pub(super) fn save_credential(
+    config: &Config,
+    api_key: &str,
+    user_id: Option<&str>,
+) -> Result<(), AuthError> {
     let path = &config.keyring_path;
 
     // Create parent directories if they don't exist
@@ -50,6 +62,7 @@ pub fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
         api_key: api_key.to_string(),
         repo_tokens: vec![],
         version: CREDENTIAL_VERSION,
+        user_id: user_id.map(|s| s.to_string()),
     };
     let credential_json =
         serde_json::to_string(&credential).map_err(|e| AuthError::Keyring(e.to_string()))?;
@@ -71,6 +84,16 @@ pub fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
 
 /// Get the API key from the keyring file.
 pub fn get_api_key(config: &Config) -> Result<Option<String>, AuthError> {
+    Ok(get_credential(config)?.map(|c| c.api_key))
+}
+
+/// Get the user_id from the keyring file.
+pub fn get_user_id(config: &Config) -> Result<Option<String>, AuthError> {
+    Ok(get_credential(config)?.and_then(|c| c.user_id))
+}
+
+/// Get the full credential from the keyring file.
+fn get_credential(config: &Config) -> Result<Option<Credential>, AuthError> {
     let keyring = load_keyring(config)?;
 
     let Some(domains) = keyring.get(KEYRING_KEY) else {
@@ -88,7 +111,7 @@ pub fn get_api_key(config: &Config) -> Result<Option<String>, AuthError> {
     let credential: Credential = serde_json::from_slice(&decoded)
         .map_err(|e| AuthError::Keyring(format!("Failed to parse credential: {}", e)))?;
 
-    Ok(Some(credential.api_key))
+    Ok(Some(credential))
 }
 
 /// Delete the API key from the keyring file.
@@ -388,12 +411,53 @@ mod tests {
             api_key: "ak-123".to_string(),
             repo_tokens: vec![],
             version: 2,
+            user_id: Some("user-123".to_string()),
         };
 
         let json = serde_json::to_string(&credential).unwrap();
         let parsed: Credential = serde_json::from_str(&json).unwrap();
 
         assert_eq!(credential, parsed);
+    }
+
+    #[test]
+    fn test_credential_without_user_id() {
+        // Test backwards compatibility - old credentials without user_id should still parse
+        let json = r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2}"#;
+        let credential: Credential = serde_json::from_str(json).unwrap();
+
+        assert_eq!(credential.domain, "test.com");
+        assert_eq!(credential.api_key, "ak-123");
+        assert_eq!(credential.user_id, None);
+    }
+
+    #[test]
+    fn test_save_and_get_user_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let keyring_path = dir.path().join("keyring");
+        let config = test_config_with_keyring(keyring_path, "test.com");
+
+        // Save credential with user_id
+        save_credential(&config, "test-api-key", Some("user-456")).unwrap();
+
+        // Retrieve user_id
+        assert_eq!(
+            get_user_id(&config).unwrap(),
+            Some("user-456".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_user_id_returns_none_when_not_set() {
+        let dir = tempfile::tempdir().unwrap();
+        let keyring_path = dir.path().join("keyring");
+        let config = test_config_with_keyring(keyring_path, "test.com");
+
+        // Save credential without user_id
+        save_credential(&config, "test-api-key", None).unwrap();
+
+        // user_id should be None
+        assert_eq!(get_user_id(&config).unwrap(), None);
     }
 
     #[cfg(unix)]
