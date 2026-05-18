@@ -33,7 +33,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
 
     // Check for symlinks/shims that will be removed
     if let Some(binaries) = tools::binary_names(name) {
-        for binary in binaries {
+        for binary in &binaries {
             let link_path = paths::bin_path(binary);
             if link_path.exists() || link_path.is_symlink() {
                 to_delete.push(format!("  {}", link_path.display()));
@@ -74,7 +74,10 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
 
         // On Windows, also remove entries from shims.cfg
         #[cfg(windows)]
-        remove_shims_cfg_entries(&binaries)?;
+        {
+            let binary_refs: Vec<&str> = binaries.iter().map(|s| s.as_str()).collect();
+            remove_shims_cfg_entries(&binary_refs)?;
+        }
     }
 
     // Remove the tool's environment directory
@@ -166,7 +169,7 @@ mod tests {
             let config_path = tools_dir.join("shims.cfg");
             std::fs::write(
                 &config_path,
-                "pixi=pixi\\bin\\pixi.exe\r\nanaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n",
+                "pixi=pixi\\bin\\pixi.exe\r\nanaconda-cli=anaconda-cli\\Scripts\\anaconda.exe\r\n",
             )
             .unwrap();
 
@@ -176,7 +179,7 @@ mod tests {
 
                 let content = std::fs::read_to_string(&config_path).unwrap();
                 assert!(!content.contains("pixi="));
-                assert!(content.contains("anaconda=anaconda-cli\\Scripts\\anaconda.exe"));
+                assert!(content.contains("anaconda-cli=anaconda-cli\\Scripts\\anaconda.exe"));
             });
         }
 
@@ -189,17 +192,17 @@ mod tests {
             let config_path = tools_dir.join("shims.cfg");
             std::fs::write(
                 &config_path,
-                "pixi=pixi\\bin\\pixi.exe\r\nanaconda=anaconda-cli\\Scripts\\anaconda.exe\r\nother=other\\bin\\other.exe\r\n",
+                "pixi=pixi\\bin\\pixi.exe\r\nanaconda-cli=anaconda-cli\\Scripts\\anaconda.exe\r\nother=other\\bin\\other.exe\r\n",
             )
             .unwrap();
 
             temp_env::with_var("ANA_HOME", Some(temp.path().to_str().unwrap()), || {
-                let result = remove_shims_cfg_entries(&["pixi", "anaconda"]);
+                let result = remove_shims_cfg_entries(&["pixi", "anaconda-cli"]);
                 assert!(result.is_ok());
 
                 let content = std::fs::read_to_string(&config_path).unwrap();
                 assert!(!content.contains("pixi="));
-                assert!(!content.contains("anaconda="));
+                assert!(!content.contains("anaconda-cli="));
                 assert!(content.contains("other=other\\bin\\other.exe"));
             });
         }
@@ -225,7 +228,7 @@ mod tests {
             let config_path = tools_dir.join("shims.cfg");
             std::fs::write(
                 &config_path,
-                "pixi=pixi\\bin\\pixi.exe\r\nanaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n",
+                "pixi=pixi\\bin\\pixi.exe\r\nanaconda-cli=anaconda-cli\\Scripts\\anaconda.exe\r\n",
             )
             .unwrap();
 
