@@ -106,9 +106,9 @@ pub fn binary_names(name: &str) -> Option<Vec<String>> {
         t.binaries
             .iter()
             .map(|b| {
-                b.link_name.map(|s| s.to_string()).unwrap_or_else(|| {
-                    b.path.last().unwrap().to_string()
-                })
+                b.link_name
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| b.path.last().unwrap().to_string())
             })
             .collect()
     })
