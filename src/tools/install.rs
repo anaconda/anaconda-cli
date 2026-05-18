@@ -41,7 +41,7 @@ pub fn check_tool_needs_update(tool_name: &str) -> Option<String> {
     if !prefix.exists() {
         return None;
     }
-    
+
     let package_name = tools::package_name(tool_name)?;
 
     // Get installed version from prefix
@@ -76,7 +76,7 @@ pub fn check_tool_incompatible(tool_name: &str) -> Option<(String, &'static str)
     if !prefix.exists() {
         return None;
     }
-    
+
     let package_name = tools::package_name(tool_name)?;
 
     // Get installed version from prefix
