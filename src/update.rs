@@ -412,25 +412,29 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
     eprintln!("  was v{} → now {}", current_version, new_version);
     eprintln!();
 
-    warn_outdated_tools();
+    warn_incompatible_tools();
 }
 
-fn warn_outdated_tools() {
-    use crate::tools::install::check_all_tools_need_update;
+fn warn_incompatible_tools() {
+    use crate::tools::install::check_incompatible_tools;
     use crate::ui::status;
 
-    let outdated = check_all_tools_need_update();
-    if outdated.is_empty() {
+    let incompatible = check_incompatible_tools();
+    if incompatible.is_empty() {
         return;
     }
 
-    let tool_list = outdated.join(", ");
-
-    status::warn(&format!(
-        "The following tools may also need updating: {}",
-        tool_list
-    ));
-    eprintln!("  Run: ana tool install <tool-name>");
+    for (tool_name, installed, min_required) in &incompatible {
+        status::warn(&format!(
+            "{} {} is incompatible with this version of ana (requires >= {})",
+            tool_name, installed, min_required
+        ));
+    }
+    eprintln!();
+    eprintln!("  Update incompatible tools:");
+    for (tool_name, _, _) in &incompatible {
+        eprintln!("    ana tool install {}", tool_name);
+    }
     eprintln!();
 }
 

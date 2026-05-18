@@ -10,13 +10,14 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
         status::info("Installing anaconda-cli...");
         tools::install::install_tool(ctx, "anaconda-cli").await?;
         status::blank_line();
-    } else if let Some(installed_version) = tools::tools::package_name("anaconda-cli")
-        .and_then(|pkg| tools::install::check_tool_needs_update("anaconda-cli", pkg))
+    } else if let Some((installed_version, min_required)) =
+        tools::install::check_tool_incompatible("anaconda-cli")
     {
         status::warn(&format!(
-            "anaconda-cli is outdated (installed: {}). Run: ana tool install anaconda-cli",
-            installed_version
+            "anaconda-cli {} is incompatible with this version of ana (requires >= {})",
+            installed_version, min_required
         ));
+        eprintln!("  Run: ana tool install anaconda-cli");
         status::blank_line();
     }
 

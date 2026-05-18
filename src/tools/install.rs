@@ -16,27 +16,28 @@ use super::{pixi_config, tools};
 use crate::context::CommandContext;
 use crate::paths;
 
-/// Check all installed tools and return the names of those that need updating.
+/// Check all installed tools and return those that are incompatible with this ana version.
 ///
-/// Returns a list of tool names that are installed but at a different version
-/// than what's in the embedded lockfile.
-pub fn check_all_tools_need_update() -> Vec<&'static str> {
+/// Returns a list of (tool_name, installed_version, min_required_version) for tools
+/// that are installed but below the minimum compatible version.
+pub fn check_incompatible_tools() -> Vec<(&'static str, String, &'static str)> {
     tools::all_tools()
         .into_iter()
-        .filter(|tool_name| {
-            tools::package_name(tool_name)
-                .and_then(|pkg| check_tool_needs_update(tool_name, pkg))
-                .is_some()
+        .filter_map(|tool_name| {
+            check_tool_incompatible(tool_name)
+                .map(|(installed, min_required)| (tool_name, installed, min_required))
         })
         .collect()
 }
 
 /// Check if a tool needs updating by comparing installed vs embedded lockfile versions.
 ///
-/// Returns `Some(installed_version)` if the tool is installed but at a different version
+/// Returns `Some(installed_version)` if the tool is installed but at a lower version
 /// than what's in the embedded lockfile. Returns `None` if the tool is not installed
-/// or is already at the correct version.
-pub fn check_tool_needs_update(tool_name: &str, package_name: &str) -> Option<String> {
+/// or is already at or above the lockfile version.
+#[allow(dead_code)] // Reserved for future --update-tools flag
+pub fn check_tool_needs_update(tool_name: &str) -> Option<String> {
+    let package_name = tools::package_name(tool_name)?;
     let prefix = paths::tool_prefix(tool_name);
     if !prefix.exists() {
         return None;
@@ -60,7 +61,35 @@ pub fn check_tool_needs_update(tool_name: &str, package_name: &str) -> Option<St
     }
 }
 
+/// Check if a tool is incompatible with this version of ana.
+///
+/// Returns `Some((installed_version, min_required))` if the tool is installed but
+/// below the minimum compatible version. Returns `None` if the tool is not installed,
+/// has no minimum version requirement, or is compatible.
+pub fn check_tool_incompatible(tool_name: &str) -> Option<(String, &'static str)> {
+    let min_required = tools::min_compatible_version(tool_name)?;
+    let package_name = tools::package_name(tool_name)?;
+    let prefix = paths::tool_prefix(tool_name);
+    if !prefix.exists() {
+        return None;
+    }
+
+    // Get installed version from prefix
+    let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(&prefix).ok()?;
+    let installed_version = installed
+        .iter()
+        .find(|r| r.repodata_record.package_record.name.as_normalized() == package_name)
+        .map(|r| r.repodata_record.package_record.version.to_string())?;
+
+    if installed_version.as_str() < min_required {
+        Some((installed_version, min_required))
+    } else {
+        None
+    }
+}
+
 /// Extract a package version from a lockfile string for the current platform.
+#[allow(dead_code)] // Used by check_tool_needs_update
 fn get_package_version_from_lockfile(lock_content: &str, package_name: &str) -> Option<String> {
     let lock_file = LockFile::from_str_with_base_directory(lock_content, None).ok()?;
     let env = lock_file.default_environment()?;
@@ -398,8 +427,25 @@ mod tests {
     #[test]
     fn test_check_tool_needs_update_nonexistent_tool() {
         temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
-            let result = check_tool_needs_update("anaconda-cli", "anaconda-cli-base");
+            let result = check_tool_needs_update("anaconda-cli");
             assert!(result.is_none(), "nonexistent tool should return None");
+        });
+    }
+
+    #[test]
+    fn test_check_tool_incompatible_nonexistent_tool() {
+        temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
+            let result = check_tool_incompatible("anaconda-cli");
+            assert!(result.is_none(), "nonexistent tool should return None");
+        });
+    }
+
+    #[test]
+    fn test_check_tool_incompatible_no_min_version() {
+        temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
+            // pixi has no min_compatible_version set
+            let result = check_tool_incompatible("pixi");
+            assert!(result.is_none(), "tool without min version should return None");
         });
     }
 
