@@ -200,6 +200,7 @@ async fn validate_api_key(
         })
         .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
 
+    // Some user types (service accounts) may not have a `user_id`, so it is `Option<String>`
     let user_id = profile
         .and_then(|p| p.get("user_id"))
         .and_then(|v| v.as_str())
