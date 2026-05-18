@@ -6,9 +6,9 @@ use tokio::time::sleep;
 
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
-use super::keyring::{delete_api_key, get_api_key, save_api_key};
+use super::keyring::{delete_api_key, get_api_key, save_credential};
 use super::responses::{
-    AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
+    DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse, WhoamiResponse,
 };
 use crate::context::CommandContext;
 use crate::input::KeyListener;
@@ -107,13 +107,13 @@ fn print_token_expiration(expires_at: &str) {
 async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
 
-    // Validate the API key against the server before saving
-    let email = validate_api_key(ctx, api_key)
+    // Validate the API key and get user info (email + user_id) in a single request
+    let (email, user_id) = validate_api_key(ctx, api_key)
         .await
         .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
 
-    // Save to keyring
-    save_api_key(&ctx.config, api_key)?;
+    // Save to keyring (including user_id if available)
+    save_credential(&ctx.config, api_key, user_id.as_deref())?;
     status::success("API key stored in keyring");
 
     // Display login success
@@ -161,13 +161,16 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
     Ok(api_key.trim().to_string())
 }
 
-/// Validate an API key by making a request to the account endpoint.
-/// Returns the user's email if valid, or an error if invalid.
-async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result<String> {
+/// Validate an API key by making a request to the whoami endpoint.
+/// Returns (email, Option<user_id>) if valid, or an error if invalid.
+async fn validate_api_key(
+    ctx: &CommandContext,
+    api_key: &str,
+) -> miette::Result<(String, Option<String>)> {
     let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
 
     let response = client
-        .get("/api/account")
+        .get("/api/auth/sessions/whoami")
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
         .await
@@ -180,19 +183,22 @@ async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result
         ));
     }
 
-    let account: AccountResponse = response
+    let data: WhoamiResponse = response
         .json()
         .await
-        .map_err(|e| miette::miette!("Failed to parse account response: {}", e))?;
+        .map_err(|e| miette::miette!("Failed to parse whoami response: {}", e))?;
 
-    let email = account
-        .user
-        .as_ref()
-        .and_then(|u| u.email.clone())
-        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
+    let email = data
+        .passport
+        .profile
+        .email
+        .or(data.passport.profile.username)
         .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
 
-    Ok(email)
+    // Service accounts may not have a user_id
+    let user_id = data.passport.user_id;
+
+    Ok((email, user_id))
 }
 
 /// Login with a provided API key (bypassing device flow).
