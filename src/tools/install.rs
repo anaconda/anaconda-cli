@@ -37,11 +37,12 @@ pub fn check_incompatible_tools() -> Vec<(&'static str, String, &'static str)> {
 /// or is already at or above the lockfile version.
 #[allow(dead_code)] // Reserved for future --update-tools flag
 pub fn check_tool_needs_update(tool_name: &str) -> Option<String> {
-    let package_name = tools::package_name(tool_name)?;
     let prefix = paths::tool_prefix(tool_name);
     if !prefix.exists() {
         return None;
     }
+    
+    let package_name = tools::package_name(tool_name)?;
 
     // Get installed version from prefix
     let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(&prefix).ok()?;
