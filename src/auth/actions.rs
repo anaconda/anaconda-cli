@@ -7,7 +7,9 @@ use tokio::time::sleep;
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_credential};
-use super::responses::{DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse};
+use super::responses::{
+    DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse, WhoamiResponse,
+};
 use crate::context::CommandContext;
 use crate::input::KeyListener;
 use crate::ui::status;
@@ -181,30 +183,20 @@ async fn validate_api_key(
         ));
     }
 
-    let data: serde_json::Value = response
+    let data: WhoamiResponse = response
         .json()
         .await
         .map_err(|e| miette::miette!("Failed to parse whoami response: {}", e))?;
 
-    let profile = data.get("passport").and_then(|p| p.get("profile"));
-
-    let email = profile
-        .and_then(|p| p.get("email"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .or_else(|| {
-            profile
-                .and_then(|p| p.get("username"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-        })
+    let email = data
+        .passport
+        .profile
+        .email
+        .or(data.passport.profile.username)
         .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
 
-    // Some user types (service accounts) may not have a `user_id`, so it is `Option<String>`
-    let user_id = profile
-        .and_then(|p| p.get("user_id"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    // Service accounts may not have a user_id
+    let user_id = data.passport.user_id;
 
     Ok((email, user_id))
 }

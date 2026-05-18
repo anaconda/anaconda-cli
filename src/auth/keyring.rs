@@ -28,14 +28,8 @@ struct Credential {
     api_key: String,
     repo_tokens: Vec<String>,
     version: u32,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     user_id: Option<String>,
-}
-
-/// Save an API key to the keyring file (without user_id).
-#[cfg(test)]
-fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
-    save_credential(config, api_key, None)
 }
 
 /// Save an API key and optional user_id to the keyring file.
@@ -243,6 +237,11 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
+    /// Test helper to save an API key without user_id.
+    fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
+        save_credential(config, api_key, None)
+    }
+
     fn test_config_with_keyring(path: PathBuf, domain: &str) -> Config {
         Config {
             domain: domain.to_string(),
@@ -429,6 +428,21 @@ mod tests {
         assert_eq!(credential.domain, "test.com");
         assert_eq!(credential.api_key, "ak-123");
         assert_eq!(credential.user_id, None);
+    }
+
+    #[test]
+    fn test_credential_none_user_id_not_serialized() {
+        // Verify that None user_id is omitted from JSON (not serialized as null)
+        let credential = Credential {
+            domain: "test.com".to_string(),
+            api_key: "ak-123".to_string(),
+            repo_tokens: vec![],
+            version: 2,
+            user_id: None,
+        };
+
+        let json = serde_json::to_string(&credential).unwrap();
+        assert!(!json.contains("user_id"), "user_id should not appear in JSON when None");
     }
 
     #[test]
