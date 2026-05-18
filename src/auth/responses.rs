@@ -32,16 +32,3 @@ pub struct TokenErrorResponse {
     pub error: String,
     pub error_description: Option<String>,
 }
-
-/// Account information from the API.
-#[derive(Debug, Deserialize)]
-pub struct AccountResponse {
-    pub user: Option<UserInfo>,
-}
-
-/// User information nested in account response.
-#[derive(Debug, Deserialize)]
-pub struct UserInfo {
-    pub username: Option<String>,
-    pub email: Option<String>,
-}

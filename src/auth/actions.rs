@@ -7,9 +7,7 @@ use tokio::time::sleep;
 use super::api_keys::create_api_key;
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_credential};
-use super::responses::{
-    AccountResponse, DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse,
-};
+use super::responses::{DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse};
 use crate::context::CommandContext;
 use crate::input::KeyListener;
 use crate::ui::status;
@@ -107,13 +105,10 @@ fn print_token_expiration(expires_at: &str) {
 async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
 
-    // Validate the API key against the server before saving
-    let email = validate_api_key(ctx, api_key)
+    // Validate the API key and get user info (email + user_id) in a single request
+    let (email, user_id) = validate_api_key(ctx, api_key)
         .await
         .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
-
-    // Fetch user_id for telemetry (best-effort, don't fail login if this fails)
-    let user_id = fetch_user_id(ctx, api_key).await;
 
     // Save to keyring (including user_id if available)
     save_credential(&ctx.config, api_key, user_id.as_deref())?;
@@ -164,38 +159,16 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
     Ok(api_key.trim().to_string())
 }
 
-/// Fetch user_id from the whoami endpoint.
-/// Returns None if the request fails or user_id is not found.
-async fn fetch_user_id(ctx: &CommandContext, api_key: &str) -> Option<String> {
+/// Validate an API key by making a request to the whoami endpoint.
+/// Returns (email, Option<user_id>) if valid, or an error if invalid.
+async fn validate_api_key(
+    ctx: &CommandContext,
+    api_key: &str,
+) -> miette::Result<(String, Option<String>)> {
     let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
 
     let response = client
         .get("/api/auth/sessions/whoami")
-        .header("Authorization", format!("Bearer {}", api_key))
-        .send()
-        .await
-        .ok()?;
-
-    if !response.status().is_success() {
-        return None;
-    }
-
-    let data: serde_json::Value = response.json().await.ok()?;
-
-    data.get("passport")
-        .and_then(|p| p.get("profile"))
-        .and_then(|p| p.get("user_id"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-}
-
-/// Validate an API key by making a request to the account endpoint.
-/// Returns the user's email if valid, or an error if invalid.
-async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result<String> {
-    let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
-
-    let response = client
-        .get("/api/account")
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
         .await
@@ -208,19 +181,31 @@ async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result
         ));
     }
 
-    let account: AccountResponse = response
+    let data: serde_json::Value = response
         .json()
         .await
-        .map_err(|e| miette::miette!("Failed to parse account response: {}", e))?;
+        .map_err(|e| miette::miette!("Failed to parse whoami response: {}", e))?;
 
-    let email = account
-        .user
-        .as_ref()
-        .and_then(|u| u.email.clone())
-        .or_else(|| account.user.as_ref().and_then(|u| u.username.clone()))
+    let profile = data.get("passport").and_then(|p| p.get("profile"));
+
+    let email = profile
+        .and_then(|p| p.get("email"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            profile
+                .and_then(|p| p.get("username"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        })
         .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
 
-    Ok(email)
+    let user_id = profile
+        .and_then(|p| p.get("user_id"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    Ok((email, user_id))
 }
 
 /// Login with a provided API key (bypassing device flow).
