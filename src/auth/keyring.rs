@@ -442,7 +442,10 @@ mod tests {
         };
 
         let json = serde_json::to_string(&credential).unwrap();
-        assert!(!json.contains("user_id"), "user_id should not appear in JSON when None");
+        assert!(
+            !json.contains("user_id"),
+            "user_id should not appear in JSON when None"
+        );
     }
 
     #[test]
