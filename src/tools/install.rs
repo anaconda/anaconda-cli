@@ -68,11 +68,12 @@ pub fn check_tool_needs_update(tool_name: &str) -> Option<String> {
 /// has no minimum version requirement, or is compatible.
 pub fn check_tool_incompatible(tool_name: &str) -> Option<(String, &'static str)> {
     let min_required = tools::min_compatible_version(tool_name)?;
-    let package_name = tools::package_name(tool_name)?;
     let prefix = paths::tool_prefix(tool_name);
     if !prefix.exists() {
         return None;
     }
+    
+    let package_name = tools::package_name(tool_name)?;
 
     // Get installed version from prefix
     let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(&prefix).ok()?;
