@@ -11,9 +11,9 @@ struct Tool {
     binaries: &'static [&'static [&'static str]],
     /// If set, the tool is experimental and this message will be shown as a warning.
     experimental: Option<&'static str>,
-    /// Minimum version of this tool required for compatibility with the current ana version.
+    /// Minimum version of the sentinel package required for compatibility with the current ana version.
     /// If the installed version is below this, ana features may not work correctly.
-    min_compatible_version: Option<&'static str>,
+    min_compatible_package_version: Option<&'static str>,
 }
 
 /// Embedded tool configurations.
@@ -29,7 +29,7 @@ const TOOLS: &[Tool] = &[
         },
         experimental: None,
         // anaconda-cli 0.8.1+ required for MCP support
-        min_compatible_version: Some("0.8.1"),
+        min_compatible_package_version: Some("0.8.1"),
     },
     #[cfg(unix)]
     Tool {
@@ -38,7 +38,7 @@ const TOOLS: &[Tool] = &[
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
-        min_compatible_version: None,
+        min_compatible_package_version: None,
     },
     Tool {
         name: "pixi",
@@ -46,7 +46,7 @@ const TOOLS: &[Tool] = &[
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
         experimental: None,
-        min_compatible_version: None,
+        min_compatible_package_version: None,
     },
 ];
 
@@ -97,9 +97,9 @@ pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
 }
 
-/// Returns the minimum compatible version for a tool, if any.
-pub fn min_compatible_version(tool_name: &str) -> Option<&'static str> {
-    find_tool(tool_name).and_then(|t| t.min_compatible_version)
+/// Returns the minimum compatible package version for a tool, if any.
+pub fn min_compatible_package_version(tool_name: &str) -> Option<&'static str> {
+    find_tool(tool_name).and_then(|t| t.min_compatible_package_version)
 }
 
 #[cfg(test)]

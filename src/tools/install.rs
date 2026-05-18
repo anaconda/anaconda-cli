@@ -36,7 +36,7 @@ pub fn check_incompatible_tools() -> Vec<(&'static str, String, &'static str)> {
 /// below the minimum compatible version. Returns `None` if the tool is not installed,
 /// has no minimum version requirement, or is compatible.
 pub fn check_tool_incompatible(tool_name: &str) -> Option<(String, &'static str)> {
-    let min_required = tools::min_compatible_version(tool_name)?;
+    let min_required = tools::min_compatible_package_version(tool_name)?;
     let prefix = paths::tool_prefix(tool_name);
     if !prefix.exists() {
         return None;
@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn test_check_tool_incompatible_no_min_version() {
         temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
-            // pixi has no min_compatible_version set
+            // pixi has no min_compatible_package_version set
             let result = check_tool_incompatible("pixi");
             assert!(
                 result.is_none(),
