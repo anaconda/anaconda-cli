@@ -37,6 +37,7 @@ repos:
     rev: a4727cbbcd26d7098e96b9cb738169b59711ae51  # frozen: v1.24.1
     hooks:
       - id: zizmor
+        args: [--persona, auditor]
   - repo: local
     hooks:
       - id: rustfmt
