@@ -445,7 +445,10 @@ mod tests {
         temp_env::with_var("ANA_HOME", Some("/nonexistent/path"), || {
             // pixi has no min_compatible_version set
             let result = check_tool_incompatible("pixi");
-            assert!(result.is_none(), "tool without min version should return None");
+            assert!(
+                result.is_none(),
+                "tool without min version should return None"
+            );
         });
     }
 
