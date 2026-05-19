@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:1212a23a-8924-4221-a17c-f230fa5ab72c",
+  "serialNumber": "urn:uuid:b3a783f1-391a-47ef-aa7d-d4b1db61c909",
   "metadata": {
-    "timestamp": "2026-05-14T13:13:03Z",
+    "timestamp": "2026-05-19T15:28:30Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -2356,6 +2356,37 @@
     },
     {
       "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#figment@0.10.19",
+      "author": "Sergio Benitez <sb@sergio.bz>",
+      "name": "figment",
+      "version": "0.10.19",
+      "description": "A configuration library so con-free, it's unreal.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8cb01cd46b0cf372153850f4c6c272d9cbea2da513e07538405148f95bd789f3"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/figment@0.10.19",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/figment/0.10"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/SergioBenitez/Figment"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#file_url@0.3.1",
       "author": "Bas Zalmstra <zalmstra.bas@gmail.com>",
       "name": "file_url",
@@ -4232,6 +4263,37 @@
     },
     {
       "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#inlinable_string@0.1.15",
+      "author": "Nick Fitzgerald <fitzgen@gmail.com>",
+      "name": "inlinable_string",
+      "version": "0.1.15",
+      "description": "The `inlinable_string` crate provides the `InlinableString` type -- an owned, grow-able UTF-8 string that stores small strings inline and avoids heap-allocation -- and the `StringExt` trait which abstracts string operations over both `std::string::String` and `InlinableString` (or even your own custom string type).",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c8fae54786f62fb2918dcfae3d568594e50eb9b5c25bf04371af6fe7516452fb"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR MIT"
+        }
+      ],
+      "purl": "pkg:cargo/inlinable_string@0.1.15",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "http://fitzgen.github.io/inlinable_string/inlinable_string/index.html"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/fitzgen/inlinable_string"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#ipnet@2.12.0",
       "author": "Kris Price <kris@krisprice.nz>",
       "name": "ipnet",
@@ -5988,6 +6050,60 @@
     },
     {
       "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#pear@0.2.9",
+      "author": "Sergio Benitez <sb@sergio.bz>",
+      "name": "pear",
+      "version": "0.2.9",
+      "description": "A pear is a fruit.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "bdeeaa00ce488657faba8ebf44ab9361f9365a97bd39ffb8a60663f57ff4b467"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/pear@0.2.9",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/SergioBenitez/Pear"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#pear_codegen@0.2.9",
+      "author": "Sergio Benitez <sb@sergio.bz>",
+      "name": "pear_codegen",
+      "version": "0.2.9",
+      "description": "A (codegen) pear is a fruit.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4bab5b985dc082b345f812b7df84e1bef27e7207b39e448439ba8bd69c93f147"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/pear_codegen@0.2.9",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/SergioBenitez/Pear"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#pep440_rs@0.7.3",
       "name": "pep440_rs",
       "version": "0.7.3",
@@ -6282,6 +6398,41 @@
         {
           "type": "vcs",
           "url": "https://github.com/cryptocorrosion/cryptocorrosion"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#proc-macro2-diagnostics@0.10.1",
+      "author": "Sergio Benitez <sb@sergio.bz>",
+      "name": "proc-macro2-diagnostics",
+      "version": "0.10.1",
+      "description": "Diagnostics for proc-macro2.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "af066a9c399a26e020ada66a034357a868728e72cd426f3adcd35f80d88d88c8"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/proc-macro2-diagnostics@0.10.1",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/proc-macro2-diagnostics"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/SergioBenitez/proc-macro2-diagnostics"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/SergioBenitez/proc-macro2-diagnostics"
         }
       ]
     },
@@ -10658,6 +10809,37 @@
     },
     {
       "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#uncased@0.9.10",
+      "author": "Sergio Benitez <sb@sergio.bz>",
+      "name": "uncased",
+      "version": "0.9.10",
+      "description": "Case-preserving, ASCII case-insensitive, no_std string types.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e1b88fcfe09e89d3866a5c11019378088af2d24c3fbd4f0543f96b479ec90697"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/uncased@0.9.10",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/uncased/0.9"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/SergioBenitez/uncased"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#unicase@2.9.0",
       "author": "Sean McArthur <sean@seanmonstar.com>",
       "name": "unicase",
@@ -11553,6 +11735,37 @@
         {
           "type": "vcs",
           "url": "https://github.com/DoumanAsh/xxhash-rust"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#yansi@1.0.1",
+      "author": "Sergio Benitez <sb@sergio.bz>",
+      "name": "yansi",
+      "version": "1.0.1",
+      "description": "A dead simple ANSI terminal color painting library.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/yansi@1.0.1",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/yansi"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/SergioBenitez/yansi"
         }
       ]
     },
@@ -13487,6 +13700,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#console@0.16.3",
         "registry+https://github.com/rust-lang/crates.io-index#dirs@6.0.0",
+        "registry+https://github.com/rust-lang/crates.io-index#figment@0.10.19",
         "registry+https://github.com/rust-lang/crates.io-index#futures-util@0.3.32",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.0",
         "registry+https://github.com/rust-lang/crates.io-index#indicatif@0.18.4",
@@ -14043,6 +14257,15 @@
       "dependsOn": []
     },
     {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#figment@0.10.19",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#pear@0.2.9",
+        "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228",
+        "registry+https://github.com/rust-lang/crates.io-index#uncased@0.9.10",
+        "registry+https://github.com/rust-lang/crates.io-index#version_check@0.9.5"
+      ]
+    },
+    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#file_url@0.3.1",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#itertools@0.14.0",
@@ -14502,6 +14725,10 @@
       ]
     },
     {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#inlinable_string@0.1.15",
+      "dependsOn": []
+    },
+    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#ipnet@2.12.0",
       "dependsOn": []
     },
@@ -14894,6 +15121,23 @@
       ]
     },
     {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#pear@0.2.9",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#inlinable_string@0.1.15",
+        "registry+https://github.com/rust-lang/crates.io-index#pear_codegen@0.2.9",
+        "registry+https://github.com/rust-lang/crates.io-index#yansi@1.0.1"
+      ]
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#pear_codegen@0.2.9",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#proc-macro2-diagnostics@0.10.1",
+        "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.106",
+        "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.45",
+        "registry+https://github.com/rust-lang/crates.io-index#syn@2.0.117"
+      ]
+    },
+    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#pep440_rs@0.7.3",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4",
@@ -14966,6 +15210,16 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#ppv-lite86@0.2.21",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#zerocopy@0.8.48"
+      ]
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#proc-macro2-diagnostics@0.10.1",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.106",
+        "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.45",
+        "registry+https://github.com/rust-lang/crates.io-index#syn@2.0.117",
+        "registry+https://github.com/rust-lang/crates.io-index#version_check@0.9.5",
+        "registry+https://github.com/rust-lang/crates.io-index#yansi@1.0.1"
       ]
     },
     {
@@ -16247,6 +16501,12 @@
       "dependsOn": []
     },
     {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#uncased@0.9.10",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#version_check@0.9.5"
+      ]
+    },
+    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#unicase@2.9.0",
       "dependsOn": []
     },
@@ -16392,6 +16652,10 @@
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#xxhash-rust@0.8.15",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#yansi@1.0.1",
       "dependsOn": []
     },
     {
@@ -16783,6 +17047,22 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#windows_x86_64_msvc@0.52.6",
       "dependsOn": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2026-0145",
+      "description": "Versions of astral-tokio-tar prior to 0.6.2 contain a PAX header interpretation bug that allows manipulated entries to be made selectively visible or invisible during extraction with astral-tokio-tar versus other tar implementations. An attacker could use this differential to smuggle unexpected files onto a victim's filesystem.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0145.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.1"
+        }
+      ]
     }
   ]
 }

@@ -34,8 +34,8 @@
 
 use std::path::PathBuf;
 
-use figment::providers::{Env, Serialized};
 use figment::Figment;
+use figment::providers::{Env, Serialized};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::table;
@@ -143,16 +143,14 @@ impl Config {
     pub fn load() -> Self {
         Figment::new()
             .merge(Serialized::defaults(Self::defaults()))
-            .merge(
-                Env::prefixed("ANA_").map(|key| {
-                    let k = key.as_str().to_lowercase();
-                    match k.as_str() {
-                        "auth_client_id" => "client_id".into(),
-                        "prereleases" => "include_prereleases".into(),
-                        _ => k.into(),
-                    }
-                })
-            )
+            .merge(Env::prefixed("ANA_").map(|key| {
+                let k = key.as_str().to_lowercase();
+                match k.as_str() {
+                    "auth_client_id" => "client_id".into(),
+                    "prereleases" => "include_prereleases".into(),
+                    _ => k.into(),
+                }
+            }))
             .extract()
             .expect("config loading should not fail with defaults")
     }
