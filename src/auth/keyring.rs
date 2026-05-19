@@ -218,15 +218,15 @@ fn keyring_permission_error(operation: &str, path: &Path, error: io::Error) -> A
 
     // Provide actionable guidance for permission denied errors
     #[cfg(unix)]
-    if error.kind() == io::ErrorKind::PermissionDenied {
-        if let Some(parent) = path.parent() {
-            return AuthError::Keyring(format!(
-                "{}.\n\nTo fix this, run:\n  chmod 700 {} && chmod 600 {}",
-                base_msg,
-                parent.display(),
-                path.display()
-            ));
-        }
+    if error.kind() == io::ErrorKind::PermissionDenied
+        && let Some(parent) = path.parent()
+    {
+        return AuthError::Keyring(format!(
+            "{}.\n\nTo fix this, run:\n  chmod 700 {} && chmod 600 {}",
+            base_msg,
+            parent.display(),
+            path.display()
+        ));
     }
 
     AuthError::Keyring(base_msg)

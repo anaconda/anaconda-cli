@@ -74,16 +74,14 @@ impl Middleware for AuthMiddleware {
         extensions: &mut http::Extensions,
         next: Next<'_>,
     ) -> Result<Response> {
-        if is_auth_allowed(req.url(), &self.config.base_url()) {
-            if let Ok(Some(api_key)) = auth::get_api_key(&self.config) {
-                if let Ok(mut value) =
-                    reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_key))
-                {
-                    value.set_sensitive(true);
-                    req.headers_mut()
-                        .insert(reqwest::header::AUTHORIZATION, value);
-                }
-            }
+        if is_auth_allowed(req.url(), &self.config.base_url())
+            && let Ok(Some(api_key)) = auth::get_api_key(&self.config)
+            && let Ok(mut value) =
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_key))
+        {
+            value.set_sensitive(true);
+            req.headers_mut()
+                .insert(reqwest::header::AUTHORIZATION, value);
         }
         next.run(req, extensions).await
     }

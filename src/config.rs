@@ -233,12 +233,11 @@ fn normalize_domain(domain: &str) -> String {
     let domain = domain.trim();
 
     // If it looks like a URL (has scheme), parse it properly
-    if domain.starts_with("http://") || domain.starts_with("https://") {
-        if let Ok(url) = url::Url::parse(domain) {
-            if let Some(host) = url.host_str() {
-                return host.to_string();
-            }
-        }
+    if (domain.starts_with("http://") || domain.starts_with("https://"))
+        && let Ok(url) = url::Url::parse(domain)
+        && let Some(host) = url.host_str()
+    {
+        return host.to_string();
     }
 
     // Otherwise treat as bare domain - strip any path component

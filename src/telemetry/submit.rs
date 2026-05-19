@@ -105,12 +105,11 @@ fn cleanup_old_files(dir: &Path, max_age_days: i64) -> Result<(), std::io::Error
         let entry = entry?;
         let metadata = entry.metadata()?;
 
-        if let Ok(modified) = metadata.modified() {
-            if let Ok(age) = now.duration_since(modified) {
-                if age > max_age {
-                    let _ = fs::remove_file(entry.path());
-                }
-            }
+        if let Ok(modified) = metadata.modified()
+            && let Ok(age) = now.duration_since(modified)
+            && age > max_age
+        {
+            let _ = fs::remove_file(entry.path());
         }
     }
 
