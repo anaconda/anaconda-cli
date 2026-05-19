@@ -531,7 +531,7 @@ fn find_conda() -> miette::Result<std::path::PathBuf> {
     match check {
         Ok(output) if output.status.success() => Ok(conda_path),
         _ => Err(miette::miette!(
-            "conda not found. Install it with: ana tool install conda"
+            "This feature currently requires conda to be installed separately. Install it from: https://www.anaconda.com/download"
         )),
     }
 }
