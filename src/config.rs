@@ -32,14 +32,19 @@
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
-use std::env;
 use std::path::PathBuf;
+
+use figment::providers::{Env, Serialized};
+use figment::Figment;
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::table;
 
 /// Check if telemetry is enabled.
 pub fn telemetry_enabled() -> bool {
-    parse_bool_env("ANA_ENABLE_TELEMETRY", true)
+    std::env::var("ANA_ENABLE_TELEMETRY")
+        .map(|v| parse_bool(&v))
+        .unwrap_or(true)
 }
 
 const DEFAULT_DOMAIN: &str = "anaconda.com";
@@ -61,18 +66,21 @@ const DEFAULT_SENTRY_DISABLED: bool = false;
 const DEFAULT_SENTRY_ENVIRONMENT: &str = "production";
 
 /// Global configuration for ana.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// The domain for authentication (e.g., "anaconda.com")
+    #[serde(deserialize_with = "deserialize_domain")]
     pub domain: String,
 
     /// OAuth client ID
     pub client_id: String,
 
     /// Whether to verify SSL certificates
+    #[serde(deserialize_with = "deserialize_bool")]
     pub ssl_verify: bool,
 
     /// Whether to automatically open browser during login
+    #[serde(deserialize_with = "deserialize_bool")]
     pub open_browser: bool,
 
     /// OpenTelemetry metrics endpoint URL (authenticated)
@@ -85,32 +93,43 @@ pub struct Config {
     pub metrics_export_interval_ms: i64,
 
     /// Enable console metrics exporter
+    #[serde(deserialize_with = "deserialize_bool")]
     pub metrics_console_exporter: bool,
 
     /// Skip internet connectivity check
+    #[serde(deserialize_with = "deserialize_bool")]
     pub metrics_skip_internet_check: bool,
 
     /// Path to the keyring file for storing API keys
     pub keyring_path: PathBuf,
 
     /// Whether to use HTTPS (set false for HTTP, e.g. testing)
+    #[serde(deserialize_with = "deserialize_bool")]
     pub use_https: bool,
 
     /// Whether to include prereleases when checking for updates
+    #[serde(deserialize_with = "deserialize_bool")]
     pub include_prereleases: bool,
 
     /// Pip index URL for package installation
     pub pip_index_url: String,
+
     /// Base URL for static self-update; if None, uses GitHub Releases
+    #[serde(deserialize_with = "deserialize_self_update_url")]
     pub self_update_url: Option<String>,
 
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
+    #[serde(deserialize_with = "deserialize_bool")]
     pub sentry_disabled: bool,
 
     /// Sentry environment tag (e.g., "production", "integration-test")
     #[cfg(feature = "diagnostics")]
     pub sentry_environment: String,
+}
+
+fn default_keyring_path() -> PathBuf {
+    crate::paths::home_dir().join(".anaconda").join("keyring")
 }
 
 impl Default for Config {
@@ -122,66 +141,43 @@ impl Default for Config {
 impl Config {
     /// Load configuration from environment variables.
     pub fn load() -> Self {
-        let domain = normalize_domain(
-            &env::var("ANA_DOMAIN").unwrap_or_else(|_| DEFAULT_DOMAIN.to_string()),
-        );
-        let client_id =
-            env::var("ANA_AUTH_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
-        let ssl_verify = parse_bool_env("ANA_SSL_VERIFY", DEFAULT_SSL_VERIFY);
-        let open_browser = parse_bool_env("ANA_OPEN_BROWSER", DEFAULT_OPEN_BROWSER);
-        let metrics_endpoint = env::var("ANA_METRICS_ENDPOINT")
-            .unwrap_or_else(|_| DEFAULT_METRICS_ENDPOINT.to_string());
-        let metrics_public_endpoint = env::var("ANA_METRICS_PUBLIC_ENDPOINT")
-            .unwrap_or_else(|_| DEFAULT_METRICS_PUBLIC_ENDPOINT.to_string());
-        let metrics_export_interval_ms = env::var("ANA_METRICS_EXPORT_INTERVAL_MS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_METRICS_EXPORT_INTERVAL_MS);
-        let metrics_console_exporter = parse_bool_env(
-            "ANA_METRICS_CONSOLE_EXPORTER",
-            DEFAULT_METRICS_CONSOLE_EXPORTER,
-        );
-        let metrics_skip_internet_check = parse_bool_env(
-            "ANA_METRICS_SKIP_INTERNET_CHECK",
-            DEFAULT_METRICS_SKIP_INTERNET_CHECK,
-        );
-        let keyring_path = env::var("ANA_KEYRING_PATH")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| default_keyring_path());
-        let use_https = parse_bool_env("ANA_USE_HTTPS", DEFAULT_USE_HTTPS);
-        let include_prereleases = parse_bool_env("ANA_PRERELEASES", DEFAULT_INCLUDE_PRERELEASES);
-        let pip_index_url =
-            env::var("ANA_PIP_INDEX_URL").unwrap_or_else(|_| DEFAULT_PIP_INDEX_URL.to_string());
-        let self_update_url = match env::var("ANA_SELF_UPDATE_URL") {
-            Ok(s) if s.trim().eq_ignore_ascii_case("github") => None,
-            Ok(s) if !s.trim().is_empty() => Some(s.trim().to_string()),
-            _ => Some(DEFAULT_SELF_UPDATE_URL.to_string()),
-        };
-        #[cfg(feature = "diagnostics")]
-        let sentry_disabled = parse_bool_env("ANA_SENTRY_DISABLED", DEFAULT_SENTRY_DISABLED);
-        #[cfg(feature = "diagnostics")]
-        let sentry_environment = env::var("ANA_SENTRY_ENVIRONMENT")
-            .unwrap_or_else(|_| DEFAULT_SENTRY_ENVIRONMENT.to_string());
+        Figment::new()
+            .merge(Serialized::defaults(Self::defaults()))
+            .merge(
+                Env::prefixed("ANA_").map(|key| {
+                    let k = key.as_str().to_lowercase();
+                    match k.as_str() {
+                        "auth_client_id" => "client_id".into(),
+                        "prereleases" => "include_prereleases".into(),
+                        _ => k.into(),
+                    }
+                })
+            )
+            .extract()
+            .expect("config loading should not fail with defaults")
+    }
 
+    /// Returns the default configuration values (without env overrides).
+    fn defaults() -> Self {
         Self {
-            domain,
-            client_id,
-            ssl_verify,
-            open_browser,
-            metrics_endpoint,
-            metrics_public_endpoint,
-            metrics_export_interval_ms,
-            metrics_console_exporter,
-            metrics_skip_internet_check,
-            keyring_path,
-            use_https,
-            include_prereleases,
-            pip_index_url,
-            self_update_url,
+            domain: DEFAULT_DOMAIN.to_string(),
+            client_id: DEFAULT_CLIENT_ID.to_string(),
+            ssl_verify: DEFAULT_SSL_VERIFY,
+            open_browser: DEFAULT_OPEN_BROWSER,
+            metrics_endpoint: DEFAULT_METRICS_ENDPOINT.to_string(),
+            metrics_public_endpoint: DEFAULT_METRICS_PUBLIC_ENDPOINT.to_string(),
+            metrics_export_interval_ms: DEFAULT_METRICS_EXPORT_INTERVAL_MS,
+            metrics_console_exporter: DEFAULT_METRICS_CONSOLE_EXPORTER,
+            metrics_skip_internet_check: DEFAULT_METRICS_SKIP_INTERNET_CHECK,
+            keyring_path: default_keyring_path(),
+            use_https: DEFAULT_USE_HTTPS,
+            include_prereleases: DEFAULT_INCLUDE_PRERELEASES,
+            pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
+            self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             #[cfg(feature = "diagnostics")]
-            sentry_disabled,
+            sentry_disabled: DEFAULT_SENTRY_DISABLED,
             #[cfg(feature = "diagnostics")]
-            sentry_environment,
+            sentry_environment: DEFAULT_SENTRY_ENVIRONMENT.to_string(),
         }
     }
 
@@ -222,29 +218,6 @@ impl Config {
     }
 }
 
-/// Get the default keyring path
-fn default_keyring_path() -> PathBuf {
-    crate::paths::home_dir().join(".anaconda").join("keyring")
-}
-
-/// Normalize a domain by stripping scheme (http://, https://) and path components.
-/// e.g., "https://stage.anaconda.com/app" -> "stage.anaconda.com"
-fn normalize_domain(domain: &str) -> String {
-    let domain = domain.trim();
-
-    // If it looks like a URL (has scheme), parse it properly
-    if domain.starts_with("http://") || domain.starts_with("https://") {
-        if let Ok(url) = url::Url::parse(domain) {
-            if let Some(host) = url.host_str() {
-                return host.to_string();
-            }
-        }
-    }
-
-    // Otherwise treat as bare domain - strip any path component
-    domain.split('/').next().unwrap_or(domain).to_string()
-}
-
 /// Parse a boolean from a string value.
 ///
 /// Whitespace is trimmed before parsing.
@@ -255,13 +228,79 @@ fn parse_bool(val: &str) -> bool {
     !(val.is_empty() || val == "0" || val == "false")
 }
 
-/// Parse a boolean from an environment variable.
-///
-/// Returns `default` if the variable is not set.
-fn parse_bool_env(name: &str, default: bool) -> bool {
-    match env::var(name) {
-        Ok(val) => parse_bool(&val),
-        Err(_) => default,
+/// Custom deserializer for booleans that preserves the original parse_bool logic.
+fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct BoolVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for BoolVisitor {
+        type Value = bool;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a boolean, string, or number")
+        }
+
+        fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
+            Ok(v)
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+            Ok(parse_bool(v))
+        }
+
+        fn visit_string<E>(self, v: String) -> Result<Self::Value, E> {
+            Ok(parse_bool(&v))
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
+            Ok(v != 0)
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
+            Ok(v != 0)
+        }
+    }
+
+    deserializer.deserialize_any(BoolVisitor)
+}
+
+/// Normalize a domain by stripping scheme (http://, https://) and path components.
+fn normalize_domain(domain: &str) -> String {
+    let domain = domain.trim();
+
+    if domain.starts_with("http://") || domain.starts_with("https://") {
+        if let Ok(url) = url::Url::parse(domain) {
+            if let Some(host) = url.host_str() {
+                return host.to_string();
+            }
+        }
+    }
+
+    domain.split('/').next().unwrap_or(domain).to_string()
+}
+
+/// Custom deserializer for domain that normalizes the value.
+fn deserialize_domain<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(normalize_domain(&s))
+}
+
+/// Custom deserializer for self_update_url that handles the "github" magic value.
+fn deserialize_self_update_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    match value {
+        Some(s) if s.trim().eq_ignore_ascii_case("github") => Ok(None),
+        Some(s) if s.trim().is_empty() => Ok(Some(DEFAULT_SELF_UPDATE_URL.to_string())),
+        Some(s) => Ok(Some(s.trim().to_string())),
+        None => Ok(Some(DEFAULT_SELF_UPDATE_URL.to_string())),
     }
 }
 
@@ -294,16 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_bool_env_nonexistent_returns_default() {
-        // When not set, returns default
-        assert!(parse_bool_env("NONEXISTENT_VAR_12345", true));
-        assert!(!parse_bool_env("NONEXISTENT_VAR_12345", false));
-    }
-
-    #[test]
-    fn test_parse_bool_env_values() {
-        // Test that "0" and "false" are all interpreted as false
-        // We can't easily test this without setting env vars, so we test the logic directly
+    fn test_parse_bool_values() {
         let test_cases = vec![
             ("0", false),
             ("false", false),
@@ -362,18 +392,14 @@ mod tests {
 
     #[test]
     fn test_config_load_returns_valid_config() {
-        // This test verifies Config::load() doesn't panic and returns valid data
         let config = Config::load();
 
-        // Domain should never be empty
         assert!(!config.domain.is_empty());
-        // Client ID should never be empty
         assert!(!config.client_id.is_empty());
     }
 
     #[test]
     fn test_config_default_is_load() {
-        // Default implementation should be equivalent to load() (for now)
         let default_config = Config::default();
         let loaded_config = Config::load();
 
@@ -423,7 +449,6 @@ mod tests {
     #[test]
     fn test_config_default_keyring_path() {
         let config = Config::load();
-        // Should end with .anaconda/keyring
         assert!(config.keyring_path.ends_with(".anaconda/keyring"));
     }
 
