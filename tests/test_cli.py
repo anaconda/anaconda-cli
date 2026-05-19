@@ -339,6 +339,37 @@ class TestArgumentErrors:
         assert "Unknown self command: foobar" in result.stderr
 
 
+class TestHelpWithArguments:
+    """Tests for --help when arguments are provided before the flag."""
+
+    def test_feature_enable_help_with_argument(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana feature enable main-x --help' shows help, not an error."""
+        with_arg = run_ana("feature", "enable", "main-x", "--help")
+        without_arg = run_ana("feature", "enable", "--help")
+
+        assert with_arg.returncode == 0
+        assert without_arg.returncode == 0
+        assert with_arg.stdout == without_arg.stdout
+
+    def test_feature_disable_help_with_argument(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana feature disable main-x --help' shows help, not an error."""
+        with_arg = run_ana("feature", "disable", "main-x", "--help")
+        without_arg = run_ana("feature", "disable", "--help")
+
+        assert with_arg.returncode == 0
+        assert without_arg.returncode == 0
+        assert with_arg.stdout == without_arg.stdout
+
+    def test_tool_install_help_with_argument(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana tool install some-tool --help' shows help, not an error."""
+        with_arg = run_ana("tool", "install", "some-tool", "--help")
+        without_arg = run_ana("tool", "install", "--help")
+
+        assert with_arg.returncode == 0
+        assert without_arg.returncode == 0
+        assert with_arg.stdout == without_arg.stdout
+
+
 class TestBinaryFeatures:
     """Tests for binary feature configuration."""
 

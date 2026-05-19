@@ -55,6 +55,18 @@ pub enum McpCommands {
 }
 
 impl McpCommands {
+    /// Get the help path for this command (used when --help is passed).
+    pub fn get_help_path(&self) -> String {
+        match self {
+            McpCommands::Serve { .. } => "mcp serve".to_string(),
+            McpCommands::Compose { .. } => "mcp compose".to_string(),
+            McpCommands::Discover { .. } => "mcp discover".to_string(),
+            McpCommands::Clients { .. } => "mcp clients".to_string(),
+            McpCommands::Setup { .. } => "mcp setup".to_string(),
+            McpCommands::Remove { .. } => "mcp remove".to_string(),
+        }
+    }
+
     /// Convert the command into an action.
     pub fn into_action(self) -> McpAction {
         match self {

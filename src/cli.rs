@@ -517,6 +517,16 @@ pub fn parse() -> (Action, LogLevel) {
     match Cli::try_parse() {
         Ok(cli) => {
             let level: LogLevel = cli.verbose.into();
+
+            // Handle --help flag (global, so it works at any level)
+            if cli.help {
+                let action = match &cli.command {
+                    None => Action::ShowHelp,
+                    Some(cmd) => Action::ShowSubcommandHelp(get_command_path(cmd)),
+                };
+                return (action, level);
+            }
+
             let action = match cli.command {
                 None => Action::ShowHelp,
                 Some(Commands::Bootstrap) => Action::Bootstrap,
@@ -669,31 +679,61 @@ pub fn parse() -> (Action, LogLevel) {
     }
 }
 
-/// Check if a string is a valid subcommand name
-fn is_valid_subcommand(name: &str) -> bool {
-    Cli::command()
-        .get_subcommands()
-        .any(|s| s.get_name() == name)
+/// Get the command path string for a parsed Commands enum.
+/// Used to determine which help to show when --help is passed.
+fn get_command_path(cmd: &Commands) -> String {
+    match cmd {
+        Commands::Auth { command } => match command {
+            None => "auth".to_string(),
+            Some(AuthCommands::ApiKey) => "auth api-key".to_string(),
+            Some(AuthCommands::Login { .. }) => "auth login".to_string(),
+            Some(AuthCommands::Logout) => "auth logout".to_string(),
+            Some(AuthCommands::Whoami { .. }) => "auth whoami".to_string(),
+        },
+        Commands::Bootstrap => "bootstrap".to_string(),
+        Commands::Config => "config".to_string(),
+        Commands::Login { .. } => "login".to_string(),
+        Commands::Logout => "logout".to_string(),
+        Commands::Whoami { .. } => "whoami".to_string(),
+        Commands::Self_ { command } => match command {
+            None => "self".to_string(),
+            Some(SelfCommands::Feedback) => "self feedback".to_string(),
+            Some(SelfCommands::Update { .. }) => "self update".to_string(),
+            Some(SelfCommands::UserAgent { .. }) => "self user-agent".to_string(),
+        },
+        Commands::Org { .. } => "org".to_string(),
+        Commands::Mcp { command } => match command {
+            None => "mcp".to_string(),
+            Some(cmd) => cmd.get_help_path(),
+        },
+        #[cfg(unix)]
+        Commands::Ob { command } => match command {
+            None => "ob".to_string(),
+            Some(cmd) => cmd.get_help_path(),
+        },
+        Commands::Tool { command } => match command {
+            None => "tool".to_string(),
+            Some(ToolCommands::Install { .. }) => "tool install".to_string(),
+            Some(ToolCommands::List) => "tool list".to_string(),
+            Some(ToolCommands::Uninstall { .. }) => "tool uninstall".to_string(),
+        },
+        Commands::Api { command } => match command {
+            None => "api".to_string(),
+            Some(ApiCommands::Fetch { .. }) => "api fetch".to_string(),
+        },
+        Commands::Feature { command } => match command {
+            None => "feature".to_string(),
+            Some(FeatureCommands::List) => "feature list".to_string(),
+            Some(FeatureCommands::Enable { .. }) => "feature enable".to_string(),
+            Some(FeatureCommands::Disable { .. }) => "feature disable".to_string(),
+        },
+        Commands::TelemetrySubmit => "telemetry-submit".to_string(),
+        Commands::TelemetryKill => "telemetry-kill".to_string(),
+        Commands::TelemetryStatus => "telemetry-status".to_string(),
+    }
 }
 
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
-    if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        // Check if help was requested for a subcommand (including nested ones)
-        let args: Vec<String> = std::env::args().collect();
-        // Collect all non-flag args after the binary name to build the subcommand path
-        let subcommand_parts: Vec<&str> = args
-            .iter()
-            .skip(1)
-            .filter(|a| !a.starts_with('-'))
-            .map(|s| s.as_str())
-            .collect();
-
-        if !subcommand_parts.is_empty() && is_valid_subcommand(subcommand_parts[0]) {
-            let subcommand_path = subcommand_parts.join(" ");
-            return (Action::ShowSubcommandHelp(subcommand_path), LogLevel::Off);
-        }
-        return (Action::ShowHelp, LogLevel::Off);
-    }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return (Action::ShowVersion, LogLevel::Off);
     }
@@ -764,6 +804,7 @@ fn get_subcommand(path: &str) -> clap::Command {
     subcommand_required = false,
     arg_required_else_help = false,
     disable_help_subcommand = true,
+    disable_help_flag = true,
     override_usage = "ana [command] [options]",
 )]
 struct Cli {
@@ -773,6 +814,10 @@ struct Cli {
     /// Increase verbosity (-v=error, -vv=warn, -vvv=info, -vvvv=debug, -vvvvv=trace)
     #[arg(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
     verbose: u8,
+
+    /// Show help information
+    #[arg(short = 'h', long = "help", global = true, action = clap::ArgAction::SetTrue)]
+    help: bool,
 }
 
 #[derive(Subcommand)]
@@ -977,6 +1022,7 @@ enum ToolCommands {
     /// Install a tool
     Install {
         /// Name of the tool to install
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
     },
 
@@ -986,6 +1032,7 @@ enum ToolCommands {
     /// Uninstall a tool
     Uninstall {
         /// Name of the tool to uninstall
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
 
         /// Skip confirmation prompt
@@ -999,6 +1046,7 @@ enum ApiCommands {
     /// Fetch data from the API
     Fetch {
         /// API path (e.g., /api/auth/passport)
+        #[arg(required_unless_present = "help", default_value = "")]
         url: String,
 
         /// HTTP method to use
@@ -1027,6 +1075,7 @@ enum FeatureCommands {
     /// Enable a feature
     Enable {
         /// Name of the feature to enable (e.g., main-x)
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
 
         /// Skip confirmation prompt
@@ -1053,6 +1102,7 @@ enum FeatureCommands {
     /// Disable a feature
     Disable {
         /// Name of the feature to disable (e.g., main-x)
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
 
         /// Skip confirmation prompt
@@ -1319,5 +1369,77 @@ mod tests {
             }
             _ => panic!("Expected Feature Disable command"),
         }
+    }
+
+    #[test]
+    fn test_get_command_path_feature_enable() {
+        let cmd = Commands::Feature {
+            command: Some(FeatureCommands::Enable {
+                name: "main-x".to_string(),
+                force: false,
+                pip: false,
+                uv: false,
+                conda: false,
+                pixi: false,
+            }),
+        };
+        assert_eq!(get_command_path(&cmd), "feature enable");
+    }
+
+    #[test]
+    fn test_get_command_path_self_update() {
+        let cmd = Commands::Self_ {
+            command: Some(SelfCommands::Update {
+                version: None,
+                check: false,
+                list: false,
+                force: false,
+            }),
+        };
+        assert_eq!(get_command_path(&cmd), "self update");
+    }
+
+    #[test]
+    fn test_get_command_path_auth_no_subcommand() {
+        let cmd = Commands::Auth { command: None };
+        assert_eq!(get_command_path(&cmd), "auth");
+    }
+
+    #[test]
+    fn test_help_flag_with_feature_enable_and_argument() {
+        // "ana feature enable main-x --help" should parse successfully with help=true
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "main-x", "--help"]).unwrap();
+        assert!(cli.help);
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { name, .. }),
+            }) => {
+                assert_eq!(name, "main-x");
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_help_flag_position_before_argument() {
+        // "ana feature enable --help main-x" should also work
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "--help", "main-x"]).unwrap();
+        assert!(cli.help);
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { name, .. }),
+            }) => {
+                assert_eq!(name, "main-x");
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_help_flag_global_at_root() {
+        // "ana --help" should work
+        let cli = Cli::try_parse_from(["ana", "--help"]).unwrap();
+        assert!(cli.help);
+        assert!(cli.command.is_none());
     }
 }
