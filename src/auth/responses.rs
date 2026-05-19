@@ -33,15 +33,22 @@ pub struct TokenErrorResponse {
     pub error_description: Option<String>,
 }
 
-/// Account information from the API.
+/// Response from the whoami endpoint.
 #[derive(Debug, Deserialize)]
-pub struct AccountResponse {
-    pub user: Option<UserInfo>,
+pub struct WhoamiResponse {
+    pub passport: WhoamiPassport,
 }
 
-/// User information nested in account response.
+/// Passport section of the whoami response.
 #[derive(Debug, Deserialize)]
-pub struct UserInfo {
-    pub username: Option<String>,
+pub struct WhoamiPassport {
+    pub user_id: Option<String>,
+    pub profile: WhoamiProfile,
+}
+
+/// Profile section of the whoami response.
+#[derive(Debug, Deserialize)]
+pub struct WhoamiProfile {
     pub email: Option<String>,
+    pub username: Option<String>,
 }
