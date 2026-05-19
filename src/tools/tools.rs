@@ -2,11 +2,19 @@
 
 use std::path::PathBuf;
 
+/// A binary to expose from a tool installation.
+struct Binary {
+    /// Path components to the binary within the tool prefix (e.g., ["bin", "anaconda"]).
+    path: &'static [&'static str],
+    /// Optional custom name for the symlink. If None, uses the binary filename.
+    link_name: Option<&'static str>,
+}
+
 /// Tool configuration.
 struct Tool {
     name: &'static str,
     lockfile: &'static str,
-    binaries: &'static [&'static [&'static str]],
+    binaries: &'static [Binary],
     /// If set, the tool is experimental and this message will be shown as a warning.
     experimental: Option<&'static str>,
 }
@@ -17,9 +25,15 @@ const TOOLS: &[Tool] = &[
         name: "anaconda-cli",
         lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
         binaries: if cfg![unix] {
-            &[&["bin", "anaconda"]]
+            &[Binary {
+                path: &["bin", "anaconda"],
+                link_name: Some("anaconda-cli"),
+            }]
         } else {
-            &[&["Scripts", "anaconda"]]
+            &[Binary {
+                path: &["Scripts", "anaconda"],
+                link_name: Some("anaconda-cli"),
+            }]
         },
         experimental: None,
     },
@@ -27,13 +41,19 @@ const TOOLS: &[Tool] = &[
     Tool {
         name: "outerbounds",
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
-        binaries: &[&["bin", "outerbounds"]],
+        binaries: &[Binary {
+            path: &["bin", "outerbounds"],
+            link_name: None,
+        }],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
-        binaries: &[&["bin", "pixi"]],
+        binaries: &[Binary {
+            path: &["bin", "pixi"],
+            link_name: None,
+        }],
         experimental: None,
     },
 ];
@@ -55,17 +75,41 @@ pub fn content(name: &str) -> Option<String> {
     }
 }
 
-/// Returns the binaries to link for a tool.
-pub fn binaries(name: &str) -> Option<Vec<PathBuf>> {
-    find_tool(name).map(|t| t.binaries.iter().map(|b| b.iter().collect()).collect())
+/// Information about a binary to link.
+pub struct BinaryInfo {
+    /// Path to the binary within the tool prefix.
+    pub path: PathBuf,
+    /// Name to use for the symlink (may differ from the binary filename).
+    pub link_name: String,
 }
 
-/// Returns the binary names to link for a tool.
-pub fn binary_names(name: &str) -> Option<Vec<&'static str>> {
+/// Returns the binaries to link for a tool.
+pub fn binaries(name: &str) -> Option<Vec<BinaryInfo>> {
     find_tool(name).map(|t| {
         t.binaries
             .iter()
-            .filter_map(|b| b.last().copied())
+            .map(|b| {
+                let path: PathBuf = b.path.iter().collect();
+                let link_name = b
+                    .link_name
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| path.file_name().unwrap().to_string_lossy().to_string());
+                BinaryInfo { path, link_name }
+            })
+            .collect()
+    })
+}
+
+/// Returns the binary names (symlink names) to link for a tool.
+pub fn binary_names(name: &str) -> Option<Vec<String>> {
+    find_tool(name).map(|t| {
+        t.binaries
+            .iter()
+            .map(|b| {
+                b.link_name
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| b.path.last().unwrap().to_string())
+            })
             .collect()
     })
 }

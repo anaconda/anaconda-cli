@@ -1,6 +1,6 @@
 //! Package installation from lockfiles via rattler.
 
-use std::{path::Path, path::PathBuf, time::Instant};
+use std::{path::Path, time::Instant};
 
 use indicatif::{MultiProgress, ProgressDrawTarget};
 use miette::{Context, IntoDiagnostic};
@@ -38,7 +38,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     let lock_content =
         tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
-    let binaries = tools::binaries(name).unwrap_or(Vec::new());
+    let binaries = tools::binaries(name).unwrap_or_default();
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
@@ -147,7 +147,7 @@ pub async fn install_from_lockfile(
 }
 
 /// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()> {
+fn create_bin_symlinks(prefix: &Path, binaries: &[tools::BinaryInfo]) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
@@ -165,15 +165,19 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()
 
 #[cfg(unix)]
 /// Create a single symlink for a binary.
-fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
-    let tool_bin = prefix.join(binary);
-    let symlink_path = bin_dir.join(binary.file_name().unwrap());
+fn create_bin_symlink(
+    bin_dir: &Path,
+    prefix: &Path,
+    binary: &tools::BinaryInfo,
+) -> miette::Result<()> {
+    let tool_bin = prefix.join(&binary.path);
+    let symlink_path = bin_dir.join(&binary.link_name);
 
     // Check if the tool binary exists
     if !tool_bin.exists() {
         eprintln!(
             "   Warning: binary '{}' not found in {}",
-            binary.display(),
+            binary.path.display(),
             prefix.display()
         );
         return Ok(());
@@ -208,16 +212,20 @@ const SHIM_BINARY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/shim.exe"))
 ///
 /// Copies the shim executable to bin_dir/<name>.exe and updates shims.cfg
 /// with the mapping from shim name to target binary.
-fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
-    let tool_bin = prefix.join(binary).with_extension("exe");
-    let shim_name = binary.file_stem().unwrap().to_string_lossy();
+fn create_bin_shim(
+    bin_dir: &Path,
+    prefix: &Path,
+    binary: &tools::BinaryInfo,
+) -> miette::Result<()> {
+    let tool_bin = prefix.join(&binary.path).with_extension("exe");
+    let shim_name = &binary.link_name;
     let shim_path = bin_dir.join(format!("{}.exe", shim_name));
 
     // Check if the tool binary exists
     if !tool_bin.exists() {
         eprintln!(
             "   Warning: binary '{}' not found in {}",
-            binary.display(),
+            binary.path.display(),
             prefix.display()
         );
         return Ok(());
@@ -231,8 +239,12 @@ fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Resu
     // Update shims.cfg with the mapping
     // Format: <tool_name>\<binary_path_with_exe>
     let tool_name = prefix.file_name().unwrap().to_string_lossy();
-    let rel_target = format!("{}\\{}", tool_name, binary.with_extension("exe").display());
-    update_shims_cfg(&shim_name, &rel_target)?;
+    let rel_target = format!(
+        "{}\\{}",
+        tool_name,
+        binary.path.with_extension("exe").display()
+    );
+    update_shims_cfg(shim_name, &rel_target)?;
 
     eprintln!(
         "   Created shim {} -> {}",

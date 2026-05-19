@@ -5,9 +5,9 @@ use crate::paths;
 use crate::tools;
 
 pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
-    let anaconda_bin = paths::bin_path("anaconda");
+    let anaconda_cli_bin = paths::bin_path("anaconda-cli");
 
-    if anaconda_bin.exists() {
+    if anaconda_cli_bin.exists() {
         eprintln!("anaconda-cli is already installed");
         return Ok(());
     }
@@ -26,18 +26,18 @@ pub fn run_subcommand(
     subcommand: &str,
     args: &[String],
 ) -> Result<(), String> {
-    let anaconda_bin = paths::bin_path("anaconda");
+    let anaconda_cli_bin = paths::bin_path("anaconda-cli");
 
-    if !anaconda_bin.exists() {
+    if !anaconda_cli_bin.exists() {
         let msg = format!(
-            "anaconda not found at {}. Run `ana bootstrap` first.",
-            anaconda_bin.display()
+            "anaconda-cli not found at {}. Run `ana bootstrap` first.",
+            anaconda_cli_bin.display()
         );
         tracing::error!("{}", msg);
         return Err(msg);
     }
 
-    run_anaconda_command(&anaconda_bin, subcommand, args)
+    run_anaconda_command(&anaconda_cli_bin, subcommand, args)
 }
 
 fn run_anaconda_command(
