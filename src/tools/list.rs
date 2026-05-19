@@ -22,7 +22,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
         .map(|name| {
             let prefix = paths::tool_prefix(name);
             let installed = prefix.exists();
-            let binaries = tools::binaries(name).unwrap_or(Vec::new());
+            let binaries = tools::binaries(name).unwrap_or_default();
             ToolInfo {
                 name,
                 installed,

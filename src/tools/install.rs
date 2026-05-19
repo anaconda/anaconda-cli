@@ -38,7 +38,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     let lock_content =
         tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
-    let binaries = tools::binaries(name).unwrap_or(Vec::new());
+    let binaries = tools::binaries(name).unwrap_or_default();
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
