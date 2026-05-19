@@ -70,9 +70,7 @@ pub async fn execute() {
 
     let result = action.execute().await;
 
-    if !skip_telemetry_spawn
-        && let Err(e) = crate::telemetry::spawn_telemetry_submitter()
-    {
+    if !skip_telemetry_spawn && let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
         tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
@@ -243,9 +241,7 @@ impl Action {
             }
         }
 
-        if !is_telemetry_submit
-            && let Err(e) = ctx.telemetry.flush_to_spool()
-        {
+        if !is_telemetry_submit && let Err(e) = ctx.telemetry.flush_to_spool() {
             tracing::debug!("Failed to spool telemetry: {}", e);
         }
 
