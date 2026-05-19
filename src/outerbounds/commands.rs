@@ -216,31 +216,6 @@ pub enum ObFlowprojectCommands {
 }
 
 impl ObCommands {
-    /// Get the help path for this command (used when --help is passed).
-    pub fn get_help_path(&self) -> String {
-        match self {
-            ObCommands::Init { .. } => "ob init".to_string(),
-            ObCommands::Deploy { .. } => "ob deploy".to_string(),
-            ObCommands::App { command } => match command {
-                None => "ob app".to_string(),
-                Some(cmd) => cmd.get_help_path(),
-            },
-            ObCommands::Check { .. } => "ob check".to_string(),
-            ObCommands::Configure { .. } => "ob configure".to_string(),
-            ObCommands::FastBakery { .. } => "ob fast-bakery".to_string(),
-            ObCommands::Integrations { .. } => "ob integrations".to_string(),
-            ObCommands::Kubernetes { .. } => "ob kubernetes".to_string(),
-            ObCommands::Perimeter { .. } => "ob perimeter".to_string(),
-            ObCommands::ServicePrincipalConfigure { .. } => {
-                "ob service-principal-configure".to_string()
-            }
-            ObCommands::Flowproject { command } => match command {
-                None => "ob flowproject".to_string(),
-                Some(cmd) => cmd.get_help_path(),
-            },
-        }
-    }
-
     /// Convert the command into an action (either show help or proxy args).
     pub fn into_action(self) -> ObAction {
         match self {
@@ -327,19 +302,6 @@ impl ObCommands {
 }
 
 impl ObAppCommands {
-    /// Get the help path for this command.
-    pub fn get_help_path(&self) -> String {
-        match self {
-            ObAppCommands::Open { .. } => "ob app open".to_string(),
-            ObAppCommands::View { .. } => "ob app view".to_string(),
-            ObAppCommands::Delete { .. } => "ob app delete".to_string(),
-            ObAppCommands::Deploy { .. } => "ob app deploy".to_string(),
-            ObAppCommands::Info { .. } => "ob app info".to_string(),
-            ObAppCommands::List { .. } => "ob app list".to_string(),
-            ObAppCommands::Logs { .. } => "ob app logs".to_string(),
-        }
-    }
-
     /// Convert the app command into an action.
     pub fn into_action(self) -> ObAction {
         match self {
@@ -383,23 +345,6 @@ impl ObAppCommands {
 }
 
 impl ObFlowprojectCommands {
-    /// Get the help path for this command.
-    pub fn get_help_path(&self) -> String {
-        match self {
-            ObFlowprojectCommands::DeleteMetadata { .. } => {
-                "ob flowproject delete-metadata".to_string()
-            }
-            ObFlowprojectCommands::GetMetadata { .. } => "ob flowproject get-metadata".to_string(),
-            ObFlowprojectCommands::ListTemplates { .. } => {
-                "ob flowproject list-templates".to_string()
-            }
-            ObFlowprojectCommands::SetMetadata { .. } => "ob flowproject set-metadata".to_string(),
-            ObFlowprojectCommands::TeardownBranch { .. } => {
-                "ob flowproject teardown-branch".to_string()
-            }
-        }
-    }
-
     /// Convert the flowproject command into an action.
     pub fn into_action(self) -> ObAction {
         match self {

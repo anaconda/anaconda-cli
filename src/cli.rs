@@ -531,9 +531,9 @@ pub fn parse() -> (Action, LogLevel) {
 
     // Handle --help flag (global, so it works at any level)
     if cli.help {
-        let action = match &cli.command {
+        let action = match get_subcommand_path_from_matches(&matches) {
             None => Action::ShowHelp,
-            Some(cmd) => Action::ShowSubcommandHelp(get_command_path(cmd)),
+            Some(path) => Action::ShowSubcommandHelp(path),
         };
         return (action, level);
     }
@@ -684,57 +684,21 @@ pub fn parse() -> (Action, LogLevel) {
     (action, level)
 }
 
-/// Get the command path string for a parsed Commands enum.
-/// Used to determine which help to show when --help is passed.
-fn get_command_path(cmd: &Commands) -> String {
-    match cmd {
-        Commands::Auth { command } => match command {
-            None => "auth".to_string(),
-            Some(AuthCommands::ApiKey) => "auth api-key".to_string(),
-            Some(AuthCommands::Login { .. }) => "auth login".to_string(),
-            Some(AuthCommands::Logout) => "auth logout".to_string(),
-            Some(AuthCommands::Whoami { .. }) => "auth whoami".to_string(),
-        },
-        Commands::Bootstrap => "bootstrap".to_string(),
-        Commands::Config => "config".to_string(),
-        Commands::Login { .. } => "login".to_string(),
-        Commands::Logout => "logout".to_string(),
-        Commands::Whoami { .. } => "whoami".to_string(),
-        Commands::Self_ { command } => match command {
-            None => "self".to_string(),
-            Some(SelfCommands::Feedback) => "self feedback".to_string(),
-            Some(SelfCommands::Update { .. }) => "self update".to_string(),
-            Some(SelfCommands::UserAgent { .. }) => "self user-agent".to_string(),
-        },
-        Commands::Org { .. } => "org".to_string(),
-        Commands::Mcp { command } => match command {
-            None => "mcp".to_string(),
-            Some(cmd) => cmd.get_help_path(),
-        },
-        #[cfg(unix)]
-        Commands::Ob { command } => match command {
-            None => "ob".to_string(),
-            Some(cmd) => cmd.get_help_path(),
-        },
-        Commands::Tool { command } => match command {
-            None => "tool".to_string(),
-            Some(ToolCommands::Install { .. }) => "tool install".to_string(),
-            Some(ToolCommands::List) => "tool list".to_string(),
-            Some(ToolCommands::Uninstall { .. }) => "tool uninstall".to_string(),
-        },
-        Commands::Api { command } => match command {
-            None => "api".to_string(),
-            Some(ApiCommands::Fetch { .. }) => "api fetch".to_string(),
-        },
-        Commands::Feature { command } => match command {
-            None => "feature".to_string(),
-            Some(FeatureCommands::List) => "feature list".to_string(),
-            Some(FeatureCommands::Enable { .. }) => "feature enable".to_string(),
-            Some(FeatureCommands::Disable { .. }) => "feature disable".to_string(),
-        },
-        Commands::TelemetrySubmit => "telemetry-submit".to_string(),
-        Commands::TelemetryKill => "telemetry-kill".to_string(),
-        Commands::TelemetryStatus => "telemetry-status".to_string(),
+/// Extract the subcommand path from ArgMatches by walking the subcommand chain.
+/// This derives the path from clap's own metadata rather than hardcoding strings.
+fn get_subcommand_path_from_matches(matches: &clap::ArgMatches) -> Option<String> {
+    let mut path_parts = Vec::new();
+    let mut current = matches;
+
+    while let Some((name, sub_matches)) = current.subcommand() {
+        path_parts.push(name.to_string());
+        current = sub_matches;
+    }
+
+    if path_parts.is_empty() {
+        None
+    } else {
+        Some(path_parts.join(" "))
     }
 }
 
@@ -1377,37 +1341,28 @@ mod tests {
     }
 
     #[test]
-    fn test_get_command_path_feature_enable() {
-        let cmd = Commands::Feature {
-            command: Some(FeatureCommands::Enable {
-                name: "main-x".to_string(),
-                force: false,
-                pip: false,
-                uv: false,
-                conda: false,
-                pixi: false,
-            }),
-        };
-        assert_eq!(get_command_path(&cmd), "feature enable");
+    fn test_subcommand_path_from_matches_feature_enable() {
+        let matches = Cli::command()
+            .try_get_matches_from(["ana", "feature", "enable", "main-x"])
+            .unwrap();
+        let path = get_subcommand_path_from_matches(&matches);
+        assert_eq!(path, Some("feature enable".to_string()));
     }
 
     #[test]
-    fn test_get_command_path_self_update() {
-        let cmd = Commands::Self_ {
-            command: Some(SelfCommands::Update {
-                version: None,
-                check: false,
-                list: false,
-                force: false,
-            }),
-        };
-        assert_eq!(get_command_path(&cmd), "self update");
+    fn test_subcommand_path_from_matches_self_update() {
+        let matches = Cli::command()
+            .try_get_matches_from(["ana", "self", "update"])
+            .unwrap();
+        let path = get_subcommand_path_from_matches(&matches);
+        assert_eq!(path, Some("self update".to_string()));
     }
 
     #[test]
-    fn test_get_command_path_auth_no_subcommand() {
-        let cmd = Commands::Auth { command: None };
-        assert_eq!(get_command_path(&cmd), "auth");
+    fn test_subcommand_path_from_matches_no_subcommand() {
+        let matches = Cli::command().try_get_matches_from(["ana"]).unwrap();
+        let path = get_subcommand_path_from_matches(&matches);
+        assert_eq!(path, None);
     }
 
     #[test]
