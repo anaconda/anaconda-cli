@@ -46,7 +46,7 @@ fn submit_pending_inner() -> Result<(), Box<dyn std::error::Error>> {
 
     let entries: Vec<_> = fs::read_dir(&pending_dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
         .collect();
 
     for entry in entries {
