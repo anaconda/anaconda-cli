@@ -2,7 +2,7 @@
 
 use miette::{Context, IntoDiagnostic};
 
-use super::tools;
+use super::specs;
 use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
 use crate::paths;
@@ -15,7 +15,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
     ctx.telemetry.add("tool_name", name.to_string());
 
     // Verify the tool is known
-    if tools::binaries(name).is_none() {
+    if specs::binaries(name).is_none() {
         return Err(miette::miette!("unknown tool: {}", name));
     }
 
@@ -32,7 +32,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
     let mut to_delete: Vec<String> = Vec::new();
 
     // Check for symlinks/shims that will be removed
-    if let Some(binaries) = tools::binary_names(name) {
+    if let Some(binaries) = specs::binary_names(name) {
         for binary in binaries {
             let link_path = paths::bin_path(binary);
             if link_path.exists() || link_path.is_symlink() {
@@ -61,7 +61,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
     eprintln!("Uninstalling {}...", name);
 
     // Remove symlinks/shims from bin directory
-    if let Some(binaries) = tools::binary_names(name) {
+    if let Some(binaries) = specs::binary_names(name) {
         for binary in &binaries {
             let link_path = paths::bin_path(binary);
             if link_path.exists() || link_path.is_symlink() {
