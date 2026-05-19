@@ -21,6 +21,7 @@ base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 futures-util = "0.3"
 dirs = "6"
+figment = { version = "0.10", features = ["env"] }
 http = "1"
 clap = { version = "4", features = ["derive"] }
 comfy-table = "7"
