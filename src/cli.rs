@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
@@ -514,169 +514,174 @@ impl Action {
 /// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
 pub fn parse() -> (Action, LogLevel) {
-    match Cli::try_parse() {
-        Ok(cli) => {
-            let level: LogLevel = cli.verbose.into();
+    // Two-step parsing: first get ArgMatches, then convert to typed struct.
+    // This gives us access to both the raw matches (for subcommand path extraction)
+    // and the typed Cli struct.
+    let matches = match Cli::command().try_get_matches() {
+        Ok(m) => m,
+        Err(e) => return handle_parse_error(e),
+    };
 
-            // Handle --help flag (global, so it works at any level)
-            if cli.help {
-                let action = match &cli.command {
-                    None => Action::ShowHelp,
-                    Some(cmd) => Action::ShowSubcommandHelp(get_command_path(cmd)),
-                };
-                return (action, level);
-            }
+    let cli = match Cli::from_arg_matches(&matches) {
+        Ok(c) => c,
+        Err(e) => return handle_parse_error(e.into()),
+    };
 
-            let action = match cli.command {
-                None => Action::ShowHelp,
-                Some(Commands::Bootstrap) => Action::Bootstrap,
-                Some(Commands::Config) => Action::ShowConfig,
-                Some(Commands::Login {
-                    api_key,
-                    prompt_api_key,
-                    force,
-                }) => Action::Login {
-                    api_key,
-                    prompt_api_key,
-                    force,
-                },
-                Some(Commands::Logout) => Action::Logout,
-                Some(Commands::Whoami { json }) => Action::Whoami { json },
-                Some(Commands::Auth { command }) => match command {
-                    None => Action::ShowSubcommandHelp("auth".to_string()),
-                    Some(AuthCommands::ApiKey) => Action::ShowApiKey,
-                    Some(AuthCommands::Login {
-                        api_key,
-                        prompt_api_key,
-                        force,
-                    }) => Action::Login {
-                        api_key,
-                        prompt_api_key,
-                        force,
-                    },
-                    Some(AuthCommands::Logout) => Action::Logout,
-                    Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
-                },
-                Some(Commands::Self_ { command }) => match command {
-                    None => Action::ShowSubcommandHelp("self".to_string()),
-                    Some(SelfCommands::Feedback) => Action::OpenFeedback,
-                    Some(SelfCommands::Update {
-                        version,
-                        check,
-                        list,
-                        force,
-                    }) => {
-                        if check {
-                            Action::CheckForUpdate
-                        } else if list {
-                            Action::ShowAvailableVersions
-                        } else {
-                            Action::Update { version, force }
-                        }
-                    }
-                    Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
-                },
-                Some(Commands::Org { args }) => Action::OrgProxy { args },
-                Some(Commands::Mcp { command }) => match command {
-                    None => Action::ShowSubcommandHelp("mcp".to_string()),
-                    Some(cmd) => match cmd.into_action() {
-                        McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                        McpAction::Run(args) => Action::McpRun { args },
-                    },
-                },
-                #[cfg(unix)]
-                Some(Commands::Ob { command }) => {
-                    if !feature::is_feature_enabled("outerbounds") {
-                        use crate::ui::status::{blank_line, highlight, tip, warn};
-                        warn(&format!(
-                            "The {} command requires the experimental {} feature.",
-                            highlight("ob"),
-                            highlight("outerbounds")
-                        ));
-                        tip(&format!(
-                            "Enable it with {}",
-                            highlight("ana feature enable outerbounds")
-                        ));
-                        blank_line();
-                        std::process::exit(1);
-                    }
-                    match command {
-                        None => Action::ShowSubcommandHelp("ob".to_string()),
-                        Some(cmd) => match cmd.into_action() {
-                            ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                            ObAction::Proxy(args) => Action::ObProxy { args },
-                            ObAction::AutoConfigure { instance } => {
-                                Action::ObAutoConfigure { instance }
-                            }
-                        },
-                    }
-                }
-                Some(Commands::Tool { command }) => match command {
-                    None => Action::ShowSubcommandHelp("tool".to_string()),
-                    Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
-                    Some(ToolCommands::List) => Action::ToolList,
-                    Some(ToolCommands::Uninstall { name, force }) => {
-                        Action::ToolUninstall { name, force }
-                    }
-                },
-                Some(Commands::Api { command }) => match command {
-                    None => Action::ShowSubcommandHelp("api".to_string()),
-                    Some(ApiCommands::Fetch {
-                        method,
-                        url,
-                        query_args,
-                        data,
-                        json,
-                    }) => Action::ApiFetch {
-                        method,
-                        url,
-                        query_args,
-                        data,
-                        json,
-                    },
-                },
-                Some(Commands::Feature { command }) => match command {
-                    None => Action::ShowSubcommandHelp("feature".to_string()),
-                    Some(FeatureCommands::Enable {
-                        name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    }) => Action::FeatureEnable {
-                        feature: name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    },
-                    Some(FeatureCommands::Disable {
-                        name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    }) => Action::FeatureDisable {
-                        feature: name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    },
-                    Some(FeatureCommands::List) => Action::FeatureList,
-                },
-                Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
-                Some(Commands::TelemetryKill) => Action::TelemetryKill,
-                Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
-            };
-            (action, level)
-        }
-        Err(e) => handle_parse_error(e),
+    let level: LogLevel = cli.verbose.into();
+
+    // Handle --help flag (global, so it works at any level)
+    if cli.help {
+        let action = match &cli.command {
+            None => Action::ShowHelp,
+            Some(cmd) => Action::ShowSubcommandHelp(get_command_path(cmd)),
+        };
+        return (action, level);
     }
+
+    let action = match cli.command {
+        None => Action::ShowHelp,
+        Some(Commands::Bootstrap) => Action::Bootstrap,
+        Some(Commands::Config) => Action::ShowConfig,
+        Some(Commands::Login {
+            api_key,
+            prompt_api_key,
+            force,
+        }) => Action::Login {
+            api_key,
+            prompt_api_key,
+            force,
+        },
+        Some(Commands::Logout) => Action::Logout,
+        Some(Commands::Whoami { json }) => Action::Whoami { json },
+        Some(Commands::Auth { command }) => match command {
+            None => Action::ShowSubcommandHelp("auth".to_string()),
+            Some(AuthCommands::ApiKey) => Action::ShowApiKey,
+            Some(AuthCommands::Login {
+                api_key,
+                prompt_api_key,
+                force,
+            }) => Action::Login {
+                api_key,
+                prompt_api_key,
+                force,
+            },
+            Some(AuthCommands::Logout) => Action::Logout,
+            Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
+        },
+        Some(Commands::Self_ { command }) => match command {
+            None => Action::ShowSubcommandHelp("self".to_string()),
+            Some(SelfCommands::Feedback) => Action::OpenFeedback,
+            Some(SelfCommands::Update {
+                version,
+                check,
+                list,
+                force,
+            }) => {
+                if check {
+                    Action::CheckForUpdate
+                } else if list {
+                    Action::ShowAvailableVersions
+                } else {
+                    Action::Update { version, force }
+                }
+            }
+            Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
+        },
+        Some(Commands::Org { args }) => Action::OrgProxy { args },
+        Some(Commands::Mcp { command }) => match command {
+            None => Action::ShowSubcommandHelp("mcp".to_string()),
+            Some(cmd) => match cmd.into_action() {
+                McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                McpAction::Run(args) => Action::McpRun { args },
+            },
+        },
+        #[cfg(unix)]
+        Some(Commands::Ob { command }) => {
+            if !feature::is_feature_enabled("outerbounds") {
+                use crate::ui::status::{blank_line, highlight, tip, warn};
+                warn(&format!(
+                    "The {} command requires the experimental {} feature.",
+                    highlight("ob"),
+                    highlight("outerbounds")
+                ));
+                tip(&format!(
+                    "Enable it with {}",
+                    highlight("ana feature enable outerbounds")
+                ));
+                blank_line();
+                std::process::exit(1);
+            }
+            match command {
+                None => Action::ShowSubcommandHelp("ob".to_string()),
+                Some(cmd) => match cmd.into_action() {
+                    ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                    ObAction::Proxy(args) => Action::ObProxy { args },
+                    ObAction::AutoConfigure { instance } => Action::ObAutoConfigure { instance },
+                },
+            }
+        }
+        Some(Commands::Tool { command }) => match command {
+            None => Action::ShowSubcommandHelp("tool".to_string()),
+            Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+            Some(ToolCommands::List) => Action::ToolList,
+            Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+        },
+        Some(Commands::Api { command }) => match command {
+            None => Action::ShowSubcommandHelp("api".to_string()),
+            Some(ApiCommands::Fetch {
+                method,
+                url,
+                query_args,
+                data,
+                json,
+            }) => Action::ApiFetch {
+                method,
+                url,
+                query_args,
+                data,
+                json,
+            },
+        },
+        Some(Commands::Feature { command }) => match command {
+            None => Action::ShowSubcommandHelp("feature".to_string()),
+            Some(FeatureCommands::Enable {
+                name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            }) => Action::FeatureEnable {
+                feature: name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            },
+            Some(FeatureCommands::Disable {
+                name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            }) => Action::FeatureDisable {
+                feature: name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            },
+            Some(FeatureCommands::List) => Action::FeatureList,
+        },
+        Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
+        Some(Commands::TelemetryKill) => Action::TelemetryKill,
+        Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
+    };
+
+    (action, level)
 }
 
 /// Get the command path string for a parsed Commands enum.
