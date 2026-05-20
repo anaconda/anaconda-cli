@@ -1,6 +1,9 @@
 [workspace]
 name = "anaconda-cli"
-channels = [ "https://repo.anaconda.com/pkgs/main" ]
+channels = [
+    "https://repo.anaconda.com/pkgs/main",
+    "anaconda-cloud/label/dev",
+]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
 
 [dependencies]
@@ -15,3 +18,4 @@ anaconda-client = "==1.14.1"
 anaconda-cli-base = "==0.8.2"
 # renovate: datasource=conda depName=main/anaconda-mcp
 anaconda-mcp = "==1.0.3"
+anaconda-repo-cli = "*"
