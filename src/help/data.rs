@@ -21,7 +21,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "tool",
             // Hiding bootstrap, as it's synonymous to `ana tool install anaconda-cli`
             // "bootstrap",
-            "feature", "api", "mcp", "ob",
+            "feature", "api", "mcp", "repo", "ob",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",

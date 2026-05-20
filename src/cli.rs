@@ -16,6 +16,7 @@ use crate::help;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
+use crate::repo::{self, RepoAction, RepoCommands};
 use crate::tools;
 use crate::update;
 
@@ -130,6 +131,9 @@ pub enum Action {
     McpRun {
         args: Vec<String>,
     },
+    RepoRun {
+        args: Vec<String>,
+    },
     UserAgent {
         prefix: Option<String>,
     },
@@ -192,6 +196,7 @@ impl Action {
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
+            Action::RepoRun { .. } => "repo",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -278,6 +283,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
+            Action::RepoRun { args } => repo::run(ctx, &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -595,6 +601,13 @@ pub fn parse() -> (Action, LogLevel) {
                 McpAction::Run(args) => Action::McpRun { args },
             },
         },
+        Some(Commands::Repo { command }) => match command {
+            None => Action::ShowSubcommandHelp("repo".to_string()),
+            Some(cmd) => match cmd.into_action() {
+                RepoAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                RepoAction::Run(args) => Action::RepoRun { args },
+            },
+        },
         #[cfg(unix)]
         Some(Commands::Ob { command }) => {
             if !feature::is_feature_enabled("outerbounds") {
@@ -863,6 +876,17 @@ enum Commands {
     Mcp {
         #[command(subcommand)]
         command: Option<McpCommands>,
+    },
+
+    /// Anaconda Repository CLI — manage Package Security Manager
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana repo <command> [options]"
+    )]
+    Repo {
+        #[command(subcommand)]
+        command: Option<RepoCommands>,
     },
 
     /// Outerbounds platform CLI (experimental)

@@ -16,6 +16,7 @@ mod mcp;
 mod outerbounds;
 mod paths;
 mod qr;
+mod repo;
 mod table;
 mod telemetry;
 mod tools;
