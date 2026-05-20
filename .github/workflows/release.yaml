@@ -123,9 +123,9 @@ jobs:
           secretId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/prod/data/anaconda-sh/token | pat ;
-            anaconda-cli/prod/data/anaconda-sh/workflow | repo ;
-            anaconda-cli/prod/data/anaconda-sh/workflow | workflow-id
+            anaconda-cli/prod/data/anaconda-sh/token pat | pat ;
+            anaconda-cli/prod/data/anaconda-sh/workflow repo | repo ;
+            anaconda-cli/prod/data/anaconda-sh/workflow workflow-id | workflow-id
 
       - name: Send deploy signal
         env:

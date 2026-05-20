@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use miette::{IntoDiagnostic, miette};
 
 use crate::VERSION;
@@ -514,186 +514,195 @@ impl Action {
 /// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
 pub fn parse() -> (Action, LogLevel) {
-    match Cli::try_parse() {
-        Ok(cli) => {
-            let level: LogLevel = cli.verbose.into();
-            let action = match cli.command {
-                None => Action::ShowHelp,
-                Some(Commands::Bootstrap) => Action::Bootstrap,
-                Some(Commands::Config) => Action::ShowConfig,
-                Some(Commands::Login {
-                    api_key,
-                    prompt_api_key,
-                    force,
-                }) => Action::Login {
-                    api_key,
-                    prompt_api_key,
-                    force,
-                },
-                Some(Commands::Logout) => Action::Logout,
-                Some(Commands::Whoami { json }) => Action::Whoami { json },
-                Some(Commands::Auth { command }) => match command {
-                    None => Action::ShowSubcommandHelp("auth".to_string()),
-                    Some(AuthCommands::ApiKey) => Action::ShowApiKey,
-                    Some(AuthCommands::Login {
-                        api_key,
-                        prompt_api_key,
-                        force,
-                    }) => Action::Login {
-                        api_key,
-                        prompt_api_key,
-                        force,
-                    },
-                    Some(AuthCommands::Logout) => Action::Logout,
-                    Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
-                },
-                Some(Commands::Self_ { command }) => match command {
-                    None => Action::ShowSubcommandHelp("self".to_string()),
-                    Some(SelfCommands::Feedback) => Action::OpenFeedback,
-                    Some(SelfCommands::Update {
-                        version,
-                        check,
-                        list,
-                        force,
-                    }) => {
-                        if check {
-                            Action::CheckForUpdate
-                        } else if list {
-                            Action::ShowAvailableVersions
-                        } else {
-                            Action::Update { version, force }
-                        }
-                    }
-                    Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
-                },
-                Some(Commands::Org { args }) => Action::OrgProxy { args },
-                Some(Commands::Mcp { command }) => match command {
-                    None => Action::ShowSubcommandHelp("mcp".to_string()),
-                    Some(cmd) => match cmd.into_action() {
-                        McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                        McpAction::Run(args) => Action::McpRun { args },
-                    },
-                },
-                #[cfg(unix)]
-                Some(Commands::Ob { command }) => {
-                    if !feature::is_feature_enabled("outerbounds") {
-                        use crate::ui::status::{blank_line, highlight, tip, warn};
-                        warn(&format!(
-                            "The {} command requires the experimental {} feature.",
-                            highlight("ob"),
-                            highlight("outerbounds")
-                        ));
-                        tip(&format!(
-                            "Enable it with {}",
-                            highlight("ana feature enable outerbounds")
-                        ));
-                        blank_line();
-                        std::process::exit(1);
-                    }
-                    match command {
-                        None => Action::ShowSubcommandHelp("ob".to_string()),
-                        Some(cmd) => match cmd.into_action() {
-                            ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                            ObAction::Proxy(args) => Action::ObProxy { args },
-                            ObAction::AutoConfigure { instance } => {
-                                Action::ObAutoConfigure { instance }
-                            }
-                        },
-                    }
-                }
-                Some(Commands::Tool { command }) => match command {
-                    None => Action::ShowSubcommandHelp("tool".to_string()),
-                    Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
-                    Some(ToolCommands::List) => Action::ToolList,
-                    Some(ToolCommands::Uninstall { name, force }) => {
-                        Action::ToolUninstall { name, force }
-                    }
-                },
-                Some(Commands::Api { command }) => match command {
-                    None => Action::ShowSubcommandHelp("api".to_string()),
-                    Some(ApiCommands::Fetch {
-                        method,
-                        url,
-                        query_args,
-                        data,
-                        json,
-                    }) => Action::ApiFetch {
-                        method,
-                        url,
-                        query_args,
-                        data,
-                        json,
-                    },
-                },
-                Some(Commands::Feature { command }) => match command {
-                    None => Action::ShowSubcommandHelp("feature".to_string()),
-                    Some(FeatureCommands::Enable {
-                        name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    }) => Action::FeatureEnable {
-                        feature: name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    },
-                    Some(FeatureCommands::Disable {
-                        name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    }) => Action::FeatureDisable {
-                        feature: name,
-                        force,
-                        pip,
-                        uv,
-                        conda,
-                        pixi,
-                    },
-                    Some(FeatureCommands::List) => Action::FeatureList,
-                },
-                Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
-                Some(Commands::TelemetryKill) => Action::TelemetryKill,
-                Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
-            };
-            (action, level)
-        }
-        Err(e) => handle_parse_error(e),
+    // Two-step parsing: first get ArgMatches, then convert to typed struct.
+    // This gives us access to both the raw matches (for subcommand path extraction)
+    // and the typed Cli struct.
+    let matches = match Cli::command().try_get_matches() {
+        Ok(m) => m,
+        Err(e) => return handle_parse_error(e),
+    };
+
+    let cli = match Cli::from_arg_matches(&matches) {
+        Ok(c) => c,
+        Err(e) => return handle_parse_error(e.into()),
+    };
+
+    let level: LogLevel = cli.verbose.into();
+
+    // Handle --help flag (global, so it works at any level)
+    if cli.help {
+        let action = match get_subcommand_path_from_matches(&matches) {
+            None => Action::ShowHelp,
+            Some(path) => Action::ShowSubcommandHelp(path),
+        };
+        return (action, level);
     }
+
+    let action = match cli.command {
+        None => Action::ShowHelp,
+        Some(Commands::Bootstrap) => Action::Bootstrap,
+        Some(Commands::Config) => Action::ShowConfig,
+        Some(Commands::Login {
+            api_key,
+            prompt_api_key,
+            force,
+        }) => Action::Login {
+            api_key,
+            prompt_api_key,
+            force,
+        },
+        Some(Commands::Logout) => Action::Logout,
+        Some(Commands::Whoami { json }) => Action::Whoami { json },
+        Some(Commands::Auth { command }) => match command {
+            None => Action::ShowSubcommandHelp("auth".to_string()),
+            Some(AuthCommands::ApiKey) => Action::ShowApiKey,
+            Some(AuthCommands::Login {
+                api_key,
+                prompt_api_key,
+                force,
+            }) => Action::Login {
+                api_key,
+                prompt_api_key,
+                force,
+            },
+            Some(AuthCommands::Logout) => Action::Logout,
+            Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
+        },
+        Some(Commands::Self_ { command }) => match command {
+            None => Action::ShowSubcommandHelp("self".to_string()),
+            Some(SelfCommands::Feedback) => Action::OpenFeedback,
+            Some(SelfCommands::Update {
+                version,
+                check,
+                list,
+                force,
+            }) => {
+                if check {
+                    Action::CheckForUpdate
+                } else if list {
+                    Action::ShowAvailableVersions
+                } else {
+                    Action::Update { version, force }
+                }
+            }
+            Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
+        },
+        Some(Commands::Org { args }) => Action::OrgProxy { args },
+        Some(Commands::Mcp { command }) => match command {
+            None => Action::ShowSubcommandHelp("mcp".to_string()),
+            Some(cmd) => match cmd.into_action() {
+                McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                McpAction::Run(args) => Action::McpRun { args },
+            },
+        },
+        #[cfg(unix)]
+        Some(Commands::Ob { command }) => {
+            if !feature::is_feature_enabled("outerbounds") {
+                use crate::ui::status::{blank_line, highlight, tip, warn};
+                warn(&format!(
+                    "The {} command requires the experimental {} feature.",
+                    highlight("ob"),
+                    highlight("outerbounds")
+                ));
+                tip(&format!(
+                    "Enable it with {}",
+                    highlight("ana feature enable outerbounds")
+                ));
+                blank_line();
+                std::process::exit(1);
+            }
+            match command {
+                None => Action::ShowSubcommandHelp("ob".to_string()),
+                Some(cmd) => match cmd.into_action() {
+                    ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                    ObAction::Proxy(args) => Action::ObProxy { args },
+                    ObAction::AutoConfigure { instance } => Action::ObAutoConfigure { instance },
+                },
+            }
+        }
+        Some(Commands::Tool { command }) => match command {
+            None => Action::ShowSubcommandHelp("tool".to_string()),
+            Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+            Some(ToolCommands::List) => Action::ToolList,
+            Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+        },
+        Some(Commands::Api { command }) => match command {
+            None => Action::ShowSubcommandHelp("api".to_string()),
+            Some(ApiCommands::Fetch {
+                method,
+                url,
+                query_args,
+                data,
+                json,
+            }) => Action::ApiFetch {
+                method,
+                url,
+                query_args,
+                data,
+                json,
+            },
+        },
+        Some(Commands::Feature { command }) => match command {
+            None => Action::ShowSubcommandHelp("feature".to_string()),
+            Some(FeatureCommands::Enable {
+                name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            }) => Action::FeatureEnable {
+                feature: name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            },
+            Some(FeatureCommands::Disable {
+                name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            }) => Action::FeatureDisable {
+                feature: name,
+                force,
+                pip,
+                uv,
+                conda,
+                pixi,
+            },
+            Some(FeatureCommands::List) => Action::FeatureList,
+        },
+        Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
+        Some(Commands::TelemetryKill) => Action::TelemetryKill,
+        Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
+    };
+
+    (action, level)
 }
 
-/// Check if a string is a valid subcommand name
-fn is_valid_subcommand(name: &str) -> bool {
-    Cli::command()
-        .get_subcommands()
-        .any(|s| s.get_name() == name)
+/// Extract the subcommand path from ArgMatches by walking the subcommand chain.
+/// This derives the path from clap's own metadata rather than hardcoding strings.
+fn get_subcommand_path_from_matches(matches: &clap::ArgMatches) -> Option<String> {
+    let mut path_parts = Vec::new();
+    let mut current = matches;
+
+    while let Some((name, sub_matches)) = current.subcommand() {
+        path_parts.push(name.to_string());
+        current = sub_matches;
+    }
+
+    if path_parts.is_empty() {
+        None
+    } else {
+        Some(path_parts.join(" "))
+    }
 }
 
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
-    if e.kind() == clap::error::ErrorKind::DisplayHelp {
-        // Check if help was requested for a subcommand (including nested ones)
-        let args: Vec<String> = std::env::args().collect();
-        // Collect all non-flag args after the binary name to build the subcommand path
-        let subcommand_parts: Vec<&str> = args
-            .iter()
-            .skip(1)
-            .filter(|a| !a.starts_with('-'))
-            .map(|s| s.as_str())
-            .collect();
-
-        if !subcommand_parts.is_empty() && is_valid_subcommand(subcommand_parts[0]) {
-            let subcommand_path = subcommand_parts.join(" ");
-            return (Action::ShowSubcommandHelp(subcommand_path), LogLevel::Off);
-        }
-        return (Action::ShowHelp, LogLevel::Off);
-    }
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return (Action::ShowVersion, LogLevel::Off);
     }
@@ -764,6 +773,7 @@ fn get_subcommand(path: &str) -> clap::Command {
     subcommand_required = false,
     arg_required_else_help = false,
     disable_help_subcommand = true,
+    disable_help_flag = true,
     override_usage = "ana [command] [options]",
 )]
 struct Cli {
@@ -773,6 +783,10 @@ struct Cli {
     /// Increase verbosity (-v=error, -vv=warn, -vvv=info, -vvvv=debug, -vvvvv=trace)
     #[arg(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
     verbose: u8,
+
+    /// Show help information
+    #[arg(short = 'h', long = "help", global = true, action = clap::ArgAction::SetTrue)]
+    help: bool,
 }
 
 #[derive(Subcommand)]
@@ -977,6 +991,7 @@ enum ToolCommands {
     /// Install a tool
     Install {
         /// Name of the tool to install
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
     },
 
@@ -986,6 +1001,7 @@ enum ToolCommands {
     /// Uninstall a tool
     Uninstall {
         /// Name of the tool to uninstall
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
 
         /// Skip confirmation prompt
@@ -999,6 +1015,7 @@ enum ApiCommands {
     /// Fetch data from the API
     Fetch {
         /// API path (e.g., /api/auth/passport)
+        #[arg(required_unless_present = "help", default_value = "")]
         url: String,
 
         /// HTTP method to use
@@ -1027,6 +1044,7 @@ enum FeatureCommands {
     /// Enable a feature
     Enable {
         /// Name of the feature to enable (e.g., main-x)
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
 
         /// Skip confirmation prompt
@@ -1053,6 +1071,7 @@ enum FeatureCommands {
     /// Disable a feature
     Disable {
         /// Name of the feature to disable (e.g., main-x)
+        #[arg(required_unless_present = "help", default_value = "")]
         name: String,
 
         /// Skip confirmation prompt
@@ -1319,5 +1338,68 @@ mod tests {
             }
             _ => panic!("Expected Feature Disable command"),
         }
+    }
+
+    #[test]
+    fn test_subcommand_path_from_matches_feature_enable() {
+        let matches = Cli::command()
+            .try_get_matches_from(["ana", "feature", "enable", "main-x"])
+            .unwrap();
+        let path = get_subcommand_path_from_matches(&matches);
+        assert_eq!(path, Some("feature enable".to_string()));
+    }
+
+    #[test]
+    fn test_subcommand_path_from_matches_self_update() {
+        let matches = Cli::command()
+            .try_get_matches_from(["ana", "self", "update"])
+            .unwrap();
+        let path = get_subcommand_path_from_matches(&matches);
+        assert_eq!(path, Some("self update".to_string()));
+    }
+
+    #[test]
+    fn test_subcommand_path_from_matches_no_subcommand() {
+        let matches = Cli::command().try_get_matches_from(["ana"]).unwrap();
+        let path = get_subcommand_path_from_matches(&matches);
+        assert_eq!(path, None);
+    }
+
+    #[test]
+    fn test_help_flag_with_feature_enable_and_argument() {
+        // "ana feature enable main-x --help" should parse successfully with help=true
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "main-x", "--help"]).unwrap();
+        assert!(cli.help);
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { name, .. }),
+            }) => {
+                assert_eq!(name, "main-x");
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_help_flag_position_before_argument() {
+        // "ana feature enable --help main-x" should also work
+        let cli = Cli::try_parse_from(["ana", "feature", "enable", "--help", "main-x"]).unwrap();
+        assert!(cli.help);
+        match cli.command {
+            Some(Commands::Feature {
+                command: Some(FeatureCommands::Enable { name, .. }),
+            }) => {
+                assert_eq!(name, "main-x");
+            }
+            _ => panic!("Expected Feature Enable command"),
+        }
+    }
+
+    #[test]
+    fn test_help_flag_global_at_root() {
+        // "ana --help" should work
+        let cli = Cli::try_parse_from(["ana", "--help"]).unwrap();
+        assert!(cli.help);
+        assert!(cli.command.is_none());
     }
 }

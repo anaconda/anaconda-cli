@@ -17,6 +17,7 @@ use crate::ui::status;
 const MAIN_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main";
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
 const REPO_HOST: &str = "repo.anaconda.cloud";
+const ANACONDA_DOWNLOAD_URL: &str = "https://www.anaconda.com/download";
 
 /// Represents a channel configuration action to be executed for conda.
 enum CondaChannelAction {
@@ -531,7 +532,8 @@ fn find_conda() -> miette::Result<std::path::PathBuf> {
     match check {
         Ok(output) if output.status.success() => Ok(conda_path),
         _ => Err(miette::miette!(
-            "conda not found. Install it with: ana tool install conda"
+            "This feature currently requires conda to be installed separately. Install it from: {}",
+            status::highlight(ANACONDA_DOWNLOAD_URL)
         )),
     }
 }
