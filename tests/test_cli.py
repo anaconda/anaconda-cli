@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from helpers import AnaRunner
+from mock_auth_server import MockAuthServer
 
 IS_WINDOWS = sys.platform == "win32"
 ANACONDA_BIN = "anaconda.exe" if IS_WINDOWS else "anaconda"
@@ -368,6 +369,39 @@ class TestHelpWithArguments:
         assert with_arg.returncode == 0
         assert without_arg.returncode == 0
         assert with_arg.stdout == without_arg.stdout
+
+
+class TestApiFetch:
+    """Tests for 'ana api fetch' subcommand."""
+
+    def test_api_fetch_outputs_json_to_stdout(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """Test that api fetch outputs JSON to stdout and status to stderr.
+
+        This ensures the output is pipeable to tools like jq.
+        """
+        import json
+
+        # First, login to get credentials
+        login_result = run_ana(
+            "login", "--api-key", env=auth_env, input=f"{mock_auth_server.api_key}\n"
+        )
+        assert login_result.returncode == 0
+
+        # Now fetch from the whoami endpoint
+        result = run_ana("api", "fetch", "/api/auth/sessions/whoami", env=auth_env)
+
+        assert result.returncode == 0
+        # Status should be on stderr, not stdout
+        assert "200" in result.stderr
+        # stdout should be valid JSON (parseable)
+        body = json.loads(result.stdout)
+        assert "passport" in body
+        assert body["passport"]["profile"]["username"] == "testuser"
 
 
 class TestBinaryFeatures:
