@@ -247,9 +247,7 @@ impl Config {
                     _ => k.into(),
                 }
             }))
-            .merge(Env::prefixed("ANACONDA_AUTH_").map(|key| {
-                key.as_str().to_lowercase().into()
-            }))
+            .merge(Env::prefixed("ANACONDA_AUTH_").map(|key| key.as_str().to_lowercase().into()))
             .extract()
             .expect("config loading should not fail with defaults")
     }
@@ -867,18 +865,26 @@ mod tests {
 
     #[test]
     fn test_config_preferred_token_storage_from_env() {
-        temp_env::with_var("ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE", Some("system"), || {
-            let config = Config::load();
-            assert_eq!(config.preferred_token_storage, "system");
-        });
+        temp_env::with_var(
+            "ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE",
+            Some("system"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.preferred_token_storage, "system");
+            },
+        );
     }
 
     #[test]
     fn test_config_default_preferred_token_storage() {
-        temp_env::with_var("ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE", None::<&str>, || {
-            let config = Config::load();
-            assert_eq!(config.preferred_token_storage, "anaconda-keyring");
-        });
+        temp_env::with_var(
+            "ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE",
+            None::<&str>,
+            || {
+                let config = Config::load();
+                assert_eq!(config.preferred_token_storage, "anaconda-keyring");
+            },
+        );
     }
 
     #[test]
@@ -921,10 +927,14 @@ mod tests {
 
     #[test]
     fn test_config_client_cert_from_env() {
-        temp_env::with_var("ANACONDA_AUTH_CLIENT_CERT", Some("/path/to/cert.pem"), || {
-            let config = Config::load();
-            assert_eq!(config.client_cert, Some("/path/to/cert.pem".to_string()));
-        });
+        temp_env::with_var(
+            "ANACONDA_AUTH_CLIENT_CERT",
+            Some("/path/to/cert.pem"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.client_cert, Some("/path/to/cert.pem".to_string()));
+            },
+        );
     }
 
     #[test]
@@ -982,10 +992,12 @@ mod tests {
     fn test_config_default_oidc_request_headers() {
         let config = Config::load();
         assert!(config.oidc_request_headers.contains_key("User-Agent"));
-        assert!(config
-            .oidc_request_headers
-            .get("User-Agent")
-            .unwrap()
-            .starts_with("ana/"));
+        assert!(
+            config
+                .oidc_request_headers
+                .get("User-Agent")
+                .unwrap()
+                .starts_with("ana/")
+        );
     }
 }
