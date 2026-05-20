@@ -45,11 +45,12 @@ struct Credential {
     username: Option<String>,
 }
 
-/// Save an API key and optional user_id to the keyring file.
-pub(crate) fn save_credential(
+/// Save an API key and optional user info to the keyring file.
+pub(super) fn save_credential(
     config: &Config,
     api_key: &str,
     user_id: Option<&str>,
+    username: Option<&str>,
 ) -> Result<(), AuthError> {
     let path = &config.keyring_path;
 
@@ -70,7 +71,7 @@ pub(crate) fn save_credential(
         repo_tokens: vec![],
         version: CREDENTIAL_VERSION,
         user_id: user_id.map(|s| s.to_string()),
-        username: None,
+        username: username.map(|s| s.to_string()),
     };
     let credential_json =
         serde_json::to_string(&credential).map_err(|e| AuthError::Keyring(e.to_string()))?;
@@ -252,9 +253,9 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    /// Test helper to save an API key without user_id.
+    /// Test helper to save an API key without user_id or username.
     fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
-        save_credential(config, api_key, None)
+        save_credential(config, api_key, None, None)
     }
 
     fn test_config_with_keyring(path: PathBuf, domain: &str) -> Config {
@@ -595,7 +596,7 @@ mod tests {
         let config = test_config_with_keyring(keyring_path, "test.com");
 
         // Save credential with user_id
-        save_credential(&config, "test-api-key", Some("user-456")).unwrap();
+        save_credential(&config, "test-api-key", Some("user-456"), None).unwrap();
 
         // Retrieve user_id
         assert_eq!(get_user_id(&config).unwrap(), Some("user-456".to_string()));
@@ -607,8 +608,8 @@ mod tests {
         let keyring_path = dir.path().join("keyring");
         let config = test_config_with_keyring(keyring_path, "test.com");
 
-        // Save credential without user_id
-        save_credential(&config, "test-api-key", None).unwrap();
+        // Save credential without user_id or username
+        save_credential(&config, "test-api-key", None, None).unwrap();
 
         // user_id should be None
         assert_eq!(get_user_id(&config).unwrap(), None);
