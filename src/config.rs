@@ -1,7 +1,13 @@
 //! Global configuration for ana.
 //!
-//! Configuration is loaded from environment variables. In the future, this will
-//! also support reading from `~/.ana/config.toml`.
+//! Configuration is loaded from multiple sources with the following priority
+//! (highest to lowest):
+//!
+//! 1. **Environment variables** - `ANA_*` and `ANACONDA_AUTH_*` prefixed variables
+//! 2. **Secrets directory** - Files in `/run/secrets` (or `ANACONDA_SECRETS_DIR`)
+//! 3. **Dotenv file** - `.env` file in current working directory
+//! 4. **Config file** - `~/.anaconda/config.toml` `[plugin.auth]` table (or `ANACONDA_CONFIG_TOML`)
+//! 5. **Defaults** - Built-in default values
 //!
 //! # Environment Variables
 //!
@@ -26,21 +32,10 @@
 //! | `ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE` | `anaconda-keyring`  | Token storage: "system" or "anaconda-keyring" |
 //! | `ANACONDA_AUTH_API_KEY`          | (none)                     | Static API key (bypasses OIDC)  |
 //! | `ANACONDA_AUTH_KEYRING`          | (none)                     | Keyring backend config (JSON)   |
-//! | `ANACONDA_AUTH_REDIRECT_URI`     | `http://127.0.0.1:8000/auth/oidc` | OIDC redirect URI        |
-//! | `ANACONDA_AUTH_OPENID_CONFIG_PATH` | `/.well-known/openid-configuration` | OIDC discovery path |
-//! | `ANACONDA_AUTH_OIDC_REQUEST_HEADERS` | (User-Agent header)    | OIDC request headers (JSON)     |
-//! | `ANACONDA_AUTH_LOGIN_SUCCESS_PATH` | `/app/local-login-success` | Success redirect path         |
-//! | `ANACONDA_AUTH_LOGIN_ERROR_PATH` | `/app/local-login-error`   | Error redirect path             |
-//! | `ANACONDA_AUTH_USE_UNIFIED_REPO_API_KEY` | `false`            | Single key for repo and API     |
-//! | `ANACONDA_AUTH_HASH_HOSTNAME`    | `true`                     | Hash hostnames in keyring keys  |
 //! | `ANACONDA_AUTH_PROXY_SERVERS`    | (none)                     | Proxy config (JSON map)         |
 //! | `ANACONDA_AUTH_CLIENT_CERT`      | (none)                     | Client cert path for mTLS       |
 //! | `ANACONDA_AUTH_CLIENT_CERT_KEY`  | (none)                     | Client cert key path for mTLS   |
 //! | `ANACONDA_AUTH_USE_DEVICE_FLOW`  | `false`                    | Use OIDC device flow            |
-//! | `ANACONDA_AUTH_EXTRA_HEADERS`    | (none)                     | Extra HTTP headers (JSON map)   |
-//! | `ANACONDA_AUTH_ENV_MANAGER_CHANNEL` | `anaconda-cloud`        | Env manager conda channel       |
-//! | `ANACONDA_AUTH_ENV_MANAGER_PACKAGE` | `anaconda-env-manager`  | Env manager package name        |
-//! | `ANACONDA_AUTH_ENV_MANAGER_VERSION` | (none)                  | Env manager version constraint  |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -55,11 +50,15 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use figment::Figment;
 use figment::providers::{Env, Serialized};
+use figment::value::{Dict, Map, Value};
+use figment::{Error, Figment, Metadata, Profile, Provider};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::table;
+
+const DEFAULT_SECRETS_DIR: &str = "/run/secrets";
+const DEFAULT_CONFIG_PATH: &str = ".anaconda/config.toml";
 
 /// Check if telemetry is enabled.
 pub fn telemetry_enabled() -> bool {
@@ -82,19 +81,170 @@ const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 const DEFAULT_PIP_INDEX_URL: &str = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
 const DEFAULT_SELF_UPDATE_URL: &str = "https://anaconda.sh";
 const DEFAULT_PREFERRED_TOKEN_STORAGE: &str = "anaconda-keyring";
-const DEFAULT_REDIRECT_URI: &str = "http://127.0.0.1:8000/auth/oidc";
-const DEFAULT_OPENID_CONFIG_PATH: &str = "/.well-known/openid-configuration";
-const DEFAULT_LOGIN_SUCCESS_PATH: &str = "/app/local-login-success";
-const DEFAULT_LOGIN_ERROR_PATH: &str = "/app/local-login-error";
-const DEFAULT_USE_UNIFIED_REPO_API_KEY: bool = false;
-const DEFAULT_HASH_HOSTNAME: bool = true;
 const DEFAULT_USE_DEVICE_FLOW: bool = false;
-const DEFAULT_ENV_MANAGER_CHANNEL: &str = "anaconda-cloud";
-const DEFAULT_ENV_MANAGER_PACKAGE: &str = "anaconda-env-manager";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_ENVIRONMENT: &str = "production";
+
+/// Provider that reads configuration from a secrets directory.
+///
+/// Each file in the directory maps to a config field. Supports both lowercase
+/// (e.g., `api_key`) and uppercase (e.g., `API_KEY`) filenames.
+struct SecretsDir {
+    path: PathBuf,
+}
+
+impl SecretsDir {
+    fn new() -> Self {
+        let path = std::env::var("ANACONDA_SECRETS_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from(DEFAULT_SECRETS_DIR));
+        Self { path }
+    }
+}
+
+impl Provider for SecretsDir {
+    fn metadata(&self) -> Metadata {
+        Metadata::named("secrets directory").source(self.path.display().to_string())
+    }
+
+    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
+        if !self.path.is_dir() {
+            return Ok(Map::new());
+        }
+
+        let mut dict = Dict::new();
+        if let Ok(entries) = std::fs::read_dir(&self.path) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                        if let Ok(contents) = std::fs::read_to_string(&path) {
+                            let key = filename.to_lowercase();
+                            let value = contents.trim().to_string();
+                            dict.insert(key, Value::from(value));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(Map::from([(Profile::Default, dict)]))
+    }
+}
+
+/// Provider that reads configuration from a .env file.
+///
+/// Supports both `ANA_*` and `ANACONDA_AUTH_*` prefixed variables.
+struct DotenvProvider;
+
+impl Provider for DotenvProvider {
+    fn metadata(&self) -> Metadata {
+        Metadata::named("dotenv file").source(".env")
+    }
+
+    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
+        let mut dict = Dict::new();
+
+        let Ok(iter) = dotenvy::dotenv_iter() else {
+            return Ok(Map::new());
+        };
+
+        for item in iter.flatten() {
+            let (key, value) = item;
+
+            if let Some(suffix) = key.strip_prefix("ANA_") {
+                let field = match suffix.to_lowercase().as_str() {
+                    "auth_client_id" => "client_id".to_string(),
+                    "prereleases" => "include_prereleases".to_string(),
+                    other => other.to_string(),
+                };
+                dict.insert(field, Value::from(value));
+            } else if let Some(suffix) = key.strip_prefix("ANACONDA_AUTH_") {
+                let field = suffix.to_lowercase();
+                dict.insert(field, Value::from(value));
+            }
+        }
+
+        Ok(Map::from([(Profile::Default, dict)]))
+    }
+}
+
+/// Provider that reads configuration from the Anaconda config TOML file.
+///
+/// Reads the `[plugin.auth]` table from `~/.anaconda/config.toml` or the path
+/// specified by `ANACONDA_CONFIG_TOML`.
+struct TomlConfigProvider {
+    path: PathBuf,
+}
+
+impl TomlConfigProvider {
+    fn new() -> Self {
+        let path = std::env::var("ANACONDA_CONFIG_TOML")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| crate::paths::home_dir().join(DEFAULT_CONFIG_PATH));
+        Self { path }
+    }
+}
+
+impl Provider for TomlConfigProvider {
+    fn metadata(&self) -> Metadata {
+        Metadata::named("config file").source(self.path.display().to_string())
+    }
+
+    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
+        if !self.path.is_file() {
+            return Ok(Map::new());
+        }
+
+        let contents = match std::fs::read_to_string(&self.path) {
+            Ok(c) => c,
+            Err(_) => return Ok(Map::new()),
+        };
+
+        let table: toml::Table = match contents.parse() {
+            Ok(t) => t,
+            Err(_) => return Ok(Map::new()),
+        };
+
+        let Some(plugin) = table.get("plugin").and_then(|v| v.as_table()) else {
+            return Ok(Map::new());
+        };
+
+        let Some(auth) = plugin.get("auth").and_then(|v| v.as_table()) else {
+            return Ok(Map::new());
+        };
+
+        let mut dict = Dict::new();
+        for (key, value) in auth {
+            let field = key.to_lowercase();
+            dict.insert(field, toml_to_figment_value(value));
+        }
+
+        Ok(Map::from([(Profile::Default, dict)]))
+    }
+}
+
+fn toml_to_figment_value(value: &toml::Value) -> Value {
+    match value {
+        toml::Value::String(s) => Value::from(s.clone()),
+        toml::Value::Integer(i) => Value::from(*i),
+        toml::Value::Float(f) => Value::from(*f),
+        toml::Value::Boolean(b) => Value::from(*b),
+        toml::Value::Array(arr) => {
+            Value::from(arr.iter().map(toml_to_figment_value).collect::<Vec<_>>())
+        }
+        toml::Value::Table(t) => {
+            let dict: Dict = t
+                .iter()
+                .map(|(k, v)| (k.clone(), toml_to_figment_value(v)))
+                .collect();
+            Value::from(dict)
+        }
+        toml::Value::Datetime(dt) => Value::from(dt.to_string()),
+    }
+}
 
 /// Global configuration for ana.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -163,29 +313,6 @@ pub struct Config {
     /// Keyring backend configuration (backend identifier -> settings)
     pub keyring: Option<HashMap<String, HashMap<String, String>>>,
 
-    /// Local redirect URI for OIDC authorization code flow
-    pub redirect_uri: String,
-
-    /// URL path for OpenID Connect discovery document
-    pub openid_config_path: String,
-
-    /// HTTP headers for OIDC requests
-    pub oidc_request_headers: HashMap<String, String>,
-
-    /// URL path for successful login redirect
-    pub login_success_path: String,
-
-    /// URL path for failed login redirect
-    pub login_error_path: String,
-
-    /// Use a single API key for both repository and API access
-    #[serde(deserialize_with = "deserialize_bool")]
-    pub use_unified_repo_api_key: bool,
-
-    /// Hash hostnames before using as keyring storage keys
-    #[serde(deserialize_with = "deserialize_bool")]
-    pub hash_hostname: bool,
-
     /// Proxy server configuration (protocol -> proxy URL)
     pub proxy_servers: Option<HashMap<String, String>>,
 
@@ -200,19 +327,6 @@ pub struct Config {
     /// Use OIDC Device Authorization Grant flow instead of Authorization Code flow
     #[serde(deserialize_with = "deserialize_bool")]
     pub use_device_flow: bool,
-
-    /// Additional HTTP headers for all requests
-    pub extra_headers: Option<HashMap<String, String>>,
-
-    /// Conda channel for environment manager package
-    pub env_manager_channel: String,
-
-    /// Name of the environment manager conda package
-    pub env_manager_package: String,
-
-    /// Version constraint for environment manager package
-    #[serde(default, deserialize_with = "deserialize_optional_string")]
-    pub env_manager_version: Option<String>,
 
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
@@ -235,10 +349,25 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Load configuration from environment variables.
+    /// Load configuration from multiple sources.
+    ///
+    /// Sources are merged in priority order (lowest to highest):
+    /// 1. Defaults
+    /// 2. Config file (`~/.anaconda/config.toml` `[plugin.auth]`)
+    /// 3. Dotenv file (`.env` in cwd)
+    /// 4. Secrets directory (`/run/secrets`)
+    /// 5. Environment variables (`ANA_*` and `ANACONDA_AUTH_*`)
     pub fn load() -> Self {
         Figment::new()
+            // 5. Defaults (lowest priority)
             .merge(Serialized::defaults(Self::defaults()))
+            // 4. Config file
+            .merge(TomlConfigProvider::new())
+            // 3. Dotenv file
+            .merge(DotenvProvider)
+            // 2. Secrets directory
+            .merge(SecretsDir::new())
+            // 1. Environment variables (highest priority)
             .merge(Env::prefixed("ANA_").map(|key| {
                 let k = key.as_str().to_lowercase();
                 match k.as_str() {
@@ -273,21 +402,10 @@ impl Config {
             preferred_token_storage: DEFAULT_PREFERRED_TOKEN_STORAGE.to_string(),
             api_key: None,
             keyring: None,
-            redirect_uri: DEFAULT_REDIRECT_URI.to_string(),
-            openid_config_path: DEFAULT_OPENID_CONFIG_PATH.to_string(),
-            oidc_request_headers: default_oidc_request_headers(),
-            login_success_path: DEFAULT_LOGIN_SUCCESS_PATH.to_string(),
-            login_error_path: DEFAULT_LOGIN_ERROR_PATH.to_string(),
-            use_unified_repo_api_key: DEFAULT_USE_UNIFIED_REPO_API_KEY,
-            hash_hostname: DEFAULT_HASH_HOSTNAME,
             proxy_servers: None,
             client_cert: None,
             client_cert_key: None,
             use_device_flow: DEFAULT_USE_DEVICE_FLOW,
-            extra_headers: None,
-            env_manager_channel: DEFAULT_ENV_MANAGER_CHANNEL.to_string(),
-            env_manager_package: DEFAULT_ENV_MANAGER_PACKAGE.to_string(),
-            env_manager_version: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: DEFAULT_SENTRY_DISABLED,
             #[cfg(feature = "diagnostics")]
@@ -310,14 +428,9 @@ impl Config {
         self.auth_domain_override.as_deref().unwrap_or(&self.domain)
     }
 
-    /// Get the base URL for authentication requests.
-    pub fn auth_base_url(&self) -> String {
-        format!("{}://{}", self.protocol(), self.auth_domain())
-    }
-
     /// Get the OpenID Connect well-known configuration URL.
     pub fn well_known_url(&self) -> String {
-        format!("{}{}", self.auth_base_url(), self.openid_config_path)
+        format!("{}://{}/.well-known/openid-configuration", self.protocol(), self.auth_domain())
     }
 }
 
@@ -342,15 +455,6 @@ impl Config {
     }
 }
 
-/// Get default OIDC request headers
-fn default_oidc_request_headers() -> HashMap<String, String> {
-    let mut headers = HashMap::new();
-    headers.insert(
-        "User-Agent".to_string(),
-        format!("ana/{}", env!("CARGO_PKG_VERSION")),
-    );
-    headers
-}
 
 /// Parse a boolean from a string value.
 ///
@@ -488,21 +592,10 @@ mod tests {
             preferred_token_storage: DEFAULT_PREFERRED_TOKEN_STORAGE.to_string(),
             api_key: None,
             keyring: None,
-            redirect_uri: DEFAULT_REDIRECT_URI.to_string(),
-            openid_config_path: DEFAULT_OPENID_CONFIG_PATH.to_string(),
-            oidc_request_headers: default_oidc_request_headers(),
-            login_success_path: DEFAULT_LOGIN_SUCCESS_PATH.to_string(),
-            login_error_path: DEFAULT_LOGIN_ERROR_PATH.to_string(),
-            use_unified_repo_api_key: DEFAULT_USE_UNIFIED_REPO_API_KEY,
-            hash_hostname: DEFAULT_HASH_HOSTNAME,
             proxy_servers: None,
             client_cert: None,
             client_cert_key: None,
             use_device_flow: DEFAULT_USE_DEVICE_FLOW,
-            extra_headers: None,
-            env_manager_channel: DEFAULT_ENV_MANAGER_CHANNEL.to_string(),
-            env_manager_package: DEFAULT_ENV_MANAGER_PACKAGE.to_string(),
-            env_manager_version: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]
@@ -938,66 +1031,194 @@ mod tests {
     }
 
     #[test]
-    fn test_config_env_manager_channel_from_env() {
+    fn test_secrets_dir_provider_reads_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let secrets_path = temp_dir.path();
+
+        std::fs::write(secrets_path.join("api_key"), "secret-from-file").unwrap();
+        std::fs::write(secrets_path.join("domain"), "secrets.example.com").unwrap();
+
         temp_env::with_var(
-            "ANACONDA_AUTH_ENV_MANAGER_CHANNEL",
-            Some("custom-channel"),
+            "ANACONDA_SECRETS_DIR",
+            Some(secrets_path.to_str().unwrap()),
             || {
-                let config = Config::load();
-                assert_eq!(config.env_manager_channel, "custom-channel");
+                let provider = SecretsDir::new();
+                let data = provider.data().unwrap();
+                let dict = data.get(&Profile::Default).unwrap();
+
+                assert_eq!(
+                    dict.get("api_key").and_then(|v| v.as_str()),
+                    Some("secret-from-file")
+                );
+                assert_eq!(
+                    dict.get("domain").and_then(|v| v.as_str()),
+                    Some("secrets.example.com")
+                );
             },
         );
     }
 
     #[test]
-    fn test_config_default_env_manager_values() {
+    fn test_secrets_dir_provider_handles_uppercase_filenames() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let secrets_path = temp_dir.path();
+
+        std::fs::write(secrets_path.join("API_KEY"), "uppercase-secret").unwrap();
+
+        temp_env::with_var(
+            "ANACONDA_SECRETS_DIR",
+            Some(secrets_path.to_str().unwrap()),
+            || {
+                let provider = SecretsDir::new();
+                let data = provider.data().unwrap();
+                let dict = data.get(&Profile::Default).unwrap();
+
+                assert_eq!(
+                    dict.get("api_key").and_then(|v| v.as_str()),
+                    Some("uppercase-secret")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_secrets_dir_provider_returns_empty_for_missing_dir() {
+        temp_env::with_var(
+            "ANACONDA_SECRETS_DIR",
+            Some("/nonexistent/secrets/path"),
+            || {
+                let provider = SecretsDir::new();
+                let data = provider.data().unwrap();
+                assert!(data.is_empty() || data.get(&Profile::Default).unwrap().is_empty());
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_reads_plugin_auth_table() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        std::fs::write(
+            &config_path,
+            r#"
+[plugin.auth]
+api_key = "toml-api-key"
+domain = "toml.example.com"
+use_device_flow = true
+"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some(config_path.to_str().unwrap()),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                let dict = data.get(&Profile::Default).unwrap();
+
+                assert_eq!(
+                    dict.get("api_key").and_then(|v| v.as_str()),
+                    Some("toml-api-key")
+                );
+                assert_eq!(
+                    dict.get("domain").and_then(|v| v.as_str()),
+                    Some("toml.example.com")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_returns_empty_for_missing_file() {
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some("/nonexistent/config.toml"),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                assert!(data.is_empty() || data.get(&Profile::Default).unwrap().is_empty());
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_ignores_missing_plugin_auth_section() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        std::fs::write(
+            &config_path,
+            r#"
+[some_other_section]
+key = "value"
+"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some(config_path.to_str().unwrap()),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                assert!(data.is_empty() || data.get(&Profile::Default).unwrap().is_empty());
+            },
+        );
+    }
+
+    #[test]
+    fn test_env_overrides_secrets_dir() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let secrets_path = temp_dir.path();
+
+        std::fs::write(secrets_path.join("domain"), "secrets.example.com").unwrap();
+
         temp_env::with_vars(
             [
-                ("ANACONDA_AUTH_ENV_MANAGER_CHANNEL", None::<&str>),
-                ("ANACONDA_AUTH_ENV_MANAGER_PACKAGE", None),
-                ("ANACONDA_AUTH_ENV_MANAGER_VERSION", None),
+                (
+                    "ANACONDA_SECRETS_DIR",
+                    Some(secrets_path.to_str().unwrap()),
+                ),
+                ("ANA_DOMAIN", Some("env.example.com")),
             ],
             || {
                 let config = Config::load();
-                assert_eq!(config.env_manager_channel, "anaconda-cloud");
-                assert_eq!(config.env_manager_package, "anaconda-env-manager");
-                assert_eq!(config.env_manager_version, None);
+                assert_eq!(config.domain, "env.example.com");
             },
         );
     }
 
     #[test]
-    fn test_config_hash_hostname_from_env() {
-        temp_env::with_var("ANACONDA_AUTH_HASH_HOSTNAME", Some("false"), || {
-            let config = Config::load();
-            assert!(!config.hash_hostname);
-        });
-    }
+    fn test_secrets_dir_overrides_toml_config() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let secrets_path = temp_dir.path();
+        let config_path = temp_dir.path().join("config.toml");
 
-    #[test]
-    fn test_config_default_hash_hostname_is_true() {
-        temp_env::with_var("ANACONDA_AUTH_HASH_HOSTNAME", None::<&str>, || {
-            let config = Config::load();
-            assert!(config.hash_hostname);
-        });
-    }
+        std::fs::write(secrets_path.join("domain"), "secrets.example.com").unwrap();
+        std::fs::write(
+            &config_path,
+            r#"
+[plugin.auth]
+domain = "toml.example.com"
+"#,
+        )
+        .unwrap();
 
-    #[test]
-    fn test_config_default_extra_headers_is_none() {
-        let config = Config::load();
-        assert!(config.extra_headers.is_none());
-    }
-
-    #[test]
-    fn test_config_default_oidc_request_headers() {
-        let config = Config::load();
-        assert!(config.oidc_request_headers.contains_key("User-Agent"));
-        assert!(
-            config
-                .oidc_request_headers
-                .get("User-Agent")
-                .unwrap()
-                .starts_with("ana/")
+        temp_env::with_vars(
+            [
+                (
+                    "ANACONDA_SECRETS_DIR",
+                    Some(secrets_path.to_str().unwrap()),
+                ),
+                ("ANACONDA_CONFIG_TOML", Some(config_path.to_str().unwrap())),
+                ("ANA_DOMAIN", None),
+            ],
+            || {
+                let config = Config::load();
+                assert_eq!(config.domain, "secrets.example.com");
+            },
         );
     }
 }
