@@ -273,7 +273,6 @@ fn normalize_domain(domain: &str) -> String {
         && let Some(host) = url.host_str()
     {
         return host.to_string();
-
     }
 
     domain.split('/').next().unwrap_or(domain).to_string()
