@@ -243,26 +243,10 @@ mod tests {
     }
 
     fn test_config_with_keyring(path: PathBuf, domain: &str) -> Config {
-        Config {
-            domain: domain.to_string(),
-            client_id: "test-client".to_string(),
-            ssl_verify: true,
-            open_browser: false,
-            keyring_path: path,
-            use_https: true,
-            metrics_endpoint: "https://metrics.example.com".to_string(),
-            metrics_public_endpoint: "https://public.metrics.example.com".to_string(),
-            metrics_export_interval_ms: 1000,
-            metrics_console_exporter: false,
-            metrics_skip_internet_check: true,
-            include_prereleases: false,
-            pip_index_url: "https://repo.anaconda.cloud/repo/anaconda-wheels/simple".to_string(),
-            self_update_url: Some("https://example.com".to_string()),
-            #[cfg(feature = "diagnostics")]
-            sentry_disabled: false,
-            #[cfg(feature = "diagnostics")]
-            sentry_environment: "test".to_string(),
-        }
+        let mut config = Config::load();
+        config.domain = domain.to_string();
+        config.keyring_path = path;
+        config
     }
 
     #[test]
