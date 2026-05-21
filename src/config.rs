@@ -430,7 +430,11 @@ impl Config {
 
     /// Get the OpenID Connect well-known configuration URL.
     pub fn well_known_url(&self) -> String {
-        format!("{}://{}/.well-known/openid-configuration", self.protocol(), self.auth_domain())
+        format!(
+            "{}://{}/.well-known/openid-configuration",
+            self.protocol(),
+            self.auth_domain()
+        )
     }
 }
 
@@ -454,7 +458,6 @@ impl Config {
         println!("{table}");
     }
 }
-
 
 /// Parse a boolean from a string value.
 ///
@@ -1176,10 +1179,7 @@ key = "value"
 
         temp_env::with_vars(
             [
-                (
-                    "ANACONDA_SECRETS_DIR",
-                    Some(secrets_path.to_str().unwrap()),
-                ),
+                ("ANACONDA_SECRETS_DIR", Some(secrets_path.to_str().unwrap())),
                 ("ANA_DOMAIN", Some("env.example.com")),
             ],
             || {
@@ -1207,10 +1207,7 @@ domain = "toml.example.com"
 
         temp_env::with_vars(
             [
-                (
-                    "ANACONDA_SECRETS_DIR",
-                    Some(secrets_path.to_str().unwrap()),
-                ),
+                ("ANACONDA_SECRETS_DIR", Some(secrets_path.to_str().unwrap())),
                 ("ANACONDA_CONFIG_TOML", Some(config_path.to_str().unwrap())),
                 ("ANA_DOMAIN", None),
             ],
