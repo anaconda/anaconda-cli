@@ -46,7 +46,7 @@ fn submit_pending_inner() -> Result<(), Box<dyn std::error::Error>> {
 
     let entries: Vec<_> = fs::read_dir(&pending_dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
         .collect();
 
     for entry in entries {
@@ -105,12 +105,11 @@ fn cleanup_old_files(dir: &Path, max_age_days: i64) -> Result<(), std::io::Error
         let entry = entry?;
         let metadata = entry.metadata()?;
 
-        if let Ok(modified) = metadata.modified() {
-            if let Ok(age) = now.duration_since(modified) {
-                if age > max_age {
-                    let _ = fs::remove_file(entry.path());
-                }
-            }
+        if let Ok(modified) = metadata.modified()
+            && let Ok(age) = now.duration_since(modified)
+            && age > max_age
+        {
+            let _ = fs::remove_file(entry.path());
         }
     }
 

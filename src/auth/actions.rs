@@ -390,15 +390,13 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
         // Check for 'q' keypress while waiting
         let sleep_until = std::time::Instant::now() + interval;
         while std::time::Instant::now() < sleep_until {
-            if !qr_shown {
-                if let Some(ref listener) = key_listener {
-                    if listener.try_recv().is_some() {
-                        if let Some(ref qr) = qr_output {
-                            print_qr(qr);
-                            qr_shown = true;
-                        }
-                    }
-                }
+            if !qr_shown
+                && let Some(ref listener) = key_listener
+                && listener.try_recv().is_some()
+                && let Some(ref qr) = qr_output
+            {
+                print_qr(qr);
+                qr_shown = true;
             }
             sleep(Duration::from_millis(100)).await;
         }

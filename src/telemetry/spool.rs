@@ -56,7 +56,7 @@ pub fn write_batch(events: Vec<TelemetryEvent>, version: &str) -> io::Result<Pat
 fn enforce_max_files(dir: &PathBuf, max_files: usize) -> io::Result<()> {
     let mut entries: Vec<_> = fs::read_dir(dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
         .collect();
 
     if entries.len() < max_files {
@@ -205,7 +205,7 @@ mod tests {
         let json_files: Vec<_> = fs::read_dir(&pending_dir)
             .unwrap()
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
             .collect();
         assert_eq!(json_files.len(), 1);
     }

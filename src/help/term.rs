@@ -7,8 +7,8 @@ use super::styles::HelpStyle;
 use crate::VERSION;
 
 const GLOBAL_INDENT: usize = 2;
-const TAGLINE: &'static str = "Manage your Anaconda toolchain and account.";
-const DOCS_URL: &'static str = "https://anaconda.com/docs";
+const TAGLINE: &str = "Manage your Anaconda toolchain and account.";
+const DOCS_URL: &str = "https://anaconda.com/docs";
 
 /// Create a string of spaces for the global left_margin
 fn left_margin() -> String {
@@ -167,7 +167,7 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
         // Description line (as shell comment)
         let desc = &example.desc;
         let command = &example.command;
-        let comment = format!("{desc}");
+        let comment = desc.to_string();
         let padding = inner_width.saturating_sub(comment.len() + 1);
         let padded_desc = format!(" {comment}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
