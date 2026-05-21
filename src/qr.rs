@@ -173,12 +173,12 @@ pub fn encode_data(data: &str, version: u8) -> Vec<u8> {
 
     // Terminator: up to 4 zero bits
     let terminator_len = (data_cw * 8 - bits.len()).min(4);
-    bits.extend(std::iter::repeat(0).take(terminator_len));
+    bits.extend(std::iter::repeat_n(0, terminator_len));
 
     // Pad to byte boundary
     if bits.len() % 8 != 0 {
         let pad = 8 - bits.len() % 8;
-        bits.extend(std::iter::repeat(0).take(pad));
+        bits.extend(std::iter::repeat_n(0, pad));
     }
 
     // Convert bits to codewords

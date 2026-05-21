@@ -4,7 +4,7 @@ pub mod list;
 pub mod pip;
 mod pixi_config;
 mod run;
-pub mod tools;
+pub mod specs;
 pub mod uninstall;
 #[cfg(feature = "unstable")]
 pub mod utils;

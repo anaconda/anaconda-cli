@@ -45,6 +45,12 @@ repos:
         entry: cargo fmt --
         language: system
         types: [rust]
+      - id: clippy
+        name: clippy
+        entry: cargo clippy --all-targets -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
       - id: sbom
         name: SBOM freshness
         entry: pixi run sbom
