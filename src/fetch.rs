@@ -46,7 +46,7 @@ pub async fn api_fetch(
     let response = request.send().await.into_diagnostic()?;
     let status = response.status();
     let body = response.text().await.into_diagnostic()?;
-    println!("{}", status);
+    eprintln!("{}", status);
     println!("{}", body);
     Ok(())
 }
