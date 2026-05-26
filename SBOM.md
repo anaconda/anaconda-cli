@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-19T15:28:30Z<br>
+Generated: 2026-05-26T15:15:05Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 440 (67 platform-specific)<br>
+Packages: 441 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 1 across 1 package**
 
@@ -267,7 +267,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [regex-automata](https://crates.io/crates/regex-automata) | 0.4.14 | MIT OR Apache-2.0 |  |  |
 | [regex-syntax](https://crates.io/crates/regex-syntax) | 0.8.10 | MIT OR Apache-2.0 |  |  |
 | [reqwest](https://crates.io/crates/reqwest) | 0.12.28 | MIT OR Apache-2.0 |  |  |
-| [reqwest](https://crates.io/crates/reqwest) | 0.13.3 | MIT OR Apache-2.0 |  |  |
+| [reqwest](https://crates.io/crates/reqwest) | 0.13.4 | MIT OR Apache-2.0 |  |  |
 | [reqwest-middleware](https://crates.io/crates/reqwest-middleware) | 0.5.1 | MIT OR Apache-2.0 |  |  |
 | [retry-policies](https://crates.io/crates/retry-policies) | 0.5.2 | MIT OR Apache-2.0 |  |  |
 | [ring](https://crates.io/crates/ring) | 0.17.14 | Apache-2.0 AND ISC |  |  |
@@ -316,6 +316,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.0 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.1 | MIT OR Apache-2.0 |  |  |
+| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.3 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -461,7 +462,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 240 |
+| MIT OR Apache-2.0 | 241 |
 | MIT | 84 |
 | Apache-2.0 OR MIT | 32 |
 | Apache-2.0 | 20 |
