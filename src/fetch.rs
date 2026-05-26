@@ -11,6 +11,13 @@ pub async fn api_fetch(
     data: Option<&str>,
     json: Option<&str>,
 ) -> miette::Result<()> {
+    if !url.starts_with("http") && !url.starts_with('/') {
+        return Err(miette!(
+            "Invalid URL: '{}'. URL must start with 'http://', 'https://', or '/' for relative API paths.",
+            url
+        ));
+    }
+
     auth::ensure_logged_in(ctx).await.into_diagnostic()?;
 
     let method_upper = method.to_uppercase();
