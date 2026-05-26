@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-19T15:28:30Z<br>
+Generated: 2026-05-26T15:15:33Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 440 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -298,7 +298,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [serde\_bytes](https://crates.io/crates/serde_bytes) | 0.11.19 | MIT OR Apache-2.0 |  |  |
 | [serde\_core](https://crates.io/crates/serde_core) | 1.0.228 | MIT OR Apache-2.0 |  |  |
 | [serde\_derive](https://crates.io/crates/serde_derive) | 1.0.228 | MIT OR Apache-2.0 |  |  |
-| [serde\_json](https://crates.io/crates/serde_json) | 1.0.149 | MIT OR Apache-2.0 |  |  |
+| [serde\_json](https://crates.io/crates/serde_json) | 1.0.150 | MIT OR Apache-2.0 |  |  |
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.20 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_urlencoded](https://crates.io/crates/serde_urlencoded) | 0.7.1 | MIT OR Apache-2.0 |  |  |
