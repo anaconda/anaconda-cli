@@ -170,3 +170,21 @@ impl Default for CommandContext {
         Self::new()
     }
 }
+
+#[cfg(test)]
+impl CommandContext {
+    /// Create a test context with a custom config and pre-built client.
+    pub fn with_client(config: Config, client: Client) -> Self {
+        let telemetry = TelemetryContext::new();
+        let client_lock = OnceLock::new();
+        client_lock.set(client).ok();
+        Self {
+            telemetry,
+            config,
+            client: client_lock,
+            github_client: OnceLock::new(),
+            download_client: OnceLock::new(),
+            unauthenticated_client: OnceLock::new(),
+        }
+    }
+}

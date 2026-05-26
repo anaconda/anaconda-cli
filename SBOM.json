@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:6f585e25-f875-491c-86ad-7f9ae32c50f6",
+  "serialNumber": "urn:uuid:62ace259-5724-46d2-b48d-47a0be902630",
   "metadata": {
-    "timestamp": "2026-05-26T15:16:17Z",
+    "timestamp": "2026-05-26T21:33:16Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -3682,6 +3682,33 @@
         {
           "type": "vcs",
           "url": "https://github.com/seanmonstar/httparse"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#httpdate@1.0.3",
+      "author": "Pyfisch <pyfisch@posteo.org>",
+      "name": "httpdate",
+      "version": "1.0.3",
+      "description": "HTTP date parsing and formatting",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/httpdate@1.0.3",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/pyfisch/httpdate"
         }
       ]
     },
@@ -14618,6 +14645,10 @@
       "dependsOn": []
     },
     {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#httpdate@1.0.3",
+      "dependsOn": []
+    },
+    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#humantime@2.3.0",
       "dependsOn": []
     },
@@ -14677,6 +14708,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#http-body@1.0.1",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.1",
         "registry+https://github.com/rust-lang/crates.io-index#httparse@1.10.1",
+        "registry+https://github.com/rust-lang/crates.io-index#httpdate@1.0.3",
         "registry+https://github.com/rust-lang/crates.io-index#itoa@1.0.18",
         "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17",
         "registry+https://github.com/rust-lang/crates.io-index#smallvec@1.15.1",
