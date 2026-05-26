@@ -107,7 +107,12 @@ mod tests {
         let result = api_fetch(&ctx, "GET", "", None, None, None).await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("URL cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("URL cannot be empty")
+        );
     }
 
     #[tokio::test]
@@ -118,10 +123,12 @@ mod tests {
         let result = api_fetch(&ctx, "INVALID", "/test", None, None, None).await;
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Unsupported HTTP method"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Unsupported HTTP method")
+        );
     }
 
     #[tokio::test]
@@ -195,7 +202,15 @@ mod tests {
 
         let (ctx, _dir) = setup_test_context(&mock_server).await;
 
-        let result = api_fetch(&ctx, "GET", "/api/search", Some("foo=bar,baz=qux"), None, None).await;
+        let result = api_fetch(
+            &ctx,
+            "GET",
+            "/api/search",
+            Some("foo=bar,baz=qux"),
+            None,
+            None,
+        )
+        .await;
         assert!(result.is_ok());
     }
 
