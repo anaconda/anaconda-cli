@@ -11,6 +11,10 @@ pub async fn api_fetch(
     data: Option<&str>,
     json: Option<&str>,
 ) -> miette::Result<()> {
+    if url.is_empty() {
+        return Err(miette!("URL cannot be empty"));
+    }
+
     auth::ensure_logged_in(ctx).await.into_diagnostic()?;
 
     let method_upper = method.to_uppercase();
