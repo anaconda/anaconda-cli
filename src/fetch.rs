@@ -53,83 +53,217 @@ pub async fn api_fetch(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::path::PathBuf;
 
-    fn validate_method(method: &str) -> miette::Result<()> {
-        let method_upper = method.to_uppercase();
-        match method_upper.as_str() {
-            "GET" | "POST" | "PUT" | "PATCH" | "DELETE" => Ok(()),
-            _ => Err(miette!("Unsupported HTTP method: {}", method)),
+    use wiremock::matchers::{body_json, header, method, path, query_param};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    use super::*;
+    use crate::config::Config;
+    use crate::http::Client;
+
+    fn test_config(keyring_path: PathBuf, domain: &str) -> Config {
+        Config {
+            domain: domain.to_string(),
+            client_id: "test-client".to_string(),
+            ssl_verify: true,
+            open_browser: false,
+            keyring_path,
+            use_https: true,
+            metrics_endpoint: "https://metrics.example.com".to_string(),
+            metrics_public_endpoint: "https://public.metrics.example.com".to_string(),
+            metrics_export_interval_ms: 1000,
+            metrics_console_exporter: false,
+            metrics_skip_internet_check: true,
+            include_prereleases: false,
+            pip_index_url: "https://example.com/simple".to_string(),
+            self_update_url: Some("https://example.com".to_string()),
+            #[cfg(feature = "diagnostics")]
+            sentry_disabled: false,
+            #[cfg(feature = "diagnostics")]
+            sentry_environment: "test".to_string(),
         }
     }
 
-    fn parse_json(json: &str) -> miette::Result<serde_json::Value> {
-        serde_json::from_str(json)
-            .into_diagnostic()
-            .context("Invalid JSON")
+    async fn setup_test_context(mock_server: &MockServer) -> (CommandContext, tempfile::TempDir) {
+        let dir = tempfile::tempdir().unwrap();
+        let keyring_path = dir.path().join("keyring");
+        let config = test_config(keyring_path, "test.example.com");
+
+        // Save a fake API key so ensure_logged_in passes
+        auth::save_credential(&config, "test-api-key", None).unwrap();
+
+        let client = Client::new(reqwest::Client::builder(), mock_server.uri()).unwrap();
+        let ctx = CommandContext::with_client(config, client);
+
+        (ctx, dir)
     }
 
-    #[test]
-    fn test_validate_method_valid() {
-        assert!(validate_method("GET").is_ok());
-        assert!(validate_method("POST").is_ok());
-        assert!(validate_method("PUT").is_ok());
-        assert!(validate_method("PATCH").is_ok());
-        assert!(validate_method("DELETE").is_ok());
-    }
+    #[tokio::test]
+    async fn test_api_fetch_empty_url_rejected() {
+        let mock_server = MockServer::start().await;
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
 
-    #[test]
-    fn test_validate_method_case_insensitive() {
-        assert!(validate_method("get").is_ok());
-        assert!(validate_method("Post").is_ok());
-        assert!(validate_method("pUt").is_ok());
-    }
+        let result = api_fetch(&ctx, "GET", "", None, None, None).await;
 
-    #[test]
-    fn test_validate_method_invalid() {
-        let result = validate_method("INVALID");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Unsupported HTTP method: INVALID"));
+        assert!(result.unwrap_err().to_string().contains("URL cannot be empty"));
     }
 
-    #[test]
-    fn test_validate_method_head_unsupported() {
-        let result = validate_method("HEAD");
+    #[tokio::test]
+    async fn test_api_fetch_invalid_method_rejected() {
+        let mock_server = MockServer::start().await;
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "INVALID", "/test", None, None, None).await;
+
         assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unsupported HTTP method"));
     }
 
-    #[test]
-    fn test_parse_json_valid() {
-        let result = parse_json(r#"{"key": "value"}"#);
+    #[tokio::test]
+    async fn test_api_fetch_get_request() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/test"))
+            .and(header("X-Ana-Raw-Request", "true"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("success"))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "GET", "/api/test", None, None, None).await;
         assert!(result.is_ok());
-        let value = result.unwrap();
-        assert_eq!(value["key"], "value");
     }
 
-    #[test]
-    fn test_parse_json_valid_array() {
-        let result = parse_json(r#"[1, 2, 3]"#);
+    #[tokio::test]
+    async fn test_api_fetch_post_with_json_body() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/api/create"))
+            .and(header("X-Ana-Raw-Request", "true"))
+            .and(body_json(serde_json::json!({"name": "test"})))
+            .respond_with(ResponseTemplate::new(201).set_body_string(r#"{"id": 1}"#))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(
+            &ctx,
+            "POST",
+            "/api/create",
+            None,
+            None,
+            Some(r#"{"name": "test"}"#),
+        )
+        .await;
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_parse_json_invalid() {
-        let result = parse_json("not valid json");
+    #[tokio::test]
+    async fn test_api_fetch_invalid_json_rejected() {
+        let mock_server = MockServer::start().await;
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "POST", "/api/test", None, None, Some("not json")).await;
+
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid JSON"));
+        assert!(result.unwrap_err().to_string().contains("Invalid JSON"));
     }
 
-    #[test]
-    fn test_parse_json_empty() {
-        let result = parse_json("");
-        assert!(result.is_err());
+    #[tokio::test]
+    async fn test_api_fetch_with_query_params() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/search"))
+            .and(query_param("foo", "bar"))
+            .and(query_param("baz", "qux"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("found"))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "GET", "/api/search", Some("foo=bar,baz=qux"), None, None).await;
+        assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_parse_json_unclosed_brace() {
-        let result = parse_json(r#"{"key": "value""#);
-        assert!(result.is_err());
+    #[tokio::test]
+    async fn test_api_fetch_put_request() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("PUT"))
+            .and(path("/api/update"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "PUT", "/api/update", None, None, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_api_fetch_delete_request() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("DELETE"))
+            .and(path("/api/remove"))
+            .respond_with(ResponseTemplate::new(204))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "DELETE", "/api/remove", None, None, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_api_fetch_patch_request() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("PATCH"))
+            .and(path("/api/patch"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "patch", "/api/patch", None, None, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_api_fetch_method_case_insensitive() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/test"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let (ctx, _dir) = setup_test_context(&mock_server).await;
+
+        let result = api_fetch(&ctx, "get", "/api/test", None, None, None).await;
+        assert!(result.is_ok());
     }
 }

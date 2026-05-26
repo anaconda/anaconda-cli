@@ -56,3 +56,4 @@ url = "2.5.8"
 [dev-dependencies]
 temp-env = "0.3"
 tempfile = "3"
+wiremock = "0.6"
