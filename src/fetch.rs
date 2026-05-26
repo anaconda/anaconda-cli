@@ -11,7 +11,7 @@ pub async fn api_fetch(
     data: Option<&str>,
     json: Option<&str>,
 ) -> miette::Result<()> {
-    if !url.starts_with("http") && !url.starts_with('/') {
+    if !is_valid_url(url) {
         return Err(miette!(
             "Invalid URL: '{}'. URL must start with 'http://', 'https://', or '/' for relative API paths.",
             url
@@ -52,4 +52,43 @@ pub async fn api_fetch(
     println!("{}", status);
     println!("{}", body);
     Ok(())
+}
+
+fn is_valid_url(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://") || url.starts_with('/')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_https_url() {
+        assert!(is_valid_url("https://example.com/api"));
+    }
+
+    #[test]
+    fn test_valid_http_url() {
+        assert!(is_valid_url("http://example.com/api"));
+    }
+
+    #[test]
+    fn test_valid_relative_path() {
+        assert!(is_valid_url("/api/v1/packages"));
+    }
+
+    #[test]
+    fn test_invalid_typo_httpp() {
+        assert!(!is_valid_url("httpp://example.com"));
+    }
+
+    #[test]
+    fn test_invalid_no_scheme() {
+        assert!(!is_valid_url("example.com/api"));
+    }
+
+    #[test]
+    fn test_invalid_ftp_scheme() {
+        assert!(!is_valid_url("ftp://example.com"));
+    }
 }
