@@ -11,8 +11,11 @@ pub async fn api_fetch(
     data: Option<&str>,
     json: Option<&str>,
 ) -> miette::Result<()> {
-    if url.is_empty() {
-        return Err(miette!("URL cannot be empty"));
+    if !is_valid_url(url) {
+        return Err(miette!(
+            "Invalid URL: '{}'. URL must start with 'http://', 'https://', or '/' for relative API paths.",
+            url
+        ));
     }
 
     auth::ensure_logged_in(ctx).await.into_diagnostic()?;
@@ -49,6 +52,10 @@ pub async fn api_fetch(
     eprintln!("{}", status);
     println!("{}", body);
     Ok(())
+}
+
+fn is_valid_url(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://") || url.starts_with('/')
 }
 
 #[cfg(test)]
@@ -90,13 +97,42 @@ mod tests {
         let keyring_path = dir.path().join("keyring");
         let config = test_config(keyring_path, "test.example.com");
 
-        // Save a fake API key so ensure_logged_in passes
         auth::save_credential(&config, "test-api-key", None).unwrap();
 
         let client = Client::new(reqwest::Client::builder(), mock_server.uri()).unwrap();
         let ctx = CommandContext::with_client(config, client);
 
         (ctx, dir)
+    }
+
+    #[test]
+    fn test_valid_https_url() {
+        assert!(is_valid_url("https://example.com/api"));
+    }
+
+    #[test]
+    fn test_valid_http_url() {
+        assert!(is_valid_url("http://example.com/api"));
+    }
+
+    #[test]
+    fn test_valid_relative_path() {
+        assert!(is_valid_url("/api/v1/packages"));
+    }
+
+    #[test]
+    fn test_invalid_typo_httpp() {
+        assert!(!is_valid_url("httpp://example.com"));
+    }
+
+    #[test]
+    fn test_invalid_no_scheme() {
+        assert!(!is_valid_url("example.com/api"));
+    }
+
+    #[test]
+    fn test_invalid_ftp_scheme() {
+        assert!(!is_valid_url("ftp://example.com"));
     }
 
     #[tokio::test]
@@ -107,12 +143,7 @@ mod tests {
         let result = api_fetch(&ctx, "GET", "", None, None, None).await;
 
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("URL cannot be empty")
-        );
+        assert!(result.unwrap_err().to_string().contains("Invalid URL"));
     }
 
     #[tokio::test]
