@@ -194,6 +194,16 @@ pub struct ToolManagementUnavailableError;
 )]
 pub struct AnacondaMcpNotInstalledError;
 
+/// Error when self-update is unavailable.
+#[cfg(not(feature = "self-update"))]
+#[derive(Error, Debug, Diagnostic)]
+#[error("Self-update is not available in this build.")]
+#[diagnostic(
+    code(ana::self_update::unavailable),
+    help("If installed via conda, update with:\n\n    conda update ana-cli")
+)]
+pub struct SelfUpdateUnavailableError;
+
 /// Authentication errors (re-exported from auth module for convenience).
 pub use crate::auth::errors::AuthError;
 
