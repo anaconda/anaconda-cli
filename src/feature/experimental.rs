@@ -74,6 +74,7 @@ fn save_config(config: &AnaConfig) -> miette::Result<()> {
 }
 
 /// Check if an experimental feature is enabled.
+#[cfg_attr(not(all(unix, tool_install)), allow(dead_code))]
 pub fn is_feature_enabled(name: &str) -> bool {
     let config = load_config();
     config

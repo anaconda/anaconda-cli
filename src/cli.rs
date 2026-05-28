@@ -15,7 +15,7 @@ use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
-#[cfg(unix)]
+#[cfg(all(unix, tool_install))]
 use crate::outerbounds::{self, ObAction, ObCommands};
 #[cfg(tool_install)]
 use crate::tools;
@@ -162,11 +162,11 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     ObProxy {
         args: Vec<String>,
     },
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     ObAutoConfigure {
         instance: String,
     },
@@ -234,9 +234,9 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObProxy { .. } => "ob",
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
@@ -325,9 +325,9 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
@@ -700,7 +700,7 @@ pub fn parse() -> (Action, LogLevel) {
                 McpAction::Run(args) => Action::McpRun { args },
             },
         },
-        #[cfg(unix)]
+        #[cfg(all(unix, tool_install))]
         Some(Commands::Ob { command }) => {
             if !feature::is_feature_enabled("outerbounds") {
                 use crate::ui::status::{blank_line, highlight, tip, warn};
@@ -869,9 +869,9 @@ fn print_clap_error(e: &clap::Error) {
 /// Get subcommand names and descriptions from clap for help introspection.
 /// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     let show_ob = feature::is_feature_enabled("outerbounds");
-    #[cfg(not(unix))]
+    #[cfg(not(all(unix, tool_install)))]
     let show_ob = false;
 
     Cli::command()
@@ -1005,7 +1005,7 @@ enum Commands {
     },
 
     /// Outerbounds platform CLI (experimental)
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,

@@ -33,6 +33,7 @@ fn tools_dir() -> PathBuf {
 }
 
 /// Returns the bin directory for shims (~/.ana/bin).
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn bin_dir() -> PathBuf {
     ana_home().join("bin")
 }
@@ -52,6 +53,7 @@ pub fn binary_name(name: &str) -> String {
 }
 
 /// Returns the path to a binary in the bin directory, adding .exe on Windows.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn bin_path(name: &str) -> PathBuf {
     bin_dir().join(binary_name(name))
 }
