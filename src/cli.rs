@@ -216,6 +216,10 @@ pub enum Action {
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
+    PluginRun {
+        name: String,
+        args: Vec<String>,
+    },
 }
 
 impl Action {
@@ -263,6 +267,11 @@ impl Action {
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
+            Action::PluginRun { name, .. } => {
+                // Leak the string to get a static lifetime for telemetry
+                // This is fine since we only create a few of these per run
+                Box::leak(format!("plugin.{}", name).into_boxed_str())
+            }
         }
     }
 
@@ -370,29 +379,16 @@ impl Action {
                 api_key,
                 prompt_api_key,
                 force,
-<<<<<<< HEAD
             } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
-=======
-            } => Ok(auth::login(ctx, api_key, prompt_api_key, force)
-                .await
-                .into_diagnostic()?),
-            Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
-            Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
-            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
             #[cfg(not(self_update))]
             Action::Update {
                 version: _,
                 force: _,
             } => Err(crate::errors::SelfUpdateUnavailableError.into()),
-<<<<<<< HEAD
-            #[cfg(feature = "self-update")]
->>>>>>> 9a00df3f (feat: Add self-update feature flag to disable ana self update)
-=======
             #[cfg(self_update)]
->>>>>>> a4b7fa51 (refac: Use cfg-aliases for cleaner feature flag handling)
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
@@ -612,6 +608,11 @@ impl Action {
                 }
                 Ok(())
             }
+            Action::PluginRun { name, args } => {
+                let plugin = crate::plugins::find_plugin(&name)
+                    .ok_or_else(|| miette!("Unknown command: {}", name))?;
+                crate::plugins::run_plugin(&plugin, &args)
+            }
         }
     }
 }
@@ -789,6 +790,28 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
+        Some(Commands::External(args)) => {
+            // External subcommand - first arg is the command name, rest are args
+            if args.is_empty() {
+                Action::ShowHelp
+            } else {
+                let name = args[0].clone();
+                let cmd_args = args[1..].to_vec();
+                // Check if this is a known plugin
+                if crate::plugins::find_plugin(&name).is_some() {
+                    Action::PluginRun {
+                        name,
+                        args: cmd_args,
+                    }
+                } else {
+                    // Unknown command - will error in run()
+                    Action::PluginRun {
+                        name,
+                        args: cmd_args,
+                    }
+                }
+            }
+        }
     };
 
     (action, level)
@@ -868,13 +891,14 @@ fn print_clap_error(e: &clap::Error) {
 
 /// Get subcommand names and descriptions from clap for help introspection.
 /// Filters out experimental commands when their features are not enabled.
+/// Also includes dynamically discovered plugins.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
     #[cfg(all(unix, tool_install))]
     let show_ob = feature::is_feature_enabled("outerbounds");
     #[cfg(not(all(unix, tool_install)))]
     let show_ob = false;
 
-    Cli::command()
+    let mut subcommands: HashMap<String, String> = Cli::command()
         .get_subcommands()
         .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
@@ -883,7 +907,14 @@ fn get_subcommand_descriptions() -> HashMap<String, String> {
                 s.get_about().map(|a| a.to_string()).unwrap_or_default(),
             )
         })
-        .collect()
+        .collect();
+
+    // Add dynamically discovered plugins (don't override built-in commands)
+    for (name, desc) in crate::plugins::get_plugin_descriptions() {
+        subcommands.entry(name).or_insert(desc);
+    }
+
+    subcommands
 }
 
 /// Get a subcommand's clap Command by name (supports nested paths like "self update")
@@ -914,6 +945,7 @@ fn get_subcommand(path: &str) -> clap::Command {
     disable_help_subcommand = true,
     disable_help_flag = true,
     override_usage = "ana [command] [options]",
+    allow_external_subcommands = true,
 )]
 struct Cli {
     #[command(subcommand)]
@@ -1061,6 +1093,10 @@ enum Commands {
     /// Check status of background telemetry processes (internal use only)
     #[command(hide = true)]
     TelemetryStatus,
+
+    /// External subcommand (plugin delegation)
+    #[command(external_subcommand)]
+    External(Vec<String>),
 }
 
 #[derive(Subcommand)]
@@ -1561,11 +1597,14 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_top_level_command_error_kind() {
-        // Verify clap returns InvalidSubcommand for unknown top-level commands too
-        match Cli::try_parse_from(["ana", "notacommand"]) {
-            Ok(_) => panic!("should fail to parse"),
-            Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
+    fn test_external_command_parsed_for_plugin_delegation() {
+        // Unknown top-level commands are captured for plugin delegation
+        let cli = Cli::try_parse_from(["ana", "notacommand", "--some-arg"]).unwrap();
+        match cli.command {
+            Some(Commands::External(args)) => {
+                assert_eq!(args, vec!["notacommand", "--some-arg"]);
+            }
+            _ => panic!("Expected External command"),
         }
     }
 }

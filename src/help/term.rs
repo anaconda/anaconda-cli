@@ -200,6 +200,15 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
 }
 
 fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
+    // Collect commands that are in a defined section
+    let mut sectioned_commands: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    for section in HELP_SECTIONS {
+        for cmd in section.commands {
+            sectioned_commands.insert(*cmd);
+        }
+    }
+
+    // Print defined sections
     for section in HELP_SECTIONS {
         print_section(term, section.name);
 
@@ -210,6 +219,31 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
             }
         }
 
+        let _ = term.write_line("");
+    }
+
+    // Get plugin commands from the plugins module (excludes built-in commands)
+    let mut plugin_commands: Vec<_> = crate::plugins::get_plugin_descriptions()
+        .into_iter()
+        // Exclude plugins that would override built-in commands in sections
+        .filter(|(name, _)| !sectioned_commands.contains(name.as_str()))
+        // Exclude plugins that override other built-in commands
+        .filter(|(name, _)| {
+            !subcommands.contains_key(name)
+                || subcommands
+                    .get(name)
+                    .map(|d| d.starts_with("(from"))
+                    .unwrap_or(false)
+        })
+        .collect();
+    plugin_commands.sort_by_key(|(name, _)| name.clone());
+
+    // Print plugins section if there are any
+    if !plugin_commands.is_empty() {
+        print_section(term, "PLUGINS");
+        for (name, desc) in plugin_commands {
+            print_command_row(term, &name, &desc);
+        }
         let _ = term.write_line("");
     }
 }
