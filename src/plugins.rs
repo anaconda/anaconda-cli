@@ -216,35 +216,21 @@ pub fn find_plugin(name: &str) -> Option<Plugin> {
     load_plugins().into_iter().find(|p| p.name == name)
 }
 
-/// Run a plugin subcommand by delegating to Python.
+/// Run a plugin subcommand by delegating to the `anaconda` CLI.
+///
+/// We delegate to the `anaconda` binary rather than importing Python modules
+/// directly to avoid circular import issues that occur when plugins try to
+/// load the anaconda_cli_base infrastructure.
 pub fn run_plugin(plugin: &Plugin, args: &[String]) -> Result<()> {
-    // Build the Python invocation using the entry point's callable
-    // We set sys.argv[0] to "ana <subcommand>" for proper help output
-    let status = if let Some(attr) = &plugin.attr {
-        let code = format!(
-            r#"
-import sys
-sys.argv[0] = "ana {name}"
-from {module} import {attr}
-{attr}()
-"#,
-            name = plugin.name,
-            module = plugin.module,
-            attr = attr
-        );
-        Command::new("python")
-            .args(["-c", &code])
-            .args(args)
-            .status()
-            .into_diagnostic()?
-    } else {
-        // For module-style entry points, use -m
-        Command::new("python")
-            .args(["-m", &plugin.module])
-            .args(args)
-            .status()
-            .into_diagnostic()?
-    };
+    // Find the anaconda binary
+    let anaconda = find_anaconda_binary()?;
+
+    // Run: anaconda <subcommand> [args...]
+    let status = Command::new(&anaconda)
+        .arg(&plugin.name)
+        .args(args)
+        .status()
+        .into_diagnostic()?;
 
     if status.success() {
         Ok(())
@@ -255,6 +241,27 @@ from {module} import {attr}
             status.code().unwrap_or(1)
         ))
     }
+}
+
+/// Find the anaconda binary in the current environment.
+fn find_anaconda_binary() -> Result<PathBuf> {
+    // Check CONDA_PREFIX first
+    if let Ok(conda_prefix) = std::env::var("CONDA_PREFIX") {
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        let binary = if cfg!(windows) {
+            "anaconda.exe"
+        } else {
+            "anaconda"
+        };
+        let anaconda = PathBuf::from(&conda_prefix).join(bin_subdir).join(binary);
+        if anaconda.exists() {
+            return Ok(anaconda);
+        }
+    }
+
+    Err(miette!(
+        "anaconda not found in CONDA_PREFIX. Install anaconda-client to use plugins."
+    ))
 }
 
 /// Invalidate the plugin cache (forces re-discovery on next load).

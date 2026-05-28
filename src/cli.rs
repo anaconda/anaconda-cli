@@ -159,7 +159,7 @@ pub enum Action {
     CheckForUpdate,
     ShowAvailableVersions,
     Bootstrap,
-    OrgProxy {
+    ChannelsProxy {
         args: Vec<String>,
     },
     #[cfg(all(unix, tool_install))]
@@ -237,7 +237,7 @@ impl Action {
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
-            Action::OrgProxy { .. } => "org",
+            Action::ChannelsProxy { .. } => "channels",
             #[cfg(all(unix, tool_install))]
             Action::ObProxy { .. } => "ob",
             #[cfg(all(unix, tool_install))]
@@ -330,7 +330,7 @@ impl Action {
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx)
                 .await
                 .map_err(|e| miette!("{}", e))?),
-            Action::OrgProxy { args } => Ok(
+            Action::ChannelsProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
@@ -693,7 +693,7 @@ pub fn parse() -> (Action, LogLevel) {
             }
             Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
         },
-        Some(Commands::Org { args }) => Action::OrgProxy { args },
+        Some(Commands::Channels { args }) => Action::ChannelsProxy { args },
         Some(Commands::Mcp { command }) => match command {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => match cmd.into_action() {
@@ -1014,12 +1014,12 @@ enum Commands {
         command: Option<SelfCommands>,
     },
 
-    /// Interact with anaconda.org
+    /// Manage anaconda.org channels (delegates to anaconda-client)
     #[command(
         trailing_var_arg = true,
-        override_usage = "ana org <command> [options]"
+        override_usage = "ana channels <command> [options]"
     )]
-    Org {
+    Channels {
         /// Arguments to pass to anaconda org
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
@@ -1297,7 +1297,6 @@ mod tests {
         // "ob" is conditionally hidden based on experimental feature state
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
-            "org",
             "config",
             "ob",
             "bootstrap",
