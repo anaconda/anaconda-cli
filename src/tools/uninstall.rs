@@ -11,6 +11,7 @@ use crate::paths;
 ///
 /// Removes the tool's environment and any symlinks in the bin directory.
 /// Cleans up empty directories afterward.
+#[cfg_attr(feature = "conda-package", allow(dead_code))]
 pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
@@ -93,6 +94,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
 }
 
 /// Remove a directory if it's empty.
+#[cfg_attr(feature = "conda-package", allow(dead_code))]
 fn cleanup_empty_dir(path: &std::path::Path) -> miette::Result<()> {
     if !path.exists() {
         return Ok(());

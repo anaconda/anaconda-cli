@@ -17,7 +17,10 @@ use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
+#[cfg(not(feature = "conda-package"))]
 use crate::tools;
+#[cfg(feature = "conda-package")]
+use crate::tools::list as tools_list;
 use crate::ui::status;
 use crate::update;
 use crate::utils::capitalize_first;
@@ -95,6 +98,7 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
 }
 
 /// Action to be performed, returned by parse()
+#[cfg_attr(feature = "conda-package", allow(dead_code))]
 pub enum Action {
     ShowHelp,
     ShowSubcommandHelp(String),
@@ -287,14 +291,30 @@ impl Action {
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
+            #[cfg(feature = "conda-package")]
+            Action::ToolInstall { name: _ } => {
+                Err(crate::errors::ToolManagementUnavailableError.into())
+            }
+            #[cfg(not(feature = "conda-package"))]
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
             }
+            #[cfg(feature = "conda-package")]
+            Action::ToolUninstall { name: _, force: _ } => {
+                Err(crate::errors::ToolManagementUnavailableError.into())
+            }
+            #[cfg(not(feature = "conda-package"))]
             Action::ToolUninstall { name, force } => {
                 tools::uninstall::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
+            #[cfg(feature = "conda-package")]
+            Action::ToolList => {
+                tools_list::print_tool_list(ctx);
+                Ok(())
+            }
+            #[cfg(not(feature = "conda-package"))]
             Action::ToolList => {
                 tools::list::print_tool_list(ctx);
                 Ok(())

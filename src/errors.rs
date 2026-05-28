@@ -169,6 +169,21 @@ pub enum ToolError {
 )]
 pub struct OuterboundsNotConfiguredError;
 
+/// Error when tool management is unavailable (conda-package build).
+#[cfg(feature = "conda-package")]
+#[derive(Error, Debug, Diagnostic)]
+#[error("Tool management is not available in the conda package.")]
+#[diagnostic(
+    code(ana::tool::conda_package),
+    help(
+        "When installed as a conda package, tools are managed by conda.\n\
+         To use `ana tool install/uninstall`, install ana standalone:\n\
+         \n\
+         curl -fsSL https://anaconda.sh | bash"
+    )
+)]
+pub struct ToolManagementUnavailableError;
+
 /// Authentication errors (re-exported from auth module for convenience).
 pub use crate::auth::errors::AuthError;
 
