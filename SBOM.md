@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-28T02:55:17Z<br>
+Generated: 2026-05-28T03:51:57Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 442 (67 platform-specific)<br>
+Packages: 442 (66 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -50,7 +50,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cargo-lock](https://crates.io/crates/cargo-lock) | 11.0.1 | Apache-2.0 OR MIT |  |  |
 | [cc](https://crates.io/crates/cc) | 1.2.62 | MIT OR Apache-2.0 |  |  |
 | [cfg-if](https://crates.io/crates/cfg-if) | 1.0.4 | MIT OR Apache-2.0 |  |  |
-| [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.1 | MIT | linux, macos |  |
+| [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.1 | MIT |  |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.0 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.44 | MIT OR Apache-2.0 |  |  |
 | [clap](https://crates.io/crates/clap) | 4.6.1 | MIT OR Apache-2.0 |  |  |

@@ -3,7 +3,7 @@
 //! This module is compiled out when built without the `self-update` feature
 //! (e.g., when installed via conda where updates are managed externally).
 
-#![cfg_attr(not(feature = "self-update"), allow(dead_code, unused_imports))]
+#![cfg_attr(not(self_update), allow(dead_code, unused_imports))]
 
 use std::collections::HashMap;
 
