@@ -118,6 +118,7 @@ fn parse_yes_no(input: &str, default: bool) -> bool {
 ///
 /// Displays `message` followed by `: ` and waits for input.
 /// Returns the trimmed input string, or an error if reading fails.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn prompt_input(message: &str) -> Result<String, String> {
     use std::io::Write;
     print!("{}: ", message);

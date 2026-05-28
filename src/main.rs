@@ -14,7 +14,7 @@ mod http;
 mod input;
 mod installer;
 mod mcp;
-#[cfg(unix)]
+#[cfg(all(unix, tool_install))]
 mod outerbounds;
 mod paths;
 mod qr;
@@ -37,9 +37,12 @@ fn prepare_runtime() {
         unsafe {
             libc::signal(libc::SIGPIPE, libc::SIG_DFL);
         }
+    }
 
-        // Raise RLIMIT_NOFILE for rattler installations. On macOS, respects
-        // kern.maxfilesperproc (the real hard ceiling).
+    // Raise RLIMIT_NOFILE for rattler installations. On macOS, respects
+    // kern.maxfilesperproc (the real hard ceiling).
+    #[cfg(all(unix, tool_install))]
+    {
         match rlimit::increase_nofile_limit(2048) {
             Ok(n) => tracing::debug!(limit = n, "RLIMIT_NOFILE raised"),
             Err(e) => tracing::warn!(error = %e, "Failed to raise RLIMIT_NOFILE"),

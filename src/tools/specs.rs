@@ -3,11 +3,13 @@
 use std::path::PathBuf;
 
 /// Tool configuration.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 struct Tool {
     name: &'static str,
+    #[cfg_attr(not(tool_install), allow(dead_code))]
     lockfile: &'static str,
     binaries: &'static [&'static [&'static str]],
-    /// If set, the tool is experimental and this message will be shown as a warning.
+    #[cfg_attr(not(tool_install), allow(dead_code))]
     experimental: Option<&'static str>,
 }
 
@@ -44,6 +46,7 @@ fn find_tool(name: &str) -> Option<&'static Tool> {
 ///
 /// If `ANA_LOCKFILES_DIR` is set, reads from that directory.
 /// Otherwise, returns the embedded lockfile compiled into the binary.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn content(name: &str) -> Option<String> {
     if let Ok(dir) = std::env::var("ANA_LOCKFILES_DIR") {
         let path = PathBuf::from(dir).join(name).join("pixi.lock");
@@ -75,6 +78,7 @@ pub fn all_tools() -> Vec<&'static str> {
 }
 
 /// Returns the experimental warning message for a tool, if any.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
 }
