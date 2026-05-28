@@ -22,6 +22,7 @@ use crate::tools;
 #[cfg(feature = "conda-package")]
 use crate::tools::list as tools_list;
 use crate::ui::status;
+#[cfg(feature = "self-update")]
 use crate::update;
 use crate::utils::capitalize_first;
 
@@ -323,18 +324,39 @@ impl Action {
                 api_key,
                 prompt_api_key,
                 force,
+<<<<<<< HEAD
             } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
+=======
+            } => Ok(auth::login(ctx, api_key, prompt_api_key, force)
+                .await
+                .into_diagnostic()?),
+            Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
+            Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
+            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
+            #[cfg(not(feature = "self-update"))]
+            Action::Update {
+                version: _,
+                force: _,
+            } => Err(crate::errors::SelfUpdateUnavailableError.into()),
+            #[cfg(feature = "self-update")]
+>>>>>>> 9a00df3f (feat: Add self-update feature flag to disable ana self update)
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
             }
+            #[cfg(not(feature = "self-update"))]
+            Action::CheckForUpdate => Err(crate::errors::SelfUpdateUnavailableError.into()),
+            #[cfg(feature = "self-update")]
             Action::CheckForUpdate => {
                 update::check_for_update(ctx, VERSION).await;
                 Ok(())
             }
+            #[cfg(not(feature = "self-update"))]
+            Action::ShowAvailableVersions => Err(crate::errors::SelfUpdateUnavailableError.into()),
+            #[cfg(feature = "self-update")]
             Action::ShowAvailableVersions => {
                 update::show_available_versions(ctx, VERSION).await;
                 Ok(())
