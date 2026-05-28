@@ -170,7 +170,7 @@ pub enum ToolError {
 pub struct OuterboundsNotConfiguredError;
 
 /// Error when tool management is unavailable (conda-package build).
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 #[derive(Error, Debug, Diagnostic)]
 #[error("Tool management is not available in the conda package.")]
 #[diagnostic(
@@ -195,7 +195,7 @@ pub struct ToolManagementUnavailableError;
 pub struct AnacondaMcpNotInstalledError;
 
 /// Error when self-update is unavailable.
-#[cfg(not(feature = "self-update"))]
+#[cfg(not(self_update))]
 #[derive(Error, Debug, Diagnostic)]
 #[error("Self-update is not available in this build.")]
 #[diagnostic(

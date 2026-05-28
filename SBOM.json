@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:b59a806e-58e6-4f45-81d0-44c3bd63eb1a",
+  "serialNumber": "urn:uuid:a94b33bd-a494-4a28-a2f6-57a407794182",
   "metadata": {
-    "timestamp": "2026-05-28T02:55:17Z",
+    "timestamp": "2026-05-28T03:51:57Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -1231,12 +1231,6 @@
         {
           "type": "vcs",
           "url": "https://github.com/katharostech/cfg_aliases"
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:ana:platforms",
-          "value": "linux,macos"
         }
       ]
     },
@@ -13756,6 +13750,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.89",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
+        "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.1",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.44",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",

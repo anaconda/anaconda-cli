@@ -165,7 +165,7 @@ impl Client {
 }
 
 /// Create a `HeaderMap` with a sensitive `Authorization: Bearer` header.
-#[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn bearer_header(token: &str) -> reqwest::header::HeaderMap {
     let mut headers = reqwest::header::HeaderMap::new();
     let mut value = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap();
@@ -176,7 +176,7 @@ pub fn bearer_header(token: &str) -> reqwest::header::HeaderMap {
 
 /// Get Cloudflare Zero Trust headers if environment variables are set.
 /// Returns None if either CF_ACCESS_CLIENT_ID or CF_ACCESS_CLIENT_SECRET is missing.
-#[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn cloudflare_headers() -> Option<reqwest::header::HeaderMap> {
     let client_id = env::var("CF_ACCESS_CLIENT_ID").ok()?;
     let client_secret = env::var("CF_ACCESS_CLIENT_SECRET").ok()?;
@@ -202,7 +202,7 @@ pub fn cloudflare_headers() -> Option<reqwest::header::HeaderMap> {
 /// Build an HTTP client with user-agent and logging middleware (no base URL).
 /// If CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET environment variables are set,
 /// Cloudflare Zero Trust headers are automatically included.
-#[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn build_client(
     builder: reqwest::ClientBuilder,
 ) -> std::result::Result<reqwest_middleware::ClientWithMiddleware, reqwest::Error> {

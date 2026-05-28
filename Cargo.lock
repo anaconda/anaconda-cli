@@ -215,6 +215,7 @@ dependencies = [
  "anaconda-otel-rs",
  "async-trait",
  "base64",
+ "cfg_aliases",
  "chrono",
  "clap",
  "comfy-table",

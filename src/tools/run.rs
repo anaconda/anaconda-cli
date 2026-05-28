@@ -3,14 +3,14 @@ use std::process::Command;
 
 use miette::miette;
 
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 use crate::paths;
 
 /// Resolve the path to a tool binary.
 ///
 /// When built with `conda-package` feature, looks in `$CONDA_PREFIX/bin/`.
 /// Otherwise, looks in the tool's installation directory under `~/.ana/tools/`.
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 fn resolve_tool_binary(binary_name: &str) -> miette::Result<PathBuf> {
     let conda_prefix = std::env::var("CONDA_PREFIX")
         .map_err(|_| miette!("CONDA_PREFIX not set. Are you in an active conda environment?"))?;
@@ -35,7 +35,7 @@ fn resolve_tool_binary(binary_name: &str) -> miette::Result<PathBuf> {
     Ok(tool_bin)
 }
 
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 fn resolve_tool_binary_with_tool_name(
     tool_name: &str,
     binary_name: &str,
@@ -60,13 +60,13 @@ fn resolve_tool_binary_with_tool_name(
 ///
 /// When built with `conda-package` feature, the `tool_name` parameter is ignored
 /// and the binary is resolved from `$CONDA_PREFIX/bin/`.
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 pub fn run_tool_binary(_tool_name: &str, binary_name: &str, args: &[String]) -> miette::Result<()> {
     let tool_bin = resolve_tool_binary(binary_name)?;
     run_binary(&tool_bin, binary_name, args)
 }
 
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 pub fn run_tool_binary(tool_name: &str, binary_name: &str, args: &[String]) -> miette::Result<()> {
     let tool_bin = resolve_tool_binary_with_tool_name(tool_name, binary_name)?;
     run_binary(&tool_bin, binary_name, args)

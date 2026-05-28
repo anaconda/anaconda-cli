@@ -96,10 +96,10 @@ pub struct CommandContext {
     /// HTTP client for API requests (lazy initialized).
     client: OnceLock<Client>,
     /// GitHub API client (lazy initialized).
-    #[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+    #[cfg_attr(not(self_update), allow(dead_code))]
     github_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Download client (lazy initialized).
-    #[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+    #[cfg_attr(not(self_update), allow(dead_code))]
     download_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Unauthenticated client (lazy initialized).
     unauthenticated_client: OnceLock<Client>,
@@ -143,7 +143,7 @@ impl CommandContext {
 
     /// Get or create a GitHub API client.
     /// Uses GITHUB_TOKEN for authentication if available (higher rate limits).
-    #[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+    #[cfg_attr(not(self_update), allow(dead_code))]
     pub fn github_client(&self) -> &reqwest_middleware::ClientWithMiddleware {
         self.github_client.get_or_init(|| {
             let builder = reqwest::Client::builder();
@@ -156,7 +156,7 @@ impl CommandContext {
     }
 
     /// Get or create a download client optimized for binary downloads (no gzip).
-    #[cfg_attr(not(feature = "self-update"), allow(dead_code))]
+    #[cfg_attr(not(self_update), allow(dead_code))]
     pub fn download_client(&self) -> &reqwest_middleware::ClientWithMiddleware {
         self.download_client.get_or_init(|| {
             http::build_client(reqwest::Client::builder().no_gzip())

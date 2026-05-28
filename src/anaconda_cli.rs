@@ -2,22 +2,22 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::context::CommandContext;
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 use crate::paths;
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 use crate::tools;
 
 /// Bootstrap anaconda-cli installation.
 ///
 /// When built with `conda-package` feature, this is a no-op since anaconda-cli
 /// is provided as a conda dependency.
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 pub async fn run_bootstrap(_ctx: &mut CommandContext) -> Result<(), String> {
     eprintln!("anaconda-cli is provided by conda. No bootstrap needed.");
     Ok(())
 }
 
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
     if paths::tool_prefix("anaconda-cli").exists() {
         eprintln!("anaconda-cli is already installed");
@@ -34,7 +34,7 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
 }
 
 /// Resolve the path to the anaconda binary.
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 fn resolve_anaconda_bin() -> Result<PathBuf, String> {
     let conda_prefix = std::env::var("CONDA_PREFIX")
         .map_err(|_| "CONDA_PREFIX not set. Are you in an active conda environment?".to_string())?;
@@ -58,7 +58,7 @@ fn resolve_anaconda_bin() -> Result<PathBuf, String> {
     Ok(anaconda_bin)
 }
 
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 fn resolve_anaconda_bin() -> Result<PathBuf, String> {
     let anaconda_bin = paths::bin_path("anaconda");
 

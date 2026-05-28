@@ -1,15 +1,15 @@
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 use std::path::PathBuf;
 
 use crate::context::CommandContext;
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 use crate::paths;
 use crate::tools;
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 use crate::ui::status;
 
 /// Check if anaconda-mcp is installed by looking for its conda-meta entry.
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 fn is_anaconda_mcp_installed() -> bool {
     let Some(conda_prefix) = std::env::var("CONDA_PREFIX").ok() else {
         return false;
@@ -38,7 +38,7 @@ fn is_anaconda_mcp_installed() -> bool {
 /// When built without `conda-package` feature, auto-installs anaconda-cli if not present.
 /// When built with `conda-package` feature, anaconda-cli is expected to be provided by conda,
 /// and anaconda-mcp must be installed for the mcp subcommand to work.
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 pub async fn run(_ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
     if !is_anaconda_mcp_installed() {
         return Err(crate::errors::AnacondaMcpNotInstalledError.into());
@@ -49,7 +49,7 @@ pub async fn run(_ctx: &mut CommandContext, args: &[String]) -> miette::Result<(
     tools::run_tool_binary("anaconda-cli", "anaconda", &mcp_args)
 }
 
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
     if !paths::tool_prefix("anaconda-cli").exists() {
         status::info("Installing anaconda-cli...");

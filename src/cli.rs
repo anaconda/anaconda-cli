@@ -17,12 +17,12 @@ use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
-#[cfg(not(feature = "conda-package"))]
+#[cfg(tool_install)]
 use crate::tools;
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 use crate::tools::list as tools_list;
 use crate::ui::status;
-#[cfg(feature = "self-update")]
+#[cfg(self_update)]
 use crate::update;
 use crate::utils::capitalize_first;
 
@@ -99,7 +99,7 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
 }
 
 /// Action to be performed, returned by parse()
-#[cfg_attr(feature = "conda-package", allow(dead_code))]
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub enum Action {
     ShowHelp,
     ShowSubcommandHelp(String),
@@ -292,30 +292,30 @@ impl Action {
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
-            #[cfg(feature = "conda-package")]
+            #[cfg(not(tool_install))]
             Action::ToolInstall { name: _ } => {
                 Err(crate::errors::ToolManagementUnavailableError.into())
             }
-            #[cfg(not(feature = "conda-package"))]
+            #[cfg(tool_install)]
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
             }
-            #[cfg(feature = "conda-package")]
+            #[cfg(not(tool_install))]
             Action::ToolUninstall { name: _, force: _ } => {
                 Err(crate::errors::ToolManagementUnavailableError.into())
             }
-            #[cfg(not(feature = "conda-package"))]
+            #[cfg(tool_install)]
             Action::ToolUninstall { name, force } => {
                 tools::uninstall::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
-            #[cfg(feature = "conda-package")]
+            #[cfg(not(tool_install))]
             Action::ToolList => {
-                tools_list::print_tool_list(ctx);
+                crate::tools::list::print_tool_list(ctx);
                 Ok(())
             }
-            #[cfg(not(feature = "conda-package"))]
+            #[cfg(tool_install)]
             Action::ToolList => {
                 tools::list::print_tool_list(ctx);
                 Ok(())
@@ -336,27 +336,31 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
-            #[cfg(not(feature = "self-update"))]
+            #[cfg(not(self_update))]
             Action::Update {
                 version: _,
                 force: _,
             } => Err(crate::errors::SelfUpdateUnavailableError.into()),
+<<<<<<< HEAD
             #[cfg(feature = "self-update")]
 >>>>>>> 9a00df3f (feat: Add self-update feature flag to disable ana self update)
+=======
+            #[cfg(self_update)]
+>>>>>>> a4b7fa51 (refac: Use cfg-aliases for cleaner feature flag handling)
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
             }
-            #[cfg(not(feature = "self-update"))]
+            #[cfg(not(self_update))]
             Action::CheckForUpdate => Err(crate::errors::SelfUpdateUnavailableError.into()),
-            #[cfg(feature = "self-update")]
+            #[cfg(self_update)]
             Action::CheckForUpdate => {
                 update::check_for_update(ctx, VERSION).await;
                 Ok(())
             }
-            #[cfg(not(feature = "self-update"))]
+            #[cfg(not(self_update))]
             Action::ShowAvailableVersions => Err(crate::errors::SelfUpdateUnavailableError.into()),
-            #[cfg(feature = "self-update")]
+            #[cfg(self_update)]
             Action::ShowAvailableVersions => {
                 update::show_available_versions(ctx, VERSION).await;
                 Ok(())

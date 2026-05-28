@@ -11,13 +11,15 @@ rlimit = "0.11"
 # Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
 # Unstable features are hidden and disabled by default.
 # self-update: Enable `ana self update` command. Included by default.
-# conda-package: Build for distribution as a conda package. Disables tool installation
-# (tools are provided as conda dependencies), disables self-update (managed by conda),
-# and resolves binaries from $CONDA_PREFIX/bin/.
-default = ["self-update"]
+# tool-install: Enable `ana tool install/uninstall` commands. Included by default.
+# conda-package: Build for distribution as a conda package. Implicitly disables
+# self-update and tool-install (both managed by conda), and resolves binaries
+# from $CONDA_PREFIX/bin/.
+default = ["self-update", "tool-install"]
 diagnostics = ["dep:sentry"]
 unstable = []
 self-update = []
+tool-install = []
 conda-package = []
 
 [dependencies]
@@ -64,3 +66,6 @@ url = "2.5.8"
 temp-env = "0.3"
 tempfile = "3"
 wiremock = "0.6"
+
+[build-dependencies]
+cfg_aliases = "0.2.1"

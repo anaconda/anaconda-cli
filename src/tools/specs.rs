@@ -59,7 +59,7 @@ pub fn binaries(name: &str) -> Option<Vec<PathBuf>> {
 }
 
 /// Returns the binary names to link for a tool.
-#[cfg_attr(feature = "conda-package", allow(dead_code))]
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn binary_names(name: &str) -> Option<Vec<&'static str>> {
     find_tool(name).map(|t| {
         t.binaries
