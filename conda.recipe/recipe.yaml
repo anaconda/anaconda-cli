@@ -1,5 +1,5 @@
 package:
-  name: ana-cli
+  name: anaconda-cli
   version: ${{ env.get("PKG_VERSION") | default("0.0.0") }}
 
 source:
