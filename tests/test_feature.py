@@ -957,7 +957,14 @@ class TestMainXPixiDisable:
         """Disabling main-x --pixi should preserve the main channel (not wipe all channels)."""
         # Pre-configure both main and main-x channels (as enable would do)
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
             env=pixi_feature_env,
             check=True,
         )
@@ -989,12 +996,26 @@ class TestMainXPixiDisable:
         """Disabling main-x --pixi should preserve all other configured channels."""
         # Pre-configure main, main-x, and conda-forge channels
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", "conda-forge"],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                "conda-forge",
+            ],
             env=pixi_feature_env,
             check=True,
         )
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
             env=pixi_feature_env,
             check=True,
         )
