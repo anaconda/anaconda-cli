@@ -184,6 +184,16 @@ pub struct OuterboundsNotConfiguredError;
 )]
 pub struct ToolManagementUnavailableError;
 
+/// Error when anaconda-mcp is not installed (conda-package build).
+#[cfg(feature = "conda-package")]
+#[derive(Error, Debug, Diagnostic)]
+#[error("The mcp subcommand requires anaconda-mcp to be installed.")]
+#[diagnostic(
+    code(ana::mcp::not_installed),
+    help("Install it with:\n\n    conda install anaconda-mcp")
+)]
+pub struct AnacondaMcpNotInstalledError;
+
 /// Authentication errors (re-exported from auth module for convenience).
 pub use crate::auth::errors::AuthError;
 
