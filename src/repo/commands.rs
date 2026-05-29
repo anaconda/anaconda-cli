@@ -18,13 +18,6 @@ pub enum RepoCommands {
         args: Vec<String>,
     },
 
-    /// Copy packages from one channel to another
-    #[command(trailing_var_arg = true)]
-    Copy {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
     /// Download artifacts
     #[command(trailing_var_arg = true)]
     Download {
@@ -32,23 +25,9 @@ pub enum RepoCommands {
         args: Vec<String>,
     },
 
-    /// Move packages from one channel to another
-    #[command(trailing_var_arg = true)]
-    Move {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
     /// Remove an object from your Package Security Manager repository
     #[command(trailing_var_arg = true)]
     Remove {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
-    /// Search in your Anaconda repository
-    #[command(trailing_var_arg = true)]
-    Search {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
@@ -70,28 +49,13 @@ impl RepoCommands {
                 cmd_args.extend(args);
                 RepoAction::Run(cmd_args)
             }
-            RepoCommands::Copy { args } => {
-                let mut cmd_args = vec!["copy".to_string()];
-                cmd_args.extend(args);
-                RepoAction::Run(cmd_args)
-            }
             RepoCommands::Download { args } => {
                 let mut cmd_args = vec!["download".to_string()];
                 cmd_args.extend(args);
                 RepoAction::Run(cmd_args)
             }
-            RepoCommands::Move { args } => {
-                let mut cmd_args = vec!["move".to_string()];
-                cmd_args.extend(args);
-                RepoAction::Run(cmd_args)
-            }
             RepoCommands::Remove { args } => {
                 let mut cmd_args = vec!["remove".to_string()];
-                cmd_args.extend(args);
-                RepoAction::Run(cmd_args)
-            }
-            RepoCommands::Search { args } => {
-                let mut cmd_args = vec!["search".to_string()];
                 cmd_args.extend(args);
                 RepoAction::Run(cmd_args)
             }

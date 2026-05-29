@@ -133,6 +133,7 @@ pub enum Action {
     },
     RepoRun {
         args: Vec<String>,
+        token: Option<String>,
     },
     UserAgent {
         prefix: Option<String>,
@@ -283,7 +284,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            Action::RepoRun { args } => repo::run(ctx, &args).await,
+            Action::RepoRun { args, token } => repo::run(ctx, &args, token.as_deref()).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -605,7 +606,7 @@ pub fn parse() -> (Action, LogLevel) {
             None => Action::ShowSubcommandHelp("repo".to_string()),
             Some(cmd) => match cmd.into_action() {
                 RepoAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                RepoAction::Run(args) => Action::RepoRun { args },
+                RepoAction::Run(args) => Action::RepoRun { args, token: cli.token },
             },
         },
         #[cfg(unix)]
@@ -800,6 +801,10 @@ struct Cli {
     /// Show help information
     #[arg(short = 'h', long = "help", global = true, action = clap::ArgAction::SetTrue)]
     help: bool,
+
+    /// Authentication token for testing local repocore instance
+    #[arg(long = "token", global = true)]
+    token: Option<String>,
 }
 
 #[derive(Subcommand)]

@@ -398,10 +398,12 @@ mod tests {
 
     #[test]
     fn test_config_default_is_load() {
-        let default_config = Config::default();
-        let loaded_config = Config::load();
+        temp_env::with_vars_unset(vec!["ANA_AUTH_CLIENT_ID", "ANA_DOMAIN"], || {
+            let default_config = Config::default();
+            let loaded_config = Config::load();
 
-        assert_eq!(default_config, loaded_config);
+            assert_eq!(default_config, loaded_config);
+        });
     }
 
     #[test]

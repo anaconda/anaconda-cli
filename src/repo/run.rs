@@ -5,14 +5,19 @@ use crate::ui::status;
 
 /// Run the `anaconda repo` command with the given arguments.
 /// Auto-installs anaconda-cli if not present.
-pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
+pub async fn run(ctx: &mut CommandContext, args: &[String], token: Option<&str>) -> miette::Result<()> {
     if !paths::bin_path("anaconda").exists() {
         status::info("Installing anaconda-cli...");
         tools::install::install_tool(ctx, "anaconda-cli").await?;
         status::blank_line();
     }
 
-    let mut repo_args = vec!["repo".to_string()];
+    let mut repo_args = Vec::new();
+    if let Some(t) = token {
+        repo_args.push("-t".to_string());
+        repo_args.push(t.to_string());
+    }
+    repo_args.push("repo".to_string());
     repo_args.extend(args.iter().cloned());
     tools::run_tool_binary("anaconda-cli", "anaconda", &repo_args)
 }
