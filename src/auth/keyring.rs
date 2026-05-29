@@ -97,9 +97,8 @@ pub fn get_api_key(config: &Config) -> Result<Option<String>, AuthError> {
 }
 
 /// Get the user_id from the keyring file.
-/// Falls back to `username` if `user_id` is not set (for anaconda-auth compatibility).
 pub fn get_user_id(config: &Config) -> Result<Option<String>, AuthError> {
-    Ok(get_credential(config)?.and_then(|c| c.user_id.or(c.username)))
+    Ok(get_credential(config)?.and_then(|c| c.user_id))
 }
 
 /// Get the full credential from the keyring file.
@@ -480,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_user_id_falls_back_to_username() {
+    fn test_get_user_id_ignores_username() {
         let dir = tempfile::tempdir().unwrap();
         let keyring_path = dir.path().join("keyring");
         let config = test_config_with_keyring(keyring_path.clone(), "test.com");
@@ -506,24 +505,24 @@ mod tests {
         let keyring_json = serde_json::to_string(&keyring).unwrap();
         fs::write(&keyring_path, keyring_json).unwrap();
 
-        // get_user_id should return username when user_id is None
-        assert_eq!(get_user_id(&config).unwrap(), Some("testuser".to_string()));
+        // get_user_id should return None when only username is set
+        assert_eq!(get_user_id(&config).unwrap(), None);
     }
 
     #[test]
-    fn test_get_user_id_prefers_user_id_over_username() {
+    fn test_get_user_id_returns_user_id() {
         let dir = tempfile::tempdir().unwrap();
         let keyring_path = dir.path().join("keyring");
         let config = test_config_with_keyring(keyring_path.clone(), "test.com");
 
-        // Credential with both user_id and username set
+        // Credential with user_id set
         let credential = Credential {
             domain: "test.com".to_string(),
             api_key: "ak-123".to_string(),
             repo_tokens: vec![],
             version: 2,
-            user_id: Some("user-from-ana".to_string()),
-            username: Some("user-from-anaconda-auth".to_string()),
+            user_id: Some("user-123".to_string()),
+            username: Some("testuser".to_string()),
         };
         let credential_json = serde_json::to_string(&credential).unwrap();
         let encoded = BASE64_STANDARD.encode(credential_json);
@@ -537,11 +536,8 @@ mod tests {
         let keyring_json = serde_json::to_string(&keyring).unwrap();
         fs::write(&keyring_path, keyring_json).unwrap();
 
-        // get_user_id should prefer user_id over username
-        assert_eq!(
-            get_user_id(&config).unwrap(),
-            Some("user-from-ana".to_string())
-        );
+        // get_user_id should return user_id
+        assert_eq!(get_user_id(&config).unwrap(), Some("user-123".to_string()));
     }
 
     #[test]
