@@ -46,7 +46,7 @@ struct Credential {
 }
 
 /// Save an API key and optional user info to the keyring file.
-pub(super) fn save_credential(
+pub(crate) fn save_credential(
     config: &Config,
     api_key: &str,
     user_id: Option<&str>,
