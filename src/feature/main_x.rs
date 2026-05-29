@@ -56,7 +56,9 @@ impl CondaChannelAction {
 enum PixiChannelAction {
     AddMain,
     AddMainX,
-    RemoveMainX,
+    /// Remove main-x while preserving other channels (especially main).
+    /// Contains the list of channels to keep after removal.
+    RemoveMainX(Vec<String>),
 }
 
 impl PixiChannelAction {
@@ -74,8 +76,8 @@ impl PixiChannelAction {
                     MAIN_X_CHANNEL
                 )
             }
-            PixiChannelAction::RemoveMainX => {
-                "pixi config unset --global default-channels".to_string()
+            PixiChannelAction::RemoveMainX(channels_to_keep) => {
+                format_pixi_remove_main_x_command(channels_to_keep)
             }
         }
     }
@@ -96,13 +98,47 @@ impl PixiChannelAction {
                     &["prepend", "--global", "default-channels", MAIN_X_CHANNEL],
                 )?;
             }
-            PixiChannelAction::RemoveMainX => {
-                run_pixi_config(pixi_bin, &["unset", "--global", "default-channels"])?;
+            PixiChannelAction::RemoveMainX(channels_to_keep) => {
+                execute_pixi_remove_main_x(pixi_bin, channels_to_keep)?;
             }
         }
         status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
         Ok(())
     }
+}
+
+/// Format the display command for removing main-x from pixi while preserving other channels.
+fn format_pixi_remove_main_x_command(channels_to_keep: &[String]) -> String {
+    if channels_to_keep.is_empty() {
+        "pixi config unset --global default-channels".to_string()
+    } else {
+        format!(
+            "pixi config set --global default-channels [{}]",
+            format_pixi_channels_json(channels_to_keep)
+        )
+    }
+}
+
+/// Execute the pixi config command to remove main-x while preserving other channels.
+fn execute_pixi_remove_main_x(pixi_bin: &Path, channels_to_keep: &[String]) -> miette::Result<()> {
+    if channels_to_keep.is_empty() {
+        run_pixi_config(pixi_bin, &["unset", "--global", "default-channels"])
+    } else {
+        let channels_json = format!("[{}]", format_pixi_channels_json(channels_to_keep));
+        run_pixi_config(
+            pixi_bin,
+            &["set", "--global", "default-channels", &channels_json],
+        )
+    }
+}
+
+/// Format channels as a JSON-style string for pixi config (e.g., `"chan1", "chan2"`).
+fn format_pixi_channels_json(channels: &[String]) -> String {
+    channels
+        .iter()
+        .map(|c| format!("\"{}\"", c))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Configure pixi auth for repo.anaconda.cloud.
@@ -209,10 +245,18 @@ fn plan_pixi_enable_actions(current_channels: &[String]) -> Vec<PixiChannelActio
 }
 
 /// Plan the actions needed to disable main-x channel for pixi.
+///
+/// Removes main-x from the channel list while preserving all other channels.
+/// If main-x is the only channel, the result will unset default-channels entirely.
 fn plan_pixi_disable_actions(current_channels: &[String]) -> Vec<PixiChannelAction> {
     let has_main_x = current_channels.iter().any(|c| c == MAIN_X_CHANNEL);
     if has_main_x {
-        vec![PixiChannelAction::RemoveMainX]
+        let channels_to_keep: Vec<String> = current_channels
+            .iter()
+            .filter(|c| *c != MAIN_X_CHANNEL)
+            .cloned()
+            .collect();
+        vec![PixiChannelAction::RemoveMainX(channels_to_keep)]
     } else {
         vec![]
     }
@@ -873,10 +917,80 @@ mod tests {
     }
 
     #[test]
-    fn test_pixi_channel_action_remove_main_x_display() {
-        let action = PixiChannelAction::RemoveMainX;
+    fn test_pixi_channel_action_remove_main_x_display_empty() {
+        let action = PixiChannelAction::RemoveMainX(vec![]);
         let cmd = action.command_display();
 
         assert!(cmd.contains("pixi config unset"));
+    }
+
+    #[test]
+    fn test_pixi_channel_action_remove_main_x_display_with_channels() {
+        let action = PixiChannelAction::RemoveMainX(vec![MAIN_CHANNEL.to_string()]);
+        let cmd = action.command_display();
+
+        assert!(cmd.contains("pixi config set"));
+        assert!(cmd.contains(MAIN_CHANNEL));
+    }
+
+    // ========================================================================
+    // plan_pixi_disable_actions tests
+    // ========================================================================
+
+    #[test]
+    fn test_plan_pixi_disable_actions_main_and_main_x() {
+        let current_channels = vec![MAIN_CHANNEL.to_string(), MAIN_X_CHANNEL.to_string()];
+        let actions = plan_pixi_disable_actions(&current_channels);
+
+        assert_eq!(actions.len(), 1);
+        match &actions[0] {
+            PixiChannelAction::RemoveMainX(channels_to_keep) => {
+                assert_eq!(channels_to_keep, &vec![MAIN_CHANNEL.to_string()]);
+            }
+            _ => panic!("Expected RemoveMainX action"),
+        }
+    }
+
+    #[test]
+    fn test_plan_pixi_disable_actions_main_x_only() {
+        let current_channels = vec![MAIN_X_CHANNEL.to_string()];
+        let actions = plan_pixi_disable_actions(&current_channels);
+
+        assert_eq!(actions.len(), 1);
+        match &actions[0] {
+            PixiChannelAction::RemoveMainX(channels_to_keep) => {
+                assert!(channels_to_keep.is_empty());
+            }
+            _ => panic!("Expected RemoveMainX action"),
+        }
+    }
+
+    #[test]
+    fn test_plan_pixi_disable_actions_no_main_x() {
+        let current_channels = vec![MAIN_CHANNEL.to_string()];
+        let actions = plan_pixi_disable_actions(&current_channels);
+
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn test_plan_pixi_disable_actions_preserves_other_channels() {
+        let current_channels = vec![
+            MAIN_CHANNEL.to_string(),
+            MAIN_X_CHANNEL.to_string(),
+            "conda-forge".to_string(),
+        ];
+        let actions = plan_pixi_disable_actions(&current_channels);
+
+        assert_eq!(actions.len(), 1);
+        match &actions[0] {
+            PixiChannelAction::RemoveMainX(channels_to_keep) => {
+                assert_eq!(
+                    channels_to_keep,
+                    &vec![MAIN_CHANNEL.to_string(), "conda-forge".to_string()]
+                );
+            }
+            _ => panic!("Expected RemoveMainX action"),
+        }
     }
 }
