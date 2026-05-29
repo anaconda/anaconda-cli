@@ -110,6 +110,9 @@ pub enum Action {
     Whoami {
         json: bool,
     },
+    PackageMode {
+        mode: String,
+    },
     Update {
         version: Option<String>,
         force: bool,
@@ -174,6 +177,18 @@ pub enum Action {
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
+    Upload {
+        args: Vec<String>,
+    },
+    Download {
+        args: Vec<String>,
+    },
+    Remove {
+        args: Vec<String>,
+    },
+    Channel {
+        args: Vec<String>,
+    },
 }
 
 impl Action {
@@ -187,6 +202,7 @@ impl Action {
             Action::Logout => "logout",
             Action::ShowApiKey => "auth.api-key",
             Action::Whoami { .. } => "whoami",
+            Action::PackageMode { .. } => "package-mode",
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
@@ -220,6 +236,10 @@ impl Action {
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
+            Action::Upload { .. } => "upload",
+            Action::Download { .. } => "download",
+            Action::Remove { .. } => "remove",
+            Action::Channel { .. } => "channel",
         }
     }
 
@@ -313,6 +333,7 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
+            Action::PackageMode { mode } => set_package_mode(&mode),
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
@@ -514,8 +535,38 @@ impl Action {
                 }
                 Ok(())
             }
+            Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
+            Action::Download { args } => route_package_command(ctx, "download", &args).await,
+            Action::Remove { args } => route_package_command(ctx, "remove", &args).await,
+            Action::Channel { args } => route_package_command(ctx, "channel", &args).await,
         }
     }
+}
+
+async fn route_package_command(
+    ctx: &mut CommandContext,
+    command: &str,
+    args: &[String],
+) -> miette::Result<()> {
+    let mode = crate::config::package_mode();
+    match mode.as_str() {
+        "repo" => repo::run(ctx, &[vec![command.to_string()], args.to_vec()].concat(), None).await,
+        "org" => Ok(anaconda_cli::run_subcommand(ctx, command, args).map_err(|e| miette!("{}", e))?),
+        _ => Err(miette!("Invalid package mode: {}", mode)),
+    }
+}
+
+fn set_package_mode(mode: &str) -> miette::Result<()> {
+    let normalized_mode = mode.to_lowercase();
+    if normalized_mode != "org" && normalized_mode != "repo" {
+        return Err(miette!("Invalid mode '{}'. Must be 'org' or 'repo'.", mode));
+    }
+
+    unsafe {
+        std::env::set_var("ANA_PACKAGE_MODE", &normalized_mode);
+    }
+    crate::ui::status::success(&format!("Package mode set to '{}'", normalized_mode));
+    Ok(())
 }
 
 /// Parse CLI arguments and return the action to perform along with log level.
@@ -560,6 +611,7 @@ pub fn parse() -> (Action, LogLevel) {
         },
         Some(Commands::Logout) => Action::Logout,
         Some(Commands::Whoami { json }) => Action::Whoami { json },
+        Some(Commands::PackageMode { mode }) => Action::PackageMode { mode },
         Some(Commands::Auth { command }) => match command {
             None => Action::ShowSubcommandHelp("auth".to_string()),
             Some(AuthCommands::ApiKey) => Action::ShowApiKey,
@@ -693,6 +745,10 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
+        Some(Commands::Upload { args }) => Action::Upload { args },
+        Some(Commands::Download { args }) => Action::Download { args },
+        Some(Commands::Remove { args }) => Action::Remove { args },
+        Some(Commands::Channel { args }) => Action::Channel { args },
     };
 
     (action, level)
@@ -850,6 +906,13 @@ enum Commands {
         json: bool,
     },
 
+    /// Set the package repository mode (org or repo)
+    #[command(name = "package-mode")]
+    PackageMode {
+        /// Repository mode: 'org' (anaconda.org) or 'repo' (Package Security Manager)
+        mode: String,
+    },
+
     /// Manage the ana installation
     #[command(
         subcommand_required = false,
@@ -951,6 +1014,46 @@ enum Commands {
     /// Check status of background telemetry processes (internal use only)
     #[command(hide = true)]
     TelemetryStatus,
+
+    /// Upload a package (routes to org or repo based on package-mode)
+    #[command(
+        trailing_var_arg = true,
+        override_usage = "ana upload [options] <file>"
+    )]
+    Upload {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Download a package (routes to org or repo based on package-mode)
+    #[command(
+        trailing_var_arg = true,
+        override_usage = "ana download [options] <package>"
+    )]
+    Download {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Remove a package (routes to org or repo based on package-mode)
+    #[command(
+        trailing_var_arg = true,
+        override_usage = "ana remove [options] <package>"
+    )]
+    Remove {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Manage channels (routes to org or repo based on package-mode)
+    #[command(
+        trailing_var_arg = true,
+        override_usage = "ana channel [options]"
+    )]
+    Channel {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
 }
 
 #[derive(Subcommand)]

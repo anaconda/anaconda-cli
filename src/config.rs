@@ -47,6 +47,11 @@ pub fn telemetry_enabled() -> bool {
         .unwrap_or(true)
 }
 
+/// Get the package mode setting (defaults to "org").
+pub fn package_mode() -> String {
+    std::env::var("ANA_PACKAGE_MODE").unwrap_or_else(|_| "org".to_string())
+}
+
 const DEFAULT_DOMAIN: &str = "anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
