@@ -222,9 +222,14 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
         let _ = term.write_line("");
     }
 
+    // Plugins that are hidden in the Python libraries
+    let hidden_plugins: std::collections::HashSet<&str> = ["cloud", "token"].into_iter().collect();
+
     // Get plugin commands from the plugins module (excludes built-in commands)
     let mut plugin_commands: Vec<_> = crate::plugins::get_plugin_descriptions()
         .into_iter()
+        // Exclude plugins that are hidden in the Python libraries
+        .filter(|(name, _)| !hidden_plugins.contains(name.as_str()))
         // Exclude plugins that would override built-in commands in sections
         .filter(|(name, _)| !sectioned_commands.contains(name.as_str()))
         // Exclude plugins that override other built-in commands
