@@ -39,7 +39,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = specs::binaries(name).unwrap_or_default();
-    let uses_wrapper = tools::uses_wrapper(name);
+    let uses_wrapper = specs::uses_wrapper(name);
 
     eprintln!("Installing {} into {}", name, prefix.display());
 

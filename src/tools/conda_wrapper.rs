@@ -15,7 +15,7 @@ use std::process::{Command, Stdio};
 use console::style;
 
 use crate::paths;
-use crate::tools::tools::binaries;
+use crate::tools::specs::binaries;
 
 /// Environment variable set by the Windows shim to indicate wrapper invocation.
 /// The shim sets this to the tool name (e.g., "conda") when invoking ana.exe as a wrapper.
