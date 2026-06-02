@@ -520,7 +520,7 @@ pub fn parse() -> (Action, LogLevel) {
 
     let cli = match Cli::from_arg_matches(&matches) {
         Ok(c) => c,
-        Err(e) => return handle_parse_error(e.into()),
+        Err(e) => return handle_parse_error(e),
     };
 
     let level: LogLevel = cli.verbose.into();
