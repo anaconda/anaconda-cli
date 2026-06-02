@@ -23,6 +23,43 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
     mp
 });
 
+/// Ensure a managed tool is installed and up-to-date.
+///
+/// Returns `true` if an install/update was performed, `false` if already current.
+pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<bool> {
+    let prefix = paths::tool_prefix(name);
+    let hash_file = prefix.join(".lockfile-hash");
+
+    let lock_content =
+        specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+    let current_hash = hash_lockfile(&lock_content);
+
+    // Check if tool is installed and lockfile hash matches
+    if prefix.exists()
+        && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
+        && stored_hash.trim() == current_hash
+    {
+        return Ok(false);
+    }
+
+    install_tool(ctx, name).await?;
+
+    // Store the lockfile hash for future comparisons
+    std::fs::write(&hash_file, &current_hash)
+        .into_diagnostic()
+        .context("failed to write lockfile hash")?;
+
+    Ok(true)
+}
+
+fn hash_lockfile(content: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
 /// Install a tool from its lockfile.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
@@ -299,6 +336,21 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_hash_lockfile_deterministic() {
+        let content = "version: 6\npackages:\n  - name: foo";
+        let hash1 = hash_lockfile(content);
+        let hash2 = hash_lockfile(content);
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_hash_lockfile_different_content() {
+        let content1 = "version: 6\npackages:\n  - name: foo";
+        let content2 = "version: 6\npackages:\n  - name: bar";
+        assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
+    }
 
     #[tokio::test]
     async fn test_lockfile_parse_error() {
