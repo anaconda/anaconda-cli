@@ -125,7 +125,7 @@ mod tests {
             let tmp_files: Vec<_> = fs::read_dir(&pending_dir)
                 .unwrap()
                 .filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().map_or(false, |ext| ext == "tmp"))
+                .filter(|e| e.path().extension().is_some_and(|ext| ext == "tmp"))
                 .collect();
 
             assert!(tmp_files.is_empty(), "No .tmp files should remain");
@@ -238,7 +238,7 @@ mod tests {
                 },
                 TelemetryEvent::Histogram {
                     name: "histogram1".to_string(),
-                    value: 3.14,
+                    value: 1.5,
                     attributes: HashMap::new(),
                 },
             ];

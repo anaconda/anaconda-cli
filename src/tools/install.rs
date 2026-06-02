@@ -430,6 +430,7 @@ fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
 }
 
 /// Create an HTTP client for downloading packages.
+#[allow(dead_code)]
 fn make_download_client() -> reqwest_middleware::ClientWithMiddleware {
     // TODO: Add AuthenticationMiddleware for private channel support
     crate::http::build_client(reqwest::Client::builder().no_gzip())
