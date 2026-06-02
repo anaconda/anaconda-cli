@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-26T21:33:16Z<br>
+Generated: 2026-06-02T04:08:08Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 443 (67 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -357,7 +357,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [toml](https://crates.io/crates/toml) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.11+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.6 | MIT |  |  |

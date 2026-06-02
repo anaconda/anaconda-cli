@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:62ace259-5724-46d2-b48d-47a0be902630",
+  "serialNumber": "urn:uuid:f0588eee-f4cb-42df-b923-c19148b194b1",
   "metadata": {
-    "timestamp": "2026-05-26T21:33:16Z",
+    "timestamp": "2026-06-02T04:08:08Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -10286,15 +10286,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.11+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.12+spec-1.1.0",
       "name": "toml_edit",
-      "version": "0.25.11+spec-1.1.0",
+      "version": "0.25.12+spec-1.1.0",
       "description": "Yet another format-preserving TOML parser.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "0b59c4d22ed448339746c59b905d24568fcbb3ab65a500494f7b8c3e97739f2b"
+          "content": "d2153edc6955a6c354fad8f5efd38b6a8769bdccf9fe50f8e1329f81b0baa5d7"
         }
       ],
       "licenses": [
@@ -10302,7 +10302,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml_edit@0.25.11+spec-1.1.0",
+      "purl": "pkg:cargo/toml_edit@0.25.12+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -13812,7 +13812,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.18",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.52.3",
         "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.2+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.11+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.12+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
         "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8",
@@ -16457,7 +16457,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.11+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.12+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
