@@ -23,6 +23,27 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
     mp
 });
 
+/// Returns the names of all currently installed tools.
+pub fn installed_tools() -> Vec<&'static str> {
+    specs::all_tools()
+        .into_iter()
+        .filter(|name| paths::tool_prefix(name).exists())
+        .collect()
+}
+
+/// Update all installed tools that have outdated lockfiles.
+///
+/// Returns the names of tools that were updated.
+pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
+    let mut updated = Vec::new();
+    for name in installed_tools() {
+        if ensure_tool(ctx, name).await? {
+            updated.push(name.to_string());
+        }
+    }
+    Ok(updated)
+}
+
 /// Ensure a managed tool is installed and up-to-date.
 ///
 /// Returns `true` if an install/update was performed, `false` if already current.
@@ -43,12 +64,6 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
     }
 
     install_tool(ctx, name).await?;
-
-    // Store the lockfile hash for future comparisons
-    std::fs::write(&hash_file, &current_hash)
-        .into_diagnostic()
-        .context("failed to write lockfile hash")?;
-
     Ok(true)
 }
 
@@ -80,6 +95,12 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(ctx, &prefix, &lock_content).await?;
+
+    // Store the lockfile hash for future update checks
+    let hash_file = prefix.join(".lockfile-hash");
+    std::fs::write(&hash_file, hash_lockfile(&lock_content))
+        .into_diagnostic()
+        .context("failed to write lockfile hash")?;
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, &binaries)?;

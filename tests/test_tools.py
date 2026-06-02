@@ -156,6 +156,56 @@ class TestToolList:
         assert "✓" in pixi_line_after
 
 
+class TestToolUpdate:
+    """Tests for 'ana tool update' subcommand."""
+
+    def test_tool_update_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "update", "--help")
+        assert result.returncode == 0
+        assert "Update all installed tools" in result.stdout
+
+    def test_tool_update_no_tools_installed(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update with no tools installed shows up to date."""
+        result = run_ana("tool", "update")
+        assert result.returncode == 0
+        assert "up to date" in result.stderr.lower()
+
+    def test_tool_update_updates_installed_tool(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update updates an installed tool when lockfile hash changes."""
+        # First install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Verify hash file was created
+        hash_file = fake_home / ".ana" / "tools" / "pixi" / ".lockfile-hash"
+        assert hash_file.exists(), "Lockfile hash should be stored after install"
+
+        # Corrupt the hash to simulate a lockfile change
+        hash_file.write_text("fakehash")
+
+        # Run tool update - should detect mismatch and update
+        update_result = run_ana("tool", "update")
+        assert update_result.returncode == 0
+        assert "pixi" in update_result.stderr.lower()
+
+    def test_tool_update_skips_up_to_date_tools(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update skips tools that are already up to date."""
+        # First install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Run tool update - should show up to date
+        update_result = run_ana("tool", "update")
+        assert update_result.returncode == 0
+        assert "up to date" in update_result.stderr.lower()
+
+
 class TestToolUninstall:
     """Tests for 'ana tool uninstall' subcommand."""
 
