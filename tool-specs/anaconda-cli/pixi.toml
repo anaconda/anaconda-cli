@@ -8,7 +8,7 @@ python = ">=3.12,<3.14"
 # renovate: datasource=conda depName=main/anaconda-auth
 anaconda-auth = "==0.15.0"
 # renovate: datasource=conda depName=main/anaconda-ai
-anaconda-ai = "==0.5.0"
+anaconda-ai = "==0.6.0"
 # renovate: datasource=conda depName=main/anaconda-client
 anaconda-client = "==1.14.1"
 # renovate: datasource=conda depName=main/anaconda-cli-base

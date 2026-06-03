@@ -10,7 +10,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/_libgcc_mutex-0.1-main.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/_openmp_mutex-5.1-52_gnu.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/aiofiles-25.1.0-py313h06a4308_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-ai-0.5.0-py313h06a4308_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-ai-0.6.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-auth-0.15.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-cli-base-0.8.2-py313h06a4308_0.conda
@@ -243,7 +243,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_libgcc_mutex-0.1-main.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_openmp_mutex-5.1-52_gnu.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/aiofiles-25.1.0-py313hd43f75c_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-ai-0.5.0-py313hd43f75c_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-ai-0.6.0-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-auth-0.15.0-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-cli-base-0.8.2-py313hd43f75c_0.conda
@@ -474,7 +474,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/zstd-1.5.7-hc8aa508_0.conda
       osx-arm64:
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/aiofiles-25.1.0-py313hca03da5_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-ai-0.5.0-py313hca03da5_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-ai-0.6.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-auth-0.15.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-cli-base-0.8.2-py313hca03da5_0.conda
@@ -688,7 +688,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/zstd-1.5.7-h817c040_0.conda
       win-64:
       - conda: https://repo.anaconda.com/pkgs/main/win-64/aiofiles-25.1.0-py313haa95532_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-ai-0.5.0-py313haa95532_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-ai-0.6.0-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-auth-0.15.0-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-cli-base-0.8.2-py313haa95532_0.conda
@@ -954,9 +954,9 @@ packages:
   license_family: Apache
   size: 35318
   timestamp: 1773069363087
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-ai-0.5.0-py313h06a4308_1.conda
-  sha256: 22acee4a47176055648cbe19f0ca8d9ee29ac8dec54d7279e0b4572bb00bffd2
-  md5: 68ae0d156d8f42f20253ab6936a58180
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-ai-0.6.0-py313h06a4308_0.conda
+  sha256: 94f78a3d36e0bdc57e53382081284613fa89b1e1ab748298a60fe278059cea20
+  md5: c44875688fb14edd16ab43a65e20171f
   depends:
   - anaconda-auth >=0.13.0
   - anaconda-cli-base >=0.8.1
@@ -972,63 +972,16 @@ packages:
   constrains:
   - mcp >=1.26
   - langchain-openai >=0.2.8
-  - pydantic-ai >=1.50
   - llm >=0.22
+  - sagemaker-core >=2.0.0
+  - pydantic-ai >=1.50
   license: BSD-3-Clause
   license_family: BSD
-  size: 117028
-  timestamp: 1773844617250
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-ai-0.5.0-py313hd43f75c_1.conda
-  sha256: 3acd30c8e89cf25fae5cd6076040bb15bb0bce6b6b38e6cf9aaf7ea55a02ce14
-  md5: a8de75045d038d62c3553bdb1a2bf2b3
-  depends:
-  - anaconda-auth >=0.13.0
-  - anaconda-cli-base >=0.8.1
-  - openai
-  - packaging
-  - platformdirs
-  - pydantic >=2
-  - python >=3.13,<3.14.0a0
-  - python_abi 3.13.* *_cp313
-  - rich
-  - ruamel.yaml
-  - typer
-  constrains:
-  - langchain-openai >=0.2.8
-  - pydantic-ai >=1.50
-  - llm >=0.22
-  - mcp >=1.26
-  license: BSD-3-Clause
-  license_family: BSD
-  size: 116895
-  timestamp: 1773844596952
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-ai-0.5.0-py313hca03da5_1.conda
-  sha256: 6eed03cd506bb5c525b53cd93da86aa5dea5f0699910320c06f800dad739d49b
-  md5: 88dc2eae5116b824692db6bb9b443eed
-  depends:
-  - anaconda-auth >=0.13.0
-  - anaconda-cli-base >=0.8.1
-  - openai
-  - packaging
-  - platformdirs
-  - pydantic >=2
-  - python >=3.13,<3.14.0a0
-  - python_abi 3.13.* *_cp313
-  - rich
-  - ruamel.yaml
-  - typer
-  constrains:
-  - pydantic-ai >=1.50
-  - llm >=0.22
-  - mcp >=1.26
-  - langchain-openai >=0.2.8
-  license: BSD-3-Clause
-  license_family: BSD
-  size: 116841
-  timestamp: 1773844602363
-- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-ai-0.5.0-py313haa95532_1.conda
-  sha256: 572d0d70c90e013894912041337d2d5daf466f70e13dd723c2299488c4097a85
-  md5: c486692f9df9720276afb556abff5361
+  size: 151140
+  timestamp: 1780383803940
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-ai-0.6.0-py313hd43f75c_0.conda
+  sha256: 7ee90c90154a05ccd279d6daee9e3c4fb93e4f29ba9f8bb2478848943483db84
+  md5: 7808aceb7baea32ca10ea2e607b39053
   depends:
   - anaconda-auth >=0.13.0
   - anaconda-cli-base >=0.8.1
@@ -1043,13 +996,64 @@ packages:
   - typer
   constrains:
   - mcp >=1.26
-  - pydantic-ai >=1.50
-  - langchain-openai >=0.2.8
+  - sagemaker-core >=2.0.0
   - llm >=0.22
+  - langchain-openai >=0.2.8
+  - pydantic-ai >=1.50
   license: BSD-3-Clause
   license_family: BSD
-  size: 116690
-  timestamp: 1773844804490
+  size: 151620
+  timestamp: 1780383835082
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-ai-0.6.0-py313hca03da5_0.conda
+  sha256: 1f4a79e72e5bddc49eb88ff287b45053b2ca972dbf49f22a62c63ebcadfce164
+  md5: febc1367d6adc3584e9c9fc1a1cc2a57
+  depends:
+  - anaconda-auth >=0.13.0
+  - anaconda-cli-base >=0.8.1
+  - openai
+  - packaging
+  - platformdirs
+  - pydantic >=2
+  - python >=3.13,<3.14.0a0
+  - python_abi 3.13.* *_cp313
+  - rich
+  - ruamel.yaml
+  - typer
+  constrains:
+  - mcp >=1.26
+  - sagemaker-core >=2.0.0
+  - langchain-openai >=0.2.8
+  - llm >=0.22
+  - pydantic-ai >=1.50
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 151264
+  timestamp: 1780383813765
+- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-ai-0.6.0-py313haa95532_0.conda
+  sha256: 62650705c67995cab7243d4b25588c5ce3581868859ed87f43ca16cf7747f737
+  md5: 8ed4cf9b59f652de4ddf9ae6edd41b99
+  depends:
+  - anaconda-auth >=0.13.0
+  - anaconda-cli-base >=0.8.1
+  - openai
+  - packaging
+  - platformdirs
+  - pydantic >=2
+  - python >=3.13,<3.14.0a0
+  - python_abi 3.13.* *_cp313
+  - rich
+  - ruamel.yaml
+  - typer
+  constrains:
+  - sagemaker-core >=2.0.0
+  - llm >=0.22
+  - pydantic-ai >=1.50
+  - langchain-openai >=0.2.8
+  - mcp >=1.26
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 152196
+  timestamp: 1780384162117
 - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
   sha256: 403ef7e93dee117ffb1dca2d0f032fc3a4449381ec88c6726e3066d57171e8ce
   md5: c78d47374611a8e86f7a9817f3768160
