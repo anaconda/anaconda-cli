@@ -16,6 +16,48 @@ This document serves three goals:
 2. **Identify gaps and changes** — Note where we diverged from conda-express or encountered issues that required workarounds
 3. **Drive upstream collaboration** — Provide a basis for proposing improvements to conda-express and related projects, and explore whether we should extract a shared library crate that both ana and conda-express could use for rattler-based installation
 
+## Experimental Status
+
+The conda tool is marked as experimental. When users run `ana tool install conda`, they see a warning:
+
+```
+! Conda as a managed tool is experimental.
+  Uses conda-spawn for activation (conda shell <env>) instead of conda activate.
+  Please report issues with ana self feedback, not to conda directly.
+```
+
+This directs users to report issues against ana rather than upstream conda, since most issues will likely be related to the wrapper behavior or ana-specific configuration.
+
+Additionally, if any conda command exits with a non-zero status, the wrapper prints a reminder:
+
+```
+If this error is related to ana's conda integration, please report it with ana self feedback.
+```
+
+This is implemented by using `spawn()` + `wait()` instead of `exec()` on Unix, which allows the wrapper to intercept the exit code before the process terminates.
+
+## User Experience
+
+```bash
+# Install conda (shows experimental warning)
+ana tool install conda
+
+# Create an environment
+conda create -n myenv python=3.12 -y
+
+# Activate (spawns subshell)
+conda shell myenv
+# Prompt changes to: (myenv) $
+
+# Work in the environment
+python --version
+conda install requests
+
+# Exit the environment
+exit
+# Back to original shell
+```
+
 ## Installed Packages
 
 The conda tool environment is defined in `tool-specs/conda/pixi.toml` and includes:
@@ -242,45 +284,3 @@ This would:
 - Maintenance burden of a shared crate
 - API stability requirements
 - Whether the implementations are similar enough to share
-
-## Experimental Status
-
-The conda tool is marked as experimental. When users run `ana tool install conda`, they see a warning:
-
-```
-! Conda as a managed tool is experimental.
-  Uses conda-spawn for activation (conda shell <env>) instead of conda activate.
-  Please report issues with ana self feedback, not to conda directly.
-```
-
-This directs users to report issues against ana rather than upstream conda, since most issues will likely be related to the wrapper behavior or ana-specific configuration.
-
-Additionally, if any conda command exits with a non-zero status, the wrapper prints a reminder:
-
-```
-If this error is related to ana's conda integration, please report it with ana self feedback.
-```
-
-This is implemented by using `spawn()` + `wait()` instead of `exec()` on Unix, which allows the wrapper to intercept the exit code before the process terminates.
-
-## User Experience
-
-```bash
-# Install conda (shows experimental warning)
-ana tool install conda
-
-# Create an environment
-conda create -n myenv python=3.12 -y
-
-# Activate (spawns subshell)
-conda shell myenv
-# Prompt changes to: (myenv) $
-
-# Work in the environment
-python --version
-pip install requests
-
-# Exit the environment
-exit
-# Back to original shell
-```
