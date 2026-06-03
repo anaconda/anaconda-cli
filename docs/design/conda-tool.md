@@ -24,7 +24,7 @@ The conda tool environment is defined in `tool-specs/conda/pixi.toml` and includ
 |---------|---------|
 | `python >=3.12,<3.14` | Python runtime for conda |
 | `conda >=26.3.2` | Core conda package manager |
-| `conda-spawn >=0.1.0` | Subshell-based environment activation ([CEP 22](https://github.com/conda/ceps/blob/main/cep-22.md)) |
+| `conda-spawn >=0.1.0` | Subshell-based environment activation |
 | `conda-self >=0.2.0` | Self-management commands for the base environment |
 | `conda-anaconda-telemetry` | Telemetry integration for Anaconda |
 | `conda-anaconda-tos` | Terms of service acceptance tracking |
@@ -89,7 +89,7 @@ Traditional conda requires shell initialization (`conda init`) to modify the she
 
 ### conda-spawn Approach
 
-conda-spawn ([CEP 22](https://github.com/conda/ceps/blob/main/cep-22.md)) provides an alternative activation model:
+conda-spawn provides an alternative activation model using subshells:
 
 ```bash
 # Traditional conda (NOT available via ana)
@@ -162,7 +162,7 @@ self_permanent_packages:
 
 ### Frozen Base Environment
 
-The wrapper writes a `conda-meta/frozen` marker file (per [CEP 22](https://github.com/conda/ceps/blob/main/cep-22.md)):
+The wrapper writes a `conda-meta/frozen` marker file (per [CEP 22](https://github.com/conda/ceps/blob/main/cep-0022.md)):
 
 ```json
 {
