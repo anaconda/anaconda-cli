@@ -1,4 +1,3 @@
-pub mod conda_wrapper;
 pub mod install;
 pub mod list;
 #[cfg(feature = "unstable")]

@@ -36,33 +36,25 @@ All packages are sourced from `https://repo.anaconda.com/pkgs/main`.
 
 ## Wrapper Architecture
 
-> **Note**: The wrapper architecture described here represents what was needed to make conda work in ana's multi-tool context. However, writing anything more than a minimal shim around conda is non-optimal and will likely need to be redesigned. In particular, the approach of symlinking `conda` to `ana` (rather than a standalone wrapper binary) is admittedly controversial — it was chosen to avoid shipping a separate compiled binary, but this tradeoff should be revisited.
+### Standalone Wrapper Binary
 
-### Unix (macOS/Linux)
+The conda wrapper is a standalone binary compiled from `src/wrappers/conda.rs` and embedded into ana at build time. When `ana tool install conda` runs, this binary is written to `~/.ana/bin/conda` (or `conda.exe` on Windows).
 
-On Unix systems, ana uses **symlink-based invocation**:
+This approach was chosen over symlinking `conda` to `ana` because:
+- It keeps the wrapper logic self-contained and testable
+- It avoids ana needing to detect how it was invoked
+- It's the same approach on all platforms (no symlinks vs shims distinction for wrappers)
 
-```
-~/.ana/bin/conda -> ~/.ana/bin/ana
-```
-
-When `conda` is invoked:
-1. The shell resolves the symlink and executes `ana`
-2. `ana` checks `argv[0]` (the invoked name)
-3. If the name is `conda`, ana enters wrapper mode
-4. The wrapper processes the command and either handles it directly or delegates to the real conda binary
+The wrapper binary is small (~500KB) and has no external dependencies.
 
 ```
 User runs: conda create -n myenv python
            │
            ▼
-    ~/.ana/bin/conda (symlink to ana)
+    ~/.ana/bin/conda (standalone wrapper binary)
            │
            ▼
-    ana detects argv[0] == "conda"
-           │
-           ▼
-    conda_wrapper::run() processes args
+    Wrapper processes args:
            │
            ├─► Intercepts: activate, deactivate, init
            │   (prints helpful error with guidance)
@@ -74,32 +66,19 @@ User runs: conda create -n myenv python
            │   (replaces activation hints in output)
            │
            └─► Passes through: all other commands
-               (exec's real conda at ~/.ana/tools/conda/bin/conda)
+               (spawns real conda at ~/.ana/tools/conda/bin/conda)
 ```
 
-### Windows
+### Build Process
 
-On Windows, symlinks require elevated privileges, so ana uses a **shim-based approach**:
+The wrapper is compiled during `cargo build` via `build.rs`:
 
-```
-~/.ana/bin/conda.exe    (shim binary)
-~/.ana/tools/shims.cfg  (configuration file)
-```
+1. `build.rs` compiles `src/wrappers/conda.rs` with `rustc`
+2. The resulting binary is placed in `OUT_DIR`
+3. `install.rs` embeds it via `include_bytes!`
+4. On `ana tool install conda`, the binary is written to `~/.ana/bin/conda`
 
-The shim workflow:
-1. User runs `conda.exe`
-2. Shim reads its own filename (`conda`)
-3. Shim looks up the target in `shims.cfg`
-4. For wrapper tools, shims.cfg points to `ana.exe` with a special entry
-5. Shim sets `_ANA_INTERNAL_WRAPPER_INVOCATION=conda` environment variable
-6. Shim executes `ana.exe` with all arguments
-7. ana detects the environment variable and enters wrapper mode
-
-```
-shims.cfg format:
-conda=C:\Users\<user>\.ana\bin\ana.exe
-pixi=pixi\bin\pixi.exe
-```
+For signed releases, set `CONDA_WRAPPER_PATH` to use a pre-built binary instead of compiling.
 
 ## Shell Activation with conda-spawn
 

@@ -184,10 +184,7 @@ fn create_bin_symlinks(
 
     for binary in binaries {
         if uses_wrapper {
-            #[cfg(unix)]
-            create_wrapper_symlink(&bin_dir, binary)?;
-            #[cfg(windows)]
-            create_wrapper_shim(&bin_dir, binary)?;
+            install_wrapper_binary(&bin_dir, binary)?;
         } else {
             #[cfg(unix)]
             create_bin_symlink(&bin_dir, prefix, binary)?;
@@ -235,37 +232,47 @@ fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::R
     Ok(())
 }
 
+/// Embedded conda wrapper binary (compiled from src/wrappers/conda.rs)
 #[cfg(unix)]
-/// Create a symlink that points to the ana binary itself.
+const CONDA_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/conda-wrapper"));
+#[cfg(windows)]
+const CONDA_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/conda-wrapper.exe"));
+
+/// Install the embedded wrapper binary for a tool.
 ///
-/// This is used for tools that ana wraps (like conda), where ana detects
-/// the binary name and acts as a wrapper for the underlying tool.
-fn create_wrapper_symlink(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
-    let symlink_path = bin_dir.join(binary.file_name().unwrap());
+/// This writes the pre-compiled wrapper binary to ~/.ana/bin/<name>.
+/// Currently only conda uses this; the wrapper intercepts certain commands
+/// and provides a better UX for conda-spawn based activation.
+fn install_wrapper_binary(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let binary_name = binary.file_name().unwrap().to_string_lossy();
 
-    // Get the path to the current ana executable
-    let ana_bin = std::env::current_exe()
+    #[cfg(windows)]
+    let wrapper_path = bin_dir.join(format!("{}.exe", binary_name));
+    #[cfg(not(windows))]
+    let wrapper_path = bin_dir.join(binary_name.as_ref());
+
+    // Remove existing file if present
+    if wrapper_path.exists() {
+        std::fs::remove_file(&wrapper_path)
+            .into_diagnostic()
+            .context("failed to remove existing wrapper")?;
+    }
+
+    // Write the embedded binary
+    std::fs::write(&wrapper_path, CONDA_WRAPPER)
         .into_diagnostic()
-        .context("failed to get current executable path")?;
+        .with_context(|| format!("failed to write wrapper: {}", wrapper_path.display()))?;
 
-    // Remove existing symlink if present
-    if symlink_path.exists() || symlink_path.is_symlink() {
-        std::fs::remove_file(&symlink_path)
-            .into_diagnostic()
-            .context("failed to remove existing symlink")?;
-    }
-
+    // Make executable on Unix
+    #[cfg(unix)]
     {
-        std::os::unix::fs::symlink(&ana_bin, &symlink_path)
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&wrapper_path, std::fs::Permissions::from_mode(0o755))
             .into_diagnostic()
-            .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
+            .context("failed to set wrapper permissions")?;
     }
 
-    eprintln!(
-        "   Linked {} -> {} (wrapper)",
-        symlink_path.display(),
-        ana_bin.display()
-    );
+    eprintln!("   Installed wrapper {}", wrapper_path.display());
 
     Ok(())
 }
@@ -309,36 +316,6 @@ fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Resu
         "   Created shim {} -> {}",
         shim_path.display(),
         tool_bin.display()
-    );
-
-    Ok(())
-}
-
-#[cfg(windows)]
-/// Create a shim that points to the ana binary itself.
-///
-/// This is used for tools that ana wraps (like conda), where ana detects
-/// the binary name and acts as a wrapper for the underlying tool.
-fn create_wrapper_shim(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
-    let shim_name = binary.file_stem().unwrap().to_string_lossy();
-    let shim_path = bin_dir.join(format!("{}.exe", shim_name));
-
-    // Get the path to the current ana executable
-    let ana_bin = std::env::current_exe()
-        .into_diagnostic()
-        .context("failed to get current executable path")?;
-
-    // Copy shim binary to bin_dir
-    std::fs::write(&shim_path, SHIM_BINARY)
-        .into_diagnostic()
-        .with_context(|| format!("failed to write shim: {}", shim_path.display()))?;
-
-    update_shims_cfg(&shim_name, &ana_bin.to_string_lossy())?;
-
-    eprintln!(
-        "   Created shim {} -> {} (wrapper)",
-        shim_path.display(),
-        ana_bin.display()
     );
 
     Ok(())

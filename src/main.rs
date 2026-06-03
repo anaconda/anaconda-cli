@@ -49,13 +49,6 @@ async fn main() {
     // Apply platform-specific runtime modifications
     prepare_runtime();
 
-    // Check if we're being invoked as "conda" (via symlink or hardlink)
-    if tools::conda_wrapper::is_conda_invocation() {
-        let args: Vec<String> = std::env::args().skip(1).collect();
-        let code = tools::conda_wrapper::run(&args);
-        std::process::exit(code);
-    }
-
     let config = config::Config::load();
     #[allow(clippy::let_unit_value)]
     let _diagnostics_guard = diagnostics::init(&config);
