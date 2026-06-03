@@ -274,6 +274,14 @@ The conda tool is marked as experimental. When users run `ana tool install conda
 
 This directs users to report issues against ana rather than upstream conda, since most issues will likely be related to the wrapper behavior or ana-specific configuration.
 
+Additionally, if any conda command exits with a non-zero status, the wrapper prints a reminder:
+
+```
+If this error is related to ana's conda integration, please report it with ana self feedback.
+```
+
+This is implemented by using `spawn()` + `wait()` instead of `exec()` on Unix, which allows the wrapper to intercept the exit code before the process terminates.
+
 ## User Experience
 
 ```bash

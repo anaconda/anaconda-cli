@@ -7,8 +7,6 @@
 
 use std::io::{BufRead, BufReader, Write};
 #[cfg(unix)]
-use std::os::unix::process::CommandExt;
-#[cfg(unix)]
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -16,6 +14,7 @@ use console::style;
 
 use crate::paths;
 use crate::tools::specs::binaries;
+use crate::ui::status;
 
 /// Environment variable set by the Windows shim to indicate wrapper invocation.
 /// The shim sets this to the tool name (e.g., "conda") when invoking ana.exe as a wrapper.
@@ -92,6 +91,15 @@ fn print_disabled_init() {
     eprintln!("    {}", style("conda shell myenv").green());
     eprintln!();
     eprintln!("  Learn more: https://github.com/conda-incubator/conda-spawn");
+}
+
+/// Print a hint about reporting issues when conda encounters an error.
+fn print_error_feedback_hint() {
+    eprintln!();
+    eprintln!(
+        "If this error is related to ana's conda integration, please report it with {}.",
+        status::highlight("ana self feedback")
+    );
 }
 
 /// Check if this is a create command that should have filtered output.
@@ -222,7 +230,10 @@ fn get_conda_bin() -> std::path::PathBuf {
     paths::tool_prefix("conda").join(conda_bin)
 }
 
-/// Hand off to conda, replacing the current process (Unix) or spawning and exiting (Windows).
+/// Hand off to conda, spawning the process and waiting for completion.
+///
+/// We use spawn+wait rather than exec so we can intercept the exit code
+/// and show a reminder about reporting issues if conda fails.
 fn hand_off_to_conda(args: &[String]) -> i32 {
     let conda_bin = get_conda_bin();
 
@@ -247,23 +258,18 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
     let new_path = format!("{}:{}", bin_dir.display(), path);
     cmd.env("PATH", new_path);
 
-    // On Unix, use exec to replace the current process
-    #[cfg(unix)]
-    {
-        let err = cmd.exec();
-        eprintln!("Failed to exec conda: {}", err);
-        1
-    }
-
-    // On Windows, spawn and wait
-    #[cfg(not(unix))]
-    {
-        match cmd.status() {
-            Ok(status) => status.code().unwrap_or(1),
-            Err(e) => {
-                eprintln!("Failed to run conda: {}", e);
-                1
+    match cmd.status() {
+        Ok(status) => {
+            let code = status.code().unwrap_or(1);
+            if code != 0 {
+                print_error_feedback_hint();
             }
+            code
+        }
+        Err(e) => {
+            eprintln!("Failed to run conda: {}", e);
+            print_error_feedback_hint();
+            1
         }
     }
 }
