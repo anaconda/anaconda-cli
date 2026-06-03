@@ -246,41 +246,71 @@ This section documents differences from conda-express and issues encountered dur
 
 2. **Channel defaults** — ana defaults to Anaconda's `pkgs/main` channel while conda-express defaults to conda-forge. This is an intentional product decision, not a gap.
 
-3. **Windows shim architecture** — ana already had a Windows shim system for other tools. We extended it with wrapper detection (`_ANA_INTERNAL_WRAPPER_INVOCATION` env var) rather than building a conda-specific solution.
+3. **Standalone wrapper binary** — ana compiles the conda wrapper as a separate binary that gets embedded and installed to `~/.ana/bin/conda`. This avoids the complexity of having ana detect how it was invoked (symlink name, env var, etc.) and keeps the wrapper self-contained.
 
-### Implementation Gaps / Workarounds
+4. **Custom lockfile** — ana uses its own lockfile (`tool-specs/conda/pixi.lock`) to control exactly which packages are installed, including Anaconda-specific plugins like `conda-anaconda-telemetry` and `anaconda-auth`.
 
-> **TODO**: Fill in specific issues encountered during development. Examples might include:
-> - Issues with `CONDA_ROOT_PREFIX` not being respected in certain scenarios
-> - Edge cases in output filtering for `conda create`
-> - Interactions with conda plugins
-> - Shell detection issues with conda-spawn
+5. **Custom .condarc** — ana installs a custom `.condarc` that configures Anaconda channels as defaults and sets `self_permanent_packages` to protect ana's bundled plugins from removal.
+
+### What We Would Want from conda-express
+
+If we were to use conda-express as a library/foundation instead of reimplementing, we would need:
+
+1. **Customizable installation paths** — Ability to specify where conda gets installed (e.g., `~/.ana/tools/conda` instead of a default location). This is essential for multi-tool managers.
+
+2. **Customizable .condarc** — Ability to provide our own `.condarc` content or template, so we can configure channels, `self_permanent_packages`, and other settings specific to our distribution.
+
+3. **Custom lockfile support** — Ability to provide our own lockfile for installation, so we can:
+   - Use Anaconda's `pkgs/main` channel instead of conda-forge
+   - Include Anaconda-specific plugins (telemetry, auth, TOS)
+   - Pin specific versions for reproducibility
+
+4. **Wrapper customization** — Ability to customize or extend the wrapper behavior, or use our own wrapper binary entirely. This would allow us to add ana-specific messaging (e.g., "report issues with `ana self feedback`").
+
+### Current Implementation Gaps
+
+Issues encountered during development that may inform future work:
+
+- **Output filtering fragility** — The `conda create` output filtering relies on string matching ("To activate this environment"). This could break if conda changes its output format.
+
+- **Error attribution** — When conda fails, it's not always clear if the issue is with conda itself or ana's wrapper/configuration. The feedback hint helps but isn't a complete solution.
 
 ### Potential Upstream Contributions
 
-> **TODO**: Based on gaps identified above, propose specific improvements:
-> - Improvements to conda-spawn
-> - Improvements to conda-self
-> - Documentation improvements
+Based on our implementation, we could contribute:
+
+1. **To conda-express**:
+   - API for customizable installation paths
+   - API for custom .condarc injection
+   - API for custom lockfile support
+   - Documentation on embedding/integrating with other tools
+
+2. **To conda-spawn**:
+   - Any issues found with shell detection or activation
+
+3. **To conda-self**:
+   - Feedback on `self_permanent_packages` behavior
 
 ### Shared Library Crate Opportunity
 
 Both ana and conda-express implement similar functionality:
 - Rattler-based lockfile installation
 - Post-install configuration (frozen markers, .condarc)
-- Wrapper/shim architecture for command interception
+- Wrapper binary for command interception
 
-**Question for discussion**: Should we extract a shared `conda-bootstrap` or `rattler-conda-install` crate that provides:
+**Proposed shared crate** (`conda-bootstrap` or similar) could provide:
 - Lockfile parsing and installation via rattler
+- Configurable installation prefix
 - Frozen environment marker writing
+- Configurable .condarc generation
 - Common post-install hooks
 
-This would:
+**Benefits**:
 - Reduce code duplication between ana and conda-express
 - Provide a tested, reusable foundation for other projects
-- Allow conda-express to potentially drop its own rattler integration code
+- Allow conda-express to focus on UX while ana provides enterprise customizations
 
 **Considerations**:
 - Maintenance burden of a shared crate
 - API stability requirements
-- Whether the implementations are similar enough to share
+- Whether Anaconda and conda-forge communities can align on shared infrastructure
