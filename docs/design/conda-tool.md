@@ -314,3 +314,34 @@ Both ana and conda-express implement similar functionality:
 - Maintenance burden of a shared crate
 - API stability requirements
 - Whether Anaconda and conda-forge communities can align on shared infrastructure
+
+## Troubleshooting
+
+### "conda activate is not available"
+
+This is expected. Use `conda shell myenv` instead:
+
+```bash
+conda shell myenv  # Spawns a subshell
+# ... do work ...
+exit  # Leave the environment
+```
+
+### "conda init is not needed"
+
+ana's conda doesn't require shell initialization. Just ensure `~/.ana/bin` is in your PATH.
+
+### "Environment is frozen"
+
+The base environment is intentionally frozen. Create a named environment for your work:
+
+```bash
+conda create -n myenv python numpy pandas
+conda shell myenv
+```
+
+## See Also
+
+- [conda-spawn](https://github.com/conda-incubator/conda-spawn)
+- [conda-express](https://github.com/jezdez/conda-express)
+- [CEP 22: Frozen environments](https://github.com/conda/ceps/blob/main/cep-0022.md)
