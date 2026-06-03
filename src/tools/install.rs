@@ -15,6 +15,7 @@ use rattler_lock::LockFile;
 use super::{pixi_config, specs};
 use crate::context::CommandContext;
 use crate::paths;
+use crate::ui::status;
 
 /// Global progress bar for installation feedback.
 static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock::new(|| {
@@ -29,7 +30,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     // Show experimental warning if applicable
     if let Some(msg) = specs::experimental_message(name) {
-        crate::ui::status::warn(msg);
+        if name == "conda" {
+            print_conda_experimental_warning();
+        } else {
+            crate::ui::status::warn(msg);
+        }
         eprintln!();
     }
 
@@ -60,6 +65,19 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     }
 
     Ok(())
+}
+
+/// Print the experimental warning for the conda tool with styled highlights.
+fn print_conda_experimental_warning() {
+    status::warn("Conda as a managed tool is experimental.");
+    eprintln!(
+        "  Uses conda-spawn for activation ({}) instead of conda activate.",
+        status::highlight("conda shell <env>")
+    );
+    eprintln!(
+        "  Please report issues with {}, not to conda directly.",
+        status::highlight("ana self feedback")
+    );
 }
 
 /// Install packages from a lockfile string to a prefix.

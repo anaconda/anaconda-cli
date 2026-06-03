@@ -262,10 +262,22 @@ This would:
 - API stability requirements
 - Whether the implementations are similar enough to share
 
+## Experimental Status
+
+The conda tool is marked as experimental. When users run `ana tool install conda`, they see a warning:
+
+```
+! Conda as a managed tool is experimental.
+  Uses conda-spawn for activation (conda shell <env>) instead of conda activate.
+  Please report issues with ana self feedback, not to conda directly.
+```
+
+This directs users to report issues against ana rather than upstream conda, since most issues will likely be related to the wrapper behavior or ana-specific configuration.
+
 ## User Experience
 
 ```bash
-# Install conda
+# Install conda (shows experimental warning)
 ana tool install conda
 
 # Create an environment

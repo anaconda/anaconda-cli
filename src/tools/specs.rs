@@ -43,7 +43,7 @@ const TOOLS: &[Tool] = &[
         } else {
             &[&["Scripts", "conda"]]
         },
-        experimental: None,
+        experimental: Some("conda"),
         uses_wrapper: true,
     },
     Tool {
