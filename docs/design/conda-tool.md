@@ -36,6 +36,8 @@ All packages are sourced from `https://repo.anaconda.com/pkgs/main`.
 
 ## Wrapper Architecture
 
+> **Note**: The wrapper architecture described here represents what was needed to make conda work in ana's multi-tool context. However, writing anything more than a minimal shim around conda is non-optimal and will likely need to be redesigned. In particular, the approach of symlinking `conda` to `ana` (rather than a standalone wrapper binary) is admittedly controversial — it was chosen to avoid shipping a separate compiled binary, but this tradeoff should be revisited.
+
 ### Unix (macOS/Linux)
 
 On Unix systems, ana uses **symlink-based invocation**:
