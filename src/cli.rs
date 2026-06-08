@@ -16,6 +16,7 @@ use crate::help;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
+use crate::installer;
 use crate::tools;
 use crate::update;
 
@@ -164,6 +165,7 @@ pub enum Action {
         pixi: bool,
     },
     FeatureList,
+    DownloadMiniconda,
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
@@ -209,6 +211,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::FeatureList => "feature.list",
+            Action::DownloadMiniconda => "download.miniconda",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -478,6 +481,9 @@ impl Action {
                 feature::list::print_feature_list(ctx);
                 Ok(())
             }
+            Action::DownloadMiniconda => {
+                installer::run(None).await
+            }
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
@@ -671,6 +677,10 @@ pub fn parse() -> (Action, LogLevel) {
                 pixi,
             },
             Some(FeatureCommands::List) => Action::FeatureList,
+        },
+        Some(Commands::Download { command }) => match command {
+            None => Action::ShowSubcommandHelp("download".to_string()),
+            Some(DownloadCommands::Miniconda) => Action::DownloadMiniconda,
         },
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
@@ -907,6 +917,17 @@ enum Commands {
         command: Option<FeatureCommands>,
     },
 
+    /// Download an installer
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana download <installer>"
+    )]
+    Download {
+        #[command(subcommand)]
+        command: Option<DownloadCommands>,
+    },
+
     /// Submit pending telemetry batches (internal use only)
     #[command(hide = true)]
     TelemetrySubmit,
@@ -1090,6 +1111,12 @@ enum FeatureCommands {
         #[arg(long)]
         pixi: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum DownloadCommands {
+    /// Download the latest Miniconda installer for the current platform
+    Miniconda,
 }
 
 #[cfg(test)]

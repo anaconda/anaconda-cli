@@ -11,6 +11,7 @@ mod fetch;
 mod help;
 mod http;
 mod input;
+mod installer;
 mod mcp;
 #[cfg(unix)]
 mod outerbounds;
