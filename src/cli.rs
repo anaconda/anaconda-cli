@@ -625,9 +625,10 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
-            Some(ToolCommands::Download { name }) => match name.as_str() {
-                "miniconda" => Action::DownloadMiniconda,
-                other => {
+            Some(ToolCommands::Download { name }) => match name.as_deref() {
+                None => Action::ShowSubcommandHelp("tool download".to_string()),
+                Some("miniconda") => Action::DownloadMiniconda,
+                Some(other) => {
                     eprintln!("error: only miniconda supported in v1 (got '{}')", other);
                     std::process::exit(1);
                 }
@@ -1019,8 +1020,7 @@ enum ToolCommands {
     /// Download an installer (v1: miniconda only)
     Download {
         /// Name of the installer to download (only 'miniconda' in v1)
-        #[arg(required_unless_present = "help", default_value = "")]
-        name: String,
+        name: Option<String>,
     },
 }
 
