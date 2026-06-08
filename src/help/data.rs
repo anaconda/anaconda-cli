@@ -27,10 +27,6 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "self",
         ],
     },
-    HelpSection {
-        name: "INSTALLERS",
-        commands: &["download"],
-    },
     // TODO(mattkram): Removed PACKAGES section from help until we can comprehensively
     //                 define the wrappers.
     // HelpSection {

@@ -211,7 +211,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::FeatureList => "feature.list",
-            Action::DownloadMiniconda => "download.miniconda",
+            Action::DownloadMiniconda => "tool.download.miniconda",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -625,6 +625,13 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+            Some(ToolCommands::Download { name }) => match name.as_str() {
+                "miniconda" => Action::DownloadMiniconda,
+                other => {
+                    eprintln!("error: only miniconda supported in v1 (got '{}')", other);
+                    std::process::exit(1);
+                }
+            },
         },
         Some(Commands::Api { command }) => match command {
             None => Action::ShowSubcommandHelp("api".to_string()),
@@ -675,10 +682,6 @@ pub fn parse() -> (Action, LogLevel) {
                 pixi,
             },
             Some(FeatureCommands::List) => Action::FeatureList,
-        },
-        Some(Commands::Download { command }) => match command {
-            None => Action::ShowSubcommandHelp("download".to_string()),
-            Some(DownloadCommands::Miniconda) => Action::DownloadMiniconda,
         },
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
@@ -915,17 +918,6 @@ enum Commands {
         command: Option<FeatureCommands>,
     },
 
-    /// Download an installer
-    #[command(
-        subcommand_required = false,
-        arg_required_else_help = false,
-        override_usage = "ana download <installer>"
-    )]
-    Download {
-        #[command(subcommand)]
-        command: Option<DownloadCommands>,
-    },
-
     /// Submit pending telemetry batches (internal use only)
     #[command(hide = true)]
     TelemetrySubmit,
@@ -1023,6 +1015,13 @@ enum ToolCommands {
         #[arg(short = 'y', long = "yes")]
         force: bool,
     },
+
+    /// Download an installer (v1: miniconda only)
+    Download {
+        /// Name of the installer to download (only 'miniconda' in v1)
+        #[arg(required_unless_present = "help", default_value = "")]
+        name: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1109,12 +1108,6 @@ enum FeatureCommands {
         #[arg(long)]
         pixi: bool,
     },
-}
-
-#[derive(Subcommand)]
-enum DownloadCommands {
-    /// Download the latest Miniconda installer for the current platform
-    Miniconda,
 }
 
 #[cfg(test)]
