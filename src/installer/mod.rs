@@ -78,13 +78,22 @@ fn expected_for<'a>(
     manifest: &'a HashMap<String, FileEntry>,
     filename: &str,
 ) -> miette::Result<&'a FileEntry> {
-    let entry = manifest
-        .get(filename)
-        .ok_or_else(|| miette!("filename '{}' not in manifest — platform map may be stale", filename))?;
+    let entry = manifest.get(filename).ok_or_else(|| {
+        miette!(
+            "filename '{}' not in manifest — platform map may be stale",
+            filename
+        )
+    })?;
 
     match &entry.sha256 {
-        None => Err(miette!("no SHA256 checksum for '{}' — refusing unverified download", filename)),
-        Some(s) if s.is_empty() => Err(miette!("no SHA256 checksum for '{}' — refusing unverified download", filename)),
+        None => Err(miette!(
+            "no SHA256 checksum for '{}' — refusing unverified download",
+            filename
+        )),
+        Some(s) if s.is_empty() => Err(miette!(
+            "no SHA256 checksum for '{}' — refusing unverified download",
+            filename
+        )),
         _ => Ok(entry),
     }
 }
@@ -304,7 +313,12 @@ mod tests {
         );
         let result = expected_for(&manifest, "Miniconda3-latest-Linux-x86_64.sh");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("refusing unverified"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("refusing unverified")
+        );
     }
 
     #[test]
@@ -321,7 +335,12 @@ mod tests {
         );
         let result = expected_for(&manifest, "Miniconda3-latest-Linux-x86_64.sh");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("refusing unverified"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("refusing unverified")
+        );
     }
 
     #[test]
@@ -404,7 +423,10 @@ mod tests {
 
         assert!(result.is_err(), "mismatch should return an error");
         assert!(
-            result.unwrap_err().to_string().contains("checksum mismatch"),
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("checksum mismatch"),
             "error should mention checksum mismatch"
         );
         assert!(!temp.exists(), "temp file should be deleted on mismatch");

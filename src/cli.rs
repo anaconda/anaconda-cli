@@ -13,10 +13,10 @@ use crate::feature;
 use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
+use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
-use crate::installer;
 use crate::tools;
 use crate::update;
 
