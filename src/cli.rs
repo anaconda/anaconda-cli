@@ -1019,7 +1019,7 @@ enum ToolCommands {
 
     /// Download an installer (v1: miniconda only)
     Download {
-        /// Name of the installer to download (only 'miniconda' in v1)
+        /// Installer to download [possible values: miniconda]
         name: Option<String>,
     },
 }
