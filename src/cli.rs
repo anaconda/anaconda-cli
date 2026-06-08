@@ -481,9 +481,7 @@ impl Action {
                 feature::list::print_feature_list(ctx);
                 Ok(())
             }
-            Action::DownloadMiniconda => {
-                installer::run(None).await
-            }
+            Action::DownloadMiniconda => installer::run(ctx, None).await,
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())

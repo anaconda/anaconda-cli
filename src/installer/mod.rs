@@ -1,12 +1,15 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::Path;
 
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::miette;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tokio::io::AsyncWriteExt;
+
+use crate::context::CommandContext;
 
 const MINICONDA_BASE_URL: &str = "https://repo.anaconda.com/miniconda/";
 
@@ -25,10 +28,10 @@ struct FileEntry {
     mtime: Option<f64>,
 }
 
-fn detect_target(base_url: &str) -> miette::Result<Target> {
-    let os = std::env::consts::OS;
-    let arch = std::env::consts::ARCH;
-
+/// Map a `(os, arch)` pair to the canonical Miniconda installer for that platform.
+/// Parameterized on os/arch so it's pure and table-testable; production callers
+/// pass `std::env::consts::{OS, ARCH}`.
+fn detect_target(base_url: &str, os: &str, arch: &str) -> miette::Result<Target> {
     let (platform, file_arch, ext) = match (os, arch) {
         ("macos", "aarch64") => ("MacOSX", "arm64", "sh"),
         ("macos", "x86_64") => ("MacOSX", "x86_64", "sh"),
@@ -50,13 +53,10 @@ fn detect_target(base_url: &str) -> miette::Result<Target> {
 }
 
 async fn fetch_manifest(
+    client: &ClientWithMiddleware,
     base_url: &str,
 ) -> miette::Result<HashMap<String, FileEntry>> {
     let manifest_url = format!("{}/.files.json", base_url.trim_end_matches('/'));
-    let client = reqwest::Client::builder()
-        .user_agent(crate::ua::user_agent())
-        .build()
-        .map_err(|e| miette!("failed to create HTTP client: {}", e))?;
 
     let resp = client
         .get(&manifest_url)
@@ -90,15 +90,11 @@ fn expected_for<'a>(
 }
 
 async fn download_and_verify(
+    client: &ClientWithMiddleware,
     url: &str,
     expected_sha: &str,
-    dest: &PathBuf,
+    dest: &Path,
 ) -> miette::Result<()> {
-    let client = reqwest::Client::builder()
-        .user_agent(crate::ua::user_agent())
-        .build()
-        .map_err(|e| miette!("failed to create HTTP client: {}", e))?;
-
     let resp = client
         .get(url)
         .send()
@@ -131,9 +127,29 @@ async fn download_and_verify(
 
     pb.finish_and_clear();
 
+    // Flush and close the file handle before the rename. On Windows, renaming a
+    // file that still has an open handle fails with a sharing violation — and
+    // this command targets Windows via the `.exe` path.
+    file.flush()
+        .await
+        .map_err(|e| miette!("failed to flush temp file: {}", e))?;
+    drop(file);
+
     let actual_sha = format!("{:x}", hasher.finalize());
-    if actual_sha != expected_sha {
-        let _ = tokio::fs::remove_file(&temp_path).await;
+    finalize_verified_download(&temp_path, &actual_sha, expected_sha, dest).await
+}
+
+/// Given a fully-written temp file and its computed checksum, verify it against
+/// the expected checksum: atomic-rename to `dest` on match, delete the temp file
+/// on mismatch. Comparison is case-insensitive (hex digests may be either case).
+async fn finalize_verified_download(
+    temp_path: &Path,
+    actual_sha: &str,
+    expected_sha: &str,
+    dest: &Path,
+) -> miette::Result<()> {
+    if !actual_sha.eq_ignore_ascii_case(expected_sha) {
+        let _ = tokio::fs::remove_file(temp_path).await;
         return Err(miette!(
             "checksum mismatch for '{}'\n  expected: {}\n  actual:   {}",
             dest.display(),
@@ -142,7 +158,7 @@ async fn download_and_verify(
         ));
     }
 
-    tokio::fs::rename(&temp_path, dest)
+    tokio::fs::rename(temp_path, dest)
         .await
         .map_err(|e| miette!("failed to move file to destination: {}", e))?;
 
@@ -182,9 +198,9 @@ fn run_command(filename: &str) -> String {
     }
 }
 
-pub async fn run(base_url: Option<&str>) -> miette::Result<()> {
+pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
     let base_url = base_url.unwrap_or(MINICONDA_BASE_URL);
-    let target = detect_target(base_url)?;
+    let target = detect_target(base_url, std::env::consts::OS, std::env::consts::ARCH)?;
 
     let dest = std::env::current_dir()
         .map_err(|e| miette!("failed to get current directory: {}", e))?
@@ -197,7 +213,9 @@ pub async fn run(base_url: Option<&str>) -> miette::Result<()> {
         ));
     }
 
-    let manifest = fetch_manifest(base_url).await?;
+    let client = ctx.download_client();
+
+    let manifest = fetch_manifest(client, base_url).await?;
     let entry = expected_for(&manifest, &target.filename)?;
 
     let expected_sha = entry.sha256.as_deref().unwrap();
@@ -210,7 +228,7 @@ pub async fn run(base_url: Option<&str>) -> miette::Result<()> {
     };
     eprintln!("Downloading {}{}", target.filename, size_part);
 
-    download_and_verify(&target.url, expected_sha, &dest).await?;
+    download_and_verify(client, &target.url, expected_sha, &dest).await?;
 
     let dest_display = if cfg!(windows) {
         format!(".\\{}", target.filename)
@@ -243,15 +261,24 @@ mod tests {
         ];
 
         for (os, arch, expected_filename) in cases {
-            let result = detect_target_with("https://example.com/miniconda/", os, arch);
+            let result = detect_target("https://example.com/miniconda/", os, arch);
             assert!(result.is_ok(), "expected Ok for {}/{}", os, arch);
             assert_eq!(result.unwrap().filename, expected_filename);
         }
     }
 
     #[test]
+    fn test_detect_target_url() {
+        let target = detect_target("https://example.com/miniconda/", "linux", "x86_64").unwrap();
+        assert_eq!(
+            target.url,
+            "https://example.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+        );
+    }
+
+    #[test]
     fn test_detect_target_unsupported_combo() {
-        let result = detect_target_with("https://example.com/", "linux", "mips");
+        let result = detect_target("https://example.com/", "linux", "mips");
         assert!(result.is_err());
     }
 
@@ -364,46 +391,44 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_checksum_mismatch_deletes_temp() {
+    async fn test_finalize_deletes_temp_on_mismatch() {
         let dir = tempfile::tempdir().unwrap();
         let dest = dir.path().join("test.sh");
         let temp = dest.with_extension("tmp");
 
-        // Write a dummy temp file to simulate partial download
         tokio::fs::write(&temp, b"fake content").await.unwrap();
-
-        // Since we can't easily mock the download, we test the path where temp exists and sha fails
-        // by calling the verify logic inline
         let actual_sha = format!("{:x}", Sha256::digest(b"fake content"));
-        let expected_sha = "0000000000000000000000000000000000000000000000000000000000000000";
+        let expected_sha = "0".repeat(64);
 
-        if actual_sha != expected_sha {
-            let _ = tokio::fs::remove_file(&temp).await;
-        }
+        let result = finalize_verified_download(&temp, &actual_sha, &expected_sha, &dest).await;
 
+        assert!(result.is_err(), "mismatch should return an error");
+        assert!(
+            result.unwrap_err().to_string().contains("checksum mismatch"),
+            "error should mention checksum mismatch"
+        );
         assert!(!temp.exists(), "temp file should be deleted on mismatch");
-        assert!(!dest.exists(), "dest file should not exist");
+        assert!(!dest.exists(), "dest file should not exist on mismatch");
     }
-}
 
-#[cfg(test)]
-fn detect_target_with(base_url: &str, os: &str, arch: &str) -> miette::Result<Target> {
-    let (platform, file_arch, ext) = match (os, arch) {
-        ("macos", "aarch64") => ("MacOSX", "arm64", "sh"),
-        ("macos", "x86_64") => ("MacOSX", "x86_64", "sh"),
-        ("linux", "x86_64") => ("Linux", "x86_64", "sh"),
-        ("linux", "aarch64") => ("Linux", "aarch64", "sh"),
-        ("windows", "x86_64") => ("Windows", "x86_64", "exe"),
-        _ => {
-            return Err(miette!(
-                "no Miniconda installer available for {}/{}",
-                os,
-                arch
-            ));
-        }
-    };
+    #[tokio::test]
+    async fn test_finalize_renames_on_match() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("test.sh");
+        let temp = dest.with_extension("tmp");
 
-    let filename = format!("Miniconda3-latest-{}-{}.{}", platform, file_arch, ext);
-    let url = format!("{}{}", base_url, filename);
-    Ok(Target { filename, url })
+        tokio::fs::write(&temp, b"fake content").await.unwrap();
+        let actual_sha = format!("{:x}", Sha256::digest(b"fake content"));
+
+        // expected provided in UPPERCASE to exercise case-insensitive comparison
+        let expected_sha = actual_sha.to_uppercase();
+
+        let result = finalize_verified_download(&temp, &actual_sha, &expected_sha, &dest).await;
+
+        assert!(result.is_ok(), "matching checksum should succeed");
+        assert!(!temp.exists(), "temp file should be gone after rename");
+        assert!(dest.exists(), "dest file should exist after rename");
+        let contents = tokio::fs::read(&dest).await.unwrap();
+        assert_eq!(contents, b"fake content");
+    }
 }
