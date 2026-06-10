@@ -110,9 +110,6 @@ pub enum Action {
     Whoami {
         json: bool,
     },
-    PackageMode {
-        mode: String,
-    },
     Update {
         version: Option<String>,
         force: bool,
@@ -179,15 +176,15 @@ pub enum Action {
     TelemetryStatus,
     Upload {
         args: Vec<String>,
-    },
-    Download {
-        args: Vec<String>,
+        token: Option<String>, // For local testing only
     },
     Remove {
         args: Vec<String>,
+        token: Option<String>, // For local testing only
     },
-    Channel {
+    Channels {
         args: Vec<String>,
+        token: Option<String>, // For local testing only
     },
 }
 
@@ -202,7 +199,6 @@ impl Action {
             Action::Logout => "logout",
             Action::ShowApiKey => "auth.api-key",
             Action::Whoami { .. } => "whoami",
-            Action::PackageMode { .. } => "package-mode",
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
@@ -237,9 +233,8 @@ impl Action {
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
             Action::Upload { .. } => "upload",
-            Action::Download { .. } => "download",
             Action::Remove { .. } => "remove",
-            Action::Channel { .. } => "channel",
+            Action::Channels { .. } => "channels",
         }
     }
 
@@ -333,7 +328,6 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
-            Action::PackageMode { mode } => set_package_mode(&mode),
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
@@ -535,10 +529,9 @@ impl Action {
                 }
                 Ok(())
             }
-            Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
-            Action::Download { args } => route_package_command(ctx, "download", &args).await,
-            Action::Remove { args } => route_package_command(ctx, "remove", &args).await,
-            Action::Channel { args } => route_package_command(ctx, "channel", &args).await,
+            Action::Upload { args, token } => route_package_command(ctx, "upload", &args, token.as_deref()).await,
+            Action::Remove { args, token } => route_package_command(ctx, "remove", &args, token.as_deref()).await,
+            Action::Channels { args, token } => route_package_command(ctx, "channels", &args, token.as_deref()).await,
         }
     }
 }
@@ -547,26 +540,101 @@ async fn route_package_command(
     ctx: &mut CommandContext,
     command: &str,
     args: &[String],
+    token: Option<&str>,
 ) -> miette::Result<()> {
-    let mode = crate::config::package_mode();
-    match mode.as_str() {
-        "repo" => repo::run(ctx, &[vec![command.to_string()], args.to_vec()].concat(), None).await,
-        "org" => Ok(anaconda_cli::run_subcommand(ctx, command, args).map_err(|e| miette!("{}", e))?),
-        _ => Err(miette!("Invalid package mode: {}", mode)),
+    let channel_arg = extract_channel_arg(command, args);
+    let underlying_command = if command == "channels" { "channel" } else { command };
+
+    match channel_arg {
+        Some(channel) if channel.matches('/').count() == 1 => {
+            repo::run(ctx, &[vec![underlying_command.to_string()], args.to_vec()].concat(), token).await
+        }
+        Some(channel) if channel.contains('/') => {
+            Err(miette!("Invalid channel format '{}': only one '/' separator allowed", channel))
+        }
+        _ => {
+            if command == "channels" && is_create_command(args) {
+                return Err(miette!(
+                    "Must specify an organization and channel to create a channel:\n  ana channels create <org_name>/<channel_name>"
+                ));
+            }
+            let transformed_args = transform_args_for_org(command, args);
+            Ok(anaconda_cli::run_subcommand(ctx, underlying_command, &transformed_args).map_err(|e| miette!("{}", e))?)
+        }
     }
 }
 
-fn set_package_mode(mode: &str) -> miette::Result<()> {
-    let normalized_mode = mode.to_lowercase();
-    if normalized_mode != "org" && normalized_mode != "repo" {
-        return Err(miette!("Invalid mode '{}'. Must be 'org' or 'repo'.", mode));
+fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
+    let mut transformed = Vec::new();
+    let mut i = 0;
+
+    while i < args.len() {
+        let arg = &args[i];
+
+        match command {
+            "upload" => {
+                if arg == "-c" {
+                    transformed.push("-u".to_string());
+                    i += 1;
+                } else if arg == "--channel" {
+                    transformed.push("--user".to_string());
+                    i += 1;
+                } else {
+                    transformed.push(arg.clone());
+                    i += 1;
+                }
+            }
+            "remove" => {
+                if arg == "-c" {
+                    transformed.push("-o".to_string());
+                    i += 1;
+                } else if arg == "--channel" {
+                    transformed.push("--owner".to_string());
+                    i += 1;
+                } else {
+                    transformed.push(arg.clone());
+                    i += 1;
+                }
+            }
+            _ => {
+                transformed.push(arg.clone());
+                i += 1;
+            }
+        }
     }
 
-    unsafe {
-        std::env::set_var("ANA_PACKAGE_MODE", &normalized_mode);
+    transformed
+}
+
+fn is_create_command(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "--create")
+}
+
+fn extract_channel_arg(command: &str, args: &[String]) -> Option<String> {
+    match command {
+        "channels" => {
+            for (i, arg) in args.iter().enumerate() {
+                if (arg == "--create" || arg == "-c") && i + 1 < args.len() {
+                    return Some(args[i + 1].clone());
+                }
+            }
+            None
+        }
+        "upload" => {
+            for (i, arg) in args.iter().enumerate() {
+                if (arg == "--channel" || arg == "-c") && i + 1 < args.len() {
+                    return Some(args[i + 1].clone());
+                }
+            }
+            None
+        }
+        "remove" => {
+            args.iter()
+                .find(|arg| !arg.starts_with('-'))
+                .cloned()
+        }
+        _ => None,
     }
-    crate::ui::status::success(&format!("Package mode set to '{}'", normalized_mode));
-    Ok(())
 }
 
 /// Parse CLI arguments and return the action to perform along with log level.
@@ -611,7 +679,6 @@ pub fn parse() -> (Action, LogLevel) {
         },
         Some(Commands::Logout) => Action::Logout,
         Some(Commands::Whoami { json }) => Action::Whoami { json },
-        Some(Commands::PackageMode { mode }) => Action::PackageMode { mode },
         Some(Commands::Auth { command }) => match command {
             None => Action::ShowSubcommandHelp("auth".to_string()),
             Some(AuthCommands::ApiKey) => Action::ShowApiKey,
@@ -745,10 +812,45 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
-        Some(Commands::Upload { args }) => Action::Upload { args },
-        Some(Commands::Download { args }) => Action::Download { args },
-        Some(Commands::Remove { args }) => Action::Remove { args },
-        Some(Commands::Channel { args }) => Action::Channel { args },
+        Some(Commands::Upload { channel, no_progress, files }) => {
+            let mut args = Vec::new();
+            if let Some(c) = channel {
+                args.push("-c".to_string());
+                args.push(c);
+            }
+            if no_progress {
+                args.push("--no-progress".to_string());
+            }
+            args.extend(files);
+            Action::Upload { args, token: cli.token } // For local testing only
+        }
+        Some(Commands::Remove { channel, force, specs }) => {
+            let mut args = Vec::new();
+            if let Some(c) = channel {
+                args.push("-c".to_string());
+                args.push(c);
+            }
+            if force {
+                args.push("--force".to_string());
+            }
+            args.extend(specs);
+            Action::Remove { args, token: cli.token } // For local testing only
+        }
+        Some(Commands::Channels { command }) => match command {
+            None => Action::ShowSubcommandHelp("channels".to_string()),
+            Some(ChannelsCommands::Create { channel, private, public: _ }) => {
+                let mut args = vec!["--create".to_string(), channel.clone()];
+                if private {
+                    args.push("--private".to_string());
+                }
+                Action::Channels { args, token: cli.token } // For local testing only
+            }
+            Some(ChannelsCommands::List { args }) => {
+                let mut all_args = vec!["--list".to_string()];
+                all_args.extend(args.clone());
+                Action::Channels { args: all_args, token: cli.token } // For local testing only
+            }
+        },
     };
 
     (action, level)
@@ -906,13 +1008,6 @@ enum Commands {
         json: bool,
     },
 
-    /// Set the package repository mode (org or repo)
-    #[command(name = "package-mode")]
-    PackageMode {
-        /// Repository mode: 'org' (anaconda.org) or 'repo' (Package Security Manager)
-        mode: String,
-    },
-
     /// Manage the ana installation
     #[command(
         subcommand_required = false,
@@ -1015,42 +1110,69 @@ enum Commands {
     #[command(hide = true)]
     TelemetryStatus,
 
-    /// Upload a package (routes to org or repo based on package-mode)
-    #[command(
-        trailing_var_arg = true,
-        override_usage = "ana upload [options] <file>"
-    )]
+    /// Upload a package
+    #[command(override_usage = "ana upload [options] <file>")]
     Upload {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
+        /// Target channel
+        #[arg(short = 'c', long = "channel")]
+        channel: Option<String>,
+
+        /// Don't show upload progress
+        #[arg(long)]
+        no_progress: bool,
+
+        /// Files to upload
+        files: Vec<String>,
     },
 
-    /// Download a package (routes to org or repo based on package-mode)
-    #[command(
-        trailing_var_arg = true,
-        override_usage = "ana download [options] <package>"
-    )]
-    Download {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
-    /// Remove a package (routes to org or repo based on package-mode)
-    #[command(
-        trailing_var_arg = true,
-        override_usage = "ana remove [options] <package>"
-    )]
+    /// Remove a package
+    #[command(override_usage = "ana remove [options] <package>")]
     Remove {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
+        /// Target channel
+        #[arg(short = 'c', long = "channel")]
+        channel: Option<String>,
+
+        /// Do not prompt for confirmation
+        #[arg(short = 'f', long = "force")]
+        force: bool,
+
+        /// Package specification(s) to remove
+        specs: Vec<String>,
     },
 
-    /// Manage channels (routes to org or repo based on package-mode)
+    /// Manage channels
     #[command(
-        trailing_var_arg = true,
-        override_usage = "ana channel [options]"
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana channels <command> [options]"
     )]
-    Channel {
+    Channels {
+        #[command(subcommand)]
+        command: Option<ChannelsCommands>,
+    },
+}
+
+#[derive(Subcommand)]
+enum ChannelsCommands {
+    /// Create a new channel
+    #[command(group = clap::ArgGroup::new("privacy").required(true).multiple(false))]
+    Create {
+        /// Channel name
+        #[arg(required_unless_present = "help", default_value = "")]
+        channel: String,
+
+        /// Create a private channel
+        #[arg(long, group = "privacy")]
+        private: bool,
+
+        /// Create a public channel
+        #[arg(long, group = "privacy")]
+        public: bool,
+    },
+
+    /// List channels
+    #[command(trailing_var_arg = true)]
+    List {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
@@ -1246,6 +1368,7 @@ mod tests {
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
+            "repo",
             "config",
             "ob",
             "bootstrap",
