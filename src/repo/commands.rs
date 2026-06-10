@@ -13,13 +13,6 @@ pub enum RepoAction {
 pub enum RepoCommands {
     /// Manage your Anaconda repository channels
     #[command(trailing_var_arg = true)]
-    Channel {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
-    /// Manage your Anaconda repository channels (alias for channel)
-    #[command(trailing_var_arg = true, hide = true)]
     Channels {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
@@ -54,11 +47,6 @@ impl RepoCommands {
     /// Convert the command into an action.
     pub fn into_action(self) -> RepoAction {
         match self {
-            RepoCommands::Channel { args } => {
-                let mut cmd_args = vec!["channel".to_string()];
-                cmd_args.extend(args);
-                RepoAction::Run(cmd_args)
-            }
             RepoCommands::Channels { args } => {
                 let mut cmd_args = vec!["channel".to_string()];
                 cmd_args.extend(args);

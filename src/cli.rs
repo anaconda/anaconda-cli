@@ -585,16 +585,9 @@ fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
                 }
             }
             "remove" => {
-                if arg == "-c" {
-                    transformed.push("-o".to_string());
-                    i += 1;
-                } else if arg == "--channel" {
-                    transformed.push("--owner".to_string());
-                    i += 1;
-                } else {
-                    transformed.push(arg.clone());
-                    i += 1;
-                }
+                // TODO: removal formatting
+                transformed.push(arg.clone());
+                i += 1;
             }
             _ => {
                 transformed.push(arg.clone());

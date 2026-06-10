@@ -65,7 +65,7 @@ pub(super) fn get_subcommand_examples(path: &str) -> Option<Vec<HelpExample>> {
         "repo" => Some(vec![
             HelpExample {
                 desc: "Create a new channel".to_string(),
-                command: "ana repo channel --create <channel-name>".to_string(),
+                command: "ana repo channel create <channel-name>".to_string(),
             },
             HelpExample {
                 desc: "Upload a package".to_string(),
