@@ -24,6 +24,6 @@ jobs:
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
-    uses: anaconda/internal-actions/.github/workflows/bot-code-review.yml@1be176d1d4801c4ca716ffaf646726200b60e82f # main
+    uses: anaconda/internal-actions/.github/workflows/bot-code-review.yml@main
     with:
       team: ai-services
