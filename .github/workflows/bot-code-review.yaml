@@ -15,10 +15,10 @@ jobs:
   claude-code-review:
     name: Claude Code Review
     permissions:
-      contents: read
-      pull-requests: write
-      id-token: write
-      actions: read
+      contents: read # To read the repo and PR
+      pull-requests: write # To leave comments on the PR
+      id-token: write # Needed for oidc assume IAM role
+      actions: read # Needed to identify CI failures
     if: |
       (github.event_name == 'pull_request') ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@claude')) ||
