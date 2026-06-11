@@ -10,7 +10,7 @@ on:
     types: [submitted]
   pull_request:
     types: [opened, reopened]
-
+permissions: {}
 jobs:
   claude-code-review:
     name: Claude Code Review
