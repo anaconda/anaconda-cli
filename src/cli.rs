@@ -133,7 +133,6 @@ pub enum Action {
     },
     RepoRun {
         args: Vec<String>,
-        token: Option<String>,
     },
     UserAgent {
         prefix: Option<String>,
@@ -176,15 +175,12 @@ pub enum Action {
     TelemetryStatus,
     Upload {
         args: Vec<String>,
-        token: Option<String>, // For local testing only
     },
     Remove {
         args: Vec<String>,
-        token: Option<String>, // For local testing only
     },
     Channels {
         args: Vec<String>,
-        token: Option<String>, // For local testing only
     },
 }
 
@@ -299,7 +295,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            Action::RepoRun { args, token } => repo::run(ctx, &args, token.as_deref()).await,
+            Action::RepoRun { args } => repo::run(ctx, &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -529,9 +525,9 @@ impl Action {
                 }
                 Ok(())
             }
-            Action::Upload { args, token } => route_package_command(ctx, "upload", &args, token.as_deref()).await,
-            Action::Remove { args, token } => route_package_command(ctx, "remove", &args, token.as_deref()).await,
-            Action::Channels { args, token } => route_package_command(ctx, "channels", &args, token.as_deref()).await,
+            Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
+            Action::Remove { args } => route_package_command(ctx, "remove", &args).await,
+            Action::Channels { args } => route_package_command(ctx, "channels", &args).await,
         }
     }
 }
@@ -540,14 +536,13 @@ async fn route_package_command(
     ctx: &mut CommandContext,
     command: &str,
     args: &[String],
-    token: Option<&str>,
 ) -> miette::Result<()> {
     let channel_arg = extract_channel_arg(command, args);
     let underlying_command = if command == "channels" { "channel" } else { command };
 
     match channel_arg {
         Some(channel) if channel.matches('/').count() == 1 => {
-            repo::run(ctx, &[vec![underlying_command.to_string()], args.to_vec()].concat(), token).await
+            repo::run(ctx, &[vec![underlying_command.to_string()], args.to_vec()].concat()).await
         }
         Some(channel) if channel.contains('/') => {
             Err(miette!("Invalid channel format '{}': only one '/' separator allowed", channel))
@@ -718,7 +713,7 @@ pub fn parse() -> (Action, LogLevel) {
             None => Action::ShowSubcommandHelp("repo".to_string()),
             Some(cmd) => match cmd.into_action() {
                 RepoAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                RepoAction::Run(args) => Action::RepoRun { args, token: cli.token },
+                RepoAction::Run(args) => Action::RepoRun { args },
             },
         },
         #[cfg(unix)]
@@ -815,7 +810,7 @@ pub fn parse() -> (Action, LogLevel) {
                 args.push("--no-progress".to_string());
             }
             args.extend(files);
-            Action::Upload { args, token: cli.token } // For local testing only
+            Action::Upload { args }
         }
         Some(Commands::Remove { channel, force, specs }) => {
             let mut args = Vec::new();
@@ -827,7 +822,7 @@ pub fn parse() -> (Action, LogLevel) {
                 args.push("--force".to_string());
             }
             args.extend(specs);
-            Action::Remove { args, token: cli.token } // For local testing only
+            Action::Remove { args }
         }
         Some(Commands::Channels { command }) => match command {
             None => Action::ShowSubcommandHelp("channels".to_string()),
@@ -836,12 +831,12 @@ pub fn parse() -> (Action, LogLevel) {
                 if private {
                     args.push("--private".to_string());
                 }
-                Action::Channels { args, token: cli.token } // For local testing only
+                Action::Channels { args }
             }
             Some(ChannelsCommands::List { args }) => {
                 let mut all_args = vec!["--list".to_string()];
                 all_args.extend(args.clone());
-                Action::Channels { args: all_args, token: cli.token } // For local testing only
+                Action::Channels { args: all_args }
             }
         },
     };
@@ -952,10 +947,6 @@ struct Cli {
     /// Show help information
     #[arg(short = 'h', long = "help", global = true, action = clap::ArgAction::SetTrue)]
     help: bool,
-
-    /// Authentication token for testing local repocore instance
-    #[arg(long = "token", global = true)]
-    token: Option<String>,
 }
 
 #[derive(Subcommand)]

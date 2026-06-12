@@ -48,7 +48,7 @@ impl RepoCommands {
     pub fn into_action(self) -> RepoAction {
         match self {
             RepoCommands::Channels { args } => {
-                let mut cmd_args = vec!["channel".to_string()];
+                let mut cmd_args = vec!["channels".to_string()];
                 cmd_args.extend(args);
                 RepoAction::Run(cmd_args)
             }
