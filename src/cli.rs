@@ -527,9 +527,12 @@ impl Action {
     }
 }
 
-// Helper for route_package_command
 fn is_create_command(args: &[String]) -> bool {
     !args.is_empty() && args[0] == "create"
+}
+
+fn is_remove_command(args: &[String]) -> bool {
+    !args.is_empty() && args[0] == "remove"
 }
 
 async fn route_package_command(
@@ -548,10 +551,20 @@ async fn route_package_command(
             Err(miette!("Invalid channel format '{}': only one '/' separator allowed", channel))
         }
         _ => {
-            if command == "channels" && is_create_command(args) {
-                return Err(miette!(
-                    "Must specify an organization and channel to create a channel:\n  ana channels create <org_name>/<channel_name>"
-                ));
+            if command == "channels" {
+                let subcommand = if is_create_command(args) {
+                    Some("create")
+                } else if is_remove_command(args) {
+                    Some("remove")
+                } else {
+                    None
+                };
+                if let Some(cmd) = subcommand {
+                    return Err(miette!(
+                        "Must specify an organization and channel to {} a channel:\n  ana channels {} <org_name>/<channel_name>",
+                        cmd, cmd
+                    ));
+                }
             }
             let transformed_args = prepare_args_org(command, args);
             Ok(anaconda_cli::run_subcommand(ctx, command, &transformed_args).map_err(|e| miette!("{}", e))?)
@@ -1771,5 +1784,27 @@ mod tests {
     fn test_upload_invalid_flag_fails() {
         let result = Cli::try_parse_from(["ana", "upload", "--invalid-flag", "file.tar.gz"]);
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_channels_create_without_org_shows_error() {
+        let mut ctx = CommandContext::new();
+        let args = vec!["create".to_string(), "channel".to_string()];
+        let result = route_package_command(&mut ctx, "channels", &args).await;
+        assert!(result.is_err());
+        let err_msg = format!("{:?}", result.unwrap_err());
+        assert!(err_msg.contains("Must specify an organization and channel to create a channel"));
+        assert!(err_msg.contains("ana channels create <org_name>/<channel_name>"));
+    }
+
+    #[tokio::test]
+    async fn test_channels_remove_without_org_shows_error() {
+        let mut ctx = CommandContext::new();
+        let args = vec!["remove".to_string(), "channel".to_string()];
+        let result = route_package_command(&mut ctx, "channels", &args).await;
+        assert!(result.is_err());
+        let err_msg = format!("{:?}", result.unwrap_err());
+        assert!(err_msg.contains("Must specify an organization and channel to remove a channel"));
+        assert!(err_msg.contains("ana channels remove <org_name>/<channel_name>"));
     }
 }
