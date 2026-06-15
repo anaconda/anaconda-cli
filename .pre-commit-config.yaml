@@ -26,7 +26,7 @@ repos:
       - id: pretty-format-yaml
         args: [--autofix, --indent, '2', --offset, '2']
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: f805888065fdb6162e1f800e50bb9460cbd223d6  # frozen: 0.37.2
+    rev: 5030dca3047414c338091455ac41803200ec1f0f  # frozen: 0.37.3
     hooks:
       - id: check-github-workflows
   - repo: https://github.com/shellcheck-py/shellcheck-py
