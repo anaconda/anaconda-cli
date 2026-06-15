@@ -13,6 +13,7 @@ use crate::feature;
 use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
+use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
@@ -164,6 +165,7 @@ pub enum Action {
         pixi: bool,
     },
     FeatureList,
+    DownloadMiniconda,
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
@@ -209,6 +211,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::FeatureList => "feature.list",
+            Action::DownloadMiniconda => "tool.download.miniconda",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -478,6 +481,7 @@ impl Action {
                 feature::list::print_feature_list(ctx);
                 Ok(())
             }
+            Action::DownloadMiniconda => installer::run(ctx, None).await,
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
@@ -621,6 +625,17 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+            Some(ToolCommands::Download { name }) => match name.as_deref() {
+                None => Action::ShowSubcommandHelp("tool download".to_string()),
+                Some("miniconda") => Action::DownloadMiniconda,
+                Some(other) => {
+                    eprintln!(
+                        "error: only miniconda is currently supported (got '{}')",
+                        other
+                    );
+                    std::process::exit(1);
+                }
+            },
         },
         Some(Commands::Api { command }) => match command {
             None => Action::ShowSubcommandHelp("api".to_string()),
@@ -1003,6 +1018,12 @@ enum ToolCommands {
         /// Skip confirmation prompt
         #[arg(short = 'y', long = "yes")]
         force: bool,
+    },
+
+    /// Download an installer (currently miniconda only)
+    Download {
+        /// Installer to download [possible values: miniconda]
+        name: Option<String>,
     },
 }
 
