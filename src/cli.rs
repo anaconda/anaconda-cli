@@ -629,7 +629,10 @@ pub fn parse() -> (Action, LogLevel) {
                 None => Action::ShowSubcommandHelp("tool download".to_string()),
                 Some("miniconda") => Action::DownloadMiniconda,
                 Some(other) => {
-                    eprintln!("error: only miniconda supported in v1 (got '{}')", other);
+                    eprintln!(
+                        "error: only miniconda is currently supported (got '{}')",
+                        other
+                    );
                     std::process::exit(1);
                 }
             },
@@ -1017,7 +1020,7 @@ enum ToolCommands {
         force: bool,
     },
 
-    /// Download an installer (v1: miniconda only)
+    /// Download an installer (currently miniconda only)
     Download {
         /// Installer to download [possible values: miniconda]
         name: Option<String>,
