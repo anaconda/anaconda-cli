@@ -10,11 +10,8 @@ anaconda-auth = "==0.14.4"
 # renovate: datasource=conda depName=main/anaconda-ai
 anaconda-ai = "==0.5.0"
 # renovate: datasource=conda depName=main/anaconda-client
-# anaconda-client = "==1.14.1"
+anaconda-client = "==1.14.1"
 # renovate: datasource=conda depName=main/anaconda-cli-base
 anaconda-cli-base = "==0.8.2"
 # renovate: datasource=conda depName=main/anaconda-mcp
 anaconda-mcp = "==1.0.3"
-
-[pypi-dependencies]
-anaconda-client = { path = "../../../anaconda-client", editable = true }
