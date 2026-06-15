@@ -1754,4 +1754,22 @@ mod tests {
         let result = prepare_args_repo("upload", &args);
         assert_eq!(result, vec!["upload", "--no-progress", "-c", "org/channel", "file.tar.gz"]);
     }
+
+    #[test]
+    fn test_channels_invalid_subcommand_fails() {
+        let result = Cli::try_parse_from(["ana", "channels", "invalid_command"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_channels_create_invalid_flag_fails() {
+        let result = Cli::try_parse_from(["ana", "channels", "create", "--invalid-flag", "org/channel"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_upload_invalid_flag_fails() {
+        let result = Cli::try_parse_from(["ana", "upload", "--invalid-flag", "file.tar.gz"]);
+        assert!(result.is_err());
+    }
 }
