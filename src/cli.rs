@@ -547,9 +547,10 @@ async fn route_package_command(
             let filtered_args = prepare_args_repo(command, args);
             repo::run(ctx, &[vec![command.to_string()], filtered_args].concat()).await
         }
-        Some(channel) if channel.contains('/') => {
-            Err(miette!("Invalid channel format '{}': only one '/' separator allowed", channel))
-        }
+        Some(channel) if channel.contains('/') => Err(miette!(
+            "Invalid channel format '{}': only one '/' separator allowed",
+            channel
+        )),
         _ => {
             if command == "channels" {
                 let subcommand = if is_create_command(args) {
@@ -562,12 +563,16 @@ async fn route_package_command(
                 if let Some(cmd) = subcommand {
                     return Err(miette!(
                         "Must specify an organization and channel to {} a channel:\n  ana channels {} <org_name>/<channel_name>",
-                        cmd, cmd
+                        cmd,
+                        cmd
                     ));
                 }
             }
             let transformed_args = prepare_args_org(command, args);
-            Ok(anaconda_cli::run_subcommand(ctx, command, &transformed_args).map_err(|e| miette!("{}", e))?)
+            Ok(
+                anaconda_cli::run_subcommand(ctx, command, &transformed_args)
+                    .map_err(|e| miette!("{}", e))?,
+            )
         }
     }
 }
@@ -642,11 +647,10 @@ fn extract_channel_arg(command: &str, args: &[String]) -> Option<String> {
                 return None;
             }
             match args[0].as_str() {
-                "create" | "remove" => {
-                    args.iter()
-                        .find(|arg| arg.contains('/') && !arg.starts_with('-'))
-                        .cloned()
-                }
+                "create" | "remove" => args
+                    .iter()
+                    .find(|arg| arg.contains('/') && !arg.starts_with('-'))
+                    .cloned(),
                 _ => None,
             }
         }
@@ -753,7 +757,12 @@ pub fn parse() -> (Action, LogLevel) {
                 RepoAction::Run(args) => Action::RepoRun { args },
             },
         },
-        Some(Commands::Upload { channel, no_progress, summary, files }) => {
+        Some(Commands::Upload {
+            channel,
+            no_progress,
+            summary,
+            files,
+        }) => {
             let mut args = Vec::new();
             if let Some(c) = channel {
                 args.push("-c".to_string());
@@ -771,7 +780,12 @@ pub fn parse() -> (Action, LogLevel) {
         }
         Some(Commands::Channels { command }) => match command {
             None => Action::ShowSubcommandHelp("channels".to_string()),
-            Some(ChannelsCommands::Create { channel, private, public, authenticated }) => {
+            Some(ChannelsCommands::Create {
+                channel,
+                private,
+                public,
+                authenticated,
+            }) => {
                 let mut args = vec!["create".to_string()];
                 if private {
                     args.push("--private".to_string());
@@ -1686,7 +1700,11 @@ mod tests {
 
     #[test]
     fn test_extract_channel_arg_channels_create_with_flags() {
-        let args = vec!["create".to_string(), "--private".to_string(), "org/channel".to_string()];
+        let args = vec![
+            "create".to_string(),
+            "--private".to_string(),
+            "org/channel".to_string(),
+        ];
         let result = extract_channel_arg("channels", &args);
         assert_eq!(result, Some("org/channel".to_string()));
     }
@@ -1700,14 +1718,22 @@ mod tests {
 
     #[test]
     fn test_extract_channel_arg_upload_with_channel_flag() {
-        let args = vec!["-c".to_string(), "org/channel".to_string(), "file.tar.gz".to_string()];
+        let args = vec![
+            "-c".to_string(),
+            "org/channel".to_string(),
+            "file.tar.gz".to_string(),
+        ];
         let result = extract_channel_arg("upload", &args);
         assert_eq!(result, Some("org/channel".to_string()));
     }
 
     #[test]
     fn test_extract_channel_arg_upload_with_channel_long_flag() {
-        let args = vec!["--channel".to_string(), "org/channel".to_string(), "file.tar.gz".to_string()];
+        let args = vec![
+            "--channel".to_string(),
+            "org/channel".to_string(),
+            "file.tar.gz".to_string(),
+        ];
         let result = extract_channel_arg("upload", &args);
         assert_eq!(result, Some("org/channel".to_string()));
     }
@@ -1721,14 +1747,22 @@ mod tests {
 
     #[test]
     fn test_prepare_args_org_upload_channel_to_user() {
-        let args = vec!["-c".to_string(), "username".to_string(), "file.tar.gz".to_string()];
+        let args = vec![
+            "-c".to_string(),
+            "username".to_string(),
+            "file.tar.gz".to_string(),
+        ];
         let result = prepare_args_org("upload", &args);
         assert_eq!(result, vec!["-u", "username", "file.tar.gz"]);
     }
 
     #[test]
     fn test_prepare_args_org_upload_channel_long_to_user() {
-        let args = vec!["--channel".to_string(), "username".to_string(), "file.tar.gz".to_string()];
+        let args = vec![
+            "--channel".to_string(),
+            "username".to_string(),
+            "file.tar.gz".to_string(),
+        ];
         let result = prepare_args_org("upload", &args);
         assert_eq!(result, vec!["--user", "username", "file.tar.gz"]);
     }
@@ -1771,7 +1805,16 @@ mod tests {
             "file.tar.gz".to_string(),
         ];
         let result = prepare_args_repo("upload", &args);
-        assert_eq!(result, vec!["upload", "--no-progress", "-c", "org/channel", "file.tar.gz"]);
+        assert_eq!(
+            result,
+            vec![
+                "upload",
+                "--no-progress",
+                "-c",
+                "org/channel",
+                "file.tar.gz"
+            ]
+        );
     }
 
     #[test]
@@ -1782,7 +1825,8 @@ mod tests {
 
     #[test]
     fn test_channels_create_invalid_flag_fails() {
-        let result = Cli::try_parse_from(["ana", "channels", "create", "--invalid-flag", "org/channel"]);
+        let result =
+            Cli::try_parse_from(["ana", "channels", "create", "--invalid-flag", "org/channel"]);
         assert!(result.is_err());
     }
 
@@ -1818,15 +1862,17 @@ mod tests {
     fn test_unknown_top_level_command() {
         let result = Cli::try_parse_from(["ana", "invalidcommand"]);
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("unrecognized subcommand"));
+        if let Err(err) = result {
+            assert!(err.to_string().contains("unrecognized subcommand"));
+        }
     }
 
     #[test]
     fn test_unknown_channels_subcommand() {
         let result = Cli::try_parse_from(["ana", "channels", "invalid"]);
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("unrecognized subcommand"));
+        if let Err(err) = result {
+            assert!(err.to_string().contains("unrecognized subcommand"));
+        }
     }
 }

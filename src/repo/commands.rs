@@ -69,7 +69,11 @@ mod tests {
     #[test]
     fn test_channels_create_builds_args() {
         let cmd = RepoCommands::Channels {
-            args: vec!["create".to_string(), "--private".to_string(), "org/channel".to_string()],
+            args: vec![
+                "create".to_string(),
+                "--private".to_string(),
+                "org/channel".to_string(),
+            ],
         };
         match cmd.into_action() {
             RepoAction::Run(args) => {
@@ -101,7 +105,10 @@ mod tests {
         };
         match cmd.into_action() {
             RepoAction::Run(args) => {
-                assert_eq!(args, vec!["upload", "--channel", "org/channel", "package.tar.gz"]);
+                assert_eq!(
+                    args,
+                    vec!["upload", "--channel", "org/channel", "package.tar.gz"]
+                );
             }
             _ => panic!("Expected Run action"),
         }
@@ -118,7 +125,13 @@ mod tests {
             RepoAction::Run(args) => {
                 assert_eq!(
                     args,
-                    vec!["upload", "--channel", "org/channel", "--no-progress", "package.tar.gz"]
+                    vec![
+                        "upload",
+                        "--channel",
+                        "org/channel",
+                        "--no-progress",
+                        "package.tar.gz"
+                    ]
                 );
             }
             _ => panic!("Expected Run action"),
