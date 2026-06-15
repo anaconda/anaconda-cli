@@ -541,7 +541,7 @@ async fn route_package_command(
 
     match channel_arg {
         Some(channel) if channel.matches('/').count() == 1 => {
-            let filtered_args = filter_args_for_repo(command, args);
+            let filtered_args = prepare_args_repo(command, args);
             repo::run(ctx, &[vec![command.to_string()], filtered_args].concat()).await
         }
         Some(channel) if channel.contains('/') => {
@@ -553,13 +553,13 @@ async fn route_package_command(
                     "Must specify an organization and channel to create a channel:\n  ana channels create <org_name>/<channel_name>"
                 ));
             }
-            let transformed_args = transform_args_for_org(command, args);
+            let transformed_args = prepare_args_org(command, args);
             Ok(anaconda_cli::run_subcommand(ctx, command, &transformed_args).map_err(|e| miette!("{}", e))?)
         }
     }
 }
 
-fn filter_args_for_repo(command: &str, args: &[String]) -> Vec<String> {
+fn prepare_args_repo(command: &str, args: &[String]) -> Vec<String> {
     let mut filtered = Vec::new();
     let mut i = 0;
 
@@ -588,7 +588,7 @@ fn filter_args_for_repo(command: &str, args: &[String]) -> Vec<String> {
     filtered
 }
 
-fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
+fn prepare_args_org(command: &str, args: &[String]) -> Vec<String> {
     let mut transformed = Vec::new();
     let mut i = 0;
 
@@ -1701,21 +1701,21 @@ mod tests {
     }
 
     #[test]
-    fn test_transform_args_for_org_upload_channel_to_user() {
+    fn test_prepare_args_org_upload_channel_to_user() {
         let args = vec!["-c".to_string(), "username".to_string(), "file.tar.gz".to_string()];
-        let result = transform_args_for_org("upload", &args);
+        let result = prepare_args_org("upload", &args);
         assert_eq!(result, vec!["-u", "username", "file.tar.gz"]);
     }
 
     #[test]
-    fn test_transform_args_for_org_upload_channel_long_to_user() {
+    fn test_prepare_args_org_upload_channel_long_to_user() {
         let args = vec!["--channel".to_string(), "username".to_string(), "file.tar.gz".to_string()];
-        let result = transform_args_for_org("upload", &args);
+        let result = prepare_args_org("upload", &args);
         assert_eq!(result, vec!["--user", "username", "file.tar.gz"]);
     }
 
     #[test]
-    fn test_filter_args_for_repo_strips_summary() {
+    fn test_prepare_args_repo_strips_summary() {
         let args = vec![
             "upload".to_string(),
             "--summary".to_string(),
@@ -1724,12 +1724,12 @@ mod tests {
             "org/channel".to_string(),
             "file.tar.gz".to_string(),
         ];
-        let result = filter_args_for_repo("upload", &args);
+        let result = prepare_args_repo("upload", &args);
         assert_eq!(result, vec!["upload", "-c", "org/channel", "file.tar.gz"]);
     }
 
     #[test]
-    fn test_filter_args_for_repo_strips_summary_short_flag() {
+    fn test_prepare_args_repo_strips_summary_short_flag() {
         let args = vec![
             "upload".to_string(),
             "-s".to_string(),
@@ -1738,12 +1738,12 @@ mod tests {
             "org/channel".to_string(),
             "file.tar.gz".to_string(),
         ];
-        let result = filter_args_for_repo("upload", &args);
+        let result = prepare_args_repo("upload", &args);
         assert_eq!(result, vec!["upload", "-c", "org/channel", "file.tar.gz"]);
     }
 
     #[test]
-    fn test_filter_args_for_repo_preserves_other_args() {
+    fn test_prepare_args_repo_preserves_other_args() {
         let args = vec![
             "upload".to_string(),
             "--no-progress".to_string(),
@@ -1751,7 +1751,7 @@ mod tests {
             "org/channel".to_string(),
             "file.tar.gz".to_string(),
         ];
-        let result = filter_args_for_repo("upload", &args);
+        let result = prepare_args_repo("upload", &args);
         assert_eq!(result, vec!["upload", "--no-progress", "-c", "org/channel", "file.tar.gz"]);
     }
 }
