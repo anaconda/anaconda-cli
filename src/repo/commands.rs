@@ -79,3 +79,110 @@ impl RepoCommands {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_channels_create_builds_args() {
+        let cmd = RepoCommands::Channels {
+            args: vec!["create".to_string(), "--private".to_string(), "org/channel".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(args, vec!["channels", "create", "--private", "org/channel"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+
+    #[test]
+    fn test_channels_remove_builds_args() {
+        let cmd = RepoCommands::Channels {
+            args: vec!["remove".to_string(), "org/channel".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(args, vec!["channels", "remove", "org/channel"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+
+    #[test]
+    fn test_remove_with_force_builds_args() {
+        let cmd = RepoCommands::Remove {
+            force: true,
+            args: vec!["package".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(args, vec!["remove", "--force", "package"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+
+    #[test]
+    fn test_remove_without_force_builds_args() {
+        let cmd = RepoCommands::Remove {
+            force: false,
+            args: vec!["package".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(args, vec!["remove", "package"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+
+    #[test]
+    fn test_upload_with_channel_builds_args() {
+        let cmd = RepoCommands::Upload {
+            channel: Some("org/channel".to_string()),
+            no_progress: false,
+            args: vec!["package.tar.gz".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(args, vec!["upload", "--channel", "org/channel", "package.tar.gz"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+
+    #[test]
+    fn test_upload_with_no_progress_builds_args() {
+        let cmd = RepoCommands::Upload {
+            channel: Some("org/channel".to_string()),
+            no_progress: true,
+            args: vec!["package.tar.gz".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(
+                    args,
+                    vec!["upload", "--channel", "org/channel", "--no-progress", "package.tar.gz"]
+                );
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+
+    #[test]
+    fn test_upload_without_channel_builds_args() {
+        let cmd = RepoCommands::Upload {
+            channel: None,
+            no_progress: false,
+            args: vec!["package.tar.gz".to_string()],
+        };
+        match cmd.into_action() {
+            RepoAction::Run(args) => {
+                assert_eq!(args, vec!["upload", "package.tar.gz"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+    }
+}

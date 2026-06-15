@@ -1656,4 +1656,101 @@ mod tests {
         assert!(cli.help);
         assert!(cli.command.is_none());
     }
+
+    #[test]
+    fn test_extract_channel_arg_channels_create() {
+        let args = vec!["create".to_string(), "org/channel".to_string()];
+        let result = extract_channel_arg("channels", &args);
+        assert_eq!(result, Some("org/channel".to_string()));
+    }
+
+    #[test]
+    fn test_extract_channel_arg_channels_create_with_flags() {
+        let args = vec!["create".to_string(), "--private".to_string(), "org/channel".to_string()];
+        let result = extract_channel_arg("channels", &args);
+        assert_eq!(result, Some("org/channel".to_string()));
+    }
+
+    #[test]
+    fn test_extract_channel_arg_channels_remove() {
+        let args = vec!["remove".to_string(), "org/channel".to_string()];
+        let result = extract_channel_arg("channels", &args);
+        assert_eq!(result, Some("org/channel".to_string()));
+    }
+
+    #[test]
+    fn test_extract_channel_arg_upload_with_channel_flag() {
+        let args = vec!["-c".to_string(), "org/channel".to_string(), "file.tar.gz".to_string()];
+        let result = extract_channel_arg("upload", &args);
+        assert_eq!(result, Some("org/channel".to_string()));
+    }
+
+    #[test]
+    fn test_extract_channel_arg_upload_with_channel_long_flag() {
+        let args = vec!["--channel".to_string(), "org/channel".to_string(), "file.tar.gz".to_string()];
+        let result = extract_channel_arg("upload", &args);
+        assert_eq!(result, Some("org/channel".to_string()));
+    }
+
+    #[test]
+    fn test_extract_channel_arg_no_slash_returns_none() {
+        let args = vec!["create".to_string(), "channel".to_string()];
+        let result = extract_channel_arg("channels", &args);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_transform_args_for_org_upload_channel_to_user() {
+        let args = vec!["-c".to_string(), "username".to_string(), "file.tar.gz".to_string()];
+        let result = transform_args_for_org("upload", &args);
+        assert_eq!(result, vec!["-u", "username", "file.tar.gz"]);
+    }
+
+    #[test]
+    fn test_transform_args_for_org_upload_channel_long_to_user() {
+        let args = vec!["--channel".to_string(), "username".to_string(), "file.tar.gz".to_string()];
+        let result = transform_args_for_org("upload", &args);
+        assert_eq!(result, vec!["--user", "username", "file.tar.gz"]);
+    }
+
+    #[test]
+    fn test_filter_args_for_repo_strips_summary() {
+        let args = vec![
+            "upload".to_string(),
+            "--summary".to_string(),
+            "test summary".to_string(),
+            "-c".to_string(),
+            "org/channel".to_string(),
+            "file.tar.gz".to_string(),
+        ];
+        let result = filter_args_for_repo("upload", &args);
+        assert_eq!(result, vec!["upload", "-c", "org/channel", "file.tar.gz"]);
+    }
+
+    #[test]
+    fn test_filter_args_for_repo_strips_summary_short_flag() {
+        let args = vec![
+            "upload".to_string(),
+            "-s".to_string(),
+            "test summary".to_string(),
+            "-c".to_string(),
+            "org/channel".to_string(),
+            "file.tar.gz".to_string(),
+        ];
+        let result = filter_args_for_repo("upload", &args);
+        assert_eq!(result, vec!["upload", "-c", "org/channel", "file.tar.gz"]);
+    }
+
+    #[test]
+    fn test_filter_args_for_repo_preserves_other_args() {
+        let args = vec![
+            "upload".to_string(),
+            "--no-progress".to_string(),
+            "-c".to_string(),
+            "org/channel".to_string(),
+            "file.tar.gz".to_string(),
+        ];
+        let result = filter_args_for_repo("upload", &args);
+        assert_eq!(result, vec!["upload", "--no-progress", "-c", "org/channel", "file.tar.gz"]);
+    }
 }
