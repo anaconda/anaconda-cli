@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use futures_util::StreamExt;
-use indicatif::{ProgressBar, ProgressStyle};
 use miette::miette;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -10,6 +9,7 @@ use sha2::{Digest, Sha256};
 use tokio::io::AsyncWriteExt;
 
 use crate::context::CommandContext;
+use crate::ui::progress::build_progress_bar;
 
 const MINICONDA_BASE_URL: &str = "https://repo.anaconda.com/miniconda/";
 
@@ -172,26 +172,6 @@ async fn finalize_verified_download(
         .map_err(|e| miette!("failed to move file to destination: {}", e))?;
 
     Ok(())
-}
-
-fn build_progress_bar(total_size: u64) -> ProgressBar {
-    use crate::ui::styles::UiColor;
-
-    let pb = ProgressBar::new(total_size);
-    let dim = UiColor::Dim.hex();
-    let dim_suffix = UiColor::Dim.apply_to("% |").to_string();
-    let template = format!(
-        "  {{bar:34.{}/{dim}}} {{percent:>2.{dim}}}{dim_suffix} {{elapsed:.{dim}}}",
-        UiColor::Green.hex(),
-    );
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template(&template)
-            .unwrap()
-            .progress_chars("━━─"),
-    );
-    pb.enable_steady_tick(std::time::Duration::from_millis(100));
-    pb
 }
 
 fn format_size(bytes: u64) -> String {
