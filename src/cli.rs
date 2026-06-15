@@ -134,6 +134,12 @@ pub enum Action {
     RepoRun {
         args: Vec<String>,
     },
+    Upload {
+        args: Vec<String>,
+    },
+    Channels {
+        args: Vec<String>,
+    },
     UserAgent {
         prefix: Option<String>,
     },
@@ -173,12 +179,6 @@ pub enum Action {
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
-    Upload {
-        args: Vec<String>,
-    },
-    Channels {
-        args: Vec<String>,
-    },
 }
 
 impl Action {
@@ -203,6 +203,8 @@ impl Action {
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
             Action::RepoRun { .. } => "repo",
+            Action::Upload { .. } => "upload",
+            Action::Channels { .. } => "channels",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -225,8 +227,6 @@ impl Action {
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
-            Action::Upload { .. } => "upload",
-            Action::Channels { .. } => "channels",
         }
     }
 
@@ -292,6 +292,8 @@ impl Action {
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
             Action::RepoRun { args } => repo::run(ctx, &args).await,
+            Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
+            Action::Channels { args } => route_package_command(ctx, "channels", &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -521,10 +523,13 @@ impl Action {
                 }
                 Ok(())
             }
-            Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
-            Action::Channels { args } => route_package_command(ctx, "channels", &args).await,
         }
     }
+}
+
+// Helper for route_package_command
+fn is_create_command(args: &[String]) -> bool {
+    !args.is_empty() && args[0] == "create"
 }
 
 async fn route_package_command(
@@ -615,10 +620,6 @@ fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
     }
 
     transformed
-}
-
-fn is_create_command(args: &[String]) -> bool {
-    !args.is_empty() && args[0] == "create"
 }
 
 fn extract_channel_arg(command: &str, args: &[String]) -> Option<String> {
@@ -739,6 +740,43 @@ pub fn parse() -> (Action, LogLevel) {
                 RepoAction::Run(args) => Action::RepoRun { args },
             },
         },
+        Some(Commands::Upload { channel, no_progress, summary, files }) => {
+            let mut args = Vec::new();
+            if let Some(c) = channel {
+                args.push("-c".to_string());
+                args.push(c);
+            }
+            if no_progress {
+                args.push("--no-progress".to_string());
+            }
+            args.extend(files);
+            if let Some(s) = summary {
+                args.push("--summary".to_string());
+                args.push(s);
+            }
+            Action::Upload { args }
+        }
+        Some(Commands::Channels { command }) => match command {
+            None => Action::ShowSubcommandHelp("channels".to_string()),
+            Some(ChannelsCommands::Create { channel, private, public, authenticated }) => {
+                let mut args = vec!["create".to_string()];
+                if private {
+                    args.push("--private".to_string());
+                }
+                if public {
+                    args.push("--public".to_string());
+                }
+                if authenticated {
+                    args.push("--authenticated".to_string());
+                }
+                args.push(channel.clone());
+                Action::Channels { args }
+            }
+            Some(ChannelsCommands::Remove { channel }) => {
+                let args = vec!["remove".to_string(), channel.clone()];
+                Action::Channels { args }
+            }
+        },
         #[cfg(unix)]
         Some(Commands::Ob { command }) => {
             if !feature::is_feature_enabled("outerbounds") {
@@ -823,43 +861,6 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
-        Some(Commands::Upload { channel, no_progress, summary, files }) => {
-            let mut args = Vec::new();
-            if let Some(c) = channel {
-                args.push("-c".to_string());
-                args.push(c);
-            }
-            if no_progress {
-                args.push("--no-progress".to_string());
-            }
-            args.extend(files);
-            if let Some(s) = summary {
-                args.push("--summary".to_string());
-                args.push(s);
-            }
-            Action::Upload { args }
-        }
-        Some(Commands::Channels { command }) => match command {
-            None => Action::ShowSubcommandHelp("channels".to_string()),
-            Some(ChannelsCommands::Create { channel, private, public, authenticated }) => {
-                let mut args = vec!["create".to_string()];
-                if private {
-                    args.push("--private".to_string());
-                }
-                if public {
-                    args.push("--public".to_string());
-                }
-                if authenticated {
-                    args.push("--authenticated".to_string());
-                }
-                args.push(channel.clone());
-                Action::Channels { args }
-            }
-            Some(ChannelsCommands::Remove { channel }) => {
-                let args = vec!["remove".to_string(), channel.clone()];
-                Action::Channels { args }
-            }
-        },
     };
 
     (action, level)
@@ -1046,7 +1047,7 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Anaconda Repository CLI — manage Package Security Manager
+    /// Anaconda Client CLI
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
