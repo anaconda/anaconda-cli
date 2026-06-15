@@ -1,9 +1,6 @@
 [workspace]
 name = "anaconda-cli"
-channels = [
-    "https://repo.anaconda.com/pkgs/main",
-    "anaconda-cloud/label/dev",
-]
+channels = ["https://repo.anaconda.com/pkgs/main"]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
 
 [dependencies]
@@ -13,9 +10,11 @@ anaconda-auth = "==0.14.4"
 # renovate: datasource=conda depName=main/anaconda-ai
 anaconda-ai = "==0.5.0"
 # renovate: datasource=conda depName=main/anaconda-client
-anaconda-client = "==1.14.1"
+# anaconda-client = "==1.14.1"
 # renovate: datasource=conda depName=main/anaconda-cli-base
 anaconda-cli-base = "==0.8.2"
 # renovate: datasource=conda depName=main/anaconda-mcp
 anaconda-mcp = "==1.0.3"
-anaconda-repo-cli = "*"
+
+[pypi-dependencies]
+anaconda-client = { path = "../../../anaconda-client", editable = true }

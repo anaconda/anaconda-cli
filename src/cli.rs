@@ -176,9 +176,6 @@ pub enum Action {
     Upload {
         args: Vec<String>,
     },
-    Remove {
-        args: Vec<String>,
-    },
     Channels {
         args: Vec<String>,
     },
@@ -229,7 +226,6 @@ impl Action {
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
             Action::Upload { .. } => "upload",
-            Action::Remove { .. } => "remove",
             Action::Channels { .. } => "channels",
         }
     }
@@ -526,7 +522,6 @@ impl Action {
                 Ok(())
             }
             Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
-            Action::Remove { args } => route_package_command(ctx, "remove", &args).await,
             Action::Channels { args } => route_package_command(ctx, "channels", &args).await,
         }
     }
@@ -538,11 +533,11 @@ async fn route_package_command(
     args: &[String],
 ) -> miette::Result<()> {
     let channel_arg = extract_channel_arg(command, args);
-    let underlying_command = if command == "channels" { "channel" } else { command };
 
     match channel_arg {
         Some(channel) if channel.matches('/').count() == 1 => {
-            repo::run(ctx, &[vec![underlying_command.to_string()], args.to_vec()].concat()).await
+            let filtered_args = filter_args_for_repo(command, args);
+            repo::run(ctx, &[vec![command.to_string()], filtered_args].concat()).await
         }
         Some(channel) if channel.contains('/') => {
             Err(miette!("Invalid channel format '{}': only one '/' separator allowed", channel))
@@ -554,9 +549,38 @@ async fn route_package_command(
                 ));
             }
             let transformed_args = transform_args_for_org(command, args);
-            Ok(anaconda_cli::run_subcommand(ctx, underlying_command, &transformed_args).map_err(|e| miette!("{}", e))?)
+            Ok(anaconda_cli::run_subcommand(ctx, command, &transformed_args).map_err(|e| miette!("{}", e))?)
         }
     }
+}
+
+fn filter_args_for_repo(command: &str, args: &[String]) -> Vec<String> {
+    let mut filtered = Vec::new();
+    let mut i = 0;
+
+    while i < args.len() {
+        let arg = &args[i];
+
+        match command {
+            "upload" => {
+                if arg == "--summary" || arg == "-s" {
+                    i += 1;
+                    if i < args.len() {
+                        i += 1;
+                    }
+                } else {
+                    filtered.push(arg.clone());
+                    i += 1;
+                }
+            }
+            _ => {
+                filtered.push(arg.clone());
+                i += 1;
+            }
+        }
+    }
+
+    filtered
 }
 
 fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
@@ -580,7 +604,6 @@ fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
                 }
             }
             "remove" => {
-                // TODO: removal formatting
                 transformed.push(arg.clone());
                 i += 1;
             }
@@ -595,18 +618,23 @@ fn transform_args_for_org(command: &str, args: &[String]) -> Vec<String> {
 }
 
 fn is_create_command(args: &[String]) -> bool {
-    args.iter().any(|arg| arg == "--create")
+    !args.is_empty() && args[0] == "create"
 }
 
 fn extract_channel_arg(command: &str, args: &[String]) -> Option<String> {
     match command {
         "channels" => {
-            for (i, arg) in args.iter().enumerate() {
-                if (arg == "--create" || arg == "-c") && i + 1 < args.len() {
-                    return Some(args[i + 1].clone());
-                }
+            if args.is_empty() {
+                return None;
             }
-            None
+            match args[0].as_str() {
+                "create" | "remove" => {
+                    args.iter()
+                        .find(|arg| arg.contains('/') && !arg.starts_with('-'))
+                        .cloned()
+                }
+                _ => None,
+            }
         }
         "upload" => {
             for (i, arg) in args.iter().enumerate() {
@@ -615,11 +643,6 @@ fn extract_channel_arg(command: &str, args: &[String]) -> Option<String> {
                 }
             }
             None
-        }
-        "remove" => {
-            args.iter()
-                .find(|arg| !arg.starts_with('-'))
-                .cloned()
         }
         _ => None,
     }
@@ -800,7 +823,7 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetrySubmit) => Action::TelemetrySubmit,
         Some(Commands::TelemetryKill) => Action::TelemetryKill,
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
-        Some(Commands::Upload { channel, no_progress, files }) => {
+        Some(Commands::Upload { channel, no_progress, summary, files }) => {
             let mut args = Vec::new();
             if let Some(c) = channel {
                 args.push("-c".to_string());
@@ -810,33 +833,31 @@ pub fn parse() -> (Action, LogLevel) {
                 args.push("--no-progress".to_string());
             }
             args.extend(files);
+            if let Some(s) = summary {
+                args.push("--summary".to_string());
+                args.push(s);
+            }
             Action::Upload { args }
-        }
-        Some(Commands::Remove { channel, force, specs }) => {
-            let mut args = Vec::new();
-            if let Some(c) = channel {
-                args.push("-c".to_string());
-                args.push(c);
-            }
-            if force {
-                args.push("--force".to_string());
-            }
-            args.extend(specs);
-            Action::Remove { args }
         }
         Some(Commands::Channels { command }) => match command {
             None => Action::ShowSubcommandHelp("channels".to_string()),
-            Some(ChannelsCommands::Create { channel, private, public: _ }) => {
-                let mut args = vec!["--create".to_string(), channel.clone()];
+            Some(ChannelsCommands::Create { channel, private, public, authenticated }) => {
+                let mut args = vec!["create".to_string()];
                 if private {
                     args.push("--private".to_string());
                 }
+                if public {
+                    args.push("--public".to_string());
+                }
+                if authenticated {
+                    args.push("--authenticated".to_string());
+                }
+                args.push(channel.clone());
                 Action::Channels { args }
             }
-            Some(ChannelsCommands::List { args }) => {
-                let mut all_args = vec!["--list".to_string()];
-                all_args.extend(args.clone());
-                Action::Channels { args: all_args }
+            Some(ChannelsCommands::Remove { channel }) => {
+                let args = vec!["remove".to_string(), channel.clone()];
+                Action::Channels { args }
             }
         },
     };
@@ -1105,23 +1126,12 @@ enum Commands {
         #[arg(long)]
         no_progress: bool,
 
+        /// Package summary
+        #[arg(short = 's', long)]
+        summary: Option<String>,
+
         /// Files to upload
         files: Vec<String>,
-    },
-
-    /// Remove a package
-    #[command(override_usage = "ana remove [options] <package>")]
-    Remove {
-        /// Target channel
-        #[arg(short = 'c', long = "channel")]
-        channel: Option<String>,
-
-        /// Do not prompt for confirmation
-        #[arg(short = 'f', long = "force")]
-        force: bool,
-
-        /// Package specification(s) to remove
-        specs: Vec<String>,
     },
 
     /// Manage channels
@@ -1139,7 +1149,7 @@ enum Commands {
 #[derive(Subcommand)]
 enum ChannelsCommands {
     /// Create a new channel
-    #[command(group = clap::ArgGroup::new("privacy").required(true).multiple(false))]
+    #[command(group = clap::ArgGroup::new("privacy").required(false).multiple(false))]
     Create {
         /// Channel name
         #[arg(required_unless_present = "help", default_value = "")]
@@ -1152,13 +1162,18 @@ enum ChannelsCommands {
         /// Create a public channel
         #[arg(long, group = "privacy")]
         public: bool,
+
+        /// Create an authenticated channel
+        #[arg(long, group = "privacy")]
+        authenticated: bool,
     },
 
-    /// List channels
-    #[command(trailing_var_arg = true)]
-    List {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
+    /// Remove a channel
+    #[command(override_usage = "ana channels remove <org>/<channel>")]
+    Remove {
+        /// Channel in format org/channel
+        #[arg(required_unless_present = "help", default_value = "")]
+        channel: String,
     },
 }
 
