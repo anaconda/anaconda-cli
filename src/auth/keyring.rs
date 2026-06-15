@@ -447,6 +447,27 @@ mod tests {
     }
 
     #[test]
+    fn test_credential_username_variations() {
+        // Test various username values that might appear in anaconda-auth credentials
+
+        // Explicit null should parse as None
+        let json_null = r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2,"username":null}"#;
+        let cred: Credential = serde_json::from_str(json_null).unwrap();
+        assert_eq!(cred.username, None);
+
+        // Missing username should parse as None
+        let json_missing =
+            r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2}"#;
+        let cred: Credential = serde_json::from_str(json_missing).unwrap();
+        assert_eq!(cred.username, None);
+
+        // Normal username
+        let json_normal = r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2,"username":"alice"}"#;
+        let cred: Credential = serde_json::from_str(json_normal).unwrap();
+        assert_eq!(cred.username, Some("alice".to_string()));
+    }
+
+    #[test]
     fn test_parse_anaconda_auth_credential_format() {
         // Test compatibility with anaconda-auth's TokenInfo format.
         // anaconda-auth uses `username` while ana-cli uses `user_id`.
