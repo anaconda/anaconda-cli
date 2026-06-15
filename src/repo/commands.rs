@@ -18,19 +18,9 @@ pub enum RepoCommands {
         args: Vec<String>,
     },
 
-    /// Remove an object from your Package Security Manager repository
-    Remove {
-        /// Do not prompt removal
-        #[arg(short, long)]
-        force: bool,
-
-        /// specs
-        args: Vec<String>,
-    },
-
     /// Upload packages to your repository
     Upload {
-        /// Target channel(s), repeatable
+        /// Target channel in format org/channel
         #[arg(short, long)]
         channel: Option<String>,
 
@@ -49,14 +39,6 @@ impl RepoCommands {
         match self {
             RepoCommands::Channels { args } => {
                 let mut cmd_args = vec!["channels".to_string()];
-                cmd_args.extend(args);
-                RepoAction::Run(cmd_args)
-            }
-            RepoCommands::Remove { force, args } => {
-                let mut cmd_args = vec!["remove".to_string()];
-                if force {
-                    cmd_args.push("--force".to_string());
-                }
                 cmd_args.extend(args);
                 RepoAction::Run(cmd_args)
             }
@@ -105,34 +87,6 @@ mod tests {
         match cmd.into_action() {
             RepoAction::Run(args) => {
                 assert_eq!(args, vec!["channels", "remove", "org/channel"]);
-            }
-            _ => panic!("Expected Run action"),
-        }
-    }
-
-    #[test]
-    fn test_remove_with_force_builds_args() {
-        let cmd = RepoCommands::Remove {
-            force: true,
-            args: vec!["package".to_string()],
-        };
-        match cmd.into_action() {
-            RepoAction::Run(args) => {
-                assert_eq!(args, vec!["remove", "--force", "package"]);
-            }
-            _ => panic!("Expected Run action"),
-        }
-    }
-
-    #[test]
-    fn test_remove_without_force_builds_args() {
-        let cmd = RepoCommands::Remove {
-            force: false,
-            args: vec!["package".to_string()],
-        };
-        match cmd.into_action() {
-            RepoAction::Run(args) => {
-                assert_eq!(args, vec!["remove", "package"]);
             }
             _ => panic!("Expected Run action"),
         }

@@ -62,16 +62,6 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
 /// Get examples for a specific subcommand by its path
 pub(super) fn get_subcommand_examples(path: &str) -> Option<Vec<HelpExample>> {
     match path {
-        "repo" => Some(vec![
-            HelpExample {
-                desc: "Create a new channel".to_string(),
-                command: "ana repo channel create <channel-name>".to_string(),
-            },
-            HelpExample {
-                desc: "Upload a package".to_string(),
-                command: "ana repo upload ./my-package-1.0.0.conda".to_string(),
-            },
-        ]),
         "self update" => Some(vec![
             HelpExample {
                 desc: "Update to the latest version".to_string(),
