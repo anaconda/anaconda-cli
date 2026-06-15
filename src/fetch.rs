@@ -97,7 +97,7 @@ mod tests {
         let keyring_path = dir.path().join("keyring");
         let config = test_config(keyring_path, "test.example.com");
 
-        auth::save_credential(&config, "test-api-key", None).unwrap();
+        auth::save_credential(&config, "test-api-key", None, None).unwrap();
 
         let client = Client::new(reqwest::Client::builder(), mock_server.uri()).unwrap();
         let ctx = CommandContext::with_client(config, client);
