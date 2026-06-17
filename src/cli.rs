@@ -18,6 +18,7 @@ use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
+use crate::ui::status;
 use crate::update;
 
 /// Log level for tracing output.
@@ -718,24 +719,55 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
         return (Action::ShowVersion, LogLevel::Off);
     }
 
-    // Handle unknown subcommand errors with custom format
-    let err_str = e.to_string();
-    if err_str.contains("unrecognized subcommand") {
-        let args: Vec<String> = std::env::args().collect();
-        if args.len() > 1 && args[1] == "self" {
-            if args.len() > 2 {
-                tracing::error!("Unknown self command: {}", args[2]);
-                eprintln!("Unknown self command: {}", args[2]);
-            }
-        } else if args.len() > 1 {
-            tracing::error!("Unknown command: {}", args[1]);
-            eprintln!("Unknown command: {}", args[1]);
-        }
-        std::process::exit(1);
-    }
+    print_clap_error(&e);
+    std::process::exit(2);
+}
 
-    // For other errors, use clap's error handling
-    e.exit();
+/// Print a clap error using our CLI styling conventions.
+fn print_clap_error(e: &clap::Error) {
+    use crate::ui::styles::UiColor;
+
+    let is_invalid_subcommand = e.kind() == clap::error::ErrorKind::InvalidSubcommand;
+
+    // Get the plain text error (strip ANSI codes)
+    let rendered = e.render().ansi().to_string();
+
+    for line in rendered.lines() {
+        // Strip ANSI escape codes for matching and display
+        let plain = console::strip_ansi_codes(line);
+
+        if plain.starts_with("error:") {
+            let msg = plain.trim_start_matches("error:").trim();
+            if is_invalid_subcommand {
+                // Format: ✗ Error: Unknown subcommand '<name>'
+                if let Some(name) = msg.strip_prefix("unrecognized subcommand") {
+                    eprintln!(
+                        "{} Unknown subcommand {}",
+                        UiColor::Red.apply_to("✗ Error:"),
+                        name.trim()
+                    );
+                } else {
+                    status::error(msg);
+                }
+            } else {
+                status::error(msg);
+            }
+        } else if plain.trim().starts_with("tip:") {
+            // Skip tips for unrecognized subcommands - clap's string-based suggestions
+            // are often misleading (e.g., suggesting 'disable' when user meant 'enable')
+            if !is_invalid_subcommand {
+                status::tip(plain.trim().trim_start_matches("tip:").trim());
+            }
+        } else if plain.starts_with("Usage:") {
+            // Skip usage line for invalid subcommands - not helpful when user already
+            // knows the command structure
+            if !is_invalid_subcommand {
+                eprintln!("{}", plain);
+            }
+        } else if !plain.is_empty() {
+            eprintln!("{}", plain);
+        }
+    }
 }
 
 /// Get subcommand names and descriptions from clap for help introspection.
@@ -1418,5 +1450,23 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "--help"]).unwrap();
         assert!(cli.help);
         assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn test_invalid_subcommand_error_kind() {
+        // Verify clap returns InvalidSubcommand for unknown subcommands
+        match Cli::try_parse_from(["ana", "feature", "notreal"]) {
+            Ok(_) => panic!("should fail to parse"),
+            Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
+        }
+    }
+
+    #[test]
+    fn test_invalid_top_level_command_error_kind() {
+        // Verify clap returns InvalidSubcommand for unknown top-level commands too
+        match Cli::try_parse_from(["ana", "notacommand"]) {
+            Ok(_) => panic!("should fail to parse"),
+            Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
+        }
     }
 }
