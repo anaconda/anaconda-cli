@@ -937,8 +937,8 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
 
             let cmd = Cli::command();
             if cmd.get_subcommands().any(|s| s.get_name() == parent) {
-                tracing::error!("Unknown {} subcommand: {}", parent, subcommand);
-                eprintln!("Unknown {} subcommand: {}", parent, subcommand);
+                tracing::error!("Unknown {} command: {}", parent, subcommand);
+                eprintln!("Unknown {} command: {}", parent, subcommand);
                 std::process::exit(1);
             }
         }
