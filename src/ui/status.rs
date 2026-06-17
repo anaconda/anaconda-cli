@@ -62,7 +62,16 @@ pub fn waiting(msg: &str) {
 ///
 /// Example output: `→ Use --pip or --uv to configure only one tool.`
 pub fn tip(msg: &str) {
-    eprintln!("{} {}", UiColor::Blue.apply_to("→"), msg);
+    eprintln!("{} {}", UiColor::Blue.apply_to("→"), capitalize_first(msg));
+}
+
+/// Capitalize the first letter of a string.
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+    }
 }
 
 /// Return text styled as highlighted (blue).

@@ -42,9 +42,17 @@ impl ReportHandler for CliErrorHandler {
         write!(f, "{} {}", UiColor::Red.apply_to("✗ Error:"), error)?;
 
         if let Some(help) = Self::find_help(error) {
-            write!(f, "\n{} {}", UiColor::Blue.apply_to("→"), help)?;
+            write!(f, "\n{} {}", UiColor::Blue.apply_to("→"), capitalize_first(&help))?;
         }
 
         Ok(())
+    }
+}
+
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
     }
 }
