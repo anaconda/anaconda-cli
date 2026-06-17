@@ -4,6 +4,7 @@ mod cli;
 mod config;
 mod context;
 mod diagnostics;
+mod error_handler;
 pub mod errors;
 mod feature;
 mod feedback;
@@ -49,6 +50,9 @@ fn prepare_runtime() {
 async fn main() {
     // Apply platform-specific runtime modifications
     prepare_runtime();
+
+    // Install custom error handler before any errors can occur
+    error_handler::CliErrorHandler::install();
 
     let config = config::Config::load();
     #[allow(clippy::let_unit_value)]

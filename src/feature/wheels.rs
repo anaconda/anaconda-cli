@@ -192,7 +192,7 @@ pub async fn enable_wheels(
     }
 
     // Step 2: Check login status and prompt if needed
-    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
+    auth::ensure_logged_in(ctx).await?;
 
     // Step 3: Show planned changes
     status::blank_line();

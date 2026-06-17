@@ -278,7 +278,7 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
     status::blank_line();
 
     // Step 1: Check login status and prompt if needed
-    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
+    auth::ensure_logged_in(ctx).await?;
 
     // Step 2: Determine what changes need to be made
     let conda_bin = find_conda()?;
@@ -343,7 +343,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     status::blank_line();
 
     // Step 1: Check login status and prompt if needed
-    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
+    auth::ensure_logged_in(ctx).await?;
 
     // Step 2: Determine what changes need to be made
     let pixi_bin = find_pixi()?;

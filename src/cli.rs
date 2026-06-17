@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
-use miette::{IntoDiagnostic, miette};
+use miette::miette;
 
 use crate::VERSION;
 use crate::anaconda_cli;
@@ -78,7 +78,7 @@ pub async fn execute() {
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("Error: {:?}", e);
+        eprintln!("{:?}", e);
         std::process::exit(1);
     }
 }
@@ -300,12 +300,10 @@ impl Action {
                 api_key,
                 prompt_api_key,
                 force,
-            } => Ok(auth::login(ctx, api_key, prompt_api_key, force)
-                .await
-                .into_diagnostic()?),
-            Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
-            Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
-            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
+            } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
+            Action::Logout => Ok(auth::logout(ctx)?),
+            Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
+            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
@@ -747,10 +745,12 @@ fn print_clap_error(e: &clap::Error) {
                         name.trim()
                     );
                 } else {
-                    status::error(msg);
+                    eprintln!("{} {}", UiColor::Red.apply_to("✗ Error:"), msg);
                 }
             } else {
-                status::error(msg);
+                // Capitalize first letter of message
+                let msg = capitalize_first(msg);
+                eprintln!("{} {}", UiColor::Red.apply_to("✗ Error:"), msg);
             }
         } else if plain.trim().starts_with("tip:") {
             // Skip tips for unrecognized subcommands - clap's string-based suggestions
@@ -759,14 +759,18 @@ fn print_clap_error(e: &clap::Error) {
                 status::tip(plain.trim().trim_start_matches("tip:").trim());
             }
         } else if plain.starts_with("Usage:") {
-            // Skip usage line for invalid subcommands - not helpful when user already
-            // knows the command structure
-            if !is_invalid_subcommand {
-                eprintln!("{}", plain);
-            }
+            // Skip usage line - not helpful in error context
         } else if !plain.is_empty() {
             eprintln!("{}", plain);
         }
+    }
+}
+
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
     }
 }
 
