@@ -38,11 +38,7 @@ impl CliErrorHandler {
 }
 
 impl ReportHandler for CliErrorHandler {
-    fn debug(
-        &self,
-        error: &dyn Diagnostic,
-        f: &mut core::fmt::Formatter<'_>,
-    ) -> core::fmt::Result {
+    fn debug(&self, error: &dyn Diagnostic, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{} {}", UiColor::Red.apply_to("✗ Error:"), error)?;
 
         if let Some(help) = Self::find_help(error) {
