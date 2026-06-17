@@ -58,11 +58,11 @@ pub fn waiting(msg: &str) {
     eprintln!("{}", UiColor::Dim.apply_to(msg));
 }
 
-/// Print a tip in dim text.
+/// Print a tip with blue arrow.
 ///
-/// Example output: `Tip: Use --pip or --uv to configure only one tool.`
+/// Example output: `→ Use --pip or --uv to configure only one tool.`
 pub fn tip(msg: &str) {
-    eprintln!("{}", UiColor::Dim.apply_to(&format!("Tip: {}", msg)));
+    eprintln!("{} {}", UiColor::Blue.apply_to("→"), msg);
 }
 
 /// Return text styled as highlighted (blue).
