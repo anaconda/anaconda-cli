@@ -12,10 +12,10 @@ Releases are automated via GitHub Actions. The workflow is triggered by pushing 
 - Publishing conda packages to Anaconda.org
 - Updating the `latest` release pointer
 
-`ana` also participates in Anaconda MCP Registry packaging because
-`ana mcp serve` installs the locked Anaconda MCP runtime. See
-[Anaconda MCP Registry Publishing](design/anaconda-mcp-registry.md) before
-changing the Anaconda MCP pin or moving MCPB publishing into this repository.
+Anaconda MCP may consume released `ana` binaries for MCP Registry packaging. See
+[Anaconda MCP Registry Bootstrap Proposal](design/anaconda-mcp-registry.md)
+for the proposed release contract before changing the Anaconda MCP runtime pin
+or moving MCPB publishing into this repository.
 
 ## Creating a Release
 
@@ -50,8 +50,9 @@ Once the workflow completes:
 - Check that all 8 assets are attached (4 binaries + 4 checksums)
 - Verify the release is no longer marked as a prerelease
 - Confirm the `latest` release points to the new version
-- If the release updates the locked `anaconda-mcp` runtime, coordinate MCP
-  Registry publishing from the signed `ana` binaries.
+- If the release updates the locked `anaconda-mcp` runtime, coordinate with the
+  Anaconda MCP team before publishing MCP Registry assets from the signed `ana`
+  binaries.
 
 ## Version Format
 

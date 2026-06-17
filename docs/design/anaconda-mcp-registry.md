@@ -1,74 +1,98 @@
-# Anaconda MCP Registry Publishing
+# Anaconda MCP Registry Bootstrap Proposal
 
-## Context
+## Why Anaconda MCP Is Asking
 
-The official MCP Registry can list local MCP servers distributed as MCPB
-packages. Anaconda MCP is a conda package today, so the usual PyPI or `uvx`
-bootstrap path does not work. The practical local-install path is an MCPB
-package that bundles the `ana` binary and runs:
+This is a proposal for how `anaconda-cli` can support Anaconda MCP registry
+distribution. It does not assume this repository owns that workflow today.
+
+Anaconda MCP needs a registry install path that works from common MCP clients.
+That is harder than it is for most Python MCP servers:
+
+- Anaconda MCP is a conda package today, not a PyPI package.
+- The usual `uvx <package>` bootstrap path does not work for conda-only
+  dependencies.
+- Asking a registry or MCP client to run arbitrary `conda create` /
+  `conda run` commands requires hardcoding local conda paths and environment
+  names.
+
+`ana` is the cleanest bootstrapper we have because it is a standalone binary
+that already knows how to install and run the managed Anaconda MCP runtime:
 
 ```bash
 ana mcp serve
 ```
 
-That makes `anaconda-cli` part of the release chain even when the public server
-users discover is Anaconda MCP.
+The Anaconda MCP PR can bundle released `ana` binaries in an MCPB package, but
+that makes Anaconda MCP depend on a small release contract from this repository.
 
-## Ownership Model
+## What Anaconda MCP Needs From `ana`
 
-`anaconda-mcp` owns the server implementation, public documentation, and tool behavior.
+The minimum useful contract is:
 
-`anaconda-cli` owns the `ana` binary and the lockfile that determines which
-Anaconda MCP runtime `ana mcp serve` installs. The relevant runtime pin is in
-`tool-specs/anaconda-cli/pixi.toml`:
+- keep `ana mcp serve` as the stable command for starting Anaconda MCP
+- publish fresh signed release assets with stable names for macOS, Linux, and
+  Windows
+- keep the Anaconda MCP runtime pin explicit in
+  `tool-specs/anaconda-cli/pixi.toml`
+- release a new `ana` build when Anaconda MCP needs registry distribution for a
+  newer runtime version
+- make it easy to tell which Anaconda MCP runtime a given `ana` release installs
 
 ```toml
 anaconda-mcp = "==<runtime-version>"
 ```
 
-An MCPB registry artifact built from `ana` assets must publish the locked
-Anaconda MCP runtime version, not the `ana` CLI version. For example, if
-`ana v0.2.1` still locks `anaconda-mcp ==1.1.1`, the MCP Registry server
-version is `1.1.1`.
+The recent `v0.2.1` release is the kind of thing the registry path depends on:
+it rebuilt `ana` assets after a release-cache issue in `v0.2.0`. From Anaconda
+MCP's perspective, that means the MCPB pin should move to `v0.2.1` even though
+the locked Anaconda MCP runtime remains `1.1.1`.
 
-## Release Sequence
+## Version Invariant
 
-Use this sequence when publishing Anaconda MCP through the official MCP Registry:
+The MCP Registry server version should describe the Anaconda MCP runtime, not
+the `ana` bootstrapper version.
+
+For example:
+
+- `ana v0.2.1` locks `anaconda-mcp ==1.1.1`
+- the MCP Registry server version is therefore `1.1.1`
+- the MCPB artifact can still record that it was built from `ana v0.2.1`
+
+This distinction matters because `ana` can have patch releases that do not
+change the Anaconda MCP runtime. Those releases should not automatically publish
+a new MCP Registry server version.
+
+## Proposed Release Sequence
+
+One workable sequence is:
 
 1. Release the Anaconda MCP conda package.
 2. Update `tool-specs/anaconda-cli/pixi.toml` and lockfiles so
    `ana mcp serve` installs that Anaconda MCP version.
 3. Release `ana` so signed platform binaries exist for the new lockfile.
-4. Build the MCPB package from the released `ana` binaries.
+4. Build the MCPB package for Anaconda MCP from the released `ana` binaries.
 5. Publish or update the MCP Registry entry only if the locked Anaconda MCP
    runtime version has changed.
 
-Do not publish an MCP Registry update for an `ana`-only release when the locked
-`anaconda-mcp` version is unchanged. That would either republish the same server
-version or make the registry version describe the bootstrapper instead of the
-MCP server.
+The first implementation can continue to live in `anaconda-mcp` while the team
+decides where this responsibility belongs. Moving the MCPB build or registry
+publish here is useful only if this repository wants to own the release
+coordination around the `ana` runtime lock.
 
-## Registry Metadata
+## Registry Shape
 
-The server name should remain:
+The public registry entry should still look like Anaconda MCP, not Anaconda CLI:
 
-```json
-"name": "io.github.anaconda/anaconda-mcp"
-```
+- server name: `io.github.anaconda/anaconda-mcp`
+- documentation and support URLs: Anaconda MCP
+- package type: `registryType: "mcpb"`
+- transport: stdio
+- package contents: a small launcher plus released `ana` binaries
 
-GitHub OIDC authentication can publish this namespace from an Anaconda-owned
-repository. The package URL may point at a GitHub release asset, but the
-registry `version` should continue to identify the Anaconda MCP runtime.
+The open question is only where the `.mcpb` release asset and publish workflow
+should live once the CLI team is comfortable with the dependency chain.
 
-The package metadata should include:
-
-- `registryType: "mcpb"`
-- `fileSha256` for the generated `.mcpb`
-- stdio transport
-- documentation and support URLs for `anaconda-mcp`
-- Anaconda privacy policy URL, because the server authenticates with Anaconda services
-
-## Runtime UX
+## Auth And Startup UX
 
 The MCPB startup path is non-interactive. It should not rely on prompting for
 login while the MCP client is trying to start the server.
@@ -85,18 +109,23 @@ accepted outside the server with:
 anaconda mcp terms accept
 ```
 
-## Migration Plan
+## Open Questions For CLI Maintainers
 
-The first registry implementation may live in `anaconda-mcp` so the server
-package can establish the registry entry quickly. Moving publishing here should
-happen only after the team agrees on:
+- Is `ana mcp serve` the right long-term command for registry-installed MCPB
+  packages to call?
+- Should `ana` expose a machine-readable way to report the locked Anaconda MCP
+  runtime version?
+- Should the MCPB artifact be hosted on `anaconda-mcp` releases, on
+  `anaconda-cli` releases, or copied between them during release automation?
+- Should the registry publish workflow live in `anaconda-mcp` and consume
+  released `ana` assets, or eventually move here because this repository owns
+  the runtime lock?
+- What should the non-interactive auth story be for users who install from an
+  MCP client UI rather than from a terminal?
 
-- where the `.mcpb` release asset should be hosted
-- how to skip registry publishing for `ana` releases that do not change the
-  locked Anaconda MCP runtime
-- whether the MCPB install UI should require an API key or keep it optional for
-  already-authenticated users
+## Suggested Next Step
 
-Once publishing moves here, remove the stable-tag MCP Registry publish step from
-the `anaconda-mcp` release workflow so only one repository owns the registry
-update.
+For now, Anaconda MCP can keep the initial registry workflow in its own repo and
+pin a known-good `ana` release. This document is here so the CLI maintainers can
+review the proposed contract before we move any workflow ownership into
+`anaconda-cli`.
