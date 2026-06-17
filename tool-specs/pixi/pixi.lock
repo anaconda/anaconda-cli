@@ -1,10 +1,13 @@
-version: 6
+version: 7
+platforms:
+- name: linux-64
+- name: linux-aarch64
+- name: osx-arm64
+- name: win-64
 environments:
   default:
     channels:
     - url: https://repo.anaconda.com/pkgs/main/
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/_libgcc_mutex-0.1-main.conda
@@ -35,12 +38,6 @@ packages:
   md5: c3473ff8bdb3d124ed5ff11ec380d6f9
   size: 3473
   timestamp: 1562011674792
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_libgcc_mutex-0.1-main.conda
-  sha256: 41e43dedb2e5805d15b60d0e337f625c6308b49ec94e1c7a2b34a62257ab850f
-  md5: b272288d02db5520249ca7870c2287b4
-  license: None
-  size: 2491
-  timestamp: 1617219512888
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/_openmp_mutex-5.1-1_gnu.conda
   sha256: 576011048d23f2e03372263493c5529f802286ff53e8426df99a5b11cc2572f3
   md5: 71d281e9c2192cb3fa425655a8defb85
@@ -52,18 +49,6 @@ packages:
   license: BSD-3-Clause
   size: 21315
   timestamp: 1652859733309
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_openmp_mutex-5.1-51_gnu.conda
-  build_number: 51
-  sha256: 70892a5efb5803b565ba889b5479b6e866a0fabce3a7d2f648e494a9e7bff49b
-  md5: 66329dd81c60123e0d7c4c39b7ee7afe
-  depends:
-  - _libgcc_mutex 0.1 main
-  - libgomp >=7.5.0
-  constrains:
-  - openmp_impl 9999
-  license: BSD-3-Clause
-  size: 1427721
-  timestamp: 1621385842900
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2026.3.19-h06a4308_0.conda
   sha256: 8a9aef8816cff77cfde5d9d90e45b67653bf5099b0f7c221cf0746da3461d95b
   md5: 291793559c71f945283cdb33962e7761
@@ -71,13 +56,6 @@ packages:
   license_family: Other
   size: 128969
   timestamp: 1774365804711
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ca-certificates-2026.3.19-hd43f75c_0.conda
-  sha256: 3e384eff3151ac56bddedb0e283b8fd48e5f0f01467b46cbf6246323f2e213c2
-  md5: 51d892f6d58c233a961bb88a72a80d16
-  license: MPL-2.0
-  license_family: Other
-  size: 128939
-  timestamp: 1774365802467
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/libgcc-15.2.0-h69a1729_7.conda
   sha256: baf9d8d16e2a8ae7a4d1b80f2c1a932deaca1a87c677a370f6ab4688482db47b
   md5: 01fb1b8725fc7f66312b9d409758917a
@@ -90,6 +68,61 @@ packages:
   license: GPL-3.0-only WITH GCC-exception-3.1
   size: 825084
   timestamp: 1762772576461
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libgomp-15.2.0-h4751f2c_7.conda
+  sha256: 835e44371812c91563a00dec8bc98c460f8b9f33f50543244bc8774c446a2172
+  md5: 82025ed6da944bd419d42d9b1ff116aa
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 446183
+  timestamp: 1762772542830
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.6-h1b28b03_0.conda
+  sha256: 2ab27b5fe0a8d348262386d36a17c50bb688dc83a8443fe39ef561ea5fc09a7d
+  md5: 5341b8a62a122529fc2083c6ed4174f6
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - ca-certificates
+  - libgcc >=14
+  license: Apache-2.0
+  license_family: Apache
+  size: 5918095
+  timestamp: 1775749314567
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/pixi-0.70.2-hef7b95b_0.conda
+  sha256: 61b134db243665eda0e3f2abb1b0dabc2d23c14127b2d432b422ae20a82f020b
+  md5: 18ab279deb1cfd600f343d8556da1a49
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc >=14
+  - openssl >=3.5.6,<4.0a0
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 28096140
+  timestamp: 1781026463558
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_libgcc_mutex-0.1-main.conda
+  sha256: 41e43dedb2e5805d15b60d0e337f625c6308b49ec94e1c7a2b34a62257ab850f
+  md5: b272288d02db5520249ca7870c2287b4
+  license: None
+  size: 2491
+  timestamp: 1617219512888
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_openmp_mutex-5.1-51_gnu.conda
+  build_number: 51
+  sha256: 70892a5efb5803b565ba889b5479b6e866a0fabce3a7d2f648e494a9e7bff49b
+  md5: 66329dd81c60123e0d7c4c39b7ee7afe
+  depends:
+  - _libgcc_mutex 0.1 main
+  - libgomp >=7.5.0
+  constrains:
+  - openmp_impl 9999
+  license: BSD-3-Clause
+  size: 1427721
+  timestamp: 1621385842900
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ca-certificates-2026.3.19-hd43f75c_0.conda
+  sha256: 3e384eff3151ac56bddedb0e283b8fd48e5f0f01467b46cbf6246323f2e213c2
+  md5: 51d892f6d58c233a961bb88a72a80d16
+  license: MPL-2.0
+  license_family: Other
+  size: 128939
+  timestamp: 1774365802467
 - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgcc-15.2.0-hc18542e_7.conda
   sha256: 06ae831ca00e09a65ba8b5536e8b728be3eb909e0cf041ebcc542b92fa4bc969
   md5: a31a8c63a5fe7234863f8e9dd2b20901
@@ -102,14 +135,6 @@ packages:
   license: GPL-3.0-only WITH GCC-exception-3.1
   size: 511039
   timestamp: 1762772353789
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/libgomp-15.2.0-h4751f2c_7.conda
-  sha256: 835e44371812c91563a00dec8bc98c460f8b9f33f50543244bc8774c446a2172
-  md5: 82025ed6da944bd419d42d9b1ff116aa
-  depends:
-  - __glibc >=2.28,<3.0.a0
-  license: GPL-3.0-only WITH GCC-exception-3.1
-  size: 446183
-  timestamp: 1762772542830
 - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgomp-15.2.0-hf47c802_7.conda
   sha256: 69eeb9a1342df1ba18d0fa994ebf3a43a653cf48a006b8778682cf032cf1e565
   md5: 3403656472f38870e65c29aa6065e00e
@@ -118,17 +143,6 @@ packages:
   license: GPL-3.0-only WITH GCC-exception-3.1
   size: 449546
   timestamp: 1762772309007
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.6-h1b28b03_0.conda
-  sha256: 2ab27b5fe0a8d348262386d36a17c50bb688dc83a8443fe39ef561ea5fc09a7d
-  md5: 5341b8a62a122529fc2083c6ed4174f6
-  depends:
-  - __glibc >=2.28,<3.0.a0
-  - ca-certificates
-  - libgcc >=14
-  license: Apache-2.0
-  license_family: Apache
-  size: 5918095
-  timestamp: 1775749314567
 - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/openssl-3.5.6-h39c9139_0.conda
   sha256: 1a8c2aa57cbef6576d04a2889da51cef641adbfbea56c66577b90772c0964a98
   md5: 1fea8b1c8a9858054c8ea4ef0a0f0ce4
@@ -140,17 +154,6 @@ packages:
   license_family: Apache
   size: 6541356
   timestamp: 1775749241503
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/pixi-0.70.2-hef7b95b_0.conda
-  sha256: 61b134db243665eda0e3f2abb1b0dabc2d23c14127b2d432b422ae20a82f020b
-  md5: 18ab279deb1cfd600f343d8556da1a49
-  depends:
-  - __glibc >=2.28,<3.0.a0
-  - libgcc >=14
-  - openssl >=3.5.6,<4.0a0
-  license: BSD-3-Clause
-  license_family: BSD
-  size: 28096140
-  timestamp: 1781026463558
 - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/pixi-0.70.2-h29eaca7_0.conda
   sha256: 531da7c8cff5680159026430dfe55339299c3573979686d42fc37af1acf336fa
   md5: 98ca26c0c87035847e3d62e5398fc102
