@@ -42,7 +42,12 @@ impl ReportHandler for CliErrorHandler {
         write!(f, "{} {}", UiColor::Red.apply_to("✗ Error:"), error)?;
 
         if let Some(help) = Self::find_help(error) {
-            write!(f, "\n{} {}", UiColor::Blue.apply_to("→"), capitalize_first(&help))?;
+            write!(
+                f,
+                "\n{} {}",
+                UiColor::Blue.apply_to("→"),
+                capitalize_first(&help)
+            )?;
         }
 
         Ok(())
