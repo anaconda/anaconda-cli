@@ -114,6 +114,14 @@ impl CommandContext {
             telemetry.add("user_id", user_id);
         }
 
+        // Add AAU tokens for correlation with anonymous usage tracking
+        if let Some(token) = crate::ua::client_token() {
+            telemetry.add("client_token", token);
+        }
+        if let Some(token) = crate::ua::session_token() {
+            telemetry.add("session_token", token);
+        }
+
         Self {
             telemetry,
             config,
@@ -185,6 +193,37 @@ impl CommandContext {
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),
             unauthenticated_client: OnceLock::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn telemetry_context_includes_aau_tokens() {
+        let ctx = CommandContext::new();
+
+        // Record a counter to capture attributes
+        let mut telemetry = ctx.telemetry;
+        telemetry.record_counter("test_metric", 1);
+
+        // Check that the event has client_token and session_token
+        assert_eq!(telemetry.events.len(), 1);
+        if let TelemetryEvent::Counter { attributes, .. } = &telemetry.events[0] {
+            assert!(
+                attributes.contains_key("client_token"),
+                "missing client_token in attributes: {:?}",
+                attributes.keys().collect::<Vec<_>>()
+            );
+            assert!(
+                attributes.contains_key("session_token"),
+                "missing session_token in attributes: {:?}",
+                attributes.keys().collect::<Vec<_>>()
+            );
+        } else {
+            panic!("expected Counter event");
         }
     }
 }
