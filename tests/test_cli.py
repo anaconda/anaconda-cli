@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from helpers import AnaRunner
+from mock_auth_server import MockAuthServer
 
 IS_WINDOWS = sys.platform == "win32"
 ANACONDA_BIN = "anaconda.exe" if IS_WINDOWS else "anaconda"
@@ -266,27 +267,20 @@ class TestBootstrap:
         assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
         assert tool_dir.is_dir()
 
-    def test_bootstrap_creates_symlinked_binary(
+    def test_bootstrap_does_not_create_symlink(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
-        """Test that bootstrap creates a symlinked anaconda binary in ~/.ana/bin."""
+        """Test that bootstrap does NOT create an anaconda symlink in ~/.ana/bin.
+
+        anaconda-cli is only accessible via ana subcommands to avoid shadowing
+        the user's existing anaconda command from anaconda-auth.
+        """
         result = run_ana("bootstrap")
         assert result.returncode == 0
 
-        # Verify the symlinked binary exists
+        # Verify NO symlink is created
         bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
-        assert bin_path.exists(), f"Binary not found: {bin_path}"
-        tools_dir = fake_home / ".ana" / "tools"
-        if IS_WINDOWS:
-            shim_cfg = tools_dir / "shims.cfg"
-            assert (
-                "anaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n"
-                in shim_cfg.read_text(newline="")
-            )
-        else:
-            src_file = tools_dir / "anaconda-cli" / "bin" / "anaconda"
-            assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
-            assert bin_path.samefile(src_file)
+        assert not bin_path.exists(), f"Symlink should not be created: {bin_path}"
 
     def test_bootstrap_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
@@ -296,9 +290,9 @@ class TestBootstrap:
         first_result = run_ana("bootstrap")
         assert first_result.returncode == 0
 
-        # Verify installation exists
-        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
-        assert bin_path.exists()
+        # Verify tool prefix exists
+        tool_dir = fake_home / ".ana" / "tools" / "anaconda-cli"
+        assert tool_dir.exists()
 
         # Second run should indicate already installed
         second_result = run_ana("bootstrap")
@@ -308,13 +302,25 @@ class TestBootstrap:
     def test_bootstrap_anaconda_binary_runs(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
-        """Test that the installed anaconda binary runs and outputs help."""
+        """Test that the installed anaconda binary runs from the tool prefix."""
         result = run_ana("bootstrap")
         assert result.returncode == 0
 
-        # Run the installed anaconda binary
-        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
-        assert bin_path.exists()
+        # Run the anaconda binary directly from the tool prefix
+        if IS_WINDOWS:
+            bin_path = (
+                fake_home
+                / ".ana"
+                / "tools"
+                / "anaconda-cli"
+                / "Scripts"
+                / "anaconda.exe"
+            )
+        else:
+            bin_path = (
+                fake_home / ".ana" / "tools" / "anaconda-cli" / "bin" / "anaconda"
+            )
+        assert bin_path.exists(), f"Binary not found: {bin_path}"
 
         proc = subprocess.run(
             [str(bin_path), "--help"],
@@ -368,6 +374,39 @@ class TestHelpWithArguments:
         assert with_arg.returncode == 0
         assert without_arg.returncode == 0
         assert with_arg.stdout == without_arg.stdout
+
+
+class TestApiFetch:
+    """Tests for 'ana api fetch' subcommand."""
+
+    def test_api_fetch_outputs_json_to_stdout(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
+    ) -> None:
+        """Test that api fetch outputs JSON to stdout and status to stderr.
+
+        This ensures the output is pipeable to tools like jq.
+        """
+        import json
+
+        # First, login to get credentials
+        login_result = run_ana(
+            "login", "--api-key", env=auth_env, input=f"{mock_auth_server.api_key}\n"
+        )
+        assert login_result.returncode == 0
+
+        # Now fetch from the whoami endpoint
+        result = run_ana("api", "fetch", "/api/auth/sessions/whoami", env=auth_env)
+
+        assert result.returncode == 0
+        # Status should be on stderr, not stdout
+        assert "200" in result.stderr
+        # stdout should be valid JSON (parseable)
+        body = json.loads(result.stdout)
+        assert "passport" in body
+        assert body["passport"]["profile"]["username"] == "testuser"
 
 
 class TestBinaryFeatures:

@@ -16,11 +16,9 @@ const TOOLS: &[Tool] = &[
     Tool {
         name: "anaconda-cli",
         lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
-        binaries: if cfg![unix] {
-            &[&["bin", "anaconda"]]
-        } else {
-            &[&["Scripts", "anaconda"]]
-        },
+        // No symlink - anaconda-cli is only accessed via ana subcommands (e.g., ana mcp)
+        // to avoid shadowing users' existing anaconda command from anaconda-auth
+        binaries: &[],
         experimental: None,
     },
     #[cfg(unix)]

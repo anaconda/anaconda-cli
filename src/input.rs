@@ -54,11 +54,11 @@ impl KeyListener {
                     }
 
                     // Check against registered keys (case-insensitive)
-                    if let Key::Char(c) = key {
-                        if keys.contains(&c.to_ascii_lowercase()) {
-                            let _ = tx.send(c);
-                            break;
-                        }
+                    if let Key::Char(c) = key
+                        && keys.contains(&c.to_ascii_lowercase())
+                    {
+                        let _ = tx.send(c);
+                        break;
                     }
                 }
             }

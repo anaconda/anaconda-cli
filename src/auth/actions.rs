@@ -107,17 +107,22 @@ fn print_token_expiration(expires_at: &str) {
 async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
 
-    // Validate the API key and get user info (email + user_id) in a single request
-    let (email, user_id) = validate_api_key(ctx, api_key)
+    // Validate the API key and get user info in a single request
+    let user_info = validate_api_key(ctx, api_key)
         .await
         .map_err(|e| AuthError::InvalidApiKey(e.to_string()))?;
 
-    // Save to keyring (including user_id if available)
-    save_credential(&ctx.config, api_key, user_id.as_deref())?;
+    // Save to keyring (including user_id and username if available)
+    save_credential(
+        &ctx.config,
+        api_key,
+        user_info.user_id.as_deref(),
+        user_info.username.as_deref(),
+    )?;
     status::success("API key stored in keyring");
 
     // Display login success
-    print_logged_in_status(&email);
+    print_logged_in_status(&user_info.email);
     if let Some(expires_at) = get_expiration(api_key) {
         print_token_expiration(&expires_at);
     }
@@ -161,12 +166,16 @@ fn prompt_api_key_hidden() -> Result<String, AuthError> {
     Ok(api_key.trim().to_string())
 }
 
+/// User information returned from the whoami endpoint.
+struct UserInfo {
+    email: String,
+    user_id: Option<String>,
+    username: Option<String>,
+}
+
 /// Validate an API key by making a request to the whoami endpoint.
-/// Returns (email, Option<user_id>) if valid, or an error if invalid.
-async fn validate_api_key(
-    ctx: &CommandContext,
-    api_key: &str,
-) -> miette::Result<(String, Option<String>)> {
+/// Returns user info if valid, or an error if invalid.
+async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result<UserInfo> {
     let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
 
     let response = client
@@ -188,17 +197,23 @@ async fn validate_api_key(
         .await
         .map_err(|e| miette::miette!("Failed to parse whoami response: {}", e))?;
 
+    let username = data.passport.profile.username;
+
     let email = data
         .passport
         .profile
         .email
-        .or(data.passport.profile.username)
+        .or(username.clone())
         .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
 
     // Service accounts may not have a user_id
     let user_id = data.passport.user_id;
 
-    Ok((email, user_id))
+    Ok(UserInfo {
+        email,
+        user_id,
+        username,
+    })
 }
 
 /// Login with a provided API key (bypassing device flow).
@@ -390,15 +405,13 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
         // Check for 'q' keypress while waiting
         let sleep_until = std::time::Instant::now() + interval;
         while std::time::Instant::now() < sleep_until {
-            if !qr_shown {
-                if let Some(ref listener) = key_listener {
-                    if listener.try_recv().is_some() {
-                        if let Some(ref qr) = qr_output {
-                            print_qr(qr);
-                            qr_shown = true;
-                        }
-                    }
-                }
+            if !qr_shown
+                && let Some(ref listener) = key_listener
+                && listener.try_recv().is_some()
+                && let Some(ref qr) = qr_output
+            {
+                print_qr(qr);
+                qr_shown = true;
             }
             sleep(Duration::from_millis(100)).await;
         }

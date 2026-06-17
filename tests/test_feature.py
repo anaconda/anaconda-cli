@@ -949,6 +949,98 @@ class TestMainXPixiDisable:
         assert result.returncode == 0
         assert "not enabled" in result.stderr.lower()
 
+    def test_disable_main_x_pixi_preserves_main_channel(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Disabling main-x --pixi should preserve the main channel (not wipe all channels)."""
+        # Pre-configure both main and main-x channels (as enable would do)
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
+            env=pixi_feature_env,
+            check=True,
+        )
+        subprocess.run(
+            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Verify both channels are configured
+        initial_channels = get_pixi_channels(pixi_feature_env)
+        assert MAIN_CHANNEL in initial_channels
+        assert MAIN_X_CHANNEL in initial_channels
+
+        # Disable main-x
+        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Disable failed: {result.stderr}"
+
+        # Verify main-x was removed but main is preserved
+        final_channels = get_pixi_channels(pixi_feature_env)
+        assert MAIN_X_CHANNEL not in final_channels, "main-x should be removed"
+        assert MAIN_CHANNEL in final_channels, "main channel should be preserved"
+
+    def test_disable_main_x_pixi_preserves_other_channels(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Disabling main-x --pixi should preserve all other configured channels."""
+        # Pre-configure main, main-x, and conda-forge channels
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                "conda-forge",
+            ],
+            env=pixi_feature_env,
+            check=True,
+        )
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
+            env=pixi_feature_env,
+            check=True,
+        )
+        subprocess.run(
+            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Verify all channels are configured
+        initial_channels = get_pixi_channels(pixi_feature_env)
+        assert MAIN_CHANNEL in initial_channels
+        assert MAIN_X_CHANNEL in initial_channels
+        assert "conda-forge" in initial_channels
+
+        # Disable main-x
+        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Disable failed: {result.stderr}"
+
+        # Verify main-x was removed but others are preserved
+        final_channels = get_pixi_channels(pixi_feature_env)
+        assert MAIN_X_CHANNEL not in final_channels, "main-x should be removed"
+        assert MAIN_CHANNEL in final_channels, "main channel should be preserved"
+        assert "conda-forge" in final_channels, "conda-forge should be preserved"
+
 
 @requires_pixi
 @requires_api_key

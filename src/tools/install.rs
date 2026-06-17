@@ -12,7 +12,7 @@ use rattler::{
 use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
-use super::{pixi_config, tools};
+use super::{pixi_config, specs};
 use crate::context::CommandContext;
 use crate::paths;
 
@@ -28,7 +28,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     ctx.telemetry.add("tool_name", name.to_string());
 
     // Show experimental warning if applicable
-    if let Some(msg) = tools::experimental_message(name) {
+    if let Some(msg) = specs::experimental_message(name) {
         crate::ui::status::warn(msg);
         eprintln!();
     }
@@ -36,9 +36,9 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     let prefix = paths::tool_prefix(name);
 
     let lock_content =
-        tools::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+        specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
-    let binaries = tools::binaries(name).unwrap_or(Vec::new());
+    let binaries = specs::binaries(name).unwrap_or_default();
 
     eprintln!("Installing {} into {}", name, prefix.display());
 

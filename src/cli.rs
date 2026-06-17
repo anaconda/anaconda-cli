@@ -13,6 +13,7 @@ use crate::feature;
 use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
+use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
@@ -71,10 +72,8 @@ pub async fn execute() {
 
     let result = action.execute().await;
 
-    if !skip_telemetry_spawn {
-        if let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
-            tracing::debug!("Failed to spawn telemetry submitter: {}", e);
-        }
+    if !skip_telemetry_spawn && let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
+        tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
     if let Err(e) = result {
@@ -176,6 +175,7 @@ pub enum Action {
         pixi: bool,
     },
     FeatureList,
+    DownloadMiniconda,
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
@@ -224,6 +224,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::FeatureList => "feature.list",
+            Action::DownloadMiniconda => "tool.download.miniconda",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -256,10 +257,8 @@ impl Action {
             }
         }
 
-        if !is_telemetry_submit {
-            if let Err(e) = ctx.telemetry.flush_to_spool() {
-                tracing::debug!("Failed to spool telemetry: {}", e);
-            }
+        if !is_telemetry_submit && let Err(e) = ctx.telemetry.flush_to_spool() {
+            tracing::debug!("Failed to spool telemetry: {}", e);
         }
 
         result
@@ -498,6 +497,7 @@ impl Action {
                 feature::list::print_feature_list(ctx);
                 Ok(())
             }
+            Action::DownloadMiniconda => installer::run(ctx, None).await,
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
@@ -679,7 +679,7 @@ pub fn parse() -> (Action, LogLevel) {
 
     let cli = match Cli::from_arg_matches(&matches) {
         Ok(c) => c,
-        Err(e) => return handle_parse_error(e.into()),
+        Err(e) => return handle_parse_error(e),
     };
 
     let level: LogLevel = cli.verbose.into();
@@ -834,6 +834,17 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+            Some(ToolCommands::Download { name }) => match name.as_deref() {
+                None => Action::ShowSubcommandHelp("tool download".to_string()),
+                Some("miniconda") => Action::DownloadMiniconda,
+                Some(other) => {
+                    eprintln!(
+                        "error: only miniconda is currently supported (got '{}')",
+                        other
+                    );
+                    std::process::exit(1);
+                }
+            },
         },
         Some(Commands::Api { command }) => match command {
             None => Action::ShowSubcommandHelp("api".to_string()),
@@ -1294,6 +1305,12 @@ enum ToolCommands {
         /// Skip confirmation prompt
         #[arg(short = 'y', long = "yes")]
         force: bool,
+    },
+
+    /// Download an installer (currently miniconda only)
+    Download {
+        /// Installer to download [possible values: miniconda]
+        name: Option<String>,
     },
 }
 

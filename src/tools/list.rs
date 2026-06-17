@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use crate::paths;
 use crate::table::{self, Color};
 
-use super::tools;
+use super::specs;
 
 /// Information about a tool for display.
 pub struct ToolInfo {
@@ -17,12 +17,12 @@ pub struct ToolInfo {
 
 /// List all available tools with their installation status.
 pub fn list_tools() -> Vec<ToolInfo> {
-    tools::all_tools()
+    specs::all_tools()
         .iter()
         .map(|name| {
             let prefix = paths::tool_prefix(name);
             let installed = prefix.exists();
-            let binaries = tools::binaries(name).unwrap_or(Vec::new());
+            let binaries = specs::binaries(name).unwrap_or_default();
             ToolInfo {
                 name,
                 installed,

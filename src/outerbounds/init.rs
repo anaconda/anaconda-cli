@@ -114,14 +114,14 @@ fn write_template(
 
 /// Expand ~ to home directory in a path string
 fn expand_tilde(path: &str) -> std::path::PathBuf {
-    if let Some(rest) = path.strip_prefix("~/") {
-        if let Some(home) = dirs::home_dir() {
-            return home.join(rest);
-        }
-    } else if path == "~" {
-        if let Some(home) = dirs::home_dir() {
-            return home;
-        }
+    if let Some(rest) = path.strip_prefix("~/")
+        && let Some(home) = dirs::home_dir()
+    {
+        return home.join(rest);
+    } else if path == "~"
+        && let Some(home) = dirs::home_dir()
+    {
+        return home;
     }
     Path::new(path).to_path_buf()
 }

@@ -56,7 +56,7 @@ pub fn write_batch(events: Vec<TelemetryEvent>, version: &str) -> io::Result<Pat
 fn enforce_max_files(dir: &PathBuf, max_files: usize) -> io::Result<()> {
     let mut entries: Vec<_> = fs::read_dir(dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
         .collect();
 
     if entries.len() < max_files {
@@ -125,7 +125,7 @@ mod tests {
             let tmp_files: Vec<_> = fs::read_dir(&pending_dir)
                 .unwrap()
                 .filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().map_or(false, |ext| ext == "tmp"))
+                .filter(|e| e.path().extension().is_some_and(|ext| ext == "tmp"))
                 .collect();
 
             assert!(tmp_files.is_empty(), "No .tmp files should remain");
@@ -205,7 +205,7 @@ mod tests {
         let json_files: Vec<_> = fs::read_dir(&pending_dir)
             .unwrap()
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
             .collect();
         assert_eq!(json_files.len(), 1);
     }
@@ -238,7 +238,7 @@ mod tests {
                 },
                 TelemetryEvent::Histogram {
                     name: "histogram1".to_string(),
-                    value: 3.14,
+                    value: 3.125,
                     attributes: HashMap::new(),
                 },
             ];

@@ -11,6 +11,7 @@ mod fetch;
 mod help;
 mod http;
 mod input;
+mod installer;
 mod mcp;
 #[cfg(unix)]
 mod outerbounds;
@@ -51,6 +52,7 @@ async fn main() {
     prepare_runtime();
 
     let config = config::Config::load();
+    #[allow(clippy::let_unit_value)]
     let _diagnostics_guard = diagnostics::init(&config);
     cli::execute().await;
 

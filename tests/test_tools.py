@@ -12,7 +12,7 @@ IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
 
-class TestToolInstallHelp:
+class TestToolHelp:
     """Tests for tool command help."""
 
     def test_tool_help(self, run_ana: AnaRunner) -> None:
@@ -31,6 +31,17 @@ class TestToolInstallHelp:
         result = run_ana("tool", "install", "--help")
         assert result.returncode == 0
         assert "Install a tool" in result.stdout
+
+    def test_tool_download_subcommand_exists(self, run_ana: AnaRunner) -> None:
+        """Verify the download subcommand is present in the binary."""
+        result = run_ana("tool", "--help")
+        assert result.returncode == 0
+        assert "download" in result.stdout.lower()
+
+    def test_tool_download_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "download", "--help")
+        assert result.returncode == 0
+        assert "miniconda" in result.stdout.lower()
 
 
 class TestToolInstallPixi:

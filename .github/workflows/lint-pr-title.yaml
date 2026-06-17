@@ -39,6 +39,7 @@ jobs:
             ci
           scopes: |
             foobar # First scope is not working, dummy value
+            ci
             deps
           requireScope: false
           # Ensure subject is not empty And starts with an uppercase letter
