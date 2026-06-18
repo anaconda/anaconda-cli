@@ -7,6 +7,7 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
+use crate::channels::{self, ChannelsAction, ChannelsSubcommands};
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
@@ -14,7 +15,6 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
-use crate::channels::{self, ChannelsAction, ChannelsSubcommands};
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
