@@ -3,6 +3,7 @@
 use miette::{Diagnostic, ReportHandler};
 
 use crate::ui::styles::UiColor;
+use crate::utils::capitalize_first;
 
 /// Custom miette ReportHandler that formats errors in our CLI style.
 pub struct CliErrorHandler;
@@ -51,13 +52,5 @@ impl ReportHandler for CliErrorHandler {
         }
 
         Ok(())
-    }
-}
-
-fn capitalize_first(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
     }
 }

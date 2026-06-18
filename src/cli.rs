@@ -20,6 +20,7 @@ use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::ui::status;
 use crate::update;
+use crate::utils::capitalize_first;
 
 /// Log level for tracing output.
 #[derive(Debug, Clone, Copy, Default)]
@@ -769,14 +770,6 @@ fn print_clap_error(e: &clap::Error) {
         } else if !plain.is_empty() {
             eprintln!("{}", plain);
         }
-    }
-}
-
-fn capitalize_first(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
     }
 }
 
