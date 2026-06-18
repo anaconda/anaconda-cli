@@ -18,7 +18,7 @@ pub async fn api_fetch(
         ));
     }
 
-    auth::ensure_logged_in(ctx).await.into_diagnostic()?;
+    auth::ensure_logged_in(ctx).await?;
 
     let method_upper = method.to_uppercase();
     let mut request = match method_upper.as_str() {

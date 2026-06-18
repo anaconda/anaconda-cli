@@ -336,13 +336,13 @@ class TestArgumentErrors:
 
     def test_unknown_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("foobar")
-        assert result.returncode == 1
-        assert "Unknown command: foobar" in result.stderr
+        assert result.returncode == 2
+        assert "Unknown subcommand 'foobar'" in result.stderr
 
     def test_unknown_self_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "foobar")
-        assert result.returncode == 1
-        assert "Unknown self command: foobar" in result.stderr
+        assert result.returncode == 2
+        assert "Unknown subcommand 'foobar'" in result.stderr
 
 
 class TestHelpWithArguments:
