@@ -175,7 +175,9 @@ pub enum Action {
         pixi: bool,
     },
     FeatureList,
-    DownloadMiniconda,
+    ToolDownload {
+        name: String,
+    },
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
@@ -224,7 +226,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::FeatureList => "feature.list",
-            Action::DownloadMiniconda => "tool.download.miniconda",
+            Action::ToolDownload { .. } => "tool.download",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -497,7 +499,18 @@ impl Action {
                 feature::list::print_feature_list(ctx);
                 Ok(())
             }
-            Action::DownloadMiniconda => installer::run(ctx, None).await,
+            Action::ToolDownload { name } => {
+                // Record what the user actually typed so we can see demand for
+                // installers we don't support yet (e.g. "anaconda").
+                ctx.telemetry.add("installer_name", name.clone());
+                match name.as_str() {
+                    "miniconda" => installer::run(ctx, None).await,
+                    other => Err(miette!(
+                        "only miniconda is currently supported (got '{}')",
+                        other
+                    )),
+                }
+            }
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
@@ -834,16 +847,9 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
-            Some(ToolCommands::Download { name }) => match name.as_deref() {
+            Some(ToolCommands::Download { name }) => match name {
                 None => Action::ShowSubcommandHelp("tool download".to_string()),
-                Some("miniconda") => Action::DownloadMiniconda,
-                Some(other) => {
-                    eprintln!(
-                        "error: only miniconda is currently supported (got '{}')",
-                        other
-                    );
-                    std::process::exit(1);
-                }
+                Some(name) => Action::ToolDownload { name },
             },
         },
         Some(Commands::Api { command }) => match command {

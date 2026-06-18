@@ -77,9 +77,9 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
 
       - name: Set up ana with pixi
-        uses: ./.github/actions/setup-ana
+        uses: anaconda/actions/setup-anaconda-cli@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
         with:
-          ana-version: v0.1.6
+          version: v0.1.6
           tools: pixi
 
       - name: Run unit tests
