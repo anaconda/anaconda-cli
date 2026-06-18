@@ -1,16 +1,16 @@
 use clap::Subcommand;
 
-/// Result of resolving a Channels command.
-pub enum ChannelsAction {
+/// Result of resolving a Channel command.
+pub enum ChannelAction {
     /// Show help for a subcommand path
     #[allow(dead_code)]
     ShowHelp(String),
-    /// Run the anaconda channels command with args
+    /// Run the anaconda channel command with args
     Run(Vec<String>),
 }
 
 #[derive(Subcommand)]
-pub enum ChannelsSubcommands {
+pub enum ChannelSubcommands {
     /// Create a new channel
     Create {
         /// Channel name in format org/channel
@@ -52,11 +52,11 @@ pub enum ChannelsSubcommands {
     },
 }
 
-impl ChannelsSubcommands {
+impl ChannelSubcommands {
     /// Convert the command into an action.
-    pub fn into_action(self) -> ChannelsAction {
+    pub fn into_action(self) -> ChannelAction {
         match self {
-            ChannelsSubcommands::Create {
+            ChannelSubcommands::Create {
                 channel,
                 private,
                 public,
@@ -73,12 +73,12 @@ impl ChannelsSubcommands {
                     cmd_args.push("--authenticated".to_string());
                 }
                 cmd_args.push(channel);
-                ChannelsAction::Run(cmd_args)
+                ChannelAction::Run(cmd_args)
             }
-            ChannelsSubcommands::Remove { channel } => {
-                ChannelsAction::Run(vec!["remove".to_string(), channel])
+            ChannelSubcommands::Remove { channel } => {
+                ChannelAction::Run(vec!["remove".to_string(), channel])
             }
-            ChannelsSubcommands::Upload {
+            ChannelSubcommands::Upload {
                 channel,
                 no_progress,
                 files,
@@ -92,7 +92,7 @@ impl ChannelsSubcommands {
                     cmd_args.push("--no-progress".to_string());
                 }
                 cmd_args.extend(files);
-                ChannelsAction::Run(cmd_args)
+                ChannelAction::Run(cmd_args)
             }
         }
     }
@@ -104,14 +104,14 @@ mod tests {
 
     #[test]
     fn test_create_builds_args() {
-        let cmd = ChannelsSubcommands::Create {
+        let cmd = ChannelSubcommands::Create {
             channel: "org/channel".to_string(),
             private: true,
             public: false,
             authenticated: false,
         };
         match cmd.into_action() {
-            ChannelsAction::Run(args) => {
+            ChannelAction::Run(args) => {
                 assert_eq!(args, vec!["create", "--private", "org/channel"]);
             }
             _ => panic!("Expected Run action"),
@@ -120,11 +120,11 @@ mod tests {
 
     #[test]
     fn test_remove_builds_args() {
-        let cmd = ChannelsSubcommands::Remove {
+        let cmd = ChannelSubcommands::Remove {
             channel: "org/channel".to_string(),
         };
         match cmd.into_action() {
-            ChannelsAction::Run(args) => {
+            ChannelAction::Run(args) => {
                 assert_eq!(args, vec!["remove", "org/channel"]);
             }
             _ => panic!("Expected Run action"),
@@ -133,13 +133,13 @@ mod tests {
 
     #[test]
     fn test_upload_with_channel_builds_args() {
-        let cmd = ChannelsSubcommands::Upload {
+        let cmd = ChannelSubcommands::Upload {
             channel: Some("org/channel".to_string()),
             no_progress: false,
             files: vec!["package.tar.gz".to_string()],
         };
         match cmd.into_action() {
-            ChannelsAction::Run(args) => {
+            ChannelAction::Run(args) => {
                 assert_eq!(
                     args,
                     vec!["upload", "--channel", "org/channel", "package.tar.gz"]
@@ -151,13 +151,13 @@ mod tests {
 
     #[test]
     fn test_upload_with_no_progress_builds_args() {
-        let cmd = ChannelsSubcommands::Upload {
+        let cmd = ChannelSubcommands::Upload {
             channel: Some("org/channel".to_string()),
             no_progress: true,
             files: vec!["package.tar.gz".to_string()],
         };
         match cmd.into_action() {
-            ChannelsAction::Run(args) => {
+            ChannelAction::Run(args) => {
                 assert_eq!(
                     args,
                     vec![
@@ -175,13 +175,13 @@ mod tests {
 
     #[test]
     fn test_upload_without_channel_builds_args() {
-        let cmd = ChannelsSubcommands::Upload {
+        let cmd = ChannelSubcommands::Upload {
             channel: None,
             no_progress: false,
             files: vec!["package.tar.gz".to_string()],
         };
         match cmd.into_action() {
-            ChannelsAction::Run(args) => {
+            ChannelAction::Run(args) => {
                 assert_eq!(args, vec!["upload", "package.tar.gz"]);
             }
             _ => panic!("Expected Run action"),

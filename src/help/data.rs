@@ -29,7 +29,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     },
     HelpSection {
         name: "PACKAGES",
-        commands: &["channels"],
+        commands: &["channel"],
     },
     HelpSection {
         name: "ACCOUNT",

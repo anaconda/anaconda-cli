@@ -17,7 +17,7 @@ use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
-use crate::packages::{self, ChannelsAction, ChannelsSubcommands};
+use crate::packages::{self, ChannelAction, ChannelSubcommands};
 use crate::tools;
 use crate::ui::status;
 use crate::update;
@@ -132,7 +132,7 @@ pub enum Action {
     McpRun {
         args: Vec<String>,
     },
-    ChannelsRun {
+    ChannelRun {
         args: Vec<String>,
     },
     UserAgent {
@@ -200,7 +200,7 @@ impl Action {
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
-            Action::ChannelsRun { .. } => "channels",
+            Action::ChannelRun { .. } => "channel",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -286,7 +286,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            Action::ChannelsRun { args } => packages::run(ctx, &args).await,
+            Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -614,11 +614,11 @@ pub fn parse() -> (Action, LogLevel) {
                 McpAction::Run(args) => Action::McpRun { args },
             },
         },
-        Some(Commands::Channels { command }) => match command {
-            None => Action::ShowSubcommandHelp("channels".to_string()),
+        Some(Commands::Channel { command }) => match command {
+            None => Action::ShowSubcommandHelp("channel".to_string()),
             Some(cmd) => match cmd.into_action() {
-                ChannelsAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                ChannelsAction::Run(args) => Action::ChannelsRun { args },
+                ChannelAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                ChannelAction::Run(args) => Action::ChannelRun { args },
             },
         },
         #[cfg(unix)]
@@ -986,11 +986,11 @@ enum Commands {
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
-        override_usage = "ana channels <command> [options]"
+        override_usage = "ana channel <command> [options]"
     )]
-    Channels {
+    Channel {
         #[command(subcommand)]
-        command: Option<ChannelsSubcommands>,
+        command: Option<ChannelSubcommands>,
     },
 }
 
@@ -1480,22 +1480,22 @@ mod tests {
     }
 
     #[test]
-    fn test_channels_invalid_subcommand_fails() {
-        let result = Cli::try_parse_from(["ana", "channels", "invalid_command"]);
+    fn test_channel_invalid_subcommand_fails() {
+        let result = Cli::try_parse_from(["ana", "channel", "invalid_command"]);
         assert!(result.is_err());
     }
 
     #[test]
-    fn test_channels_create_invalid_flag_fails() {
+    fn test_channel_create_invalid_flag_fails() {
         let result =
-            Cli::try_parse_from(["ana", "channels", "create", "--invalid-flag", "org/channel"]);
+            Cli::try_parse_from(["ana", "channel", "create", "--invalid-flag", "org/channel"]);
         assert!(result.is_err());
     }
 
     #[test]
-    fn test_channels_upload_invalid_flag_fails() {
+    fn test_channel_upload_invalid_flag_fails() {
         let result =
-            Cli::try_parse_from(["ana", "channels", "upload", "--invalid-flag", "file.tar.gz"]);
+            Cli::try_parse_from(["ana", "channel", "upload", "--invalid-flag", "file.tar.gz"]);
         assert!(result.is_err());
     }
 

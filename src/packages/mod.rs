@@ -1,5 +1,5 @@
 mod commands;
 mod run;
 
-pub use commands::{ChannelsAction, ChannelsSubcommands};
+pub use commands::{ChannelAction, ChannelSubcommands};
 pub use run::run;
