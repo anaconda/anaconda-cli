@@ -135,6 +135,16 @@ class TestToolList:
         assert "pixi" in result.stdout
         assert "anaconda-cli" in result.stdout
 
+    def test_tool_list_shows_externally_managed_installers(
+        self, run_ana: AnaRunner
+    ) -> None:
+        """Test that tool list shows the externally managed installers table."""
+        result = run_ana("tool", "list")
+        assert result.returncode == 0
+        assert "Externally Managed Installers" in result.stdout
+        assert "miniconda" in result.stdout
+        assert "ana tool download miniconda" in result.stdout
+
     def test_tool_list_shows_installed_status(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
