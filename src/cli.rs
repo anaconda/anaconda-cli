@@ -1910,7 +1910,6 @@ mod tests {
         match Cli::try_parse_from(["ana", "feature", "notreal"]) {
             Ok(_) => panic!("should fail to parse"),
             Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
-
         }
     }
 
