@@ -474,10 +474,7 @@ pub async fn ensure_logged_in(ctx: &CommandContext) -> Result<(), AuthError> {
         return Ok(());
     }
 
-    status::warn(&format!(
-        "Not logged in to {}",
-        status::highlight(&ctx.config.domain)
-    ));
+    status::warn("Login required");
 
     if !crate::input::prompt_yes_no("Login now?", true) {
         return Err(AuthError::NotLoggedIn);
