@@ -14,10 +14,10 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
+use crate::channels::{self, ChannelsAction, ChannelsSubcommands};
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
-use crate::repo::{self, RepoAction, RepoCommands};
 use crate::tools;
 use crate::ui::status;
 use crate::update;
@@ -132,13 +132,7 @@ pub enum Action {
     McpRun {
         args: Vec<String>,
     },
-    RepoRun {
-        args: Vec<String>,
-    },
-    Upload {
-        args: Vec<String>,
-    },
-    Channels {
+    ChannelsRun {
         args: Vec<String>,
     },
     UserAgent {
@@ -206,9 +200,7 @@ impl Action {
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
-            Action::RepoRun { .. } => "repo",
-            Action::Upload { .. } => "upload",
-            Action::Channels { .. } => "channels",
+            Action::ChannelsRun { .. } => "channels",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -294,9 +286,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            Action::RepoRun { args } => repo::run(ctx, &args).await,
-            Action::Upload { args } => route_package_command(ctx, "upload", &args).await,
-            Action::Channels { args } => route_package_command(ctx, "channels", &args).await,
+            Action::ChannelsRun { args } => channels::run(ctx, &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
@@ -540,145 +530,6 @@ impl Action {
     }
 }
 
-fn is_create_command(args: &[String]) -> bool {
-    !args.is_empty() && args[0] == "create"
-}
-
-fn is_remove_command(args: &[String]) -> bool {
-    !args.is_empty() && args[0] == "remove"
-}
-
-async fn route_package_command(
-    ctx: &mut CommandContext,
-    command: &str,
-    args: &[String],
-) -> miette::Result<()> {
-    let channel_arg = extract_channel_arg(command, args);
-
-    match channel_arg {
-        Some(channel) if channel.matches('/').count() == 1 => {
-            let filtered_args = prepare_args_repo(command, args);
-            repo::run(ctx, &[vec![command.to_string()], filtered_args].concat()).await
-        }
-        Some(channel) if channel.contains('/') => Err(miette!(
-            "Invalid channel format '{}': only one '/' separator allowed",
-            channel
-        )),
-        _ => {
-            if command == "channels" {
-                let subcommand = if is_create_command(args) {
-                    Some("create")
-                } else if is_remove_command(args) {
-                    Some("remove")
-                } else {
-                    None
-                };
-                if let Some(cmd) = subcommand {
-                    return Err(miette!(
-                        "Must specify an organization and channel to {} a channel:\n  ana channels {} <org_name>/<channel_name>",
-                        cmd,
-                        cmd
-                    ));
-                }
-            }
-            let transformed_args = prepare_args_org(command, args);
-            Ok(
-                anaconda_cli::run_subcommand(ctx, command, &transformed_args)
-                    .map_err(|e| miette!("{}", e))?,
-            )
-        }
-    }
-}
-
-fn prepare_args_repo(command: &str, args: &[String]) -> Vec<String> {
-    let mut filtered = Vec::new();
-    let mut i = 0;
-
-    while i < args.len() {
-        let arg = &args[i];
-
-        match command {
-            "upload" => {
-                if arg == "--summary" || arg == "-s" {
-                    i += 1;
-                    if i < args.len() {
-                        i += 1;
-                    }
-                } else {
-                    filtered.push(arg.clone());
-                    i += 1;
-                }
-            }
-            _ => {
-                filtered.push(arg.clone());
-                i += 1;
-            }
-        }
-    }
-
-    filtered
-}
-
-fn prepare_args_org(command: &str, args: &[String]) -> Vec<String> {
-    let mut transformed = Vec::new();
-    let mut i = 0;
-
-    while i < args.len() {
-        let arg = &args[i];
-
-        match command {
-            "upload" => {
-                if arg == "-c" {
-                    transformed.push("-u".to_string());
-                    i += 1;
-                } else if arg == "--channel" {
-                    transformed.push("--user".to_string());
-                    i += 1;
-                } else {
-                    transformed.push(arg.clone());
-                    i += 1;
-                }
-            }
-            "remove" => {
-                transformed.push(arg.clone());
-                i += 1;
-            }
-            _ => {
-                transformed.push(arg.clone());
-                i += 1;
-            }
-        }
-    }
-
-    transformed
-}
-
-fn extract_channel_arg(command: &str, args: &[String]) -> Option<String> {
-    match command {
-        "channels" => {
-            if args.is_empty() {
-                return None;
-            }
-            match args[0].as_str() {
-                "create" | "remove" => args
-                    .iter()
-                    .find(|arg| arg.contains('/') && !arg.starts_with('-'))
-                    .cloned(),
-                _ => None,
-            }
-        }
-        "upload" => {
-            for (i, arg) in args.iter().enumerate() {
-                if (arg == "--channel" || arg == "-c") && i + 1 < args.len() {
-                    return Some(args[i + 1].clone());
-                }
-            }
-            None
-        }
-        _ => None,
-    }
-}
-
 /// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
 pub fn parse() -> (Action, LogLevel) {
@@ -763,59 +614,12 @@ pub fn parse() -> (Action, LogLevel) {
                 McpAction::Run(args) => Action::McpRun { args },
             },
         },
-        Some(Commands::Repo { command }) => match command {
-            None => Action::ShowSubcommandHelp("repo".to_string()),
-            Some(cmd) => match cmd.into_action() {
-                RepoAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                RepoAction::Run(args) => Action::RepoRun { args },
-            },
-        },
-        Some(Commands::Upload {
-            channel,
-            no_progress,
-            summary,
-            files,
-        }) => {
-            let mut args = Vec::new();
-            if let Some(c) = channel {
-                args.push("-c".to_string());
-                args.push(c);
-            }
-            if no_progress {
-                args.push("--no-progress".to_string());
-            }
-            args.extend(files);
-            if let Some(s) = summary {
-                args.push("--summary".to_string());
-                args.push(s);
-            }
-            Action::Upload { args }
-        }
         Some(Commands::Channels { command }) => match command {
             None => Action::ShowSubcommandHelp("channels".to_string()),
-            Some(ChannelsCommands::Create {
-                channel,
-                private,
-                public,
-                authenticated,
-            }) => {
-                let mut args = vec!["create".to_string()];
-                if private {
-                    args.push("--private".to_string());
-                }
-                if public {
-                    args.push("--public".to_string());
-                }
-                if authenticated {
-                    args.push("--authenticated".to_string());
-                }
-                args.push(channel.clone());
-                Action::Channels { args }
-            }
-            Some(ChannelsCommands::Remove { channel }) => {
-                let args = vec!["remove".to_string(), channel.clone()];
-                Action::Channels { args }
-            }
+            Some(cmd) => match cmd.into_action() {
+                ChannelsAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                ChannelsAction::Run(args) => Action::ChannelsRun { args },
+            },
         },
         #[cfg(unix)]
         Some(Commands::Ob { command }) => {
@@ -1120,17 +924,6 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Anaconda Client CLI
-    #[command(
-        subcommand_required = false,
-        arg_required_else_help = false,
-        override_usage = "ana repo <command> [options]"
-    )]
-    Repo {
-        #[command(subcommand)]
-        command: Option<RepoCommands>,
-    },
-
     /// Outerbounds platform CLI (experimental)
     #[cfg(unix)]
     #[command(
@@ -1189,26 +982,7 @@ enum Commands {
     #[command(hide = true)]
     TelemetryStatus,
 
-    /// Upload a package
-    #[command(override_usage = "ana upload [options] <file>")]
-    Upload {
-        /// Target channel
-        #[arg(short = 'c', long = "channel")]
-        channel: Option<String>,
-
-        /// Don't show upload progress
-        #[arg(long)]
-        no_progress: bool,
-
-        /// Package summary
-        #[arg(short = 's', long)]
-        summary: Option<String>,
-
-        /// Files to upload
-        files: Vec<String>,
-    },
-
-    /// Manage channels
+    /// Manage channels and packages
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
@@ -1216,38 +990,7 @@ enum Commands {
     )]
     Channels {
         #[command(subcommand)]
-        command: Option<ChannelsCommands>,
-    },
-}
-
-#[derive(Subcommand)]
-enum ChannelsCommands {
-    /// Create a new channel
-    #[command(group = clap::ArgGroup::new("privacy").required(false).multiple(false))]
-    Create {
-        /// Channel name
-        #[arg(required_unless_present = "help", default_value = "")]
-        channel: String,
-
-        /// Create a private channel
-        #[arg(long, group = "privacy")]
-        private: bool,
-
-        /// Create a public channel
-        #[arg(long, group = "privacy")]
-        public: bool,
-
-        /// Create an authenticated channel
-        #[arg(long, group = "privacy")]
-        authenticated: bool,
-    },
-
-    /// Remove a channel
-    #[command(override_usage = "ana channels remove <org>/<channel>")]
-    Remove {
-        /// Channel in format org/channel
-        #[arg(required_unless_present = "help", default_value = "")]
-        channel: String,
+        command: Option<ChannelsSubcommands>,
     },
 }
 
@@ -1447,7 +1190,6 @@ mod tests {
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
-            "repo",
             "config",
             "ob",
             "bootstrap",
@@ -1738,132 +1480,6 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_channel_arg_channels_create() {
-        let args = vec!["create".to_string(), "org/channel".to_string()];
-        let result = extract_channel_arg("channels", &args);
-        assert_eq!(result, Some("org/channel".to_string()));
-    }
-
-    #[test]
-    fn test_extract_channel_arg_channels_create_with_flags() {
-        let args = vec![
-            "create".to_string(),
-            "--private".to_string(),
-            "org/channel".to_string(),
-        ];
-        let result = extract_channel_arg("channels", &args);
-        assert_eq!(result, Some("org/channel".to_string()));
-    }
-
-    #[test]
-    fn test_extract_channel_arg_channels_remove() {
-        let args = vec!["remove".to_string(), "org/channel".to_string()];
-        let result = extract_channel_arg("channels", &args);
-        assert_eq!(result, Some("org/channel".to_string()));
-    }
-
-    #[test]
-    fn test_extract_channel_arg_upload_with_channel_flag() {
-        let args = vec![
-            "-c".to_string(),
-            "org/channel".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = extract_channel_arg("upload", &args);
-        assert_eq!(result, Some("org/channel".to_string()));
-    }
-
-    #[test]
-    fn test_extract_channel_arg_upload_with_channel_long_flag() {
-        let args = vec![
-            "--channel".to_string(),
-            "org/channel".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = extract_channel_arg("upload", &args);
-        assert_eq!(result, Some("org/channel".to_string()));
-    }
-
-    #[test]
-    fn test_extract_channel_arg_no_slash_returns_none() {
-        let args = vec!["create".to_string(), "channel".to_string()];
-        let result = extract_channel_arg("channels", &args);
-        assert_eq!(result, None);
-    }
-
-    #[test]
-    fn test_prepare_args_org_upload_channel_to_user() {
-        let args = vec![
-            "-c".to_string(),
-            "username".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = prepare_args_org("upload", &args);
-        assert_eq!(result, vec!["-u", "username", "file.tar.gz"]);
-    }
-
-    #[test]
-    fn test_prepare_args_org_upload_channel_long_to_user() {
-        let args = vec![
-            "--channel".to_string(),
-            "username".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = prepare_args_org("upload", &args);
-        assert_eq!(result, vec!["--user", "username", "file.tar.gz"]);
-    }
-
-    #[test]
-    fn test_prepare_args_repo_strips_summary() {
-        let args = vec![
-            "upload".to_string(),
-            "--summary".to_string(),
-            "test summary".to_string(),
-            "-c".to_string(),
-            "org/channel".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = prepare_args_repo("upload", &args);
-        assert_eq!(result, vec!["upload", "-c", "org/channel", "file.tar.gz"]);
-    }
-
-    #[test]
-    fn test_prepare_args_repo_strips_summary_short_flag() {
-        let args = vec![
-            "upload".to_string(),
-            "-s".to_string(),
-            "test summary".to_string(),
-            "-c".to_string(),
-            "org/channel".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = prepare_args_repo("upload", &args);
-        assert_eq!(result, vec!["upload", "-c", "org/channel", "file.tar.gz"]);
-    }
-
-    #[test]
-    fn test_prepare_args_repo_preserves_other_args() {
-        let args = vec![
-            "upload".to_string(),
-            "--no-progress".to_string(),
-            "-c".to_string(),
-            "org/channel".to_string(),
-            "file.tar.gz".to_string(),
-        ];
-        let result = prepare_args_repo("upload", &args);
-        assert_eq!(
-            result,
-            vec![
-                "upload",
-                "--no-progress",
-                "-c",
-                "org/channel",
-                "file.tar.gz"
-            ]
-        );
-    }
-
-    #[test]
     fn test_channels_invalid_subcommand_fails() {
         let result = Cli::try_parse_from(["ana", "channels", "invalid_command"]);
         assert!(result.is_err());
@@ -1882,35 +1498,12 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[tokio::test]
-    async fn test_channels_create_without_org_shows_error() {
-        let mut ctx = CommandContext::new();
-        let args = vec!["create".to_string(), "channel".to_string()];
-        let result = route_package_command(&mut ctx, "channels", &args).await;
-        assert!(result.is_err());
-        let err_msg = format!("{:?}", result.unwrap_err());
-        assert!(err_msg.contains("Must specify an organization and channel to create a channel"));
-        assert!(err_msg.contains("ana channels create <org_name>/<channel_name>"));
-    }
-
-    #[tokio::test]
-    async fn test_channels_remove_without_org_shows_error() {
-        let mut ctx = CommandContext::new();
-        let args = vec!["remove".to_string(), "channel".to_string()];
-        let result = route_package_command(&mut ctx, "channels", &args).await;
-        assert!(result.is_err());
-        let err_msg = format!("{:?}", result.unwrap_err());
-        assert!(err_msg.contains("Must specify an organization and channel to remove a channel"));
-        assert!(err_msg.contains("ana channels remove <org_name>/<channel_name>"));
-    }
-
     #[test]
     fn test_invalid_subcommand_error_kind() {
         // Verify clap returns InvalidSubcommand for unknown subcommands
         match Cli::try_parse_from(["ana", "feature", "notreal"]) {
             Ok(_) => panic!("should fail to parse"),
             Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
-
         }
     }
 
