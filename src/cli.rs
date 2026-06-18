@@ -7,6 +7,7 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
+use crate::channels::{self, ChannelsAction, ChannelsSubcommands};
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
