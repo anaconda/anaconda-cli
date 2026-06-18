@@ -1,6 +1,5 @@
 mod anaconda_cli;
 mod auth;
-mod channels;
 mod cli;
 mod config;
 mod context;
@@ -17,6 +16,7 @@ mod installer;
 mod mcp;
 #[cfg(unix)]
 mod outerbounds;
+mod packages;
 mod paths;
 mod qr;
 mod table;

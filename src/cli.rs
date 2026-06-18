@@ -14,10 +14,10 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
-use crate::channels::{self, ChannelsAction, ChannelsSubcommands};
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
+use crate::packages::{self, ChannelsAction, ChannelsSubcommands};
 use crate::tools;
 use crate::ui::status;
 use crate::update;
@@ -286,7 +286,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            Action::ChannelsRun { args } => channels::run(ctx, &args).await,
+            Action::ChannelsRun { args } => packages::run(ctx, &args).await,
             #[cfg(unix)]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(unix)]
