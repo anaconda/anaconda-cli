@@ -1493,8 +1493,9 @@ mod tests {
     }
 
     #[test]
-    fn test_upload_invalid_flag_fails() {
-        let result = Cli::try_parse_from(["ana", "upload", "--invalid-flag", "file.tar.gz"]);
+    fn test_channels_upload_invalid_flag_fails() {
+        let result =
+            Cli::try_parse_from(["ana", "channels", "upload", "--invalid-flag", "file.tar.gz"]);
         assert!(result.is_err());
     }
 
