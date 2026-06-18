@@ -932,6 +932,7 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return (Action::ShowVersion, LogLevel::Off);
     }
+
     print_clap_error(&e);
     std::process::exit(2);
 }
@@ -1737,7 +1738,6 @@ mod tests {
     }
 
     #[test]
-<<<<<<< HEAD
     fn test_extract_channel_arg_channels_create() {
         let args = vec!["create".to_string(), "org/channel".to_string()];
         let result = extract_channel_arg("channels", &args);
@@ -1905,35 +1905,21 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_top_level_command() {
-        let result = Cli::try_parse_from(["ana", "invalidcommand"]);
-        assert!(result.is_err());
-        if let Err(err) = result {
-            assert!(err.to_string().contains("unrecognized subcommand"));
-=======
     fn test_invalid_subcommand_error_kind() {
         // Verify clap returns InvalidSubcommand for unknown subcommands
         match Cli::try_parse_from(["ana", "feature", "notreal"]) {
             Ok(_) => panic!("should fail to parse"),
             Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
->>>>>>> df70813ad1a5bdcb8cc570456fca23861a29b22d
+
         }
     }
 
     #[test]
-<<<<<<< HEAD
-    fn test_unknown_channels_subcommand() {
-        let result = Cli::try_parse_from(["ana", "channels", "invalid"]);
-        assert!(result.is_err());
-        if let Err(err) = result {
-            assert!(err.to_string().contains("unrecognized subcommand"));
-=======
     fn test_invalid_top_level_command_error_kind() {
         // Verify clap returns InvalidSubcommand for unknown top-level commands too
         match Cli::try_parse_from(["ana", "notacommand"]) {
             Ok(_) => panic!("should fail to parse"),
             Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
->>>>>>> df70813ad1a5bdcb8cc570456fca23861a29b22d
         }
     }
 }
