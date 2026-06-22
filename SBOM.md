@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-19T02:42:52Z<br>
+Generated: 2026-06-22T19:21:31Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 458 (70 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 1 (1 INFO) across 1 package**
 
 ## Packages
 
@@ -185,12 +185,12 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [litemap](https://crates.io/crates/litemap) | 0.8.2 | Unicode-3.0 |  |  |
 | [litrs](https://crates.io/crates/litrs) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [lock\_api](https://crates.io/crates/lock_api) | 0.4.14 | MIT OR Apache-2.0 |  |  |
-| [log](https://crates.io/crates/log) | 0.4.32 | MIT OR Apache-2.0 |  |  |
+| [log](https://crates.io/crates/log) | 0.4.33 | MIT OR Apache-2.0 |  |  |
 | [mac\_address](https://crates.io/crates/mac_address) | 1.1.8 | MIT OR Apache-2.0 |  |  |
 | [matchers](https://crates.io/crates/matchers) | 0.2.0 | MIT |  |  |
 | [md-5](https://crates.io/crates/md-5) | 0.11.0 | MIT OR Apache-2.0 |  |  |
 | [memchr](https://crates.io/crates/memchr) | 2.8.2 | Unlicense OR MIT |  |  |
-| [memmap2](https://crates.io/crates/memmap2) | 0.9.10 | MIT OR Apache-2.0 |  |  |
+| [memmap2](https://crates.io/crates/memmap2) | 0.9.10 | MIT OR Apache-2.0 |  | 1 |
 | [memoffset](https://crates.io/crates/memoffset) | 0.9.1 | MIT | linux, macos |  |
 | [miette](https://crates.io/crates/miette) | 7.6.0 | Apache-2.0 |  |  |
 | [miette-derive](https://crates.io/crates/miette-derive) | 7.6.0 | Apache-2.0 |  |  |
@@ -468,6 +468,12 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd](https://crates.io/crates/zstd) | 0.13.3 | MIT |  |  |
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
+
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| memmap2 | 0.9.10 | [RUSTSEC-2026-0186](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) |  |  | INFO |
 
 ## License Summary
 
