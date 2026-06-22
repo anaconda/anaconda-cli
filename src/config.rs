@@ -1,15 +1,21 @@
 //! Global configuration for ana.
 //!
-//! Configuration is loaded from environment variables. In the future, this will
-//! also support reading from `~/.ana/config.toml`.
+//! Configuration is loaded from multiple sources with the following priority
+//! (highest to lowest):
+//!
+//! 1. **Environment variables** - `ANA_*` and `ANACONDA_AUTH_*` prefixed variables
+//! 2. **Dotenv file** - `.env` file in current working directory
+//! 3. **Config file** - `~/.anaconda/config.toml` `[plugin.auth]` table (or `ANACONDA_CONFIG_TOML`)
+//! 4. **Defaults** - Built-in default values
 //!
 //! # Environment Variables
 //!
 //! | Variable                         | Default                    | Description                     |
 //! |--------------------------------- |----------------------------|---------------------------------|
 //! | `ANA_DOMAIN`                     | `anaconda.com`             | Authentication domain           |
+//! | `ANA_AUTH_DOMAIN_OVERRIDE`       | (none)                     | Override auth domain for OIDC   |
 //! | `ANA_AUTH_CLIENT_ID`             | (Anaconda's ID)            | OAuth client ID                 |
-//! | `ANA_SSL_VERIFY`                 | `true`                     | SSL certificate verification    |
+//! | `ANA_SSL_VERIFY`                 | `true`                     | SSL verification: `true`, `false`, or path to CA cert |
 //! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser during login  |
 //! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint (authenticated) |
 //! | `ANA_METRICS_PUBLIC_ENDPOINT`    | (Anaconda public URL)      | OpenTelemetry metrics endpoint (unauthenticated) |
@@ -21,6 +27,13 @@
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
 //! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
 //! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
+//! | `ANACONDA_AUTH_AUTH_DOMAIN_OVERRIDE` | (none)                 | Override auth domain for OIDC   |
+//! | `ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE` | `anaconda-keyring`  | Token storage: "system" or "anaconda-keyring" |
+//! | `ANACONDA_AUTH_API_KEY`          | (none)                     | Static API key (bypasses OIDC)  |
+//! | `ANACONDA_AUTH_KEYRING`          | (none)                     | Injected keyring contents (JSON)|
+//! | `ANACONDA_AUTH_PROXY_SERVERS`    | (none)                     | Proxy config (JSON map)         |
+//! | `ANACONDA_AUTH_CLIENT_CERT`      | (none)                     | Client cert path for mTLS       |
+//! | `ANACONDA_AUTH_CLIENT_CERT_KEY`  | (none)                     | Client cert key path for mTLS   |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -32,13 +45,17 @@
 //! Boolean values are parsed as `false` for empty, "0", or "false" (case-insensitive),
 //! and `true` for any other value.
 
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-use figment::Figment;
 use figment::providers::{Env, Serialized};
+use figment::value::{Dict, Map, Value};
+use figment::{Error, Figment, Metadata, Profile, Provider};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::table;
+
+const DEFAULT_CONFIG_PATH: &str = ".anaconda/config.toml";
 
 /// Check if telemetry is enabled.
 pub fn telemetry_enabled() -> bool {
@@ -49,7 +66,43 @@ pub fn telemetry_enabled() -> bool {
 
 const DEFAULT_DOMAIN: &str = "anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
-const DEFAULT_SSL_VERIFY: bool = true;
+
+/// SSL verification setting.
+///
+/// Can be a boolean to enable/disable verification, or a path to a custom CA certificate.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum SslVerify {
+    /// Enable or disable SSL verification
+    Enabled(bool),
+    /// Path to a custom CA certificate file (PEM format)
+    CertPath(PathBuf),
+}
+
+impl Default for SslVerify {
+    fn default() -> Self {
+        SslVerify::Enabled(true)
+    }
+}
+
+impl SslVerify {
+    /// Returns true if SSL verification is enabled (not explicitly disabled).
+    ///
+    /// A cert path is considered "verified" since it adds a custom CA.
+    #[allow(dead_code)] // Will be used when http client is updated
+    pub fn is_verified(&self) -> bool {
+        !matches!(self, SslVerify::Enabled(false))
+    }
+
+    /// Returns the certificate path if one is configured.
+    #[allow(dead_code)] // Will be used when http client is updated
+    pub fn cert_path(&self) -> Option<&Path> {
+        match self {
+            SslVerify::CertPath(p) => Some(p),
+            SslVerify::Enabled(_) => None,
+        }
+    }
+}
 const DEFAULT_OPEN_BROWSER: bool = true;
 const DEFAULT_METRICS_ENDPOINT: &str = "https://metrics.aa.anaconda.com/v1/metrics";
 const DEFAULT_METRICS_PUBLIC_ENDPOINT: &str = "https://public.telemetry.anaconda.com/v1/metrics";
@@ -60,10 +113,127 @@ const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 const DEFAULT_PIP_INDEX_URL: &str = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
 const DEFAULT_SELF_UPDATE_URL: &str = "https://anaconda.sh";
+const DEFAULT_PREFERRED_TOKEN_STORAGE: &str = "anaconda-keyring";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_ENVIRONMENT: &str = "production";
+
+/// Provider that reads configuration from a .env file.
+///
+/// Supports both `ANA_*` and `ANACONDA_AUTH_*` prefixed variables.
+struct DotenvProvider;
+
+impl Provider for DotenvProvider {
+    fn metadata(&self) -> Metadata {
+        Metadata::named("dotenv file").source(".env")
+    }
+
+    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
+        let mut dict = Dict::new();
+
+        let Ok(iter) = dotenvy::dotenv_iter() else {
+            return Ok(Map::new());
+        };
+
+        for item in iter.flatten() {
+            let (key, value) = item;
+
+            if let Some(suffix) = key.strip_prefix("ANA_") {
+                let field = match suffix.to_lowercase().as_str() {
+                    "auth_client_id" => "client_id".to_string(),
+                    "prereleases" => "include_prereleases".to_string(),
+                    other => other.to_string(),
+                };
+                dict.insert(field, Value::from(value));
+            } else if let Some(suffix) = key.strip_prefix("ANACONDA_AUTH_") {
+                let field = suffix.to_lowercase();
+                dict.insert(field, Value::from(value));
+            }
+        }
+
+        Ok(Map::from([(Profile::Default, dict)]))
+    }
+}
+
+/// Provider that reads configuration from the Anaconda config TOML file.
+///
+/// Reads the `[plugin.auth]` table from `~/.anaconda/config.toml` or the path
+/// specified by `ANACONDA_CONFIG_TOML`.
+struct TomlConfigProvider {
+    path: PathBuf,
+}
+
+impl TomlConfigProvider {
+    fn new() -> Self {
+        let path = std::env::var("ANACONDA_CONFIG_TOML")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| crate::paths::home_dir().join(DEFAULT_CONFIG_PATH));
+        Self { path }
+    }
+}
+
+impl Provider for TomlConfigProvider {
+    fn metadata(&self) -> Metadata {
+        Metadata::named("config file").source(self.path.display().to_string())
+    }
+
+    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
+        if !self.path.is_file() {
+            return Ok(Map::new());
+        }
+
+        let contents = match std::fs::read_to_string(&self.path) {
+            Ok(c) => c,
+            Err(_) => return Ok(Map::new()),
+        };
+
+        let table: toml::Table = match contents.parse() {
+            Ok(t) => t,
+            Err(_) => return Ok(Map::new()),
+        };
+
+        let Some(plugin) = table.get("plugin").and_then(|v| v.as_table()) else {
+            return Ok(Map::new());
+        };
+
+        let Some(auth) = plugin.get("auth").and_then(|v| v.as_table()) else {
+            return Ok(Map::new());
+        };
+
+        let mut dict = Dict::new();
+        for (key, value) in auth {
+            let field = key.to_lowercase();
+            // api_key and keyring should only be set via environment variables
+            if field == "api_key" || field == "keyring" {
+                continue;
+            }
+            dict.insert(field, toml_to_figment_value(value));
+        }
+
+        Ok(Map::from([(Profile::Default, dict)]))
+    }
+}
+
+fn toml_to_figment_value(value: &toml::Value) -> Value {
+    match value {
+        toml::Value::String(s) => Value::from(s.clone()),
+        toml::Value::Integer(i) => Value::from(*i),
+        toml::Value::Float(f) => Value::from(*f),
+        toml::Value::Boolean(b) => Value::from(*b),
+        toml::Value::Array(arr) => {
+            Value::from(arr.iter().map(toml_to_figment_value).collect::<Vec<_>>())
+        }
+        toml::Value::Table(t) => {
+            let dict: Dict = t
+                .iter()
+                .map(|(k, v)| (k.clone(), toml_to_figment_value(v)))
+                .collect();
+            Value::from(dict)
+        }
+        toml::Value::Datetime(dt) => Value::from(dt.to_string()),
+    }
+}
 
 /// Global configuration for ana.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -72,12 +242,16 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_domain")]
     pub domain: String,
 
+    /// Override the authentication domain for OIDC discovery and token endpoints
+    #[serde(default, deserialize_with = "deserialize_optional_domain")]
+    pub auth_domain_override: Option<String>,
+
     /// OAuth client ID
     pub client_id: String,
 
-    /// Whether to verify SSL certificates
-    #[serde(deserialize_with = "deserialize_bool")]
-    pub ssl_verify: bool,
+    /// SSL verification: true/false to enable/disable, or path to custom CA cert
+    #[serde(deserialize_with = "deserialize_ssl_verify")]
+    pub ssl_verify: SslVerify,
 
     /// Whether to automatically open browser during login
     #[serde(deserialize_with = "deserialize_bool")]
@@ -118,6 +292,27 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_self_update_url")]
     pub self_update_url: Option<String>,
 
+    /// Where to store authentication tokens: "system" or "anaconda-keyring"
+    pub preferred_token_storage: String,
+
+    /// Static API key for authentication (bypasses OIDC flow when set)
+    #[serde(default, deserialize_with = "deserialize_optional_string")]
+    pub api_key: Option<String>,
+
+    /// Injected keyring contents (namespace -> domain -> encoded credential)
+    pub keyring: Option<HashMap<String, HashMap<String, String>>>,
+
+    /// Proxy server configuration (protocol -> proxy URL)
+    pub proxy_servers: Option<HashMap<String, String>>,
+
+    /// Path to client certificate for mutual TLS
+    #[serde(default, deserialize_with = "deserialize_optional_string")]
+    pub client_cert: Option<String>,
+
+    /// Path to private key for client certificate
+    #[serde(default, deserialize_with = "deserialize_optional_string")]
+    pub client_cert_key: Option<String>,
+
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
     #[serde(deserialize_with = "deserialize_bool")]
@@ -139,10 +334,23 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Load configuration from environment variables.
+    /// Load configuration from multiple sources.
+    ///
+    /// Sources are merged in priority order (lowest to highest):
+    /// 1. Defaults
+    /// 2. Config file (`~/.anaconda/config.toml` `[plugin.auth]`)
+    /// 3. Dotenv file (`.env` in cwd)
+    /// 4. Environment variables (`ANA_*` and `ANACONDA_AUTH_*`)
     pub fn load() -> Self {
         Figment::new()
+            // 4. Defaults (lowest priority)
             .merge(Serialized::defaults(Self::defaults()))
+            // 3. Config file
+            .merge(TomlConfigProvider::new())
+            // 2. Dotenv file
+            .merge(DotenvProvider)
+            // 1. Environment variables (highest priority: ANA_ overrides ANACONDA_AUTH_)
+            .merge(Env::prefixed("ANACONDA_AUTH_").map(|key| key.as_str().to_lowercase().into()))
             .merge(Env::prefixed("ANA_").map(|key| {
                 let k = key.as_str().to_lowercase();
                 match k.as_str() {
@@ -159,8 +367,9 @@ impl Config {
     fn defaults() -> Self {
         Self {
             domain: DEFAULT_DOMAIN.to_string(),
+            auth_domain_override: None,
             client_id: DEFAULT_CLIENT_ID.to_string(),
-            ssl_verify: DEFAULT_SSL_VERIFY,
+            ssl_verify: SslVerify::default(),
             open_browser: DEFAULT_OPEN_BROWSER,
             metrics_endpoint: DEFAULT_METRICS_ENDPOINT.to_string(),
             metrics_public_endpoint: DEFAULT_METRICS_PUBLIC_ENDPOINT.to_string(),
@@ -172,6 +381,12 @@ impl Config {
             include_prereleases: DEFAULT_INCLUDE_PRERELEASES,
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+            preferred_token_storage: DEFAULT_PREFERRED_TOKEN_STORAGE.to_string(),
+            api_key: None,
+            keyring: None,
+            proxy_servers: None,
+            client_cert: None,
+            client_cert_key: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: DEFAULT_SENTRY_DISABLED,
             #[cfg(feature = "diagnostics")]
@@ -189,9 +404,18 @@ impl Config {
         format!("{}://{}", self.protocol(), self.domain)
     }
 
+    /// Get the authentication domain (uses auth_domain_override if set, otherwise domain).
+    pub fn auth_domain(&self) -> &str {
+        self.auth_domain_override.as_deref().unwrap_or(&self.domain)
+    }
+
     /// Get the OpenID Connect well-known configuration URL.
     pub fn well_known_url(&self) -> String {
-        format!("{}/.well-known/openid-configuration", self.base_url())
+        format!(
+            "{}://{}/.well-known/openid-configuration",
+            self.protocol(),
+            self.auth_domain()
+        )
     }
 }
 
@@ -264,6 +488,59 @@ where
     deserializer.deserialize_any(BoolVisitor)
 }
 
+/// Custom deserializer for SslVerify that handles bool, string-bool, and paths.
+fn deserialize_ssl_verify<'de, D>(deserializer: D) -> Result<SslVerify, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct SslVerifyVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for SslVerifyVisitor {
+        type Value = SslVerify;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a boolean, string boolean, or path to CA certificate")
+        }
+
+        fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
+            Ok(SslVerify::Enabled(v))
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+            let trimmed = v.trim();
+            let lower = trimmed.to_lowercase();
+
+            // Check for boolean string patterns
+            if lower.is_empty() || lower == "0" || lower == "false" {
+                return Ok(SslVerify::Enabled(false));
+            }
+            if lower == "1" || lower == "true" {
+                return Ok(SslVerify::Enabled(true));
+            }
+
+            // Otherwise treat as a certificate path
+            Ok(SslVerify::CertPath(PathBuf::from(trimmed)))
+        }
+
+        fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            self.visit_str(&v)
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
+            Ok(SslVerify::Enabled(v != 0))
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
+            Ok(SslVerify::Enabled(v != 0))
+        }
+    }
+
+    deserializer.deserialize_any(SslVerifyVisitor)
+}
+
 /// Normalize a domain by stripping scheme (http://, https://) and path components.
 fn normalize_domain(domain: &str) -> String {
     let domain = domain.trim();
@@ -301,14 +578,40 @@ where
     }
 }
 
+/// Custom deserializer for optional strings that treats empty/whitespace as None.
+fn deserialize_optional_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    match value {
+        Some(s) if s.trim().is_empty() => Ok(None),
+        other => Ok(other),
+    }
+}
+
+/// Custom deserializer for optional domain that normalizes and treats empty as None.
+fn deserialize_optional_domain<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    match value {
+        Some(s) if s.trim().is_empty() => Ok(None),
+        Some(s) => Ok(Some(normalize_domain(&s))),
+        None => Ok(None),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     // Helper to create a config with specific values for testing
-    fn test_config(domain: &str, ssl_verify: bool, open_browser: bool) -> Config {
+    fn test_config(domain: &str, ssl_verify: SslVerify, open_browser: bool) -> Config {
         Config {
             domain: domain.to_string(),
+            auth_domain_override: None,
             client_id: DEFAULT_CLIENT_ID.to_string(),
             ssl_verify,
             open_browser,
@@ -322,6 +625,12 @@ mod tests {
             include_prereleases: false,
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+            preferred_token_storage: DEFAULT_PREFERRED_TOKEN_STORAGE.to_string(),
+            api_key: None,
+            keyring: None,
+            proxy_servers: None,
+            client_cert: None,
+            client_cert_key: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]
@@ -359,18 +668,18 @@ mod tests {
 
     #[test]
     fn test_default_values() {
-        let config = test_config("anaconda.com", true, true);
+        let config = test_config("anaconda.com", SslVerify::Enabled(true), true);
         assert_eq!(config.domain, "anaconda.com");
         assert_eq!(config.client_id, DEFAULT_CLIENT_ID);
-        assert!(config.ssl_verify);
+        assert_eq!(config.ssl_verify, SslVerify::Enabled(true));
         assert!(config.open_browser);
     }
 
     #[test]
     fn test_config_equality() {
-        let base_config = test_config("anaconda.com", true, true);
-        let same_config = test_config("anaconda.com", true, true);
-        let different_config = test_config("other.com", true, true);
+        let base_config = test_config("anaconda.com", SslVerify::Enabled(true), true);
+        let same_config = test_config("anaconda.com", SslVerify::Enabled(true), true);
+        let different_config = test_config("other.com", SslVerify::Enabled(true), true);
 
         assert_eq!(base_config, same_config);
         assert_ne!(base_config, different_config);
@@ -378,7 +687,7 @@ mod tests {
 
     #[test]
     fn test_config_clone() {
-        let base_config = test_config("anaconda.com", true, false);
+        let base_config = test_config("anaconda.com", SslVerify::Enabled(true), false);
         let cloned_config = base_config.clone();
 
         assert_eq!(base_config, cloned_config);
@@ -397,10 +706,19 @@ mod tests {
 
     #[test]
     fn test_config_default_is_load() {
-        let default_config = Config::default();
-        let loaded_config = Config::load();
-
-        assert_eq!(default_config, loaded_config);
+        // Clear any env vars that might affect the comparison
+        temp_env::with_vars(
+            [
+                ("ANACONDA_AUTH_AUTH_DOMAIN_OVERRIDE", None::<&str>),
+                ("ANACONDA_AUTH_API_KEY", None),
+                ("ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE", None),
+            ],
+            || {
+                let default_config = Config::default();
+                let loaded_config = Config::load();
+                assert_eq!(default_config, loaded_config);
+            },
+        );
     }
 
     #[test]
@@ -423,8 +741,44 @@ mod tests {
     fn test_config_load_ssl_verify_false_from_env() {
         temp_env::with_var("ANA_SSL_VERIFY", Some("false"), || {
             let config = Config::load();
-            assert!(!config.ssl_verify);
+            assert_eq!(config.ssl_verify, SslVerify::Enabled(false));
         });
+    }
+
+    #[test]
+    fn test_config_load_ssl_verify_true_from_env() {
+        temp_env::with_var("ANA_SSL_VERIFY", Some("true"), || {
+            let config = Config::load();
+            assert_eq!(config.ssl_verify, SslVerify::Enabled(true));
+        });
+    }
+
+    #[test]
+    fn test_config_load_ssl_verify_cert_path_from_env() {
+        temp_env::with_var("ANA_SSL_VERIFY", Some("/etc/ssl/custom-ca.pem"), || {
+            let config = Config::load();
+            assert_eq!(
+                config.ssl_verify,
+                SslVerify::CertPath(PathBuf::from("/etc/ssl/custom-ca.pem"))
+            );
+        });
+    }
+
+    #[test]
+    fn test_ssl_verify_is_verified() {
+        assert!(SslVerify::Enabled(true).is_verified());
+        assert!(!SslVerify::Enabled(false).is_verified());
+        assert!(SslVerify::CertPath(PathBuf::from("/path")).is_verified());
+    }
+
+    #[test]
+    fn test_ssl_verify_cert_path_accessor() {
+        assert_eq!(SslVerify::Enabled(true).cert_path(), None);
+        assert_eq!(SslVerify::Enabled(false).cert_path(), None);
+        assert_eq!(
+            SslVerify::CertPath(PathBuf::from("/path/to/cert.pem")).cert_path(),
+            Some(Path::new("/path/to/cert.pem"))
+        );
     }
 
     #[test]
@@ -467,13 +821,13 @@ mod tests {
 
     #[test]
     fn test_config_base_url_https() {
-        let config = test_config("example.com", true, true);
+        let config = test_config("example.com", SslVerify::Enabled(true), true);
         assert_eq!(config.base_url(), "https://example.com");
     }
 
     #[test]
     fn test_config_base_url_http() {
-        let mut config = test_config("example.com", true, true);
+        let mut config = test_config("example.com", SslVerify::Enabled(true), true);
         config.use_https = false;
         assert_eq!(config.base_url(), "http://example.com");
     }
@@ -618,5 +972,220 @@ mod tests {
             let config = Config::load();
             assert_eq!(config.domain, "stage.anaconda.com");
         });
+    }
+
+    #[test]
+    fn test_config_auth_domain_override_from_env() {
+        temp_env::with_var(
+            "ANACONDA_AUTH_AUTH_DOMAIN_OVERRIDE",
+            Some("sso.example.com"),
+            || {
+                let config = Config::load();
+                assert_eq!(
+                    config.auth_domain_override,
+                    Some("sso.example.com".to_string())
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_auth_domain_override_normalizes_domain() {
+        temp_env::with_var(
+            "ANACONDA_AUTH_AUTH_DOMAIN_OVERRIDE",
+            Some("https://sso.example.com/path"),
+            || {
+                let config = Config::load();
+                assert_eq!(
+                    config.auth_domain_override,
+                    Some("sso.example.com".to_string())
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_auth_domain_returns_override_when_set() {
+        let mut config = test_config("anaconda.com", SslVerify::Enabled(true), true);
+        config.auth_domain_override = Some("sso.example.com".to_string());
+        assert_eq!(config.auth_domain(), "sso.example.com");
+    }
+
+    #[test]
+    fn test_config_auth_domain_returns_domain_when_no_override() {
+        let config = test_config("anaconda.com", SslVerify::Enabled(true), true);
+        assert_eq!(config.auth_domain(), "anaconda.com");
+    }
+
+    #[test]
+    fn test_config_well_known_url_uses_auth_domain() {
+        let mut config = test_config("anaconda.com", SslVerify::Enabled(true), true);
+        config.auth_domain_override = Some("sso.example.com".to_string());
+        assert_eq!(
+            config.well_known_url(),
+            "https://sso.example.com/.well-known/openid-configuration"
+        );
+    }
+
+    #[test]
+    fn test_config_preferred_token_storage_from_env() {
+        temp_env::with_var(
+            "ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE",
+            Some("system"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.preferred_token_storage, "system");
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_default_preferred_token_storage() {
+        temp_env::with_var(
+            "ANACONDA_AUTH_PREFERRED_TOKEN_STORAGE",
+            None::<&str>,
+            || {
+                let config = Config::load();
+                assert_eq!(config.preferred_token_storage, "anaconda-keyring");
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_api_key_from_env() {
+        temp_env::with_var("ANACONDA_AUTH_API_KEY", Some("test-api-key"), || {
+            let config = Config::load();
+            assert_eq!(config.api_key, Some("test-api-key".to_string()));
+        });
+    }
+
+    #[test]
+    fn test_config_api_key_empty_is_none() {
+        temp_env::with_var("ANACONDA_AUTH_API_KEY", Some("  "), || {
+            let config = Config::load();
+            assert_eq!(config.api_key, None);
+        });
+    }
+
+    #[test]
+    fn test_config_default_proxy_servers_is_none() {
+        let config = Config::load();
+        assert!(config.proxy_servers.is_none());
+    }
+
+    #[test]
+    fn test_config_client_cert_from_env() {
+        temp_env::with_var(
+            "ANACONDA_AUTH_CLIENT_CERT",
+            Some("/path/to/cert.pem"),
+            || {
+                let config = Config::load();
+                assert_eq!(config.client_cert, Some("/path/to/cert.pem".to_string()));
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_reads_plugin_auth_table() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        std::fs::write(
+            &config_path,
+            r#"
+[plugin.auth]
+domain = "toml.example.com"
+"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some(config_path.to_str().unwrap()),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                let dict = data.get(&Profile::Default).unwrap();
+
+                assert_eq!(
+                    dict.get("domain").and_then(|v| v.as_str()),
+                    Some("toml.example.com")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_ignores_api_key_and_keyring() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        std::fs::write(
+            &config_path,
+            r#"
+[plugin.auth]
+api_key = "toml-api-key"
+keyring = { backend = "test" }
+domain = "toml.example.com"
+"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some(config_path.to_str().unwrap()),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                let dict = data.get(&Profile::Default).unwrap();
+
+                // api_key and keyring should be ignored from config file
+                assert!(dict.get("api_key").is_none());
+                assert!(dict.get("keyring").is_none());
+                // but other fields should still be read
+                assert_eq!(
+                    dict.get("domain").and_then(|v| v.as_str()),
+                    Some("toml.example.com")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_returns_empty_for_missing_file() {
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some("/nonexistent/config.toml"),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                assert!(data.is_empty() || data.get(&Profile::Default).unwrap().is_empty());
+            },
+        );
+    }
+
+    #[test]
+    fn test_toml_config_provider_ignores_missing_plugin_auth_section() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        std::fs::write(
+            &config_path,
+            r#"
+[some_other_section]
+key = "value"
+"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "ANACONDA_CONFIG_TOML",
+            Some(config_path.to_str().unwrap()),
+            || {
+                let provider = TomlConfigProvider::new();
+                let data = provider.data().unwrap();
+                assert!(data.is_empty() || data.get(&Profile::Default).unwrap().is_empty());
+            },
+        );
     }
 }

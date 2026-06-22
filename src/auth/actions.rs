@@ -502,6 +502,11 @@ pub async fn login(
     prompt_api_key: bool,
     force: bool,
 ) -> Result<(), AuthError> {
+    // Warn if user has configured system keyring (not yet supported in Rust)
+    if ctx.config.preferred_token_storage == "system" {
+        status::warn("System keyring is not yet supported. Using anaconda-keyring instead.");
+    }
+
     match api_key {
         Some(key) if key == "-" => {
             // Explicit stdin read: `ana login -`

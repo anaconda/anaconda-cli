@@ -72,8 +72,9 @@ mod tests {
     fn test_config(keyring_path: PathBuf, domain: &str) -> Config {
         Config {
             domain: domain.to_string(),
+            auth_domain_override: None,
             client_id: "test-client".to_string(),
-            ssl_verify: true,
+            ssl_verify: crate::config::SslVerify::Enabled(true),
             open_browser: false,
             keyring_path,
             use_https: true,
@@ -85,6 +86,12 @@ mod tests {
             include_prereleases: false,
             pip_index_url: "https://example.com/simple".to_string(),
             self_update_url: Some("https://example.com".to_string()),
+            preferred_token_storage: "anaconda-keyring".to_string(),
+            api_key: None,
+            keyring: None,
+            proxy_servers: None,
+            client_cert: None,
+            client_cert_key: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]
