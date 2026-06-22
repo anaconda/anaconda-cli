@@ -436,3 +436,118 @@ class TestBinaryFeatures:
                 f"Binary contains Sentry indicator '{indicator.decode()}' - "
                 "diagnostics feature should not be enabled by default"
             )
+
+
+class TestMcpSubcommands:
+    """Smoke tests for MCP subcommand wrappers.
+
+    These tests verify that our MCP command wrappers match commands that actually
+    exist in the upstream anaconda-mcp plugin. If an upstream command is removed,
+    these tests will fail, alerting us to update our wrappers.
+    """
+
+    def test_mcp_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp --help' shows available subcommands."""
+        result = run_ana("mcp", "--help")
+        assert result.returncode == 0
+        assert "Usage: ana mcp" in result.stdout
+        assert "COMMANDS" in result.stdout
+
+    def test_mcp_serve_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp serve --help' works."""
+        result = run_ana("mcp", "serve", "--help")
+        assert result.returncode == 0
+        assert "serve" in result.stdout.lower()
+
+    def test_mcp_clients_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp clients --help' works."""
+        result = run_ana("mcp", "clients", "--help")
+        assert result.returncode == 0
+        assert "clients" in result.stdout.lower()
+
+    def test_mcp_setup_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp setup --help' works."""
+        result = run_ana("mcp", "setup", "--help")
+        assert result.returncode == 0
+        assert "setup" in result.stdout.lower()
+
+    def test_mcp_remove_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp remove --help' works."""
+        result = run_ana("mcp", "remove", "--help")
+        assert result.returncode == 0
+        assert "remove" in result.stdout.lower()
+
+    def test_mcp_terms_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms --help' works."""
+        result = run_ana("mcp", "terms", "--help")
+        assert result.returncode == 0
+        assert "terms" in result.stdout.lower()
+
+    def test_mcp_wrappers_exist_upstream(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Verify that ana mcp subcommands exist in upstream anaconda mcp.
+
+        This test ensures our wrappers aren't stale - if upstream removes a
+        command, running it via ana will fail with "No such command" and this
+        test will catch it.
+        """
+        # First ensure anaconda-cli is installed
+        run_ana("bootstrap")
+
+        # Get ana's mcp subcommands from help output
+        ana_result = run_ana("mcp", "--help")
+        assert ana_result.returncode == 0
+
+        # Parse subcommands from ana help (format: "  command  Description")
+        ana_commands = []
+        in_commands = False
+        for line in ana_result.stdout.splitlines():
+            stripped = line.strip()
+            if stripped == "COMMANDS":
+                in_commands = True
+                continue
+            if in_commands:
+                # Stop at next section (OPTIONS, etc.) or empty line
+                if not stripped or stripped.isupper() or stripped.startswith("-"):
+                    in_commands = False
+                    continue
+                # Extract command name (first word)
+                parts = stripped.split()
+                if parts:
+                    ana_commands.append(parts[0])
+
+        assert ana_commands, "No mcp subcommands found in ana help output"
+
+        # Verify each wrapped command exists upstream by running it with --help
+        # Note: some commands may fail due to auth requirements, but they should
+        # not fail with "No such command" which indicates the command doesn't exist
+        anaconda_bin = (
+            fake_home / ".ana" / "tools" / "anaconda-cli" / "bin" / "anaconda"
+        )
+        if not anaconda_bin.exists():
+            # Windows path
+            anaconda_bin = (
+                fake_home
+                / ".ana"
+                / "tools"
+                / "anaconda-cli"
+                / "Scripts"
+                / "anaconda.exe"
+            )
+
+        stale_commands = []
+        for cmd in ana_commands:
+            result = subprocess.run(
+                [str(anaconda_bin), "mcp", cmd, "--help"],
+                capture_output=True,
+                text=True,
+            )
+            # Check if the command doesn't exist (vs failing for other reasons like auth)
+            if "No such command" in result.stderr:
+                stale_commands.append(cmd)
+
+        assert not stale_commands, (
+            f"ana mcp has wrappers for commands that don't exist upstream: {stale_commands}. "
+            "Remove them from src/mcp/commands.rs"
+        )
