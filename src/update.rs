@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 
 use crate::context::CommandContext;
 use crate::errors::UpdateError;
+use crate::ui::progress::build_progress_bar;
 
 // GitHub repository for releases (used when ANA_SELF_UPDATE_URL=github)
 const GITHUB_REPO: &str = "anaconda/ana-cli";
@@ -107,20 +107,7 @@ async fn download_and_replace(ctx: &CommandContext, asset: &Asset) -> Result<(),
     eprintln!("  Downloading {} ({:.1} MB)", asset.name, total_mb);
     eprintln!("  {}", UiColor::Dim.apply_to(&asset.url));
 
-    let pb = ProgressBar::new(total_size);
-    let dim = UiColor::Dim.hex();
-    let dim_suffix = UiColor::Dim.apply_to("% |").to_string();
-    let template = format!(
-        "  {{bar:34.{}/{dim}}} {{percent:>2.{dim}}}{dim_suffix} {{elapsed:.{dim}}}",
-        UiColor::Green.hex(),
-    );
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template(&template)
-            .unwrap()
-            .progress_chars("━━─"),
-    );
-    pb.enable_steady_tick(std::time::Duration::from_millis(100));
+    let pb = build_progress_bar(total_size);
 
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(&asset.name);

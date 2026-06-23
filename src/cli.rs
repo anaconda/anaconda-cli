@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
-use miette::{IntoDiagnostic, miette};
+use miette::miette;
 
 use crate::VERSION;
 use crate::anaconda_cli;
@@ -13,11 +13,14 @@ use crate::feature;
 use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
+use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
+use crate::ui::status;
 use crate::update;
+use crate::utils::capitalize_first;
 
 /// Log level for tracing output.
 #[derive(Debug, Clone, Copy, Default)]
@@ -76,7 +79,7 @@ pub async fn execute() {
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("Error: {:?}", e);
+        eprintln!("{:?}", e);
         std::process::exit(1);
     }
 }
@@ -165,6 +168,9 @@ pub enum Action {
         pixi: bool,
     },
     FeatureList,
+    ToolDownload {
+        name: String,
+    },
     TelemetrySubmit,
     TelemetryKill,
     TelemetryStatus,
@@ -211,6 +217,7 @@ impl Action {
                 _ => "feature.disable.unknown",
             },
             Action::FeatureList => "feature.list",
+            Action::ToolDownload { .. } => "tool.download",
             Action::TelemetrySubmit => "telemetry-submit",
             Action::TelemetryKill => "telemetry-kill",
             Action::TelemetryStatus => "telemetry-status",
@@ -305,12 +312,10 @@ impl Action {
                 api_key,
                 prompt_api_key,
                 force,
-            } => Ok(auth::login(ctx, api_key, prompt_api_key, force)
-                .await
-                .into_diagnostic()?),
-            Action::Logout => Ok(auth::logout(ctx).into_diagnostic()?),
-            Action::ShowApiKey => Ok(auth::show_api_key(ctx).into_diagnostic()?),
-            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await.into_diagnostic()?),
+            } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
+            Action::Logout => Ok(auth::logout(ctx)?),
+            Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
+            Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
@@ -487,6 +492,18 @@ impl Action {
                 feature::list::print_feature_list(ctx);
                 Ok(())
             }
+            Action::ToolDownload { name } => {
+                // Record what the user actually typed so we can see demand for
+                // installers we don't support yet (e.g. "anaconda").
+                ctx.telemetry.add("installer_name", name.clone());
+                match name.as_str() {
+                    "miniconda" => installer::run(ctx, None).await,
+                    other => Err(miette!(
+                        "only miniconda is currently supported (got '{}')",
+                        other
+                    )),
+                }
+            }
             Action::TelemetrySubmit => {
                 crate::telemetry::submit_pending().map_err(|e| miette!("{}", e))?;
                 Ok(())
@@ -631,6 +648,10 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
             Some(ToolCommands::Update) => Action::ToolUpdate,
+            Some(ToolCommands::Download { name }) => match name {
+                None => Action::ShowSubcommandHelp("tool download".to_string()),
+                Some(name) => Action::ToolDownload { name },
+            },
         },
         Some(Commands::Api { command }) => match command {
             None => Action::ShowSubcommandHelp("api".to_string()),
@@ -713,24 +734,53 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
         return (Action::ShowVersion, LogLevel::Off);
     }
 
-    // Handle unknown subcommand errors with custom format
-    let err_str = e.to_string();
-    if err_str.contains("unrecognized subcommand") {
-        let args: Vec<String> = std::env::args().collect();
-        if args.len() > 1 && args[1] == "self" {
-            if args.len() > 2 {
-                tracing::error!("Unknown self command: {}", args[2]);
-                eprintln!("Unknown self command: {}", args[2]);
-            }
-        } else if args.len() > 1 {
-            tracing::error!("Unknown command: {}", args[1]);
-            eprintln!("Unknown command: {}", args[1]);
-        }
-        std::process::exit(1);
-    }
+    print_clap_error(&e);
+    std::process::exit(2);
+}
 
-    // For other errors, use clap's error handling
-    e.exit();
+/// Print a clap error using our CLI styling conventions.
+fn print_clap_error(e: &clap::Error) {
+    use crate::ui::styles::UiColor;
+
+    let is_invalid_subcommand = e.kind() == clap::error::ErrorKind::InvalidSubcommand;
+
+    // Get the plain text error (strip ANSI codes)
+    let rendered = e.render().ansi().to_string();
+
+    for line in rendered.lines() {
+        // Strip ANSI escape codes for matching and display
+        let plain = console::strip_ansi_codes(line);
+
+        if plain.starts_with("error:") {
+            let msg = plain.trim_start_matches("error:").trim();
+            if is_invalid_subcommand {
+                // Format: ✗ Error: Unknown subcommand '<name>'
+                if let Some(name) = msg.strip_prefix("unrecognized subcommand") {
+                    eprintln!(
+                        "{} Unknown subcommand {}",
+                        UiColor::Red.apply_to("✗ Error:"),
+                        name.trim()
+                    );
+                } else {
+                    eprintln!("{} {}", UiColor::Red.apply_to("✗ Error:"), msg);
+                }
+            } else {
+                // Capitalize first letter of message
+                let msg = capitalize_first(msg);
+                eprintln!("{} {}", UiColor::Red.apply_to("✗ Error:"), msg);
+            }
+        } else if plain.trim().starts_with("tip:") {
+            // Skip tips for unrecognized subcommands - clap's string-based suggestions
+            // are often misleading (e.g., suggesting 'disable' when user meant 'enable')
+            if !is_invalid_subcommand {
+                status::tip(plain.trim().trim_start_matches("tip:").trim());
+            }
+        } else if plain.starts_with("Usage:") {
+            // Skip usage line - not helpful in error context
+        } else if !plain.is_empty() {
+            eprintln!("{}", plain);
+        }
+    }
 }
 
 /// Get subcommand names and descriptions from clap for help introspection.
@@ -1017,6 +1067,12 @@ enum ToolCommands {
 
     /// Update all installed tools
     Update,
+
+    /// Download an installer (currently miniconda only)
+    Download {
+        /// Installer to download [possible values: miniconda]
+        name: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1410,5 +1466,23 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "--help"]).unwrap();
         assert!(cli.help);
         assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn test_invalid_subcommand_error_kind() {
+        // Verify clap returns InvalidSubcommand for unknown subcommands
+        match Cli::try_parse_from(["ana", "feature", "notreal"]) {
+            Ok(_) => panic!("should fail to parse"),
+            Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
+        }
+    }
+
+    #[test]
+    fn test_invalid_top_level_command_error_kind() {
+        // Verify clap returns InvalidSubcommand for unknown top-level commands too
+        match Cli::try_parse_from(["ana", "notacommand"]) {
+            Ok(_) => panic!("should fail to parse"),
+            Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
+        }
     }
 }

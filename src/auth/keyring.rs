@@ -21,22 +21,36 @@ const CREDENTIAL_VERSION: u32 = 2;
 /// Top-level keyring structure.
 type Keyring = HashMap<String, HashMap<String, String>>;
 
+/// Repo token stored in the keyring.
+/// Compatible with anaconda-auth's RepoToken model.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct RepoToken {
+    token: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    org_name: Option<String>,
+}
+
 /// Credential stored in the keyring (before base64 encoding).
+/// Compatible with anaconda-auth's TokenInfo model.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Credential {
     domain: String,
     api_key: String,
-    repo_tokens: Vec<String>,
+    #[serde(default)]
+    repo_tokens: Vec<RepoToken>,
     version: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    username: Option<String>,
 }
 
-/// Save an API key and optional user_id to the keyring file.
+/// Save an API key and optional user info to the keyring file.
 pub(crate) fn save_credential(
     config: &Config,
     api_key: &str,
     user_id: Option<&str>,
+    username: Option<&str>,
 ) -> Result<(), AuthError> {
     let path = &config.keyring_path;
 
@@ -57,6 +71,7 @@ pub(crate) fn save_credential(
         repo_tokens: vec![],
         version: CREDENTIAL_VERSION,
         user_id: user_id.map(|s| s.to_string()),
+        username: username.map(|s| s.to_string()),
     };
     let credential_json =
         serde_json::to_string(&credential).map_err(|e| AuthError::Keyring(e.to_string()))?;
@@ -237,9 +252,9 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    /// Test helper to save an API key without user_id.
+    /// Test helper to save an API key without user_id or username.
     fn save_api_key(config: &Config, api_key: &str) -> Result<(), AuthError> {
-        save_credential(config, api_key, None)
+        save_credential(config, api_key, None, None)
     }
 
     fn test_config_with_keyring(path: PathBuf, domain: &str) -> Config {
@@ -411,6 +426,7 @@ mod tests {
             repo_tokens: vec![],
             version: 2,
             user_id: Some("user-123".to_string()),
+            username: None,
         };
 
         let json = serde_json::to_string(&credential).unwrap();
@@ -431,20 +447,162 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_none_user_id_not_serialized() {
-        // Verify that None user_id is omitted from JSON (not serialized as null)
+    fn test_credential_username_variations() {
+        // Test various username values that might appear in anaconda-auth credentials
+
+        // Explicit null should parse as None
+        let json_null = r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2,"username":null}"#;
+        let cred: Credential = serde_json::from_str(json_null).unwrap();
+        assert_eq!(cred.username, None);
+
+        // Missing username should parse as None
+        let json_missing =
+            r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2}"#;
+        let cred: Credential = serde_json::from_str(json_missing).unwrap();
+        assert_eq!(cred.username, None);
+
+        // Normal username
+        let json_normal = r#"{"domain":"test.com","api_key":"ak-123","repo_tokens":[],"version":2,"username":"alice"}"#;
+        let cred: Credential = serde_json::from_str(json_normal).unwrap();
+        assert_eq!(cred.username, Some("alice".to_string()));
+    }
+
+    #[test]
+    fn test_parse_anaconda_auth_credential_format() {
+        // Test compatibility with anaconda-auth's TokenInfo format.
+        // anaconda-auth uses `username` while ana-cli uses `user_id`.
+        // repo_tokens are objects with `token` and `org_name` fields.
+        let json = r#"{
+            "domain": "anaconda.com",
+            "api_key": "ak-xyz",
+            "username": "testuser",
+            "repo_tokens": [
+                {"token": "rt-token-1", "org_name": "myorg"},
+                {"token": "rt-token-2", "org_name": null}
+            ],
+            "version": 2
+        }"#;
+
+        let credential: Credential = serde_json::from_str(json).unwrap();
+
+        assert_eq!(credential.domain, "anaconda.com");
+        assert_eq!(credential.api_key, "ak-xyz");
+        assert_eq!(credential.user_id, None);
+        assert_eq!(credential.username, Some("testuser".to_string()));
+        assert_eq!(credential.repo_tokens.len(), 2);
+        assert_eq!(credential.repo_tokens[0].token, "rt-token-1");
+        assert_eq!(
+            credential.repo_tokens[0].org_name,
+            Some("myorg".to_string())
+        );
+        assert_eq!(credential.repo_tokens[1].token, "rt-token-2");
+        assert_eq!(credential.repo_tokens[1].org_name, None);
+    }
+
+    #[test]
+    fn test_get_user_id_ignores_username() {
+        let dir = tempfile::tempdir().unwrap();
+        let keyring_path = dir.path().join("keyring");
+        let config = test_config_with_keyring(keyring_path.clone(), "test.com");
+
+        // Simulate an anaconda-auth credential with only `username` set
         let credential = Credential {
             domain: "test.com".to_string(),
             api_key: "ak-123".to_string(),
             repo_tokens: vec![],
             version: 2,
             user_id: None,
+            username: Some("testuser".to_string()),
+        };
+        let credential_json = serde_json::to_string(&credential).unwrap();
+        let encoded = BASE64_STANDARD.encode(credential_json);
+
+        let mut keyring: Keyring = HashMap::new();
+        keyring
+            .entry(KEYRING_KEY.to_string())
+            .or_default()
+            .insert("test.com".to_string(), encoded);
+
+        let keyring_json = serde_json::to_string(&keyring).unwrap();
+        fs::write(&keyring_path, keyring_json).unwrap();
+
+        // get_user_id should return None when only username is set
+        assert_eq!(get_user_id(&config).unwrap(), None);
+    }
+
+    #[test]
+    fn test_get_user_id_returns_user_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let keyring_path = dir.path().join("keyring");
+        let config = test_config_with_keyring(keyring_path.clone(), "test.com");
+
+        // Credential with user_id set
+        let credential = Credential {
+            domain: "test.com".to_string(),
+            api_key: "ak-123".to_string(),
+            repo_tokens: vec![],
+            version: 2,
+            user_id: Some("user-123".to_string()),
+            username: Some("testuser".to_string()),
+        };
+        let credential_json = serde_json::to_string(&credential).unwrap();
+        let encoded = BASE64_STANDARD.encode(credential_json);
+
+        let mut keyring: Keyring = HashMap::new();
+        keyring
+            .entry(KEYRING_KEY.to_string())
+            .or_default()
+            .insert("test.com".to_string(), encoded);
+
+        let keyring_json = serde_json::to_string(&keyring).unwrap();
+        fs::write(&keyring_path, keyring_json).unwrap();
+
+        // get_user_id should return user_id
+        assert_eq!(get_user_id(&config).unwrap(), Some("user-123".to_string()));
+    }
+
+    #[test]
+    fn test_repo_token_serialization() {
+        let token = RepoToken {
+            token: "rt-123".to_string(),
+            org_name: Some("myorg".to_string()),
+        };
+
+        let json = serde_json::to_string(&token).unwrap();
+        let parsed: RepoToken = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(token, parsed);
+    }
+
+    #[test]
+    fn test_repo_token_without_org_name() {
+        let json = r#"{"token": "rt-456"}"#;
+        let token: RepoToken = serde_json::from_str(json).unwrap();
+
+        assert_eq!(token.token, "rt-456");
+        assert_eq!(token.org_name, None);
+    }
+
+    #[test]
+    fn test_credential_none_user_id_not_serialized() {
+        // Verify that None user_id/username are omitted from JSON (not serialized as null)
+        let credential = Credential {
+            domain: "test.com".to_string(),
+            api_key: "ak-123".to_string(),
+            repo_tokens: vec![],
+            version: 2,
+            user_id: None,
+            username: None,
         };
 
         let json = serde_json::to_string(&credential).unwrap();
         assert!(
             !json.contains("user_id"),
             "user_id should not appear in JSON when None"
+        );
+        assert!(
+            !json.contains("username"),
+            "username should not appear in JSON when None"
         );
     }
 
@@ -455,7 +613,7 @@ mod tests {
         let config = test_config_with_keyring(keyring_path, "test.com");
 
         // Save credential with user_id
-        save_credential(&config, "test-api-key", Some("user-456")).unwrap();
+        save_credential(&config, "test-api-key", Some("user-456"), None).unwrap();
 
         // Retrieve user_id
         assert_eq!(get_user_id(&config).unwrap(), Some("user-456".to_string()));
@@ -467,8 +625,8 @@ mod tests {
         let keyring_path = dir.path().join("keyring");
         let config = test_config_with_keyring(keyring_path, "test.com");
 
-        // Save credential without user_id
-        save_credential(&config, "test-api-key", None).unwrap();
+        // Save credential without user_id or username
+        save_credential(&config, "test-api-key", None, None).unwrap();
 
         // user_id should be None
         assert_eq!(get_user_id(&config).unwrap(), None);

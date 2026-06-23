@@ -36,7 +36,7 @@ pub enum AuthError {
     #[error("Not logged in")]
     #[diagnostic(
         code(ana::auth::not_logged_in),
-        help("Run `ana login` to authenticate")
+        help("You can log in at any time by running 'ana login'")
     )]
     NotLoggedIn,
 }
