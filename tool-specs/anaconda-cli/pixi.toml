@@ -12,6 +12,6 @@ anaconda-ai = "==0.6.0"
 # renovate: datasource=conda depName=main/anaconda-client
 anaconda-client = "==1.14.1"
 # renovate: datasource=conda depName=main/anaconda-cli-base
-anaconda-cli-base = "==0.8.2"
+anaconda-cli-base = "==0.9.1"
 # renovate: datasource=conda depName=main/anaconda-mcp
 anaconda-mcp = "==1.1.1"
