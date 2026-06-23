@@ -33,15 +33,28 @@ pub fn installed_tools() -> Vec<&'static str> {
 
 /// Update all installed tools that have outdated lockfiles.
 ///
+/// Only updates tools where auto-update is enabled. The global config setting
+/// `auto_update_tools` overrides individual tool defaults when set.
+///
 /// Returns the names of tools that were updated.
 pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
     let mut updated = Vec::new();
     for name in installed_tools() {
-        if ensure_tool(ctx, name).await? {
+        if should_auto_update(ctx, name) && ensure_tool(ctx, name).await? {
             updated.push(name.to_string());
         }
     }
     Ok(updated)
+}
+
+/// Check if a tool should be auto-updated.
+///
+/// If `auto_update_tools` is set in config, use that value for all tools.
+/// Otherwise, defer to each tool's default setting.
+fn should_auto_update(ctx: &CommandContext, name: &str) -> bool {
+    ctx.config
+        .auto_update_tools
+        .unwrap_or_else(|| specs::auto_update_default(name))
 }
 
 /// Ensure a managed tool is installed and up-to-date.
