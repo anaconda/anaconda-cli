@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-17T15:36:46Z<br>
+Generated: 2026-06-22T19:21:31Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 457 (70 platform-specific)<br>
+Packages: 458 (70 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 1 (1 INFO) across 1 package**
 
 ## Packages
 
@@ -140,6 +140,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [hex](https://crates.io/crates/hex) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [hostname](https://crates.io/crates/hostname) | 0.4.2 | MIT |  |  |
 | [http](https://crates.io/crates/http) | 1.4.2 | MIT OR Apache-2.0 |  |  |
+| [http-auth](https://crates.io/crates/http-auth) | 0.1.10 | MIT OR Apache-2.0 |  |  |
 | [http-body](https://crates.io/crates/http-body) | 1.0.1 | MIT |  |  |
 | [http-body-util](https://crates.io/crates/http-body-util) | 0.1.3 | MIT |  |  |
 | [http-content-range](https://crates.io/crates/http-content-range) | 0.2.4 | MIT OR Apache-2.0 |  |  |
@@ -184,12 +185,12 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [litemap](https://crates.io/crates/litemap) | 0.8.2 | Unicode-3.0 |  |  |
 | [litrs](https://crates.io/crates/litrs) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [lock\_api](https://crates.io/crates/lock_api) | 0.4.14 | MIT OR Apache-2.0 |  |  |
-| [log](https://crates.io/crates/log) | 0.4.32 | MIT OR Apache-2.0 |  |  |
+| [log](https://crates.io/crates/log) | 0.4.33 | MIT OR Apache-2.0 |  |  |
 | [mac\_address](https://crates.io/crates/mac_address) | 1.1.8 | MIT OR Apache-2.0 |  |  |
 | [matchers](https://crates.io/crates/matchers) | 0.2.0 | MIT |  |  |
 | [md-5](https://crates.io/crates/md-5) | 0.11.0 | MIT OR Apache-2.0 |  |  |
 | [memchr](https://crates.io/crates/memchr) | 2.8.2 | Unlicense OR MIT |  |  |
-| [memmap2](https://crates.io/crates/memmap2) | 0.9.10 | MIT OR Apache-2.0 |  |  |
+| [memmap2](https://crates.io/crates/memmap2) | 0.9.10 | MIT OR Apache-2.0 |  | 1 |
 | [memoffset](https://crates.io/crates/memoffset) | 0.9.1 | MIT | linux, macos |  |
 | [miette](https://crates.io/crates/miette) | 7.6.0 | Apache-2.0 |  |  |
 | [miette-derive](https://crates.io/crates/miette-derive) | 7.6.0 | Apache-2.0 |  |  |
@@ -257,19 +258,19 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rand\_core](https://crates.io/crates/rand_core) | 0.10.1 | MIT OR Apache-2.0 |  |  |
 | [rand\_core](https://crates.io/crates/rand_core) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [rand\_xorshift](https://crates.io/crates/rand_xorshift) | 0.4.0 | MIT OR Apache-2.0 |  |  |
-| [rattler](https://crates.io/crates/rattler) | 0.44.4 | BSD-3-Clause |  |  |
-| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.9.2 | BSD-3-Clause |  |  |
-| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.47.1 | BSD-3-Clause |  |  |
+| [rattler](https://crates.io/crates/rattler) | 0.45.0 | BSD-3-Clause |  |  |
+| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.10.0 | BSD-3-Clause |  |  |
+| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.47.2 | BSD-3-Clause |  |  |
 | [rattler\_digest](https://crates.io/crates/rattler_digest) | 1.3.1 | BSD-3-Clause |  |  |
-| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.31.1 | BSD-3-Clause |  |  |
+| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.31.3 | BSD-3-Clause |  |  |
 | [rattler\_macros](https://crates.io/crates/rattler_macros) | 1.1.1 | BSD-3-Clause |  |  |
-| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.66 | BSD-3-Clause |  |  |
-| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.28.1 | BSD-3-Clause |  |  |
-| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.26.4 | BSD-3-Clause |  |  |
+| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.67 | BSD-3-Clause |  |  |
+| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.29.0 | BSD-3-Clause |  |  |
+| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.26.5 | BSD-3-Clause |  |  |
 | [rattler\_pty](https://crates.io/crates/rattler_pty) | 0.2.13 | BSD-3-Clause |  |  |
 | [rattler\_redaction](https://crates.io/crates/rattler_redaction) | 0.2.1 | BSD-3-Clause |  |  |
-| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.27.6 | BSD-3-Clause |  |  |
-| [rattler\_solve](https://crates.io/crates/rattler_solve) | 7.1.3 | BSD-3-Clause |  |  |
+| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.27.7 | BSD-3-Clause |  |  |
+| [rattler\_solve](https://crates.io/crates/rattler_solve) | 7.2.0 | BSD-3-Clause |  |  |
 | [rayon](https://crates.io/crates/rayon) | 1.12.0 | MIT OR Apache-2.0 |  |  |
 | [rayon-core](https://crates.io/crates/rayon-core) | 1.13.0 | MIT OR Apache-2.0 |  |  |
 | [ref-cast](https://crates.io/crates/ref-cast) | 1.0.25 | MIT OR Apache-2.0 |  |  |
@@ -468,11 +469,17 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
 
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| memmap2 | 0.9.10 | [RUSTSEC-2026-0186](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) |  |  | INFO |
+
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 251 |
+| MIT OR Apache-2.0 | 252 |
 | MIT | 84 |
 | Apache-2.0 OR MIT | 36 |
 | Apache-2.0 | 20 |
