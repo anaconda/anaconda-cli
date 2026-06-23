@@ -12,7 +12,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/aiofiles-25.1.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-ai-0.6.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-auth-0.15.0-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-auth-0.15.1-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-cli-base-0.8.2-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-client-1.14.1-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-connector-conda-0.1.11-py313h06a4308_0.conda
@@ -245,7 +245,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/aiofiles-25.1.0-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-ai-0.6.0-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-auth-0.15.0-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-auth-0.15.1-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-cli-base-0.8.2-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-client-1.14.1-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-connector-conda-0.1.11-py313hd43f75c_0.conda
@@ -476,7 +476,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/aiofiles-25.1.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-ai-0.6.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-auth-0.15.0-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-auth-0.15.1-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-cli-base-0.8.2-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-client-1.14.1-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-connector-conda-0.1.11-py313hca03da5_0.conda
@@ -690,7 +690,7 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/win-64/aiofiles-25.1.0-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-ai-0.6.0-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/noarch/anaconda-anon-usage-0.7.6-pyhb46e38b_100.conda
-      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-auth-0.15.0-py313haa95532_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-auth-0.15.1-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-cli-base-0.8.2-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-client-1.14.1-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-connector-conda-0.1.11-py313haa95532_0.conda
@@ -1065,34 +1065,9 @@ packages:
   license_family: BSD
   size: 19864
   timestamp: 1774907942644
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-auth-0.15.0-py313h06a4308_0.conda
-  sha256: 71de5192bc464ba1c57ebf7cfd2c3775975fb20ff011a75deda6cd36559cec51
-  md5: 6c3ab81c949d914aeae2d5f37dd3803c
-  depends:
-  - anaconda-cli-base >=0.8.1
-  - cryptography >=3.4.0
-  - httpx
-  - keyring
-  - pkce
-  - pydantic
-  - pyjwt
-  - python >=3.13,<3.14.0a0
-  - python-dotenv
-  - python_abi 3.13.* *_cp313
-  - requests
-  - semver <4
-  - anaconda-anon-usage >=0.7.2
-  constrains:
-  - conda-token >=0.7.0
-  - anaconda-cloud-auth >=0.8
-  - conda >=23.9.0
-  license: BSD-3-Clause
-  license_family: BSD
-  size: 127718
-  timestamp: 1778877059689
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-auth-0.15.0-py313hd43f75c_0.conda
-  sha256: be505aa383194b85e374e30fe2a59c27fdb1c735862bf496c355c53d2cc5f1ec
-  md5: ff5762ee9532bd21bd23dc8e0898c080
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-auth-0.15.1-py313h06a4308_0.conda
+  sha256: eb8a35c2b5f3d6f6c0c91daa4a116304d2e156a97e115c74f67f61f18a679097
+  md5: 984f6594df6777523b36218f874fc81f
   depends:
   - anaconda-cli-base >=0.8.1
   - cryptography >=3.4.0
@@ -1109,40 +1084,15 @@ packages:
   - anaconda-anon-usage >=0.7.2
   constrains:
   - anaconda-cloud-auth >=0.8
-  - conda-token >=0.7.0
   - conda >=23.9.0
+  - conda-token >=0.7.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 128056
-  timestamp: 1778877061359
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-auth-0.15.0-py313hca03da5_0.conda
-  sha256: 97153a820b3c3fdab35e8b920c4aa28ebea1276677abf2c814c2065554e79b7e
-  md5: 73ca3189ddbcbae0c3358afeae5c8229
-  depends:
-  - anaconda-cli-base >=0.8.1
-  - cryptography >=3.4.0
-  - httpx
-  - keyring
-  - pkce
-  - pydantic
-  - pyjwt
-  - python >=3.13,<3.14.0a0
-  - python-dotenv
-  - python_abi 3.13.* *_cp313
-  - requests
-  - semver <4
-  - anaconda-anon-usage >=0.7.2
-  constrains:
-  - anaconda-cloud-auth >=0.8
-  - conda-token >=0.7.0
-  - conda >=23.9.0
-  license: BSD-3-Clause
-  license_family: BSD
-  size: 128654
-  timestamp: 1778876972035
-- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-auth-0.15.0-py313haa95532_0.conda
-  sha256: 18d5f586cbcf8b92fc4513ce74d183fe2c1f31c53b569760dd5d63e2b5ef6f26
-  md5: f7abf29ffb79d514f7e5c4e55b4e4cd5
+  size: 128260
+  timestamp: 1781731280216
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-auth-0.15.1-py313hd43f75c_0.conda
+  sha256: 91d50fd0ebe88314e4c6365ae68810b0efe1dedff5d8b9e32bded118c3438dbd
+  md5: b2160ba573b382e428305a5fe665e3dd
   depends:
   - anaconda-cli-base >=0.8.1
   - cryptography >=3.4.0
@@ -1163,8 +1113,58 @@ packages:
   - conda-token >=0.7.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 153281
-  timestamp: 1778877280768
+  size: 128629
+  timestamp: 1781731266172
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-auth-0.15.1-py313hca03da5_0.conda
+  sha256: 851745959e1b4e4222f9acbf160de67e8950f916b462269ce6ebe6c59b74399a
+  md5: 2455b719092c663c2b1e326bb5dde72a
+  depends:
+  - anaconda-cli-base >=0.8.1
+  - cryptography >=3.4.0
+  - httpx
+  - keyring
+  - pkce
+  - pydantic
+  - pyjwt
+  - python >=3.13,<3.14.0a0
+  - python-dotenv
+  - python_abi 3.13.* *_cp313
+  - requests
+  - semver <4
+  - anaconda-anon-usage >=0.7.2
+  constrains:
+  - anaconda-cloud-auth >=0.8
+  - conda >=23.9.0
+  - conda-token >=0.7.0
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 128618
+  timestamp: 1781731298523
+- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-auth-0.15.1-py313haa95532_0.conda
+  sha256: 4b8591f6dc905887973d41969785942647f0d0d81e8b8f2fe8ec7d3a936c4206
+  md5: e6305745be8c27dff91ee42e1440eeac
+  depends:
+  - anaconda-cli-base >=0.8.1
+  - cryptography >=3.4.0
+  - httpx
+  - keyring
+  - pkce
+  - pydantic
+  - pyjwt
+  - python >=3.13,<3.14.0a0
+  - python-dotenv
+  - python_abi 3.13.* *_cp313
+  - requests
+  - semver <4
+  - anaconda-anon-usage >=0.7.2
+  constrains:
+  - anaconda-cloud-auth >=0.8
+  - conda-token >=0.7.0
+  - conda >=23.9.0
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 154283
+  timestamp: 1781731480872
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-cli-base-0.8.2-py313h06a4308_0.conda
   sha256: 6ea3ced350e4d3f744774ba3bc5aa6a5eff3751d0ddd39ac6496868efbd78226
   md5: a256fa8ae4cf05d1cfb990cfee0b7976
