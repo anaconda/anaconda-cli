@@ -376,8 +376,8 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
                 let start = std::time::Instant::now();
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
-                        print_update_success(current_version, &release.tag_name, start.elapsed());
                         update_installed_tools();
+                        print_update_success(current_version, &release.tag_name, start.elapsed());
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
@@ -507,8 +507,8 @@ pub async fn run_update(
         let start = std::time::Instant::now();
         match apply_update(ctx, &release).await {
             Ok(()) => {
-                print_update_success(current_version, &release.tag_name, start.elapsed());
                 update_installed_tools();
+                print_update_success(current_version, &release.tag_name, start.elapsed());
             }
             Err(e) => {
                 tracing::error!("Failed to update: {}", e);
@@ -531,8 +531,8 @@ pub async fn run_update(
                 let start = std::time::Instant::now();
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
-                        print_update_success(current_version, &release.tag_name, start.elapsed());
                         update_installed_tools();
+                        print_update_success(current_version, &release.tag_name, start.elapsed());
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
