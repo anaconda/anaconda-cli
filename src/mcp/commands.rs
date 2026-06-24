@@ -18,20 +18,6 @@ pub enum McpCommands {
         args: Vec<String>,
     },
 
-    /// Compose MCP servers from dependencies
-    #[command(trailing_var_arg = true)]
-    Compose {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
-    /// Discover MCP servers from dependencies
-    #[command(trailing_var_arg = true)]
-    Discover {
-        #[arg(allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
-
     /// List supported AI clients and their configuration options
     #[command(trailing_var_arg = true)]
     Clients {
@@ -52,6 +38,13 @@ pub enum McpCommands {
         #[arg(allow_hyphen_values = true)]
         args: Vec<String>,
     },
+
+    /// Manage Terms of Service acceptance
+    #[command(trailing_var_arg = true)]
+    Terms {
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
 }
 
 impl McpCommands {
@@ -60,16 +53,6 @@ impl McpCommands {
         match self {
             McpCommands::Serve { args } => {
                 let mut cmd_args = vec!["serve".to_string()];
-                cmd_args.extend(args);
-                McpAction::Run(cmd_args)
-            }
-            McpCommands::Compose { args } => {
-                let mut cmd_args = vec!["compose".to_string()];
-                cmd_args.extend(args);
-                McpAction::Run(cmd_args)
-            }
-            McpCommands::Discover { args } => {
-                let mut cmd_args = vec!["discover".to_string()];
                 cmd_args.extend(args);
                 McpAction::Run(cmd_args)
             }
@@ -85,6 +68,11 @@ impl McpCommands {
             }
             McpCommands::Remove { args } => {
                 let mut cmd_args = vec!["remove".to_string()];
+                cmd_args.extend(args);
+                McpAction::Run(cmd_args)
+            }
+            McpCommands::Terms { args } => {
+                let mut cmd_args = vec!["terms".to_string()];
                 cmd_args.extend(args);
                 McpAction::Run(cmd_args)
             }
