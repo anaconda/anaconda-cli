@@ -551,3 +551,70 @@ class TestMcpSubcommands:
             f"ana mcp has wrappers for commands that don't exist upstream: {stale_commands}. "
             "Remove them from src/mcp/commands.rs"
         )
+
+    # -------------------------------------------------------------------------
+    # Help option verification tests
+    # These tests ensure all CLI options are properly configured and don't cause
+    # panics. They verify each subcommand's help output includes expected options.
+    # -------------------------------------------------------------------------
+
+    def test_mcp_serve_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp serve --help' shows all expected options."""
+        result = run_ana("mcp", "serve", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--config" in result.stdout, "Missing --config option"
+        assert "--host" in result.stdout, "Missing --host option"
+        assert "--port" in result.stdout, "Missing --port option"
+        assert "--delay" in result.stdout, "Missing --delay option"
+        # Note: --verbose uses trailing_var_arg to avoid conflict with global -v
+
+    def test_mcp_clients_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp clients --help' shows all expected options."""
+        result = run_ana("mcp", "clients", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--project-dir" in result.stdout, "Missing --project-dir option"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_setup_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp setup --help' shows all expected options."""
+        result = run_ana("mcp", "setup", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--client" in result.stdout, "Missing --client option"
+        assert "--name" in result.stdout, "Missing --name option"
+        assert "--scope" in result.stdout, "Missing --scope option"
+        assert "--project-dir" in result.stdout, "Missing --project-dir option"
+        assert "--no-backup" in result.stdout, "Missing --no-backup option"
+        assert "--force" in result.stdout, "Missing --force option"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_remove_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp remove --help' shows all expected options."""
+        result = run_ana("mcp", "remove", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--client" in result.stdout, "Missing --client option"
+        assert "--name" in result.stdout, "Missing --name option"
+        assert "--scope" in result.stdout, "Missing --scope option"
+        assert "--project-dir" in result.stdout, "Missing --project-dir option"
+        assert "--no-backup" in result.stdout, "Missing --no-backup option"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_terms_help_shows_subcommands(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms --help' shows subcommands and options."""
+        result = run_ana("mcp", "terms", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "status" in result.stdout.lower(), "Missing 'status' subcommand"
+        assert "accept" in result.stdout.lower(), "Missing 'accept' subcommand"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_terms_status_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms status --help' shows all expected options."""
+        result = run_ana("mcp", "terms", "status", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_terms_accept_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms accept --help' shows all expected options."""
+        result = run_ana("mcp", "terms", "accept", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--json" in result.stdout, "Missing --json option"
+        assert "--consent" in result.stdout, "Missing --consent option"
