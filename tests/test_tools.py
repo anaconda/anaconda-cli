@@ -209,7 +209,8 @@ class TestToolUpdate:
         hash_file.write_text("fakehash")
 
         # Run tool update - should detect mismatch and update
-        update_result = run_ana("tool", "update")
+        # Note: pixi has auto_update=false by default, so we must enable it via env
+        update_result = run_ana("tool", "update", env={"ANA_AUTO_UPDATE_TOOLS": "true"})
         assert update_result.returncode == 0
         assert "pixi" in update_result.stderr.lower()
 
