@@ -27,8 +27,13 @@ cmd = "pre-commit run --verbose --show-diff-on-failure --color=always --all-file
 description = "Run pre-commit hooks on all files"
 
 
+[tasks.build-conda-binary]
+cmd = "python scripts/with_version.py cargo build --release --no-default-features --features conda-package"
+description = "Build the Rust binary with conda-package features for conda packaging"
+
 [tasks.build-conda]
 cmd = "python scripts/with_version.py rattler-build build --recipe conda.recipe"
+depends-on = ["build-conda-binary"]
 description = "Build the conda package"
 
 [tasks.build-shim]

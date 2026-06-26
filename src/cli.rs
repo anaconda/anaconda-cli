@@ -312,7 +312,7 @@ impl Action {
             }
             #[cfg(not(tool_install))]
             Action::ToolList => {
-                crate::tools::list::print_tool_list(ctx);
+                tools_list::print_tool_list(ctx);
                 Ok(())
             }
             #[cfg(tool_install)]

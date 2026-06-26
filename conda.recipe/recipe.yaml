@@ -7,29 +7,10 @@ source:
 
 build:
   number: 0
-  script:
-    - if: unix
-      then:
-        - mkdir -p .cargo
-        - echo '[net]' > .cargo/config.toml
-        - echo 'git-fetch-with-cli = true' >> .cargo/config.toml
-        - git config --global url."https://x-access-token:${{ env.get("GITHUB_TOKEN", default="") }}@github.com/".insteadOf "https://github.com/"
-        - cargo build --release --features conda-package
-        - mkdir -p $PREFIX/bin
-        - cp target/release/ana $PREFIX/bin/
-    - if: win
-      then:
-        - if not exist .cargo mkdir .cargo
-        - echo [net] > .cargo\config.toml
-        - echo git-fetch-with-cli = true >> .cargo\config.toml
-        - cargo build --release --features conda-package
-        - if not exist %PREFIX%\Library\bin mkdir %PREFIX%\Library\bin
-        - copy target\release\ana.exe %PREFIX%\Library\bin\ana.exe
+  # The binary is pre-built by CI before rattler-build runs.
+  # build.sh/build.bat use $RECIPE_DIR to find the pre-built binary at target/release/.
 
 requirements:
-  build:
-    - rust
-    - git
   run:
     - anaconda-client
 
