@@ -28,14 +28,6 @@ jobs:
           # Full history needed for SBOM freshness check (compares commit timestamps)
           fetch-depth: 0
 
-      - name: Configure git for private repos
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
-        run: |
-          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
-
       - name: Set up ana with pixi
         uses: anaconda/actions/setup-anaconda-cli@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
         with:

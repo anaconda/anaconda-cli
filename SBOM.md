@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-25T16:23:15Z<br>
+Generated: 2026-06-26T17:45:37Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 457 (69 platform-specific)<br>
+Packages: 458 (69 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 1 (1 INFO) across 1 package**
 
@@ -17,7 +17,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [allocator-api2](https://crates.io/crates/allocator-api2) | 0.2.21 | MIT OR Apache-2.0 |  |  |
 | [ambient-id](https://crates.io/crates/ambient-id) | 0.0.11 | MIT OR Apache-2.0 |  |  |
 | [anaconda-anon-usage](https://crates.io/crates/anaconda-anon-usage) | 0.8.0 | BSD-3-Clause |  |  |
-| [anaconda-otel-rs](https://crates.io/crates/anaconda-otel-rs) | 0.1.0 | NOASSERTION |  |  |
+| [anaconda-otel-rs](https://crates.io/crates/anaconda-otel-rs) | 0.1.1 | BSD-3-Clause |  |  |
 | [anstream](https://crates.io/crates/anstream) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [anstyle](https://crates.io/crates/anstyle) | 1.0.14 | MIT OR Apache-2.0 |  |  |
 | [anstyle-parse](https://crates.io/crates/anstyle-parse) | 1.0.0 | MIT OR Apache-2.0 |  |  |
@@ -331,6 +331,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.0 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
+| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.4 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -478,11 +479,11 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 251 |
+| MIT OR Apache-2.0 | 252 |
 | MIT | 84 |
 | Apache-2.0 OR MIT | 36 |
 | Apache-2.0 | 20 |
-| BSD-3-Clause | 18 |
+| BSD-3-Clause | 19 |
 | Unicode-3.0 | 18 |
 | ISC | 3 |
 | Unlicense OR MIT | 3 |
@@ -502,6 +503,5 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | MIT OR Apache-2.0 OR Zlib | 1 |
 | MIT OR LGPL-3.0-or-later | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
-| NOASSERTION | 1 |
 | Zlib OR Apache-2.0 OR MIT | 1 |
 | bzip2-1.0.6 | 1 |
