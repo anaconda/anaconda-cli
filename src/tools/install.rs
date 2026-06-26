@@ -23,6 +23,71 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
     mp
 });
 
+/// Returns the names of all currently installed tools.
+pub fn installed_tools() -> Vec<&'static str> {
+    specs::all_tools()
+        .into_iter()
+        .filter(|name| paths::tool_prefix(name).exists())
+        .collect()
+}
+
+/// Update all installed tools that have outdated lockfiles.
+///
+/// Only updates tools where auto-update is enabled. The global config setting
+/// `auto_update_tools` overrides individual tool defaults when set.
+///
+/// Returns the names of tools that were updated.
+pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
+    let mut updated = Vec::new();
+    for name in installed_tools() {
+        if should_auto_update(ctx, name) && ensure_tool(ctx, name).await? {
+            updated.push(name.to_string());
+        }
+    }
+    Ok(updated)
+}
+
+/// Check if a tool should be auto-updated.
+///
+/// If `auto_update_tools` is set in config, use that value for all tools.
+/// Otherwise, defer to each tool's default setting.
+fn should_auto_update(ctx: &CommandContext, name: &str) -> bool {
+    ctx.config
+        .auto_update_tools
+        .unwrap_or_else(|| specs::auto_update_default(name))
+}
+
+/// Ensure a managed tool is installed and up-to-date.
+///
+/// Returns `true` if an install/update was performed, `false` if already current.
+pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<bool> {
+    let prefix = paths::tool_prefix(name);
+    let hash_file = prefix.join(".lockfile-hash");
+
+    let lock_content =
+        specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+    let current_hash = hash_lockfile(&lock_content);
+
+    // Check if tool is installed and lockfile hash matches
+    if prefix.exists()
+        && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
+        && stored_hash.trim() == current_hash
+    {
+        return Ok(false);
+    }
+
+    install_tool(ctx, name).await?;
+    Ok(true)
+}
+
+fn hash_lockfile(content: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
 /// Install a tool from its lockfile.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
@@ -43,6 +108,12 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(ctx, &prefix, &lock_content).await?;
+
+    // Store the lockfile hash for future update checks
+    let hash_file = prefix.join(".lockfile-hash");
+    std::fs::write(&hash_file, hash_lockfile(&lock_content))
+        .into_diagnostic()
+        .context("failed to write lockfile hash")?;
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, &binaries)?;
@@ -299,6 +370,21 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_hash_lockfile_deterministic() {
+        let content = "version: 6\npackages:\n  - name: foo";
+        let hash1 = hash_lockfile(content);
+        let hash2 = hash_lockfile(content);
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_hash_lockfile_different_content() {
+        let content1 = "version: 6\npackages:\n  - name: foo";
+        let content2 = "version: 6\npackages:\n  - name: bar";
+        assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
+    }
 
     #[tokio::test]
     async fn test_lockfile_parse_error() {

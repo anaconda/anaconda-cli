@@ -143,6 +143,7 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    ToolUpdate,
     ApiFetch {
         method: String,
         url: String,
@@ -201,6 +202,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::ToolUpdate => "tool.update",
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
@@ -297,6 +299,13 @@ impl Action {
             }
             Action::ToolList => {
                 tools::list::print_tool_list(ctx);
+                Ok(())
+            }
+            Action::ToolUpdate => {
+                let updated = tools::install::update_installed_tools(ctx).await?;
+                if updated.is_empty() {
+                    eprintln!("All tools are up to date.");
+                }
                 Ok(())
             }
             Action::Login {
@@ -638,6 +647,7 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+            Some(ToolCommands::Update) => Action::ToolUpdate,
             Some(ToolCommands::Download { name }) => match name {
                 None => Action::ShowSubcommandHelp("tool download".to_string()),
                 Some(name) => Action::ToolDownload { name },
@@ -1054,6 +1064,9 @@ enum ToolCommands {
         #[arg(short = 'y', long = "yes")]
         force: bool,
     },
+
+    /// Update all installed tools
+    Update,
 
     /// Download an installer (currently miniconda only)
     Download {

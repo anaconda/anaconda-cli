@@ -21,6 +21,7 @@
 //! | `ANA_PRERELEASES`                | `false`                    | Include prereleases in updates  |
 //! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
 //! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
+//! | `ANA_AUTO_UPDATE_TOOLS`          | (per-tool default)         | Auto-update tools on self update; overrides tool defaults |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -60,6 +61,7 @@ const DEFAULT_USE_HTTPS: bool = true;
 const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 const DEFAULT_PIP_INDEX_URL: &str = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
 const DEFAULT_SELF_UPDATE_URL: &str = "https://anaconda.sh";
+const DEFAULT_AUTO_UPDATE_TOOLS: Option<bool> = None;
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
@@ -118,6 +120,11 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_self_update_url")]
     pub self_update_url: Option<String>,
 
+    /// Whether to auto-update managed tools when ana is updated.
+    /// If None, defers to each tool's default setting.
+    #[serde(deserialize_with = "deserialize_optional_bool")]
+    pub auto_update_tools: Option<bool>,
+
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
     #[serde(deserialize_with = "deserialize_bool")]
@@ -172,6 +179,7 @@ impl Config {
             include_prereleases: DEFAULT_INCLUDE_PRERELEASES,
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+            auto_update_tools: DEFAULT_AUTO_UPDATE_TOOLS,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: DEFAULT_SENTRY_DISABLED,
             #[cfg(feature = "diagnostics")]
@@ -264,6 +272,96 @@ where
     deserializer.deserialize_any(BoolVisitor)
 }
 
+/// Custom deserializer for optional booleans.
+/// Returns None if the env var is not set or empty, Some(bool) otherwise.
+fn deserialize_optional_bool<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct OptionalBoolVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for OptionalBoolVisitor {
+        type Value = Option<bool>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("an optional boolean, string, or number")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            struct InnerVisitor;
+
+            impl<'de> serde::de::Visitor<'de> for InnerVisitor {
+                type Value = Option<bool>;
+
+                fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    formatter.write_str("a boolean, string, or number")
+                }
+
+                fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
+                    Ok(Some(v))
+                }
+
+                fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+                    let trimmed = v.trim();
+                    if trimmed.is_empty() {
+                        Ok(None)
+                    } else {
+                        Ok(Some(parse_bool(trimmed)))
+                    }
+                }
+
+                fn visit_string<E: serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
+                    self.visit_str(&v)
+                }
+
+                fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
+                    Ok(Some(v != 0))
+                }
+
+                fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
+                    Ok(Some(v != 0))
+                }
+            }
+
+            deserializer.deserialize_any(InnerVisitor)
+        }
+
+        fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
+            Ok(Some(v))
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+            let trimmed = v.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(parse_bool(trimmed)))
+            }
+        }
+
+        fn visit_string<E: serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
+            self.visit_str(&v)
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
+            Ok(Some(v != 0))
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
+            Ok(Some(v != 0))
+        }
+    }
+
+    deserializer.deserialize_any(OptionalBoolVisitor)
+}
+
 /// Normalize a domain by stripping scheme (http://, https://) and path components.
 fn normalize_domain(domain: &str) -> String {
     let domain = domain.trim();
@@ -322,6 +420,7 @@ mod tests {
             include_prereleases: false,
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
+            auto_update_tools: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]
@@ -617,6 +716,38 @@ mod tests {
         temp_env::with_var("ANA_DOMAIN", Some("https://stage.anaconda.com"), || {
             let config = Config::load();
             assert_eq!(config.domain, "stage.anaconda.com");
+        });
+    }
+
+    #[test]
+    fn test_config_default_auto_update_tools_is_none() {
+        temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", None::<&str>, || {
+            let config = Config::load();
+            assert_eq!(config.auto_update_tools, None);
+        });
+    }
+
+    #[test]
+    fn test_config_load_auto_update_tools_true() {
+        temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", Some("true"), || {
+            let config = Config::load();
+            assert_eq!(config.auto_update_tools, Some(true));
+        });
+    }
+
+    #[test]
+    fn test_config_load_auto_update_tools_false() {
+        temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", Some("false"), || {
+            let config = Config::load();
+            assert_eq!(config.auto_update_tools, Some(false));
+        });
+    }
+
+    #[test]
+    fn test_config_load_auto_update_tools_empty_is_none() {
+        temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", Some(""), || {
+            let config = Config::load();
+            assert_eq!(config.auto_update_tools, None);
         });
     }
 }

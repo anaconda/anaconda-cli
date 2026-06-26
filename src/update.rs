@@ -363,7 +363,8 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
                 let start = std::time::Instant::now();
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
-                        print_update_success(current_version, &release.tag_name, start.elapsed())
+                        update_installed_tools();
+                        print_update_success(current_version, &release.tag_name, start.elapsed());
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
@@ -398,6 +399,45 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
     );
     eprintln!("  was v{} → now {}", current_version, new_version);
     eprintln!();
+}
+
+/// Spawn the new binary to update installed tools.
+///
+/// After self-replace, the current process still has old lockfiles embedded.
+/// We spawn the new binary to update tools using the new lockfiles.
+fn update_installed_tools() {
+    use crate::tools::install::installed_tools;
+    use crate::ui::status;
+
+    let tools = installed_tools();
+    if tools.is_empty() {
+        return;
+    }
+
+    eprintln!("  Updating installed tools...");
+
+    let exe = match std::env::current_exe() {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::error!("Failed to get current exe path: {}", e);
+            status::error(&format!("Failed to update tools: {}", e));
+            return;
+        }
+    };
+
+    match std::process::Command::new(&exe)
+        .args(["tool", "update"])
+        .status()
+    {
+        Ok(status) if status.success() => {}
+        Ok(status) => {
+            tracing::error!("Tool update exited with status: {}", status);
+        }
+        Err(e) => {
+            tracing::error!("Failed to spawn tool update: {}", e);
+            status::error(&format!("Failed to update tools: {}", e));
+        }
+    }
 }
 
 fn print_up_to_date(current_version: &str) {
@@ -453,7 +493,10 @@ pub async fn run_update(
 
         let start = std::time::Instant::now();
         match apply_update(ctx, &release).await {
-            Ok(()) => print_update_success(current_version, &release.tag_name, start.elapsed()),
+            Ok(()) => {
+                update_installed_tools();
+                print_update_success(current_version, &release.tag_name, start.elapsed());
+            }
             Err(e) => {
                 tracing::error!("Failed to update: {}", e);
                 status::error(&format!("Failed to update: {}", e));
@@ -475,7 +518,8 @@ pub async fn run_update(
                 let start = std::time::Instant::now();
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
-                        print_update_success(current_version, &release.tag_name, start.elapsed())
+                        update_installed_tools();
+                        print_update_success(current_version, &release.tag_name, start.elapsed());
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);

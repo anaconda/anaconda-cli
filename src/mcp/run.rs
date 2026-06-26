@@ -1,16 +1,10 @@
 use crate::context::CommandContext;
-use crate::paths;
 use crate::tools;
-use crate::ui::status;
 
 /// Run the `anaconda mcp` command with the given arguments.
-/// Auto-installs anaconda-cli if not present.
+/// Auto-installs or updates anaconda-cli as needed.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
-    if !paths::tool_prefix("anaconda-cli").exists() {
-        status::info("Installing anaconda-cli...");
-        tools::install::install_tool(ctx, "anaconda-cli").await?;
-        status::blank_line();
-    }
+    tools::install::ensure_tool(ctx, "anaconda-cli").await?;
 
     let mut mcp_args = vec!["mcp".to_string()];
     mcp_args.extend(args.iter().cloned());
