@@ -29,7 +29,7 @@ console = "0.16"
 indicatif = "0.18"
 log = "0.4"
 miette = { version = "7.6", features = ["fancy"] }
-rattler = { version = "0.45", default-features = false, features = ["indicatif"] }
+rattler = { version = "0.46", default-features = false, features = ["indicatif"] }
 rattler_cache = { version = "0.10", default-features = false }
 rattler_conda_types = { version = "0.47", default-features = false }
 rattler_lock = { version = "0.31", default-features = false }
