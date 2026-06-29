@@ -51,7 +51,7 @@ tokio = { version = "1.45", features = ["rt-multi-thread", "macros", "time", "fs
 webbrowser = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-opentelemetry = "0.31.0"
+opentelemetry = "0.32.0"
 url = "2.5.8"
 
 [dev-dependencies]
