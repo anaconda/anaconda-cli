@@ -50,15 +50,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Configure git for private repos
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-        run: |
-          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
-        shell: bash
-
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash
         run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
