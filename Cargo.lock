@@ -218,6 +218,7 @@ dependencies = [
  "chrono",
  "clap",
  "comfy-table",
+ "conda-ship",
  "console",
  "dirs",
  "figment",
@@ -802,6 +803,36 @@ name = "compression-core"
 version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc14f565cf027a105f7a44ccf9e5b424348421a1d8952a8fc9d499d313107789"
+
+[[package]]
+name = "conda-ship"
+version = "0.4.0"
+source = "git+https://github.com/jezdez/conda-ship?branch=fix%2Fconda-fleet-api#32118e89cedaa2bda100abe0946d97182c3a9649"
+dependencies = [
+ "astral-reqwest-middleware",
+ "clap",
+ "console",
+ "dirs",
+ "futures",
+ "indicatif",
+ "miette",
+ "rattler",
+ "rattler_cache",
+ "rattler_conda_types",
+ "rattler_lock",
+ "rattler_networking",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.11.0",
+ "tar",
+ "tempfile",
+ "tokio",
+ "toml 1.1.2+spec-1.1.0",
+ "tracing-subscriber",
+ "zstd",
+]
 
 [[package]]
 name = "configparser"

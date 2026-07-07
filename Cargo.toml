@@ -10,9 +10,11 @@ rlimit = "0.11"
 [features]
 # Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
 # Unstable features are hidden and disabled by default.
+# fleet: Use conda-ship's fleet API for tool installation (experimental POC).
 default = []
 diagnostics = ["dep:sentry"]
 unstable = []
+fleet = ["dep:conda-ship"]
 
 [dependencies]
 anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }
@@ -33,6 +35,7 @@ rattler = { version = "0.45", default-features = false, features = ["indicatif"]
 rattler_cache = { version = "0.10", default-features = false }
 rattler_conda_types = { version = "0.47", default-features = false }
 rattler_lock = { version = "0.31", default-features = false }
+conda-ship = { git = "https://github.com/jezdez/conda-ship", branch = "fix/conda-fleet-api", default-features = false, features = ["fleet", "native-tls"], optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart", "native-tls"] }
 reqwest-middleware = { version = "0.5", features = ["json", "form", "query"] }
 rpassword = "7"
