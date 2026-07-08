@@ -2,6 +2,7 @@ use crate::context::CommandContext;
 use crate::paths;
 use crate::tools;
 
+#[cfg(not(feature = "fleet"))]
 pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
     if paths::tool_prefix("anaconda-cli").exists() {
         eprintln!("anaconda-cli is already installed");
@@ -10,6 +11,22 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
 
     eprintln!("Installing anaconda-cli...");
     tools::install::install_tool(ctx, "anaconda-cli")
+        .await
+        .map_err(|e| format!("{:?}", e))?;
+
+    eprintln!("anaconda-cli installed successfully");
+    Ok(())
+}
+
+#[cfg(feature = "fleet")]
+pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
+    if paths::tool_prefix("anaconda-cli").exists() {
+        eprintln!("anaconda-cli is already installed");
+        return Ok(());
+    }
+
+    eprintln!("Installing anaconda-cli...");
+    tools::fleet::install_tool(ctx, "anaconda-cli")
         .await
         .map_err(|e| format!("{:?}", e))?;
 
