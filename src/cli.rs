@@ -289,44 +289,24 @@ impl Action {
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
-            #[cfg(not(feature = "fleet"))]
             Action::ToolInstall { name } => {
-                tools::install::install_tool(ctx, &name).await?;
+                tools::install_tool(ctx, &name).await?;
                 Ok(())
             }
-            #[cfg(feature = "fleet")]
-            Action::ToolInstall { name } => {
-                tools::fleet::install_tool(ctx, &name).await?;
-                Ok(())
-            }
-            #[cfg(not(feature = "fleet"))]
             Action::ToolUninstall { name, force } => {
-                tools::uninstall::uninstall_tool(ctx, &name, force)?;
-                Ok(())
-            }
-            #[cfg(feature = "fleet")]
-            Action::ToolUninstall { name, force } => {
-                tools::fleet::uninstall_tool(ctx, &name, force)?;
+                tools::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
             Action::ToolList => {
                 tools::list::print_tool_list(ctx);
                 Ok(())
             }
-            #[cfg(not(feature = "fleet"))]
             Action::ToolUpdate => {
-                let updated = tools::install::update_installed_tools(ctx).await?;
+                let updated = tools::update_installed_tools(ctx).await?;
                 if updated.is_empty() {
                     eprintln!("All tools are up to date.");
                 }
                 Ok(())
-            }
-            #[cfg(feature = "fleet")]
-            Action::ToolUpdate => {
-                // TODO: Implement update for fleet
-                Err(miette!(
-                    "Tool update is not yet supported with the fleet feature"
-                ))
             }
             Action::Login {
                 api_key,

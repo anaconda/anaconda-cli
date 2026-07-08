@@ -407,7 +407,7 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
 /// We spawn the new binary to update tools using the new lockfiles.
 #[cfg(not(feature = "fleet"))]
 fn update_installed_tools() {
-    use crate::tools::install::installed_tools;
+    use crate::tools::installed_tools;
     use crate::ui::status;
 
     let tools = installed_tools();
