@@ -27,12 +27,10 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "self",
         ],
     },
-    // TODO(mattkram): Removed PACKAGES section from help until we can comprehensively
-    //                 define the wrappers.
-    // HelpSection {
-    //     name: "PACKAGES",
-    //     commands: &["org"],
-    // },
+    HelpSection {
+        name: "PACKAGES",
+        commands: &["channel"],
+    },
     HelpSection {
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
