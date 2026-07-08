@@ -39,6 +39,10 @@ description = "Build the Windows shim binary"
 cmd = "python scripts/with_version.py cargo auditable build"
 description = "Build the standalone Rust binary in debug mode"
 
+[tasks.build-fleet]
+cmd = "python scripts/with_version.py cargo auditable build --features fleet"
+description = "Build the debug binary with fleet feature (experimental)"
+
 [tasks.build-release]
 cmd = "python scripts/with_version.py cargo auditable build --release"
 description = "Build the standalone Rust binary in release mode"
