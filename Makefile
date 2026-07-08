@@ -11,6 +11,9 @@ build: release  ## Build the release binary (alias for release)
 debug:  ## Build the debug binary
 	pixi run build-debug
 
+fleet:  ## Build the debug binary with fleet feature (experimental)
+	pixi run build-fleet
+
 release:  ## Build the release binary
 	pixi run build-release
 
