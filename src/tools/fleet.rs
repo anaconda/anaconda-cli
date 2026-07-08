@@ -13,6 +13,36 @@ use super::{pixi_config, specs};
 use crate::context::CommandContext;
 use crate::paths;
 
+/// Check if a prefix is an old rattler-based installation (pre-Fleet).
+///
+/// Old installations have:
+/// - A `conda-meta/` directory (bootstrapped conda prefix)
+/// - A `.lockfile-hash` file (ana's old staleness marker)
+/// - No `.{name}.json` Fleet metadata file
+fn is_legacy_rattler_install(prefix: &Path, name: &str) -> bool {
+    let conda_meta = prefix.join("conda-meta");
+    let lockfile_hash = prefix.join(".lockfile-hash");
+    let fleet_metadata = conda_meta.join(format!(".{}.json", name));
+
+    conda_meta.is_dir() && lockfile_hash.exists() && !fleet_metadata.exists()
+}
+
+/// Migrate a legacy rattler-based installation to Fleet.
+///
+/// This removes the old prefix so Fleet can do a fresh install.
+fn migrate_legacy_install(prefix: &Path, name: &str) -> miette::Result<()> {
+    crate::ui::status::info(&format!(
+        "Migrating {} from legacy installation to Fleet...",
+        name
+    ));
+
+    std::fs::remove_dir_all(prefix)
+        .into_diagnostic()
+        .with_context(|| format!("failed to remove legacy installation: {}", prefix.display()))?;
+
+    Ok(())
+}
+
 /// Install a tool using conda-ship's Fleet API.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
@@ -41,6 +71,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     let fleet = Fleet::new(paths::ana_home().join("tools"));
     let prefix = paths::tool_prefix(name);
+
+    // Migrate legacy rattler-based installations
+    if is_legacy_rattler_install(&prefix, name) {
+        migrate_legacy_install(&prefix, name)?;
+    }
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
