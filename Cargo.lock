@@ -807,7 +807,7 @@ checksum = "cc14f565cf027a105f7a44ccf9e5b424348421a1d8952a8fc9d499d313107789"
 [[package]]
 name = "conda-ship"
 version = "0.4.0"
-source = "git+https://github.com/jezdez/conda-ship?branch=fix%2Fconda-fleet-api#32118e89cedaa2bda100abe0946d97182c3a9649"
+source = "git+https://github.com/jezdez/conda-ship?rev=32118e89cedaa2bda100abe0946d97182c3a9649#32118e89cedaa2bda100abe0946d97182c3a9649"
 dependencies = [
  "astral-reqwest-middleware",
  "clap",
