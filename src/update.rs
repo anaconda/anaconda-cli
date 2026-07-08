@@ -405,6 +405,7 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
 ///
 /// After self-replace, the current process still has old lockfiles embedded.
 /// We spawn the new binary to update tools using the new lockfiles.
+#[cfg(not(feature = "fleet"))]
 fn update_installed_tools() {
     use crate::tools::install::installed_tools;
     use crate::ui::status;
@@ -438,6 +439,12 @@ fn update_installed_tools() {
             status::error(&format!("Failed to update tools: {}", e));
         }
     }
+}
+
+#[cfg(feature = "fleet")]
+fn update_installed_tools() {
+    // TODO: Implement tool update for fleet
+    // For now, skip automatic tool updates when using fleet
 }
 
 fn print_up_to_date(current_version: &str) {
