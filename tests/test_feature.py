@@ -1143,6 +1143,7 @@ class TestMainXPixiEndToEnd:
         self,
         run_ana_pixi_feature: AnaRunner,
         pixi_feature_env: dict[str, str],
+        tmp_path: Path,
     ) -> None:
         """Verify that after enabling main-x, we can actually install packages from it."""
         # Login with API key
@@ -1156,41 +1157,81 @@ class TestMainXPixiEndToEnd:
         )
         assert enable_result.returncode == 0
 
-        # Try to search for a package from main-x channel
-        # Using search instead of install to avoid side effects
-        search_result = subprocess.run(
-            ["pixi", "search", "abn", "-c", MAIN_X_CHANNEL],
+        # Create a temporary pixi project to test package installation
+        project_dir = tmp_path / "test_project"
+        project_dir.mkdir()
+
+        # Initialize a pixi project with both main and main-x channels
+        # (main-x packages may have dependencies in main)
+        init_result = subprocess.run(
+            ["pixi", "init", "--channel", MAIN_X_CHANNEL, "--channel", MAIN_CHANNEL],
             capture_output=True,
             text=True,
             encoding="utf-8",
             env=pixi_feature_env,
+            cwd=project_dir,
+        )
+        assert init_result.returncode == 0, f"Init failed: {init_result.stderr}"
+
+        # Try to install a package from main-x channel
+        # Note: repodata is now public, but package downloads require auth
+        install_result = subprocess.run(
+            ["pixi", "add", "abn"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=pixi_feature_env,
+            cwd=project_dir,
         )
 
-        # Search should succeed (not 403 Forbidden) when authenticated
-        assert search_result.returncode == 0, f"Search failed: {search_result.stderr}"
-        assert "abn" in search_result.stdout.lower()
+        # Install should succeed when authenticated
+        assert install_result.returncode == 0, (
+            f"Install failed: {install_result.stderr}"
+        )
 
         # Cleanup: disable main-x
         run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
 
-    def test_cannot_access_main_x_without_auth(
+    def test_cannot_install_from_main_x_without_auth(
         self,
         pixi_isolated_env: dict[str, str],
+        tmp_path: Path,
     ) -> None:
-        """Verify that accessing main-x without authentication fails with 403."""
-        # Try to search main-x channel without any authentication
-        # This should fail with 403 Forbidden
-        search_result = subprocess.run(
-            ["pixi", "search", "abn", "-c", MAIN_X_CHANNEL],
+        """Verify that installing from main-x without authentication fails with 403."""
+        # Create a temporary pixi project
+        project_dir = tmp_path / "test_project"
+        project_dir.mkdir()
+
+        # Initialize a pixi project with both main and main-x channels
+        # (main-x packages may have dependencies in main)
+        init_result = subprocess.run(
+            ["pixi", "init", "--channel", MAIN_X_CHANNEL, "--channel", MAIN_CHANNEL],
             capture_output=True,
             text=True,
             encoding="utf-8",
             env=pixi_isolated_env,
+            cwd=project_dir,
+        )
+        assert init_result.returncode == 0, f"Init failed: {init_result.stderr}"
+
+        # Try to install a package without authentication
+        # Note: repodata/search is now public, but package downloads require auth
+        install_result = subprocess.run(
+            ["pixi", "add", "abn"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=pixi_isolated_env,
+            cwd=project_dir,
         )
 
-        # Should fail with 403 Forbidden
-        assert search_result.returncode != 0, "Search should fail without auth"
-        assert "403" in search_result.stderr or "Forbidden" in search_result.stderr
+        # Should fail with 403 Forbidden when trying to download
+        assert install_result.returncode != 0, "Install should fail without auth"
+        assert (
+            "403" in install_result.stderr
+            or "Forbidden" in install_result.stderr
+            or "unauthorized" in install_result.stderr.lower()
+        )
 
 
 # =============================================================================

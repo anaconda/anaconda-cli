@@ -33,6 +33,9 @@ DEFAULT_VERSION="latest"
 DEFAULT_VERIFY_CHECKSUM="true"
 DEFAULT_CHANNEL="stable"
 
+# Track which shell profile was modified (set by add_to_path)
+SHELL_PROFILE_MODIFIED=""
+
 usage() {
     # Replace $HOME with ~ for display
     local _display_dir
@@ -182,7 +185,11 @@ main() {
 
     run_bootstrap "$_install_dir" "$_exe_suffix"
 
-    printf "🎉 Done! Run '\033[1;36mana --help\033[0m' to get started.\n"
+    if [ -n "$SHELL_PROFILE_MODIFIED" ]; then
+        printf "\n🎉 Done! Restart your shell or run '\033[1;36msource %s\033[0m', then run '\033[1;36mana --help\033[0m' to get started.\n" "$SHELL_PROFILE_MODIFIED"
+    else
+        printf "\n🎉 Done! Run '\033[1;36mana --help\033[0m' to get started.\n"
+    fi
 }
 
 detect_os() {
@@ -397,7 +404,7 @@ append_line_if_missing() {
     [ -f "$_file" ] || touch "$_file"
 
     printf '\n%s\n' "$_line" >> "$_file"
-    info "Updated %s — restart your shell or run:  source %s" "$_file" "$_file"
+    SHELL_PROFILE_MODIFIED="$_file"
 }
 
 check_cmd() {

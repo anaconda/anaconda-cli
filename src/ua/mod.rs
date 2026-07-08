@@ -64,6 +64,14 @@ fn base_user_agent() -> &'static str {
     &USER_AGENT
 }
 
+/// Cached AAU token details (computed once per process).
+static AAU_TOKENS: OnceLock<Vec<anaconda_anon_usage::TokenEntry>> = OnceLock::new();
+
+/// Get cached AAU token details, initializing on first call.
+fn token_details() -> &'static [anaconda_anon_usage::TokenEntry] {
+    AAU_TOKENS.get_or_init(|| anaconda_anon_usage::token_details(&aau_config()))
+}
+
 /// Build the full user-agent string for ana HTTP requests.
 ///
 /// Includes platform info and AAU identity tokens. Uses the global env
@@ -74,7 +82,29 @@ fn base_user_agent() -> &'static str {
 /// for the lifetime of the process.
 pub fn user_agent() -> &'static str {
     static UA: OnceLock<String> = OnceLock::new();
-    UA.get_or_init(|| anaconda_anon_usage::token_string(&aau_config()))
+    UA.get_or_init(|| {
+        token_details()
+            .iter()
+            .map(|e| format!("{}/{}", e.prefix, e.value))
+            .collect::<Vec<_>>()
+            .join(" ")
+    })
+}
+
+/// Get the AAU client token (stable per-machine identifier).
+pub fn client_token() -> Option<&'static str> {
+    token_details()
+        .iter()
+        .find(|e| e.prefix == "c")
+        .map(|e| e.value.as_str())
+}
+
+/// Get the AAU session token (unique per process).
+pub fn session_token() -> Option<&'static str> {
+    token_details()
+        .iter()
+        .find(|e| e.prefix == "s")
+        .map(|e| e.value.as_str())
 }
 
 /// Flush any deferred token writes to disk.

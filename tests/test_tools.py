@@ -12,7 +12,7 @@ from helpers import AnaRunner
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
 
-class TestToolInstallHelp:
+class TestToolHelp:
     """Tests for tool command help."""
 
     def test_tool_help(self, run_ana: AnaRunner) -> None:
@@ -31,6 +31,17 @@ class TestToolInstallHelp:
         result = run_ana("tool", "install", "--help")
         assert result.returncode == 0
         assert "Install a tool" in result.stdout
+
+    def test_tool_download_subcommand_exists(self, run_ana: AnaRunner) -> None:
+        """Verify the download subcommand is present in the binary."""
+        result = run_ana("tool", "--help")
+        assert result.returncode == 0
+        assert "download" in result.stdout.lower()
+
+    def test_tool_download_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "download", "--help")
+        assert result.returncode == 0
+        assert "miniconda" in result.stdout.lower()
 
 
 class TestToolInstallPixi:
@@ -124,6 +135,16 @@ class TestToolList:
         assert "pixi" in result.stdout
         assert "anaconda-cli" in result.stdout
 
+    def test_tool_list_shows_externally_managed_installers(
+        self, run_ana: AnaRunner
+    ) -> None:
+        """Test that tool list shows the externally managed installers table."""
+        result = run_ana("tool", "list")
+        assert result.returncode == 0
+        assert "Externally Managed Installers" in result.stdout
+        assert "miniconda" in result.stdout
+        assert "ana tool download miniconda" in result.stdout
+
     def test_tool_list_shows_installed_status(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
@@ -154,6 +175,57 @@ class TestToolList:
             if "pixi" in line.lower() and "anaconda" not in line.lower()
         ][0]
         assert "✓" in pixi_line_after
+
+
+class TestToolUpdate:
+    """Tests for 'ana tool update' subcommand."""
+
+    def test_tool_update_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "update", "--help")
+        assert result.returncode == 0
+        assert "Update all installed tools" in result.stdout
+
+    def test_tool_update_no_tools_installed(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update with no tools installed shows up to date."""
+        result = run_ana("tool", "update")
+        assert result.returncode == 0
+        assert "up to date" in result.stderr.lower()
+
+    def test_tool_update_updates_installed_tool(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update updates an installed tool when lockfile hash changes."""
+        # First install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Verify hash file was created
+        hash_file = fake_home / ".ana" / "tools" / "pixi" / ".lockfile-hash"
+        assert hash_file.exists(), "Lockfile hash should be stored after install"
+
+        # Corrupt the hash to simulate a lockfile change
+        hash_file.write_text("fakehash")
+
+        # Run tool update - should detect mismatch and update
+        # Note: pixi has auto_update=false by default, so we must enable it via env
+        update_result = run_ana("tool", "update", env={"ANA_AUTO_UPDATE_TOOLS": "true"})
+        assert update_result.returncode == 0
+        assert "pixi" in update_result.stderr.lower()
+
+    def test_tool_update_skips_up_to_date_tools(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update skips tools that are already up to date."""
+        # First install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Run tool update - should show up to date
+        update_result = run_ana("tool", "update")
+        assert update_result.returncode == 0
+        assert "up to date" in update_result.stderr.lower()
 
 
 class TestToolUninstall:

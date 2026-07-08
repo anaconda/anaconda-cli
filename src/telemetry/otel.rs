@@ -113,7 +113,7 @@ mod tests {
     fn test_serializable_value_from_otel() {
         let string_val = Value::String("test".into());
         let int_val = Value::I64(42);
-        let float_val = Value::F64(1.5);
+        let float_val = Value::F64(3.125);
         let bool_val = Value::Bool(true);
 
         assert_eq!(
@@ -123,7 +123,7 @@ mod tests {
         assert_eq!(SerializableValue::from(int_val), SerializableValue::Int(42));
         assert_eq!(
             SerializableValue::from(float_val),
-            SerializableValue::Float(1.5)
+            SerializableValue::Float(3.125)
         );
         assert_eq!(
             SerializableValue::from(bool_val),
@@ -136,7 +136,7 @@ mod tests {
         let values = vec![
             SerializableValue::String("hello".to_string()),
             SerializableValue::Int(42),
-            SerializableValue::Float(1.5),
+            SerializableValue::Float(3.125),
             SerializableValue::Bool(true),
         ];
 

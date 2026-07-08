@@ -267,27 +267,20 @@ class TestBootstrap:
         assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
         assert tool_dir.is_dir()
 
-    def test_bootstrap_creates_symlinked_binary(
+    def test_bootstrap_does_not_create_symlink(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
-        """Test that bootstrap creates a symlinked anaconda binary in ~/.ana/bin."""
+        """Test that bootstrap does NOT create an anaconda symlink in ~/.ana/bin.
+
+        anaconda-cli is only accessible via ana subcommands to avoid shadowing
+        the user's existing anaconda command from anaconda-auth.
+        """
         result = run_ana("bootstrap")
         assert result.returncode == 0
 
-        # Verify the symlinked binary exists
+        # Verify NO symlink is created
         bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
-        assert bin_path.exists(), f"Binary not found: {bin_path}"
-        tools_dir = fake_home / ".ana" / "tools"
-        if IS_WINDOWS:
-            shim_cfg = tools_dir / "shims.cfg"
-            assert (
-                "anaconda=anaconda-cli\\Scripts\\anaconda.exe\r\n"
-                in shim_cfg.read_text(newline="")
-            )
-        else:
-            src_file = tools_dir / "anaconda-cli" / "bin" / "anaconda"
-            assert bin_path.is_symlink(), f"Binary is not a symlink: {bin_path}"
-            assert bin_path.samefile(src_file)
+        assert not bin_path.exists(), f"Symlink should not be created: {bin_path}"
 
     def test_bootstrap_already_installed(
         self, run_ana: AnaRunner, fake_home: Path
@@ -297,9 +290,9 @@ class TestBootstrap:
         first_result = run_ana("bootstrap")
         assert first_result.returncode == 0
 
-        # Verify installation exists
-        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
-        assert bin_path.exists()
+        # Verify tool prefix exists
+        tool_dir = fake_home / ".ana" / "tools" / "anaconda-cli"
+        assert tool_dir.exists()
 
         # Second run should indicate already installed
         second_result = run_ana("bootstrap")
@@ -309,13 +302,25 @@ class TestBootstrap:
     def test_bootstrap_anaconda_binary_runs(
         self, run_ana: AnaRunner, fake_home: Path
     ) -> None:
-        """Test that the installed anaconda binary runs and outputs help."""
+        """Test that the installed anaconda binary runs from the tool prefix."""
         result = run_ana("bootstrap")
         assert result.returncode == 0
 
-        # Run the installed anaconda binary
-        bin_path = fake_home / ".ana" / "bin" / ANACONDA_BIN
-        assert bin_path.exists()
+        # Run the anaconda binary directly from the tool prefix
+        if IS_WINDOWS:
+            bin_path = (
+                fake_home
+                / ".ana"
+                / "tools"
+                / "anaconda-cli"
+                / "Scripts"
+                / "anaconda.exe"
+            )
+        else:
+            bin_path = (
+                fake_home / ".ana" / "tools" / "anaconda-cli" / "bin" / "anaconda"
+            )
+        assert bin_path.exists(), f"Binary not found: {bin_path}"
 
         proc = subprocess.run(
             [str(bin_path), "--help"],
@@ -331,13 +336,13 @@ class TestArgumentErrors:
 
     def test_unknown_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("foobar")
-        assert result.returncode == 1
-        assert "Unknown command: foobar" in result.stderr
+        assert result.returncode == 2
+        assert "Unknown subcommand 'foobar'" in result.stderr
 
     def test_unknown_self_command(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "foobar")
-        assert result.returncode == 1
-        assert "Unknown self command: foobar" in result.stderr
+        assert result.returncode == 2
+        assert "Unknown subcommand 'foobar'" in result.stderr
 
 
 class TestHelpWithArguments:
@@ -431,3 +436,185 @@ class TestBinaryFeatures:
                 f"Binary contains Sentry indicator '{indicator.decode()}' - "
                 "diagnostics feature should not be enabled by default"
             )
+
+
+class TestMcpSubcommands:
+    """Smoke tests for MCP subcommand wrappers.
+
+    These tests verify that our MCP command wrappers match commands that actually
+    exist in the upstream anaconda-mcp plugin. If an upstream command is removed,
+    these tests will fail, alerting us to update our wrappers.
+    """
+
+    def test_mcp_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp --help' shows available subcommands."""
+        result = run_ana("mcp", "--help")
+        assert result.returncode == 0
+        assert "Usage: ana mcp" in result.stdout
+        assert "COMMANDS" in result.stdout
+
+    def test_mcp_serve_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp serve --help' works."""
+        result = run_ana("mcp", "serve", "--help")
+        assert result.returncode == 0
+        assert "serve" in result.stdout.lower()
+
+    def test_mcp_clients_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp clients --help' works."""
+        result = run_ana("mcp", "clients", "--help")
+        assert result.returncode == 0
+        assert "clients" in result.stdout.lower()
+
+    def test_mcp_setup_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp setup --help' works."""
+        result = run_ana("mcp", "setup", "--help")
+        assert result.returncode == 0
+        assert "setup" in result.stdout.lower()
+
+    def test_mcp_remove_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp remove --help' works."""
+        result = run_ana("mcp", "remove", "--help")
+        assert result.returncode == 0
+        assert "remove" in result.stdout.lower()
+
+    def test_mcp_terms_help(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms --help' works."""
+        result = run_ana("mcp", "terms", "--help")
+        assert result.returncode == 0
+        assert "terms" in result.stdout.lower()
+
+    def test_mcp_wrappers_exist_upstream(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Verify that ana mcp subcommands exist in upstream anaconda mcp.
+
+        This test ensures our wrappers aren't stale - if upstream removes a
+        command, running it via ana will fail with "No such command" and this
+        test will catch it.
+        """
+        # First ensure anaconda-cli is installed
+        run_ana("bootstrap")
+
+        # Get ana's mcp subcommands from help output
+        ana_result = run_ana("mcp", "--help")
+        assert ana_result.returncode == 0
+
+        # Parse subcommands from ana help (format: "  command  Description")
+        ana_commands = []
+        in_commands = False
+        for line in ana_result.stdout.splitlines():
+            stripped = line.strip()
+            if stripped == "COMMANDS":
+                in_commands = True
+                continue
+            if in_commands:
+                # Stop at next section (OPTIONS, etc.) or empty line
+                if not stripped or stripped.isupper() or stripped.startswith("-"):
+                    in_commands = False
+                    continue
+                # Extract command name (first word)
+                parts = stripped.split()
+                if parts:
+                    ana_commands.append(parts[0])
+
+        assert ana_commands, "No mcp subcommands found in ana help output"
+
+        # Verify each wrapped command exists upstream by running it with --help
+        # Note: some commands may fail due to auth requirements, but they should
+        # not fail with "No such command" which indicates the command doesn't exist
+        anaconda_bin = (
+            fake_home / ".ana" / "tools" / "anaconda-cli" / "bin" / "anaconda"
+        )
+        if not anaconda_bin.exists():
+            # Windows path
+            anaconda_bin = (
+                fake_home
+                / ".ana"
+                / "tools"
+                / "anaconda-cli"
+                / "Scripts"
+                / "anaconda.exe"
+            )
+
+        stale_commands = []
+        for cmd in ana_commands:
+            result = subprocess.run(
+                [str(anaconda_bin), "mcp", cmd, "--help"],
+                capture_output=True,
+                text=True,
+            )
+            # Check if the command doesn't exist (vs failing for other reasons like auth)
+            if "No such command" in result.stderr:
+                stale_commands.append(cmd)
+
+        assert not stale_commands, (
+            f"ana mcp has wrappers for commands that don't exist upstream: {stale_commands}. "
+            "Remove them from src/mcp/commands.rs"
+        )
+
+    # -------------------------------------------------------------------------
+    # Help option verification tests
+    # These tests ensure all CLI options are properly configured and don't cause
+    # panics. They verify each subcommand's help output includes expected options.
+    # -------------------------------------------------------------------------
+
+    def test_mcp_serve_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp serve --help' shows all expected options."""
+        result = run_ana("mcp", "serve", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--config" in result.stdout, "Missing --config option"
+        assert "--host" in result.stdout, "Missing --host option"
+        assert "--port" in result.stdout, "Missing --port option"
+        assert "--delay" in result.stdout, "Missing --delay option"
+        # Note: --verbose uses trailing_var_arg to avoid conflict with global -v
+
+    def test_mcp_clients_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp clients --help' shows all expected options."""
+        result = run_ana("mcp", "clients", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--project-dir" in result.stdout, "Missing --project-dir option"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_setup_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp setup --help' shows all expected options."""
+        result = run_ana("mcp", "setup", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--client" in result.stdout, "Missing --client option"
+        assert "--name" in result.stdout, "Missing --name option"
+        assert "--scope" in result.stdout, "Missing --scope option"
+        assert "--project-dir" in result.stdout, "Missing --project-dir option"
+        assert "--no-backup" in result.stdout, "Missing --no-backup option"
+        assert "--force" in result.stdout, "Missing --force option"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_remove_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp remove --help' shows all expected options."""
+        result = run_ana("mcp", "remove", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--client" in result.stdout, "Missing --client option"
+        assert "--name" in result.stdout, "Missing --name option"
+        assert "--scope" in result.stdout, "Missing --scope option"
+        assert "--project-dir" in result.stdout, "Missing --project-dir option"
+        assert "--no-backup" in result.stdout, "Missing --no-backup option"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_terms_help_shows_subcommands(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms --help' shows subcommands and options."""
+        result = run_ana("mcp", "terms", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "status" in result.stdout.lower(), "Missing 'status' subcommand"
+        assert "accept" in result.stdout.lower(), "Missing 'accept' subcommand"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_terms_status_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms status --help' shows all expected options."""
+        result = run_ana("mcp", "terms", "status", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--json" in result.stdout, "Missing --json option"
+
+    def test_mcp_terms_accept_help_shows_options(self, run_ana: AnaRunner) -> None:
+        """Test that 'ana mcp terms accept --help' shows all expected options."""
+        result = run_ana("mcp", "terms", "accept", "--help")
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "--json" in result.stdout, "Missing --json option"
+        assert "--consent" in result.stdout, "Missing --consent option"

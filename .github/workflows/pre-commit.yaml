@@ -21,28 +21,20 @@ jobs:
     name: pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           token: ${{ secrets.ANACONDA_BOT_TOKEN }}  # zizmor: ignore[secrets-outside-env]
           # Full history needed for SBOM freshness check (compares commit timestamps)
           fetch-depth: 0
 
-      - name: Configure git for private repos
-        env:
-          REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}  # zizmor: ignore[secrets-outside-env]
-        run: |
-          git config --global url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global --add url."https://x-access-token:${REPO_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          mkdir -p ~/.cargo && echo -e '[net]\ngit-fetch-with-cli = true' >> ~/.cargo/config.toml
-
       - name: Set up ana with pixi
-        uses: ./.github/actions/setup-ana
+        uses: anaconda/actions/setup-anaconda-cli@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
         with:
-          ana-version: v0.1.6
+          version: v0.1.6
           tools: pixi
 
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml') }}

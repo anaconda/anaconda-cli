@@ -302,6 +302,24 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
         let _ = term.write_line("");
     }
 
+    // Arguments section - positional args with help text
+    let positional_args: Vec<_> = cmd
+        .get_arguments()
+        .filter(|a| !is_builtin_arg(a))
+        .filter(|a| !a.is_hide_set())
+        .filter(|a| is_positional(a))
+        .filter(|a| a.get_help().is_some())
+        .collect();
+    if !positional_args.is_empty() {
+        print_section(&term, "ARGUMENTS");
+        for arg in positional_args {
+            let name = format_positional(arg);
+            let desc = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
+            print_command_row(&term, &name, &desc);
+        }
+        let _ = term.write_line("");
+    }
+
     // Options section - always show at least -h, --help
     let option_args: Vec<_> = cmd
         .get_arguments()

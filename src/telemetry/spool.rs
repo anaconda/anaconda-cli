@@ -238,7 +238,7 @@ mod tests {
                 },
                 TelemetryEvent::Histogram {
                     name: "histogram1".to_string(),
-                    value: 1.5,
+                    value: 3.125,
                     attributes: HashMap::new(),
                 },
             ];

@@ -12,6 +12,8 @@ struct Tool {
     /// If true, the binary in ~/.ana/bin/ should be a link to ana itself,
     /// which acts as a wrapper for the actual tool binary.
     uses_wrapper: bool,
+    /// Whether this tool should be auto-updated when `ana` is updated.
+    auto_update: bool,
 }
 
 /// Embedded tool configurations.
@@ -19,13 +21,12 @@ const TOOLS: &[Tool] = &[
     Tool {
         name: "anaconda-cli",
         lockfile: include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
-        binaries: if cfg![unix] {
-            &[&["bin", "anaconda"]]
-        } else {
-            &[&["Scripts", "anaconda"]]
-        },
+        // No symlink - anaconda-cli is only accessed via ana subcommands (e.g., ana mcp)
+        // to avoid shadowing users' existing anaconda command from anaconda-auth
+        binaries: &[],
         experimental: None,
         uses_wrapper: false,
+        auto_update: true,
     },
     #[cfg(unix)]
     Tool {
@@ -34,6 +35,7 @@ const TOOLS: &[Tool] = &[
         binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
         uses_wrapper: false,
+        auto_update: true,
     },
     Tool {
         name: "conda",
@@ -45,6 +47,7 @@ const TOOLS: &[Tool] = &[
         },
         experimental: Some("conda"),
         uses_wrapper: true,
+        auto_update: true,
     },
     Tool {
         name: "pixi",
@@ -52,6 +55,7 @@ const TOOLS: &[Tool] = &[
         binaries: &[&["bin", "pixi"]],
         experimental: None,
         uses_wrapper: false,
+        auto_update: false,
     },
 ];
 
@@ -102,6 +106,11 @@ pub fn uses_wrapper(name: &str) -> bool {
     find_tool(name).map(|t| t.uses_wrapper).unwrap_or(false)
 }
 
+/// Returns whether auto-update is enabled for a tool by default.
+pub fn auto_update_default(name: &str) -> bool {
+    find_tool(name).is_some_and(|t| t.auto_update)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,5 +129,20 @@ mod tests {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
             assert!(content("unknown-tool").is_none());
         });
+    }
+
+    #[test]
+    fn test_auto_update_default_anaconda_cli() {
+        assert!(auto_update_default("anaconda-cli"));
+    }
+
+    #[test]
+    fn test_auto_update_default_pixi() {
+        assert!(!auto_update_default("pixi"));
+    }
+
+    #[test]
+    fn test_auto_update_default_unknown_tool() {
+        assert!(!auto_update_default("unknown-tool"));
     }
 }
