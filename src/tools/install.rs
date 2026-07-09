@@ -15,6 +15,7 @@ use rattler_lock::LockFile;
 use super::{pixi_config, specs};
 use crate::context::CommandContext;
 use crate::paths;
+use crate::ui::status;
 
 /// Global progress bar for installation feedback.
 static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock::new(|| {
@@ -94,7 +95,11 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     // Show experimental warning if applicable
     if let Some(msg) = specs::experimental_message(name) {
-        crate::ui::status::warn(msg);
+        if name == "conda" {
+            print_conda_experimental_warning();
+        } else {
+            crate::ui::status::warn(msg);
+        }
         eprintln!();
     }
 
@@ -104,6 +109,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = specs::binaries(name).unwrap_or_default();
+    let uses_wrapper = specs::uses_wrapper(name);
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
@@ -116,14 +122,33 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         .context("failed to write lockfile hash")?;
 
     // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, &binaries)?;
+    create_bin_symlinks(&prefix, &binaries, uses_wrapper)?;
 
     // Tool-specific post-install configuration
     if name == "pixi" {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
     }
 
+    // For conda, write config and frozen marker
+    if name == "conda" {
+        write_conda_config(&prefix)?;
+        write_frozen_marker(&prefix)?;
+    }
+
     Ok(())
+}
+
+/// Print the experimental warning for the conda tool with styled highlights.
+fn print_conda_experimental_warning() {
+    status::warn("Conda as a managed tool is experimental.");
+    eprintln!(
+        "  Uses conda-spawn for activation ({}) instead of conda activate.",
+        status::highlight("conda shell <env>")
+    );
+    eprintln!(
+        "  Please report issues with {}, not to conda directly.",
+        status::highlight("ana self feedback")
+    );
 }
 
 /// Install packages from a lockfile string to a prefix.
@@ -218,18 +243,71 @@ pub async fn install_from_lockfile(
 }
 
 /// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()> {
+fn create_bin_symlinks(
+    prefix: &Path,
+    binaries: &[PathBuf],
+    uses_wrapper: bool,
+) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
     for binary in binaries {
-        #[cfg(unix)]
-        create_bin_symlink(&bin_dir, prefix, binary)?;
-        #[cfg(windows)]
-        create_bin_shim(&bin_dir, prefix, binary)?;
+        if uses_wrapper {
+            install_wrapper_binary(&bin_dir, binary)?;
+        } else {
+            #[cfg(unix)]
+            create_bin_symlink(&bin_dir, prefix, binary)?;
+            #[cfg(windows)]
+            create_bin_shim(&bin_dir, prefix, binary)?;
+        }
     }
+
+    Ok(())
+}
+
+/// Embedded conda wrapper binary (compiled from src/wrappers/conda.rs)
+#[cfg(unix)]
+const CONDA_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/conda-wrapper"));
+#[cfg(windows)]
+const CONDA_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/conda-wrapper.exe"));
+
+/// Install the embedded wrapper binary for a tool.
+///
+/// This writes the pre-compiled wrapper binary to ~/.ana/bin/<name>.
+/// Currently only conda uses this; the wrapper intercepts certain commands
+/// and provides a better UX for conda-spawn based activation.
+fn install_wrapper_binary(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let binary_name = binary.file_name().unwrap().to_string_lossy();
+
+    #[cfg(windows)]
+    let wrapper_path = bin_dir.join(format!("{}.exe", binary_name));
+    #[cfg(not(windows))]
+    let wrapper_path = bin_dir.join(binary_name.as_ref());
+
+    // Remove existing file if present
+    if wrapper_path.exists() {
+        std::fs::remove_file(&wrapper_path)
+            .into_diagnostic()
+            .context("failed to remove existing wrapper")?;
+    }
+
+    // Write the embedded binary
+    std::fs::write(&wrapper_path, CONDA_WRAPPER)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write wrapper: {}", wrapper_path.display()))?;
+
+    // Make executable on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&wrapper_path, std::fs::Permissions::from_mode(0o755))
+            .into_diagnostic()
+            .context("failed to set wrapper permissions")?;
+    }
+
+    eprintln!("   Installed wrapper {}", wrapper_path.display());
 
     Ok(())
 }
@@ -363,6 +441,56 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
     std::fs::write(&config_path, content)
         .into_diagnostic()
         .context("failed to write shims.cfg")?;
+
+    Ok(())
+}
+
+/// Write .condarc configuration for the conda environment.
+///
+/// This sets up the default channels (similar to miniconda) and other
+/// ana-specific configuration. The config is stored in tool-specs/conda/.condarc
+/// and compiled into the binary.
+fn write_conda_config(prefix: &Path) -> miette::Result<()> {
+    let condarc_path = prefix.join(".condarc");
+    let contents = include_str!("../../tool-specs/conda/.condarc");
+
+    std::fs::write(&condarc_path, contents)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write .condarc: {}", condarc_path.display()))?;
+
+    eprintln!("   Configured conda channels and settings");
+
+    Ok(())
+}
+
+/// Write a frozen marker file to protect the conda environment (CEP 22).
+///
+/// This prevents users from accidentally modifying the tool's environment
+/// with `conda install`. They should use `conda self install` instead.
+fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
+    let conda_meta = prefix.join("conda-meta");
+    std::fs::create_dir_all(&conda_meta)
+        .into_diagnostic()
+        .context("failed to create conda-meta directory")?;
+
+    let frozen_path = conda_meta.join("frozen");
+    let contents = serde_json::json!({
+        "message": concat!(
+            "This environment is managed by ana.\n",
+            "To install packages, use: conda self install <package>\n",
+            "To update conda, use: conda self update\n",
+            "To override, pass --override-frozen to conda commands."
+        )
+    });
+
+    std::fs::write(
+        &frozen_path,
+        serde_json::to_string_pretty(&contents).unwrap(),
+    )
+    .into_diagnostic()
+    .with_context(|| format!("failed to write frozen marker: {}", frozen_path.display()))?;
+
+    eprintln!("   Froze environment to prevent accidental modifications");
 
     Ok(())
 }

@@ -1,0 +1,25 @@
+# Configuration for ana-managed conda installation
+# https://github.com/anaconda/ana
+
+# Define what 'defaults' means
+default_channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+
+# Default channel to use when creating environments
+channels:
+  - defaults
+
+# Don't auto-activate base - users should use 'conda shell <env>'
+auto_activate_base: false
+
+# Disable outdated conda notifications (ana handles updates)
+notify_outdated_conda: false
+
+# Packages bundled with ana that should survive 'conda self reset'
+# Note: conda and conda-self are already hardcoded as permanent
+# Note: This setting requires conda-self > 0.1.1 (not yet released)
+self_permanent_packages:
+  - anaconda-anon-usage
+  - anaconda-auth
+  - conda-spawn

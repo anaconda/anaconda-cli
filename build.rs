@@ -22,6 +22,53 @@ fn main() {
     // On Windows, compile the shim binary and place it in OUT_DIR
     #[cfg(windows)]
     build_shim();
+
+    // Compile the conda wrapper binary for embedding
+    build_conda_wrapper();
+}
+
+/// Build the conda wrapper binary and place it in OUT_DIR.
+///
+/// The wrapper is a standalone binary that gets embedded into ana and written
+/// to ~/.ana/bin/conda when `ana tool install conda` is run.
+fn build_conda_wrapper() {
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    println!("cargo:rerun-if-env-changed=CONDA_WRAPPER_PATH");
+    println!("cargo:rerun-if-changed=src/wrappers/conda.rs");
+
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+
+    #[cfg(windows)]
+    let wrapper_out = out_dir.join("conda-wrapper.exe");
+    #[cfg(not(windows))]
+    let wrapper_out = out_dir.join("conda-wrapper");
+
+    // If a pre-built wrapper is provided (e.g., signed), copy it instead of compiling
+    if let Ok(wrapper_path) = std::env::var("CONDA_WRAPPER_PATH") {
+        std::fs::copy(&wrapper_path, &wrapper_out)
+            .expect("failed to copy conda wrapper from CONDA_WRAPPER_PATH");
+        return;
+    }
+
+    // Otherwise compile it directly
+    let wrapper_src = PathBuf::from("src/wrappers/conda.rs");
+
+    let status = Command::new("rustc")
+        .args([
+            "--edition=2024",
+            "-O",
+            "-o",
+            wrapper_out.to_str().unwrap(),
+            wrapper_src.to_str().unwrap(),
+        ])
+        .status()
+        .expect("failed to run rustc for conda wrapper");
+
+    if !status.success() {
+        panic!("failed to compile conda wrapper binary");
+    }
 }
 
 #[cfg(windows)]

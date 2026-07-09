@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 
+import pytest
+from helpers import IS_WINDOWS
 from helpers import AnaRunner
 
-IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
 
@@ -284,3 +284,247 @@ class TestToolUninstall:
         assert "The following will be removed:" in uninstall_result.stderr
         assert str(Path(".ana/bin/pixi")) in uninstall_result.stderr
         assert str(Path(".ana/tools/pixi")) in uninstall_result.stderr
+
+
+class TestToolInstallConda:
+    """Tests for 'ana tool install conda' subcommand."""
+
+    def test_tool_install_conda(self, run_ana: AnaRunner, fake_home: Path) -> None:
+        """Test that tool install conda installs conda to ~/.ana/tools."""
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode == 0
+        assert "conda" in result.stderr
+
+        # Verify the tool directory was created
+        tool_dir = fake_home / ".ana" / "tools" / "conda"
+        assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
+        assert tool_dir.is_dir()
+
+    def test_tool_install_conda_creates_wrapper_binary(
+        self, run_ana: AnaRunner, fake_home: Path, ana_binary: Path
+    ) -> None:
+        """Test that tool install creates a standalone wrapper binary."""
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode == 0
+        assert "Installed wrapper" in result.stderr
+
+        # Verify the wrapper binary was created
+        wrapper_name = "conda.exe" if IS_WINDOWS else "conda"
+        bin_path = fake_home / ".ana" / "bin" / wrapper_name
+        assert bin_path.exists(), f"Wrapper binary not found: {bin_path}"
+        # The wrapper is a standalone binary, not a symlink
+        assert not bin_path.is_symlink(), "Wrapper should be a binary, not a symlink"
+        assert bin_path.stat().st_size > 0, "Wrapper binary should not be empty"
+
+
+class TestCondaWrapper:
+    """Tests for conda wrapper functionality."""
+
+    @pytest.fixture(scope="class")
+    def conda_home(
+        self, tmp_path_factory: pytest.TempPathFactory, request: pytest.FixtureRequest
+    ) -> Path:
+        """Create a shared home directory for all tests in this class."""
+        home = tmp_path_factory.mktemp("conda_home")
+        # Create shell config files
+        (home / ".bashrc").touch()
+        (home / ".zshrc").touch()
+        fish_config = home / ".config" / "fish"
+        fish_config.mkdir(parents=True)
+        (fish_config / "config.fish").touch()
+
+        def cleanup():
+            # Use system rm for faster cleanup of many files (conda installs ~127 packages)
+            if IS_WINDOWS:
+                subprocess.run(["cmd.exe", "/C", f'RMDIR /S /Q "{home}"'], check=False)
+            else:
+                subprocess.run(["rm", "-rf", str(home)], check=False)
+
+        request.addfinalizer(cleanup)
+
+        return home
+
+    @pytest.fixture(scope="class")
+    def conda_env(self, conda_home: Path) -> dict[str, str]:
+        """Environment isolated for conda tests."""
+        import os
+
+        env = {
+            key: val
+            for key, val in os.environ.copy().items()
+            if not key.startswith("ANA_") and key != "GITHUB_TOKEN"
+        }
+        if IS_WINDOWS:
+            env["USERPROFILE"] = str(conda_home)
+            # Rattler does not reliably detect the default cache for Windows tests
+            env["RATTLER_CACHE_DIR"] = str(conda_home / "cache" / "rattler")
+        else:
+            env["HOME"] = str(conda_home)
+        env["CONDA_PLUGINS_AUTO_ACCEPT_TOS"] = "yes"
+        return env
+
+    @pytest.fixture(scope="class")
+    def conda_wrapper(
+        self, ana_binary: Path | None, conda_home: Path, conda_env: dict[str, str]
+    ) -> Path:
+        """Install conda once and return the wrapper binary path."""
+
+        if ana_binary is None:
+            pytest.skip(
+                "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
+            )
+
+        result = subprocess.run(
+            [str(ana_binary), "tool", "install", "conda"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert result.returncode == 0, f"Failed to install conda: {result.stderr}"
+
+        # On Windows, the wrapper is conda.exe; on Unix it's just conda
+        wrapper_name = "conda.exe" if IS_WINDOWS else "conda"
+        wrapper = conda_home / ".ana" / "bin" / wrapper_name
+        assert wrapper.exists(), f"Wrapper not found at {wrapper}"
+        return wrapper
+
+    def test_conda_wrapper_activate_intercepted(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda activate is intercepted with helpful message."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "activate"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 1
+        assert "not available via ana" in proc.stderr
+        assert "conda shell" in proc.stderr
+        assert "conda-spawn" in proc.stderr
+
+    def test_conda_wrapper_deactivate_intercepted(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda deactivate is intercepted with helpful message."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "deactivate"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 1
+        assert "not available via ana" in proc.stderr
+        assert "conda shell" in proc.stderr
+
+    def test_conda_wrapper_init_intercepted(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda init is intercepted with helpful message."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "init"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 1
+        assert "not needed with ana" in proc.stderr
+        assert "~/.ana/bin" in proc.stderr
+
+    def test_conda_wrapper_version_passes_through(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda --version passes through to real conda."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "--version"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 0
+        assert "conda" in proc.stdout.lower()
+
+    def test_conda_wrapper_info_passes_through(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda info passes through to real conda."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "info"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 0
+        assert "conda version" in proc.stdout.lower()
+
+    def test_conda_wrapper_help_passes_through(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda --help passes through to real conda."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "--help"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 0
+        # conda --help outputs to stdout
+        assert "conda" in proc.stdout.lower()
+
+    def test_conda_wrapper_shell_alias_for_spawn(
+        self, conda_wrapper: Path, conda_env: dict[str, str]
+    ) -> None:
+        """Test that conda shell is an alias for conda spawn."""
+        proc = subprocess.run(
+            [str(conda_wrapper), "shell", "--help"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode == 0
+        # Should show spawn help (shell is aliased to spawn)
+        assert "spawn" in proc.stdout.lower()
+        assert "activate conda environments" in proc.stdout.lower()
+
+    def test_conda_environment_is_frozen(
+        self, conda_wrapper: Path, conda_env: dict[str, str], conda_home: Path
+    ) -> None:
+        """Test that the conda environment is frozen and blocks direct installs."""
+        # Verify the frozen marker file exists
+        frozen_path = conda_home / ".ana" / "tools" / "conda" / "conda-meta" / "frozen"
+        assert frozen_path.exists(), "Frozen marker file should exist"
+
+        # Verify it contains the expected message
+        frozen_content = frozen_path.read_text()
+        assert "managed by ana" in frozen_content
+
+        # Test that conda install to base is blocked
+        proc = subprocess.run(
+            [str(conda_wrapper), "install", "-n", "base", "numpy", "--dry-run"],
+            capture_output=True,
+            text=True,
+            env=conda_env,
+        )
+        assert proc.returncode != 0
+        assert (
+            "frozen" in proc.stderr.lower() or "EnvironmentIsFrozenError" in proc.stderr
+        )
+
+    def test_conda_condarc_configured(
+        self, conda_wrapper: Path, conda_env: dict[str, str], conda_home: Path
+    ) -> None:
+        """Test that .condarc is configured with default channels and permanent packages."""
+        condarc_path = conda_home / ".ana" / "tools" / "conda" / ".condarc"
+        assert condarc_path.exists(), ".condarc file should exist"
+
+        condarc_content = condarc_path.read_text()
+        # Verify default_channels are configured
+        assert "https://repo.anaconda.com/pkgs/main" in condarc_content
+        assert "https://repo.anaconda.com/pkgs/r" in condarc_content
+        # Verify auto_activate_base is disabled
+        assert "auto_activate_base: false" in condarc_content.lower()
+        # Verify permanent packages are configured (for conda self reset)
+        assert "self_permanent_packages" in condarc_content
+        assert "anaconda-anon-usage" in condarc_content
+        assert "anaconda-auth" in condarc_content
+        assert "conda-spawn" in condarc_content

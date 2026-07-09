@@ -91,7 +91,14 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         installed.prefix.display()
     );
 
-    create_bin_symlinks(&installed, &binaries)?;
+    let uses_wrapper = specs::uses_wrapper(name);
+    create_bin_symlinks(&installed, &binaries, uses_wrapper)?;
+
+    // For conda, write config and frozen marker
+    if name == "conda" {
+        write_conda_config(&installed.prefix)?;
+        write_frozen_marker(&installed.prefix)?;
+    }
 
     if name == "pixi" {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
@@ -208,18 +215,107 @@ fn tool_version_from_lock(lock_content: &str, tool_name: &str) -> miette::Result
 }
 
 /// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(installed: &InstalledRuntime, binaries: &[PathBuf]) -> miette::Result<()> {
+fn create_bin_symlinks(
+    installed: &InstalledRuntime,
+    binaries: &[PathBuf],
+    uses_wrapper: bool,
+) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
     for binary in binaries {
-        #[cfg(unix)]
-        create_bin_symlink(&bin_dir, &installed.prefix, binary)?;
-        #[cfg(windows)]
-        create_bin_shim(&bin_dir, &installed.prefix, binary)?;
+        if uses_wrapper {
+            install_wrapper_binary(&bin_dir, binary)?;
+        } else {
+            #[cfg(unix)]
+            create_bin_symlink(&bin_dir, &installed.prefix, binary)?;
+            #[cfg(windows)]
+            create_bin_shim(&bin_dir, &installed.prefix, binary)?;
+        }
     }
+
+    Ok(())
+}
+
+/// Embedded conda wrapper binary (compiled from src/wrappers/conda.rs)
+#[cfg(unix)]
+const CONDA_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/conda-wrapper"));
+#[cfg(windows)]
+const CONDA_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/conda-wrapper.exe"));
+
+/// Install the embedded wrapper binary for a tool.
+fn install_wrapper_binary(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
+    let binary_name = binary.file_name().unwrap().to_string_lossy();
+
+    #[cfg(windows)]
+    let wrapper_path = bin_dir.join(format!("{}.exe", binary_name));
+    #[cfg(not(windows))]
+    let wrapper_path = bin_dir.join(binary_name.as_ref());
+
+    if wrapper_path.exists() {
+        std::fs::remove_file(&wrapper_path)
+            .into_diagnostic()
+            .context("failed to remove existing wrapper")?;
+    }
+
+    std::fs::write(&wrapper_path, CONDA_WRAPPER)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write wrapper: {}", wrapper_path.display()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&wrapper_path, std::fs::Permissions::from_mode(0o755))
+            .into_diagnostic()
+            .context("failed to set wrapper permissions")?;
+    }
+
+    eprintln!("   Installed wrapper {}", wrapper_path.display());
+
+    Ok(())
+}
+
+/// Write .condarc configuration for the conda environment.
+fn write_conda_config(prefix: &Path) -> miette::Result<()> {
+    let condarc_path = prefix.join(".condarc");
+    let contents = include_str!("../../tool-specs/conda/.condarc");
+
+    std::fs::write(&condarc_path, contents)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write .condarc: {}", condarc_path.display()))?;
+
+    eprintln!("   Configured conda channels and settings");
+
+    Ok(())
+}
+
+/// Write a frozen marker file to protect the conda environment (CEP 22).
+fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
+    let conda_meta = prefix.join("conda-meta");
+    std::fs::create_dir_all(&conda_meta)
+        .into_diagnostic()
+        .context("failed to create conda-meta directory")?;
+
+    let frozen_path = conda_meta.join("frozen");
+    let contents = serde_json::json!({
+        "message": concat!(
+            "This environment is managed by ana.\n",
+            "To install packages, use: conda self install <package>\n",
+            "To update conda, use: conda self update\n",
+            "To override, pass --override-frozen to conda commands."
+        )
+    });
+
+    std::fs::write(
+        &frozen_path,
+        serde_json::to_string_pretty(&contents).unwrap(),
+    )
+    .into_diagnostic()
+    .with_context(|| format!("failed to write frozen marker: {}", frozen_path.display()))?;
+
+    eprintln!("   Froze environment to prevent accidental modifications");
 
     Ok(())
 }
