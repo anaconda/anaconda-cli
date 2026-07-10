@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use console::Term;
+use owo_colors::OwoColorize;
 
 use super::data::{HELP_SECTIONS, HelpExample, get_main_examples, get_subcommand_examples};
 use super::styles::HelpStyle;
@@ -18,19 +19,19 @@ fn left_margin() -> String {
 /// Print a command row: "    command      description"
 /// If the description contains "(experimental)", it will be styled in amber.
 fn print_command_row(term: &Term, name: &str, desc: &str) {
-    let styled_name = HelpStyle::Command.style().apply_to(name);
+    let styled_name = name.style(HelpStyle::Command.style());
     let styled_desc = if let Some(idx) = desc.find("(experimental)") {
         let before = &desc[..idx];
         let tag = "(experimental)";
         let after = &desc[idx + tag.len()..];
         format!(
             "{}{}{}",
-            HelpStyle::Desc.style().apply_to(before),
+            before.style(HelpStyle::Desc.style()),
             crate::ui::status::note_experimental(tag),
-            HelpStyle::Desc.style().apply_to(after)
+            after.style(HelpStyle::Desc.style())
         )
     } else {
-        HelpStyle::Desc.style().apply_to(desc).to_string()
+        desc.style(HelpStyle::Desc.style()).to_string()
     };
     let _ = term.write_line(&format!(
         "{}  {styled_name:<20} {styled_desc}",
@@ -47,20 +48,20 @@ fn print_option_row(term: &Term, short: Option<&str>, long: Option<&str>, desc: 
         (Some(s), Some(l)) => {
             let styled = format!(
                 "{}{}{}",
-                cmd_style.apply_to(s),
-                dim_style.apply_to(", "),
-                cmd_style.apply_to(l)
+                s.style(cmd_style),
+                ", ".style(dim_style),
+                l.style(cmd_style)
             );
             let visible = s.len() + 2 + l.len(); // "s" + ", " + "l"
             (styled, visible)
         }
-        (Some(s), None) => (cmd_style.apply_to(s).to_string(), s.len()),
-        (None, Some(l)) => (cmd_style.apply_to(l).to_string(), l.len()),
+        (Some(s), None) => (s.style(cmd_style).to_string(), s.len()),
+        (None, Some(l)) => (l.style(cmd_style).to_string(), l.len()),
         (None, None) => (String::new(), 0),
     };
 
     let padding = " ".repeat(20_usize.saturating_sub(visible_len));
-    let styled_desc = HelpStyle::Desc.style().apply_to(desc);
+    let styled_desc = desc.style(HelpStyle::Desc.style());
     let _ = term.write_line(&format!("{}  {name}{padding} {styled_desc}", left_margin()));
 }
 
@@ -69,7 +70,7 @@ fn print_section(term: &Term, name: &str) {
     let _ = term.write_line(&format!(
         "{}{}",
         left_margin(),
-        HelpStyle::Section.style().apply_to(name.to_uppercase())
+        name.to_uppercase().style(HelpStyle::Section.style())
     ));
 }
 
@@ -122,21 +123,19 @@ fn print_header(term: &Term) {
     let _ = term.write_line(&format!(
         "{}{} {}",
         ind,
-        HelpStyle::Command.style().apply_to("ana"),
+        "ana".style(HelpStyle::Command.style()),
         VERSION
     ));
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
-        HelpStyle::Desc.style().apply_to(TAGLINE)
+        TAGLINE.style(HelpStyle::Desc.style())
     ));
     let _ = term.write_line("");
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
-        HelpStyle::Desc
-            .style()
-            .apply_to("Usage: ana [OPTIONS] COMMAND [ARGS]...")
+        "Usage: ana [OPTIONS] COMMAND [ARGS]...".style(HelpStyle::Desc.style())
     ));
     let _ = term.write_line("");
 }
@@ -157,9 +156,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     // Top border
     let _ = term.write_line(&format!(
         "{margin}{}{}{}",
-        border.apply_to("╭"),
-        border.apply_to(horizontal.repeat(inner_width)),
-        border.apply_to("╮")
+        "╭".style(border),
+        horizontal.repeat(inner_width).style(border),
+        "╮".style(border)
     ));
 
     // Content lines
@@ -172,9 +171,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
         let padded_desc = format!(" {comment}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
             "{margin}{}{}{}",
-            border.apply_to("│"),
-            HelpStyle::BoxDesc.style().apply_to(&padded_desc),
-            border.apply_to("│")
+            "│".style(border),
+            padded_desc.style(HelpStyle::BoxDesc.style()),
+            "│".style(border)
         ));
 
         // Command line (left_margined)
@@ -183,9 +182,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
         let padded_cmd = format!(" {cmd_with_left_margin}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
             "{margin}{}{}{}",
-            border.apply_to("│"),
-            HelpStyle::BoxCommand.style().apply_to(&padded_cmd),
-            border.apply_to("│")
+            "│".style(border),
+            padded_cmd.style(HelpStyle::BoxCommand.style()),
+            "│".style(border)
         ));
 
         // Add spacing between examples (except after last)
@@ -193,9 +192,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
             let empty_line = " ".repeat(inner_width);
             let _ = term.write_line(&format!(
                 "{margin}{}{}{}",
-                border.apply_to("│"),
-                bg.apply_to(&empty_line),
-                border.apply_to("│")
+                "│".style(border),
+                empty_line.style(bg),
+                "│".style(border)
             ));
         }
     }
@@ -203,9 +202,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     // Bottom border
     let _ = term.write_line(&format!(
         "{margin}{}{}{}",
-        border.apply_to("╰"),
-        border.apply_to(horizontal.repeat(inner_width)),
-        border.apply_to("╯")
+        "╰".style(border),
+        horizontal.repeat(inner_width).style(border),
+        "╯".style(border)
     ));
     let _ = term.write_line("");
 }
@@ -243,10 +242,8 @@ fn print_footer(term: &Term) {
     let _ = term.write_line(&format!(
         "{}{} {}",
         left_margin(),
-        HelpStyle::Desc
-            .style()
-            .apply_to("Full documentation and guides at"),
-        HelpStyle::Section.style().apply_to(format!("→ {DOCS_URL}")),
+        "Full documentation and guides at".style(HelpStyle::Desc.style()),
+        format!("→ {DOCS_URL}").style(HelpStyle::Section.style()),
     ));
     let _ = term.write_line("");
 }
@@ -278,7 +275,7 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
-        HelpStyle::Dim.style().apply_to(usage)
+        usage.style(HelpStyle::Dim.style())
     ));
     let _ = term.write_line("");
 

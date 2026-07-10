@@ -1,6 +1,6 @@
 //! Help-specific styles built on top of shared UI styles.
 
-use console::Style;
+use owo_colors::Style;
 
 use crate::ui::styles::UiColor;
 
