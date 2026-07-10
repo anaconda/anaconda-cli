@@ -22,6 +22,7 @@ jobs:
       skip-tests: ${{ github.event_name == 'push' }}
     secrets: inherit  # zizmor: ignore[secrets-inherit] reusable workflows must inherit environment secrets
     permissions:
+      contents: read   # To access the Vault
       id-token: write  # Required for Azure OIDC authentication
 
   publish-to-anaconda-dot-org:
@@ -101,6 +102,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [create-github-release]
     environment: prod
+    permissions:
+      contents: read   # To access the vault
+      id-token: write  # To get the JWT token via OIDC
     steps:
       - name: Obtain token
         id: token
@@ -110,11 +114,9 @@ jobs:
           extraHeaders: |
             CF-Access-Client-Id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
             CF-Access-Client-Secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
-          method: approle
+          method: jwt
           namespace: admin
-          path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
-          roleId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
             anaconda-cli/prod/data/anaconda-sh/token pat | pat ;
