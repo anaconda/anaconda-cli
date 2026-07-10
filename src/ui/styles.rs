@@ -1,8 +1,9 @@
 //! Shared color and style definitions for CLI output.
 //!
 //! Uses ANSI colors so the terminal applies the user's color profile.
+//! Colors are automatically disabled when output is not a TTY.
 
-use owo_colors::{OwoColorize, Style};
+use owo_colors::{OwoColorize, Stream, Style};
 use std::fmt::Display;
 
 /// UI colors that map to standard ANSI colors.
@@ -51,13 +52,17 @@ impl UiColor {
     }
 
     /// Apply this color to text, returning a styled string.
+    /// Respects NO_COLOR and TTY detection.
     pub fn apply_to<T: Display>(&self, val: T) -> String {
-        val.style(self.style()).to_string()
+        val.if_supports_color(Stream::Stdout, |v| v.style(self.style()))
+            .to_string()
     }
 
     /// Apply this color with bold to text, returning a styled string.
+    /// Respects NO_COLOR and TTY detection.
     pub fn apply_bold<T: Display>(&self, val: T) -> String {
-        val.style(self.style().bold()).to_string()
+        val.if_supports_color(Stream::Stdout, |v| v.style(self.style().bold()))
+            .to_string()
     }
 
     /// Get a bold Style with this color as foreground.
@@ -73,6 +78,7 @@ impl UiColor {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {

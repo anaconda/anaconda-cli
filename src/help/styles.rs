@@ -1,6 +1,7 @@
 //! Help-specific styles built on top of shared UI styles.
 
-use owo_colors::Style;
+use owo_colors::{OwoColorize, Stream, Style};
+use std::fmt::Display;
 
 use crate::ui::styles::UiColor;
 
@@ -19,7 +20,7 @@ pub(super) enum HelpStyle {
 }
 
 impl HelpStyle {
-    pub fn style(&self) -> Style {
+    fn style(&self) -> Style {
         match self {
             Self::Section => UiColor::Green.bold(),
             Self::Command => UiColor::Blue.style(),
@@ -31,5 +32,11 @@ impl HelpStyle {
             Self::BoxDesc => UiColor::BoxText.on(UiColor::BoxBg),
             Self::BoxCommand => UiColor::Blue.on(UiColor::BoxBg).bold(),
         }
+    }
+
+    /// Apply this style to text, respecting color support.
+    pub fn apply<T: Display>(&self, val: T) -> String {
+        val.if_supports_color(Stream::Stdout, |v| v.style(self.style()))
+            .to_string()
     }
 }
