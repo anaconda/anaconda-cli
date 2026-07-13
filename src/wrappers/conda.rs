@@ -280,7 +280,7 @@ fn hand_off_to_conda(args: &[String]) -> i32 {
     cmd.args(args);
     cmd.env("CONDA_ROOT_PREFIX", &prefix);
 
-    // Add ana's bin directory to PATH so our wrapper takes precedence for subcommands
+    // Ensure ana's bin directory is in PATH
     let path = env::var("PATH").unwrap_or_default();
     #[cfg(unix)]
     let new_path = format!("{}:{}", bin_dir.display(), path);
