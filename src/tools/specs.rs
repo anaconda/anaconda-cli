@@ -102,7 +102,7 @@ pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
 }
 
-/// Returns whether a tool uses a wrapper binary (ana acts as the binary).
+/// Returns whether a tool uses a custom wrapper binary.
 pub fn uses_wrapper(name: &str) -> bool {
     find_tool(name).map(|t| t.uses_wrapper).unwrap_or(false)
 }
