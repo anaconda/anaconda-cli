@@ -18,7 +18,7 @@ notify_outdated_conda: false
 
 # Packages bundled with ana that should survive 'conda self reset'
 # Note: conda and conda-self are already hardcoded as permanent
-# Note: This setting requires conda-self > 0.1.1 (not yet released)
+# Note: This setting requires conda-self >= 0.2.0
 self_permanent_packages:
   - anaconda-anon-usage
   - anaconda-auth
