@@ -196,6 +196,8 @@ fn extract_env_name(args: &[String]) -> Option<String> {
     None
 }
 
+// TODO: Consider using Fleet APIs to run commands in managed environments
+// to minimize conda-specific implementation details
 fn run_conda_filtered(args: &[String]) -> i32 {
     let conda_bin = get_conda_bin();
     let prefix = conda_prefix();
