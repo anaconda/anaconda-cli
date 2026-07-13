@@ -10,7 +10,7 @@ default_channels:
 channels:
   - defaults
 
-# Don't auto-activate base - users should use 'conda shell <env>'
+# Don't auto-activate base - users should use 'conda activate <env>'
 auto_activate_base: false
 
 # Disable outdated conda notifications (ana handles updates)
@@ -22,4 +22,3 @@ notify_outdated_conda: false
 self_permanent_packages:
   - anaconda-anon-usage
   - anaconda-auth
-  - conda-spawn
