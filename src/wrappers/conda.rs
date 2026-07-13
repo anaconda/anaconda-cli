@@ -54,6 +54,7 @@ fn run(args: &[String]) -> i32 {
 }
 
 // === Path utilities (self-contained, no external dependencies) ===
+// TODO: Consider extracting to a shared crate to avoid duplication with ana's paths module
 
 fn home_dir() -> PathBuf {
     #[cfg(unix)]
