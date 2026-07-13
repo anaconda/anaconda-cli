@@ -9,8 +9,8 @@ struct Tool {
     binaries: &'static [&'static [&'static str]],
     /// If set, the tool is experimental and this message will be shown as a warning.
     experimental: Option<&'static str>,
-    /// If true, the binary in ~/.ana/bin/ should be a link to ana itself,
-    /// which acts as a wrapper for the actual tool binary.
+    /// If true, a standalone wrapper binary is installed to ~/.ana/bin/
+    /// instead of a symlink to the tool binary.
     uses_wrapper: bool,
     /// Whether this tool should be auto-updated when `ana` is updated.
     auto_update: bool,
