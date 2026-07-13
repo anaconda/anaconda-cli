@@ -388,48 +388,49 @@ class TestCondaWrapper:
         assert wrapper.exists(), f"Wrapper not found at {wrapper}"
         return wrapper
 
-    def test_conda_wrapper_activate_intercepted(
+    def test_conda_wrapper_activate_passes_through(
         self, conda_wrapper: Path, conda_env: dict[str, str]
     ) -> None:
-        """Test that conda activate is intercepted with helpful message."""
+        """Test that conda activate passes through to real conda."""
         proc = subprocess.run(
             [str(conda_wrapper), "activate"],
             capture_output=True,
             text=True,
             env=conda_env,
         )
+        # conda activate without shell integration returns error
         assert proc.returncode == 1
-        assert "not available via ana" in proc.stderr
-        assert "conda shell" in proc.stderr
-        assert "conda-spawn" in proc.stderr
+        # Should show conda's native error message
+        assert "conda" in proc.stderr.lower()
 
-    def test_conda_wrapper_deactivate_intercepted(
+    def test_conda_wrapper_deactivate_passes_through(
         self, conda_wrapper: Path, conda_env: dict[str, str]
     ) -> None:
-        """Test that conda deactivate is intercepted with helpful message."""
+        """Test that conda deactivate passes through to real conda."""
         proc = subprocess.run(
             [str(conda_wrapper), "deactivate"],
             capture_output=True,
             text=True,
             env=conda_env,
         )
+        # conda deactivate without active env returns error
         assert proc.returncode == 1
-        assert "not available via ana" in proc.stderr
-        assert "conda shell" in proc.stderr
+        # Should show conda's native error message
+        assert "conda" in proc.stderr.lower()
 
-    def test_conda_wrapper_init_intercepted(
+    def test_conda_wrapper_init_passes_through(
         self, conda_wrapper: Path, conda_env: dict[str, str]
     ) -> None:
-        """Test that conda init is intercepted with helpful message."""
+        """Test that conda init passes through to real conda."""
         proc = subprocess.run(
-            [str(conda_wrapper), "init"],
+            [str(conda_wrapper), "init", "--help"],
             capture_output=True,
             text=True,
             env=conda_env,
         )
-        assert proc.returncode == 1
-        assert "not needed with ana" in proc.stderr
-        assert "~/.ana/bin" in proc.stderr
+        # conda init --help should succeed
+        assert proc.returncode == 0
+        assert "init" in proc.stdout.lower()
 
     def test_conda_wrapper_version_passes_through(
         self, conda_wrapper: Path, conda_env: dict[str, str]
@@ -471,20 +472,20 @@ class TestCondaWrapper:
         # conda --help outputs to stdout
         assert "conda" in proc.stdout.lower()
 
-    def test_conda_wrapper_shell_alias_for_spawn(
+    def test_conda_wrapper_run_passes_through(
         self, conda_wrapper: Path, conda_env: dict[str, str]
     ) -> None:
-        """Test that conda shell is an alias for conda spawn."""
+        """Test that conda run passes through to real conda."""
         proc = subprocess.run(
-            [str(conda_wrapper), "shell", "--help"],
+            [str(conda_wrapper), "run", "--help"],
             capture_output=True,
             text=True,
             env=conda_env,
         )
+        # conda run --help should succeed
         assert proc.returncode == 0
-        # Should show spawn help (shell is aliased to spawn)
-        assert "spawn" in proc.stdout.lower()
-        assert "activate conda environments" in proc.stdout.lower()
+        # Should show conda's run help
+        assert "run" in proc.stdout.lower()
 
     def test_conda_environment_is_frozen(
         self, conda_wrapper: Path, conda_env: dict[str, str], conda_home: Path
@@ -527,4 +528,3 @@ class TestCondaWrapper:
         assert "self_permanent_packages" in condarc_content
         assert "anaconda-anon-usage" in condarc_content
         assert "anaconda-auth" in condarc_content
-        assert "conda-spawn" in condarc_content
