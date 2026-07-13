@@ -79,7 +79,6 @@ impl UiColor {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
