@@ -40,6 +40,7 @@ const TOOLS: &[Tool] = &[
     Tool {
         name: "conda",
         lockfile: include_str!("../../tool-specs/conda/pixi.lock"),
+        // binaries is still needed with uses_wrapper to determine wrapper filename
         binaries: if cfg![unix] {
             &[&["bin", "conda"]]
         } else {

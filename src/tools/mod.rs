@@ -1,3 +1,4 @@
+mod common;
 #[cfg(feature = "fleet")]
 mod fleet;
 #[cfg(not(feature = "fleet"))]
