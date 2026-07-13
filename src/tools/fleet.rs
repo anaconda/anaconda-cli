@@ -4,12 +4,12 @@
 //! Fleet API, which provides a higher-level abstraction for managing multiple
 //! locked conda prefixes.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use conda_ship::fleet::{Fleet, InstallOptions, InstalledRuntime, RuntimeSpec};
 use miette::{Context, IntoDiagnostic};
 
-use super::{pixi_config, specs};
+use super::{common, pixi_config, specs};
 use crate::context::CommandContext;
 use crate::paths;
 
@@ -91,7 +91,15 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         installed.prefix.display()
     );
 
-    create_bin_symlinks(&installed, &binaries)?;
+    // TODO: Consider passing uses_wrapper into Fleet APIs directly
+    let uses_wrapper = specs::uses_wrapper(name);
+    common::create_bin_symlinks(&installed.prefix, &binaries, uses_wrapper)?;
+
+    // For conda, write config and frozen marker
+    if name == "conda" {
+        common::write_conda_config(&installed.prefix)?;
+        common::write_frozen_marker(&installed.prefix)?;
+    }
 
     if name == "pixi" {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
@@ -205,134 +213,6 @@ fn tool_version_from_lock(lock_content: &str, tool_name: &str) -> miette::Result
 
     // Fallback to "latest" if we can't extract a version
     Ok("latest".to_string())
-}
-
-/// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(installed: &InstalledRuntime, binaries: &[PathBuf]) -> miette::Result<()> {
-    let bin_dir = paths::bin_dir();
-    std::fs::create_dir_all(&bin_dir)
-        .into_diagnostic()
-        .context("failed to create bin directory")?;
-
-    for binary in binaries {
-        #[cfg(unix)]
-        create_bin_symlink(&bin_dir, &installed.prefix, binary)?;
-        #[cfg(windows)]
-        create_bin_shim(&bin_dir, &installed.prefix, binary)?;
-    }
-
-    Ok(())
-}
-
-#[cfg(unix)]
-fn create_bin_symlink(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
-    let tool_bin = prefix.join(binary);
-    let symlink_path = bin_dir.join(binary.file_name().unwrap());
-
-    if !tool_bin.exists() {
-        eprintln!(
-            "   Warning: binary '{}' not found in {}",
-            binary.display(),
-            prefix.display()
-        );
-        return Ok(());
-    }
-
-    if symlink_path.exists() || symlink_path.is_symlink() {
-        std::fs::remove_file(&symlink_path)
-            .into_diagnostic()
-            .context("failed to remove existing symlink")?;
-    }
-
-    std::os::unix::fs::symlink(&tool_bin, &symlink_path)
-        .into_diagnostic()
-        .with_context(|| format!("failed to create symlink: {}", symlink_path.display()))?;
-
-    eprintln!(
-        "   Linked {} -> {}",
-        symlink_path.display(),
-        tool_bin.display()
-    );
-
-    Ok(())
-}
-
-#[cfg(windows)]
-const SHIM_BINARY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/shim.exe"));
-
-#[cfg(windows)]
-fn create_bin_shim(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
-    let tool_bin = prefix.join(binary).with_extension("exe");
-    let shim_name = binary.file_stem().unwrap().to_string_lossy();
-    let shim_path = bin_dir.join(format!("{}.exe", shim_name));
-
-    if !tool_bin.exists() {
-        eprintln!(
-            "   Warning: binary '{}' not found in {}",
-            binary.display(),
-            prefix.display()
-        );
-        return Ok(());
-    }
-
-    std::fs::write(&shim_path, SHIM_BINARY)
-        .into_diagnostic()
-        .with_context(|| format!("failed to write shim: {}", shim_path.display()))?;
-
-    let tool_name = prefix.file_name().unwrap().to_string_lossy();
-    let rel_target = format!("{}\\{}", tool_name, binary.with_extension("exe").display());
-    update_shims_cfg(&shim_name, &rel_target)?;
-
-    eprintln!(
-        "   Created shim {} -> {}",
-        shim_path.display(),
-        tool_bin.display()
-    );
-
-    Ok(())
-}
-
-#[cfg(windows)]
-fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
-    let config_path = paths::ana_home().join("tools").join("shims.cfg");
-
-    let mut entries: Vec<(String, String)> = if config_path.exists() {
-        std::fs::read_to_string(&config_path)
-            .into_diagnostic()
-            .context("failed to read shims.cfg")?
-            .lines()
-            .filter_map(|line| {
-                line.split_once('=')
-                    .map(|(k, v)| (k.to_string(), v.to_string()))
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
-
-    let mut found = false;
-    for (name, path) in &mut entries {
-        if name == shim_name {
-            *path = target_path.to_string();
-            found = true;
-            break;
-        }
-    }
-    if !found {
-        entries.push((shim_name.to_string(), target_path.to_string()));
-    }
-
-    let content: String = entries
-        .iter()
-        .map(|(k, v)| format!("{}={}\r\n", k, v))
-        .collect::<Vec<_>>()
-        .join("");
-
-    std::fs::write(&config_path, content)
-        .into_diagnostic()
-        .context("failed to write shims.cfg")?;
-
-    Ok(())
 }
 
 #[cfg(windows)]

@@ -1,0 +1,14 @@
+[workspace]
+name = "conda"
+channels = ["https://repo.anaconda.com/pkgs/main"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[dependencies]
+python = ">=3.12"
+conda = ">=26.3.2"
+conda-anaconda-telemetry = ">=0.3.0"
+conda-anaconda-tos = ">=0.2.2"
+conda-content-trust = "*"
+conda-self = ">=0.2.0"
+anaconda-anon-usage = "*"
+anaconda-auth = "*"
