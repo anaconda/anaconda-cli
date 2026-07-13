@@ -5,7 +5,7 @@
 //!
 //! The wrapper:
 //! - Intercepts `activate`, `deactivate`, and `init` commands with helpful messaging
-//! - Aliases `shell` -> `spawn` for conda-express compatibility
+//! - Aliases `shell` -> `spawn`
 //! - Filters `create` output to show conda-spawn instructions
 //! - Shows feedback hint on errors
 //! - Passes through all other commands to the real conda binary
@@ -37,7 +37,7 @@ fn run(args: &[String]) -> i32 {
         _ => {}
     }
 
-    // Handle "shell" as an alias for "spawn" (like conda-express)
+    // Handle "shell" as an alias for "spawn"
     if first_arg == Some("shell") {
         let mut new_args = args.to_vec();
         new_args[0] = "spawn".to_string();
