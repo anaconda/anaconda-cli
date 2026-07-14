@@ -95,6 +95,52 @@ jobs:
           echo "Publishing release $VERSION"
           gh release edit "$VERSION" --draft=false --latest
 
+  notify-slack:
+    name: Notify Slack
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}
+        run: |
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "🚀 Ana CLI ${{ github.event.release.tag_name }} Released"
+                }
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${{ github.event.release.body }}"
+                }
+              },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Release"
+                    },
+                    "url": "${{ github.event.release.html_url }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
   deploy-to-anaconda-sh:
     name: Deploy to anaconda.sh
     if: ${{ github.event_name == 'release' }}
