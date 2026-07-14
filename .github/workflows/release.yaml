@@ -104,42 +104,46 @@ jobs:
       - name: Post to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
+          ESCAPED_BODY=$(echo "$RELEASE_BODY" | jq -Rs '.')
           curl -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d @- <<EOF
-          {
-            "blocks": [
-              {
-                "type": "header",
-                "text": {
-                  "type": "plain_text",
-                  "text": "🚀 Ana CLI ${{ github.event.release.tag_name }} Released"
-                }
-              },
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "${{ github.event.release.body }}"
-                }
-              },
-              {
-                "type": "actions",
-                "elements": [
+            -d "$(jq -n \
+              --arg tag "${{ github.event.release.tag_name }}" \
+              --arg url "${{ github.event.release.html_url }}" \
+              --argjson body "$ESCAPED_BODY" \
+              '{
+                "blocks": [
                   {
-                    "type": "button",
+                    "type": "header",
                     "text": {
                       "type": "plain_text",
-                      "text": "View Release"
-                    },
-                    "url": "${{ github.event.release.html_url }}"
+                      "text": "🚀 Ana CLI \($tag) Released"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": $body
+                    }
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "View Release"
+                        },
+                        "url": $url
+                      }
+                    ]
                   }
                 ]
-              }
-            ]
-          }
-          EOF
+              }')"
 
   deploy-to-anaconda-sh:
     name: Deploy to anaconda.sh
