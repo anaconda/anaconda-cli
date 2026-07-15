@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-07-14T17:19:48Z<br>
+Generated: 2026-07-15T15:39:19Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 460 (69 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -374,9 +374,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [toml](https://crates.io/crates/toml) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.13+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.6 | MIT |  |  |
 | [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.6 | MIT |  |  |
 | [tower](https://crates.io/crates/tower) | 0.5.3 | MIT |  |  |

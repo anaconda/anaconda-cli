@@ -142,15 +142,17 @@ jobs:
     steps:
       - name: Post to Slack
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}  # zizmor: ignore[secrets-outside-env]
           RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
           ESCAPED_BODY=$(echo "$RELEASE_BODY" | jq -Rs '.')
           curl -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d "$(jq -n \
-              --arg tag "${{ github.event.release.tag_name }}" \
-              --arg url "${{ github.event.release.html_url }}" \
+              --arg tag "$RELEASE_TAG" \
+              --arg url "$RELEASE_URL" \
               --argjson body "$ESCAPED_BODY" \
               '{
                 "blocks": [
