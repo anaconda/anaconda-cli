@@ -115,3 +115,4 @@ ATLASSIAN_USER_EMAIL=your-email@anaconda.com
 ATLASSIAN_API_TOKEN=your-token-from-atlassian
 ```
 Get your API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+# test trailing whitespace   
