@@ -95,11 +95,50 @@ jobs:
           echo "Publishing release $VERSION"
           gh release edit "$VERSION" --draft=false --latest
 
+  deploy-to-anaconda-sh:
+    name: Deploy to anaconda.sh
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    environment: prod
+    steps:
+      - name: Obtain token
+        id: token
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          exportEnv: false
+          extraHeaders: |
+            CF-Access-Client-Id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          method: approle
+          namespace: admin
+          path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
+          roleId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
+          url: ${{ secrets.EXT_VAULT_ADDR }}
+          secrets: |
+            anaconda-cli/prod/data/anaconda-sh/token pat | pat ;
+            anaconda-cli/prod/data/anaconda-sh/workflow repo | repo ;
+            anaconda-cli/prod/data/anaconda-sh/workflow workflow-id | workflow-id
+
+      - name: Send deploy signal
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.pat }}
+          REPO: ${{ steps.token.outputs.repo }}
+          WORKFLOW_ID: ${{ steps.token.outputs.workflow-id }}
+        run: |
+          gh api \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches" \
+            -f "ref=main"
+
   notify-slack:
     name: Notify Slack
     if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest
-    needs: [create-github-release]
+    needs: [deploy-to-anaconda-sh]
     steps:
       - name: Post to Slack
         env:
@@ -144,42 +183,3 @@ jobs:
                   }
                 ]
               }')"
-
-  deploy-to-anaconda-sh:
-    name: Deploy to anaconda.sh
-    if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-latest
-    needs: [create-github-release]
-    environment: prod
-    steps:
-      - name: Obtain token
-        id: token
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
-        with:
-          exportEnv: false
-          extraHeaders: |
-            CF-Access-Client-Id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
-            CF-Access-Client-Secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
-          method: approle
-          namespace: admin
-          path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
-          roleId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
-          url: ${{ secrets.EXT_VAULT_ADDR }}
-          secrets: |
-            anaconda-cli/prod/data/anaconda-sh/token pat | pat ;
-            anaconda-cli/prod/data/anaconda-sh/workflow repo | repo ;
-            anaconda-cli/prod/data/anaconda-sh/workflow workflow-id | workflow-id
-
-      - name: Send deploy signal
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.pat }}
-          REPO: ${{ steps.token.outputs.repo }}
-          WORKFLOW_ID: ${{ steps.token.outputs.workflow-id }}
-        run: |
-          gh api \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches" \
-            -f "ref=main"
