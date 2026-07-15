@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-07-15T15:39:19Z<br>
+Generated: 2026-07-15T17:00:34Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 460 (69 platform-specific)<br>
+Packages: 459 (69 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 7 (2 INFO) across 5 packages**
 
@@ -332,7 +332,6 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.0 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
-| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.4 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -476,10 +475,10 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | crossbeam-epoch | 0.9.18 | [RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html) |  |  |  |
-| quick-xml | 0.37.5 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
 | quick-xml | 0.37.5 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
-| quick-xml | 0.39.4 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
+| quick-xml | 0.37.5 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
 | quick-xml | 0.39.4 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
+| quick-xml | 0.39.4 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
 | anyhow | 1.0.102 | [RUSTSEC-2026-0190](https://rustsec.org/advisories/RUSTSEC-2026-0190.html) |  |  | INFO |
 | memmap2 | 0.9.10 | [RUSTSEC-2026-0186](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) |  |  | INFO |
 
@@ -487,7 +486,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 252 |
+| MIT OR Apache-2.0 | 251 |
 | MIT | 85 |
 | Apache-2.0 OR MIT | 36 |
 | Apache-2.0 | 21 |
