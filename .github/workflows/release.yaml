@@ -133,3 +133,53 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/repos/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches" \
             -f "ref=main"
+
+  notify-slack:
+    name: Notify Slack
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    needs: [deploy-to-anaconda-sh]
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          ESCAPED_BODY=$(echo "$RELEASE_BODY" | jq -Rs '.')
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg tag "${{ github.event.release.tag_name }}" \
+              --arg url "${{ github.event.release.html_url }}" \
+              --argjson body "$ESCAPED_BODY" \
+              '{
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "🚀 Ana CLI \($tag) Released"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": $body
+                    }
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "View Release"
+                        },
+                        "url": $url
+                      }
+                    ]
+                  }
+                ]
+              }')"
