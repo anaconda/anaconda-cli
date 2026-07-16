@@ -10743,15 +10743,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.12+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.13+spec-1.1.0",
       "name": "toml_edit",
-      "version": "0.25.12+spec-1.1.0",
+      "version": "0.25.13+spec-1.1.0",
       "description": "Yet another format-preserving TOML parser.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "d2153edc6955a6c354fad8f5efd38b6a8769bdccf9fe50f8e1329f81b0baa5d7"
+          "content": "6975367e4d2ef766d86af01ffad14b622fecc8d4357a998fbc4deb6e9bacaf9b"
         }
       ],
       "licenses": [
@@ -10759,7 +10759,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml_edit@0.25.12+spec-1.1.0",
+      "purl": "pkg:cargo/toml_edit@0.25.13+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -17128,7 +17128,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.12+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.13+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",

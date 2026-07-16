@@ -24,7 +24,6 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-          token: ${{ secrets.ANACONDA_BOT_TOKEN }}  # zizmor: ignore[secrets-outside-env]
           # Full history needed for SBOM freshness check (compares commit timestamps)
           fetch-depth: 0
 
@@ -51,6 +50,8 @@ jobs:
         if: steps.updates.outputs.changed == 1
         env:
           REF: ${{ github.head_ref }}
+          GH_TOKEN: ${{ secrets.ANACONDA_BOT_TOKEN }}  # zizmor: ignore[secrets-outside-env]
+          REPO: ${{ github.repository }}
         run: |
           git fetch origin "refs/heads/${REF}:refs/remotes/origin/${REF}"
           git checkout "${REF}"
@@ -59,6 +60,7 @@ jobs:
           git config user.email "devops+anaconda-bot@anaconda.com"
           git add -u
           git commit -m "chore(pre-commit): Linting"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}"
           git push
 
           echo "::error::Changes were committed. A new CI run will start."
