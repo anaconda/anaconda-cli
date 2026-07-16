@@ -32,6 +32,7 @@ jobs:
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     permissions:
+      contents: read   # To access the Vault
       id-token: write  # Required to authenticate with Azure via OIDC
     strategy:
       fail-fast: true
@@ -89,13 +90,10 @@ jobs:
         uses: ./.github/actions/sign-windows
         with:
           binary-path: target/shim/shim.exe
-          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
-          # Created by CORE-10231
           vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
           vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
-          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
-          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
           vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-role: ${{ secrets.VAULT_ROLE }}
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
       - name: Build release binary
@@ -109,13 +107,10 @@ jobs:
         uses: ./.github/actions/sign-windows
         with:
           binary-path: target/release/ana.exe
-          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
-          # Created by CORE-10231
           vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
           vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
-          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
-          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
           vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-role: ${{ secrets.VAULT_ROLE }}
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
       - name: Sign and notarize binary (macOS)
@@ -124,13 +119,10 @@ jobs:
         uses: ./.github/actions/sign-notarize-macos
         with:
           binary-path: target/release/ana
-          vault-approle-path: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_PATH }}
-          # Created by CORE-10231
           vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
           vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
-          vault-role-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_ROLE_ID }}
-          vault-secret-id: ${{ secrets.VAULT_ANACONDA_CLI_APPROLE_SECRET_ID }}
           vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-role: ${{ secrets.VAULT_ROLE }}
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
       - name: Run integration tests
