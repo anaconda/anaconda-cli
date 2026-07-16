@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:bb8fc7e6-7527-449e-b22e-901d23b75cdc",
+  "serialNumber": "urn:uuid:2e72eebb-4554-43e4-9c95-5e4a4272eba5",
   "metadata": {
-    "timestamp": "2026-07-15T15:42:38Z",
+    "timestamp": "2026-07-16T18:45:01Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -1360,15 +1360,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.2",
       "name": "clap",
-      "version": "4.6.1",
+      "version": "4.6.2",
       "description": "A simple to use, efficient, and full-featured Command Line Argument Parser",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "1ddb117e43bbf7dacf0a4190fef4d345b9bad68dfc649cb349e7d17d28428e51"
+          "content": "dd059f9da4f5c36b3787f65d38ccaab1cc315f07b01f89abc8359ee6a8205011"
         }
       ],
       "licenses": [
@@ -1376,7 +1376,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/clap@4.6.1",
+      "purl": "pkg:cargo/clap@4.6.2",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1386,15 +1386,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.2",
       "name": "clap_builder",
-      "version": "4.6.0",
+      "version": "4.6.2",
       "description": "A simple to use, efficient, and full-featured Command Line Argument Parser",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "714a53001bf66416adb0e2ef5ac857140e7dc3a0c48fb28b2f10762fc4b5069f"
+          "content": "f09628afdcc538b57f3c6341e9c8e9970f18e4a481690a64974d7023bd33548b"
         }
       ],
       "licenses": [
@@ -1402,7 +1402,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/clap_builder@4.6.0",
+      "purl": "pkg:cargo/clap_builder@4.6.2",
       "externalReferences": [
         {
           "type": "vcs",
@@ -14281,7 +14281,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.89",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
-        "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1",
+        "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.2",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#console@0.16.3",
         "registry+https://github.com/rust-lang/crates.io-index#dirs@6.0.0",
@@ -14311,7 +14311,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.18",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.52.3",
         "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.12+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.13+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
         "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8",
@@ -14645,14 +14645,14 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.2",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.0",
+        "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.2",
         "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.1"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.2",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anstream@1.0.0",
         "registry+https://github.com/rust-lang/crates.io-index#anstyle@1.0.14",
@@ -17834,20 +17834,6 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0194",
-      "description": "`BytesStart::attributes()` returns an `Attributes` iterator which, by default\n(`with_checks(true)`), rejects a start tag that repeats an attribute name. For\neach attribute yielded, the iterator compared the new name against every name\nseen so far in the same tag using a linear scan, so a start tag with `N`\ndistinct attribute names cost `O(N\u00b2)` byte comparisons. There was no bound on\n`N` other than the size of the buffered start tag.\n\n## Impact\n\nAny code that parses untrusted XML and iterates a start tag's attributes with\nthe default duplicate check enabled can be made to spend CPU time quadratic in\nthe number of attributes on a single tag. Because the check is pure computation\nwith no `.await`/I/O, an I/O-based timeout on the consumer (for example a read\nor request timeout) cannot interrupt it while it runs.\n\nMeasured cost of a single start tag, release build:\n\n| Attributes on one tag | Time |\n|---|---|\n| 80,000  | ~6 s   |\n| 800,000 | ~10 min |\n\nThe cost grows with the square of the attribute count, so a start tag of a few\ntens of megabytes can stall a parsing thread for hours. No memory is exhausted\nand the parser does not crash; the effect is CPU exhaustion on the thread doing\nthe parsing: a single crafted start tag can pin a CPU core for minutes to hours,\ndenying service to that worker. A deployment that places a wall-clock bound on\nparsing, or confines it to a non-critical thread, may consider the availability\nimpact lower.\n\n## Affected code paths\n\n* `BytesStart::attributes()` / `Attributes` iterated with checks enabled (the\n  default), and `BytesStart::try_get_attribute`.\n* `NsReader`, which resolves namespaces by iterating a tag's attributes and so\n  reaches the same check internally.\n\nConsumers that iterate attributes with `.attributes().with_checks(false)` and do\nnot use `NsReader` are not affected.\n\nThis was reported as reachable by a remote, unauthenticated attacker in a\nreal-world RPKI relying party (NLnet Labs Routinator) via a crafted RRDP\n`snapshot.xml`.\n\n## Remediation\n\nUpgrade to `quick-xml >= 0.41.0`, where the duplicate check keeps the linear\nscan for start tags with a small number of attributes and switches to an `O(1)`\nhash pre-filter above a threshold, making the whole tag `O(N)`. The reported\n`AttrError::Duplicated` positions are unchanged.\n\nIf upgrading is not possible and duplicate-name detection is not required,\ndisable it with `.attributes().with_checks(false)` (this does not help\n`NsReader` consumers, which have no equivalent opt-out before 0.41.0).",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0194.html"
-      },
-      "ratings": [],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#quick-xml@0.37.5"
-        }
-      ]
-    },
-    {
       "id": "RUSTSEC-2026-0195",
       "description": "`NsReader` resolves namespaces by calling `NamespaceResolver::push` for every\n`Start`/`Empty` event *before* the event is returned to the caller. `push`\niterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,\nappended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`\n(32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of\ndeclarations.\n\n## Impact\n\nA start tag with `N` namespace declarations drove roughly `3\u00d7` the tag's byte\nsize in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the\n`NsReader` consumer ever received the event and could inspect or reject it. A\nconsumer that bounds its *input* size therefore still cannot bound this\nallocation: an `M`-byte start tag yields on the order of `3 \u00d7 M` bytes of\nresolver heap the caller never sees.\n\nOn untrusted XML this lets a remote, unauthenticated attacker force large heap\nallocations with a single start tag. With several `NsReader`s running\nconcurrently on independent inputs (a common server pattern), the allocations\nstack and can exhaust process memory, causing the operating system to kill the\nprocess (OOM). This was confirmed against a real-world RPKI relying party (NLnet\nLabs Routinator), where concurrent RRDP validation workers parsing a crafted\n`snapshot.xml` exceeded the memory limit and the process was OOM-killed.\n\n## Affected code paths\n\nConsumers using `NsReader` (which always calls `NamespaceResolver::push` before\nyielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain\n`Reader` that does not perform namespace resolution is not affected.\n\n## Remediation\n\nUpgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start\ntag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)\nnamespace bindings, returning the new `NamespaceError::TooManyDeclarations`\ninstead of allocating without limit. The limit is configurable via\n`NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to\nrestore the previous unbounded behavior), and `NsReader::resolver_mut()` is\nprovided to reach it.\n\nThere is no clean workaround for `NsReader` consumers before 0.41.0, as the\nallocation happens inside the reader with no configuration knob to cap it.",
       "source": {
@@ -17867,6 +17853,20 @@
       "source": {
         "name": "RustSec",
         "url": "https://rustsec.org/advisories/RUSTSEC-2026-0194.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#quick-xml@0.37.5"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0195",
+      "description": "`NsReader` resolves namespaces by calling `NamespaceResolver::push` for every\n`Start`/`Empty` event *before* the event is returned to the caller. `push`\niterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,\nappended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`\n(32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of\ndeclarations.\n\n## Impact\n\nA start tag with `N` namespace declarations drove roughly `3\u00d7` the tag's byte\nsize in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the\n`NsReader` consumer ever received the event and could inspect or reject it. A\nconsumer that bounds its *input* size therefore still cannot bound this\nallocation: an `M`-byte start tag yields on the order of `3 \u00d7 M` bytes of\nresolver heap the caller never sees.\n\nOn untrusted XML this lets a remote, unauthenticated attacker force large heap\nallocations with a single start tag. With several `NsReader`s running\nconcurrently on independent inputs (a common server pattern), the allocations\nstack and can exhaust process memory, causing the operating system to kill the\nprocess (OOM). This was confirmed against a real-world RPKI relying party (NLnet\nLabs Routinator), where concurrent RRDP validation workers parsing a crafted\n`snapshot.xml` exceeded the memory limit and the process was OOM-killed.\n\n## Affected code paths\n\nConsumers using `NsReader` (which always calls `NamespaceResolver::push` before\nyielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain\n`Reader` that does not perform namespace resolution is not affected.\n\n## Remediation\n\nUpgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start\ntag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)\nnamespace bindings, returning the new `NamespaceError::TooManyDeclarations`\ninstead of allocating without limit. The limit is configurable via\n`NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to\nrestore the previous unbounded behavior), and `NsReader::resolver_mut()` is\nprovided to reach it.\n\nThere is no clean workaround for `NsReader` consumers before 0.41.0, as the\nallocation happens inside the reader with no configuration knob to cap it.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0195.html"
       },
       "ratings": [],
       "affects": [
@@ -17876,11 +17876,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0195",
-      "description": "`NsReader` resolves namespaces by calling `NamespaceResolver::push` for every\n`Start`/`Empty` event *before* the event is returned to the caller. `push`\niterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,\nappended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`\n(32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of\ndeclarations.\n\n## Impact\n\nA start tag with `N` namespace declarations drove roughly `3\u00d7` the tag's byte\nsize in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the\n`NsReader` consumer ever received the event and could inspect or reject it. A\nconsumer that bounds its *input* size therefore still cannot bound this\nallocation: an `M`-byte start tag yields on the order of `3 \u00d7 M` bytes of\nresolver heap the caller never sees.\n\nOn untrusted XML this lets a remote, unauthenticated attacker force large heap\nallocations with a single start tag. With several `NsReader`s running\nconcurrently on independent inputs (a common server pattern), the allocations\nstack and can exhaust process memory, causing the operating system to kill the\nprocess (OOM). This was confirmed against a real-world RPKI relying party (NLnet\nLabs Routinator), where concurrent RRDP validation workers parsing a crafted\n`snapshot.xml` exceeded the memory limit and the process was OOM-killed.\n\n## Affected code paths\n\nConsumers using `NsReader` (which always calls `NamespaceResolver::push` before\nyielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain\n`Reader` that does not perform namespace resolution is not affected.\n\n## Remediation\n\nUpgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start\ntag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)\nnamespace bindings, returning the new `NamespaceError::TooManyDeclarations`\ninstead of allocating without limit. The limit is configurable via\n`NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to\nrestore the previous unbounded behavior), and `NsReader::resolver_mut()` is\nprovided to reach it.\n\nThere is no clean workaround for `NsReader` consumers before 0.41.0, as the\nallocation happens inside the reader with no configuration knob to cap it.",
+      "id": "RUSTSEC-2026-0194",
+      "description": "`BytesStart::attributes()` returns an `Attributes` iterator which, by default\n(`with_checks(true)`), rejects a start tag that repeats an attribute name. For\neach attribute yielded, the iterator compared the new name against every name\nseen so far in the same tag using a linear scan, so a start tag with `N`\ndistinct attribute names cost `O(N\u00b2)` byte comparisons. There was no bound on\n`N` other than the size of the buffered start tag.\n\n## Impact\n\nAny code that parses untrusted XML and iterates a start tag's attributes with\nthe default duplicate check enabled can be made to spend CPU time quadratic in\nthe number of attributes on a single tag. Because the check is pure computation\nwith no `.await`/I/O, an I/O-based timeout on the consumer (for example a read\nor request timeout) cannot interrupt it while it runs.\n\nMeasured cost of a single start tag, release build:\n\n| Attributes on one tag | Time |\n|---|---|\n| 80,000  | ~6 s   |\n| 800,000 | ~10 min |\n\nThe cost grows with the square of the attribute count, so a start tag of a few\ntens of megabytes can stall a parsing thread for hours. No memory is exhausted\nand the parser does not crash; the effect is CPU exhaustion on the thread doing\nthe parsing: a single crafted start tag can pin a CPU core for minutes to hours,\ndenying service to that worker. A deployment that places a wall-clock bound on\nparsing, or confines it to a non-critical thread, may consider the availability\nimpact lower.\n\n## Affected code paths\n\n* `BytesStart::attributes()` / `Attributes` iterated with checks enabled (the\n  default), and `BytesStart::try_get_attribute`.\n* `NsReader`, which resolves namespaces by iterating a tag's attributes and so\n  reaches the same check internally.\n\nConsumers that iterate attributes with `.attributes().with_checks(false)` and do\nnot use `NsReader` are not affected.\n\nThis was reported as reachable by a remote, unauthenticated attacker in a\nreal-world RPKI relying party (NLnet Labs Routinator) via a crafted RRDP\n`snapshot.xml`.\n\n## Remediation\n\nUpgrade to `quick-xml >= 0.41.0`, where the duplicate check keeps the linear\nscan for start tags with a small number of attributes and switches to an `O(1)`\nhash pre-filter above a threshold, making the whole tag `O(N)`. The reported\n`AttrError::Duplicated` positions are unchanged.\n\nIf upgrading is not possible and duplicate-name detection is not required,\ndisable it with `.attributes().with_checks(false)` (this does not help\n`NsReader` consumers, which have no equivalent opt-out before 0.41.0).",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0195.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0194.html"
       },
       "ratings": [],
       "affects": [

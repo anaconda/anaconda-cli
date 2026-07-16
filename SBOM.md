@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-07-15T15:42:38Z<br>
+Generated: 2026-07-16T18:45:01Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 459 (69 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -54,8 +54,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.1 | MIT | linux, macos |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.0 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  |  |
-| [clap](https://crates.io/crates/clap) | 4.6.1 | MIT OR Apache-2.0 |  |  |
-| [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.0 | MIT OR Apache-2.0 |  |  |
+| [clap](https://crates.io/crates/clap) | 4.6.2 | MIT OR Apache-2.0 |  |  |
+| [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.2 | MIT OR Apache-2.0 |  |  |
 | [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.1 | MIT OR Apache-2.0 |  |  |
 | [clap\_lex](https://crates.io/crates/clap_lex) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [cmov](https://crates.io/crates/cmov) | 0.5.4 | Apache-2.0 OR MIT |  |  |
@@ -475,10 +475,10 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | crossbeam-epoch | 0.9.18 | [RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html) |  |  |  |
-| quick-xml | 0.37.5 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
 | quick-xml | 0.37.5 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
-| quick-xml | 0.39.4 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
+| quick-xml | 0.37.5 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
 | quick-xml | 0.39.4 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
+| quick-xml | 0.39.4 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
 | anyhow | 1.0.102 | [RUSTSEC-2026-0190](https://rustsec.org/advisories/RUSTSEC-2026-0190.html) |  |  | INFO |
 | memmap2 | 0.9.10 | [RUSTSEC-2026-0186](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) |  |  | INFO |
 
