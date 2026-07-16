@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-26T17:45:37Z<br>
+Generated: 2026-07-15T15:39:19Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 458 (69 platform-specific)<br>
+Packages: 460 (69 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 1 (1 INFO) across 1 package**
+<br>**[Security advisories](#security-advisories): 7 (2 INFO) across 5 packages**
 
 ## Packages
 
@@ -23,7 +23,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [anstyle-parse](https://crates.io/crates/anstyle-parse) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [anstyle-query](https://crates.io/crates/anstyle-query) | 1.1.5 | MIT OR Apache-2.0 |  |  |
 | [anstyle-wincon](https://crates.io/crates/anstyle-wincon) | 3.0.11 | MIT OR Apache-2.0 | windows |  |
-| [anyhow](https://crates.io/crates/anyhow) | 1.0.102 | MIT OR Apache-2.0 |  |  |
+| [anyhow](https://crates.io/crates/anyhow) | 1.0.102 | MIT OR Apache-2.0 |  | 1 |
 | [astral-reqwest-middleware](https://crates.io/crates/astral-reqwest-middleware) | 0.5.1 | MIT OR Apache-2.0 |  |  |
 | [astral-tokio-tar](https://crates.io/crates/astral-tokio-tar) | 0.6.2 | MIT OR Apache-2.0 |  |  |
 | [astral\_async\_http\_range\_reader](https://crates.io/crates/astral_async_http_range_reader) | 0.11.0 | MIT |  |  |
@@ -73,7 +73,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cpufeatures](https://crates.io/crates/cpufeatures) | 0.3.0 | MIT OR Apache-2.0 |  |  |
 | [crc32fast](https://crates.io/crates/crc32fast) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [crossbeam-deque](https://crates.io/crates/crossbeam-deque) | 0.8.6 | MIT OR Apache-2.0 |  |  |
-| [crossbeam-epoch](https://crates.io/crates/crossbeam-epoch) | 0.9.18 | MIT OR Apache-2.0 |  |  |
+| [crossbeam-epoch](https://crates.io/crates/crossbeam-epoch) | 0.9.18 | MIT OR Apache-2.0 |  | 1 |
 | [crossbeam-utils](https://crates.io/crates/crossbeam-utils) | 0.8.21 | MIT OR Apache-2.0 |  |  |
 | [crossterm](https://crates.io/crates/crossterm) | 0.29.0 | MIT |  |  |
 | [crossterm\_winapi](https://crates.io/crates/crossterm_winapi) | 0.9.1 | MIT | windows |  |
@@ -168,6 +168,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [indicatif](https://crates.io/crates/indicatif) | 0.18.4 | MIT |  |  |
 | [inlinable\_string](https://crates.io/crates/inlinable_string) | 0.1.15 | Apache-2.0 OR MIT |  |  |
 | [ipnet](https://crates.io/crates/ipnet) | 2.12.0 | MIT OR Apache-2.0 |  |  |
+| [is-terminal](https://crates.io/crates/is-terminal) | 0.4.17 | MIT |  |  |
 | [is\_ci](https://crates.io/crates/is_ci) | 1.2.0 | ISC |  |  |
 | [is\_terminal\_polyfill](https://crates.io/crates/is_terminal_polyfill) | 1.70.2 | MIT OR Apache-2.0 |  |  |
 | [itertools](https://crates.io/crates/itertools) | 0.13.0 | MIT OR Apache-2.0 |  |  |
@@ -249,8 +250,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [prost-derive](https://crates.io/crates/prost-derive) | 0.14.4 | Apache-2.0 |  |  |
 | [purl](https://crates.io/crates/purl) | 0.1.6 | MIT |  |  |
 | [quick-error](https://crates.io/crates/quick-error) | 1.2.3 | MIT OR Apache-2.0 |  |  |
-| [quick-xml](https://crates.io/crates/quick-xml) | 0.37.5 | MIT | linux |  |
-| [quick-xml](https://crates.io/crates/quick-xml) | 0.39.4 | MIT | macos |  |
+| [quick-xml](https://crates.io/crates/quick-xml) | 0.37.5 | MIT | linux | 2 |
+| [quick-xml](https://crates.io/crates/quick-xml) | 0.39.4 | MIT | macos | 2 |
 | [quote](https://crates.io/crates/quote) | 1.0.45 | MIT OR Apache-2.0 |  |  |
 | [rand](https://crates.io/crates/rand) | 0.10.1 | MIT OR Apache-2.0 |  |  |
 | [rand](https://crates.io/crates/rand) | 0.9.4 | MIT OR Apache-2.0 |  |  |
@@ -338,6 +339,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [strum](https://crates.io/crates/strum) | 0.28.0 | MIT |  |  |
 | [strum\_macros](https://crates.io/crates/strum_macros) | 0.28.0 | MIT |  |  |
 | [subtle](https://crates.io/crates/subtle) | 2.6.1 | BSD-3-Clause |  |  |
+| [supports-color](https://crates.io/crates/supports-color) | 2.1.0 | Apache-2.0 |  |  |
 | [supports-color](https://crates.io/crates/supports-color) | 3.0.2 | Apache-2.0 |  |  |
 | [supports-hyperlinks](https://crates.io/crates/supports-hyperlinks) | 3.2.0 | Apache-2.0 |  |  |
 | [supports-unicode](https://crates.io/crates/supports-unicode) | 3.0.0 | Apache-2.0 |  |  |
@@ -372,9 +374,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [toml](https://crates.io/crates/toml) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.13+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.6 | MIT |  |  |
 | [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.6 | MIT |  |  |
 | [tower](https://crates.io/crates/tower) | 0.5.3 | MIT |  |  |
@@ -473,6 +475,12 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
+| crossbeam-epoch | 0.9.18 | [RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html) |  |  |  |
+| quick-xml | 0.37.5 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
+| quick-xml | 0.37.5 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
+| quick-xml | 0.39.4 | [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195.html) |  |  |  |
+| quick-xml | 0.39.4 | [RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194.html) |  |  |  |
+| anyhow | 1.0.102 | [RUSTSEC-2026-0190](https://rustsec.org/advisories/RUSTSEC-2026-0190.html) |  |  | INFO |
 | memmap2 | 0.9.10 | [RUSTSEC-2026-0186](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) |  |  | INFO |
 
 ## License Summary
@@ -480,9 +488,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | License | Count |
 | --- | ---: |
 | MIT OR Apache-2.0 | 252 |
-| MIT | 84 |
+| MIT | 85 |
 | Apache-2.0 OR MIT | 36 |
-| Apache-2.0 | 20 |
+| Apache-2.0 | 21 |
 | BSD-3-Clause | 19 |
 | Unicode-3.0 | 18 |
 | ISC | 3 |
