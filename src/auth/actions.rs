@@ -4,11 +4,12 @@ use std::time::Duration;
 
 use tokio::time::sleep;
 
-use super::api_keys::create_api_key;
+use super::api_keys::{create_api_key, create_api_key_v2, ApiKeyCreationResult};
 use super::errors::AuthError;
 use super::keyring::{delete_api_key, get_api_key, save_credential};
 use super::responses::{
-    DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse, WhoamiResponse,
+    DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse, WhoamiPassport,
+    WhoamiResponse,
 };
 use crate::context::CommandContext;
 use crate::input::KeyListener;
@@ -104,7 +105,13 @@ fn print_token_expiration(expires_at: &str) {
 ///
 /// This is the common "finalize login" logic shared by both device flow and direct API key login.
 /// Validates the key against the server before saving to catch invalid or cross-environment tokens.
-async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(), AuthError> {
+///
+/// If `known_expiration` is provided (for v2 keys), it will be used instead of parsing the JWT.
+async fn save_and_display_login(
+    ctx: &CommandContext,
+    api_key: &str,
+    known_expiration: Option<&str>,
+) -> Result<(), AuthError> {
     use super::api_keys::get_expiration;
 
     // Validate the API key and get user info in a single request
@@ -123,7 +130,12 @@ async fn save_and_display_login(ctx: &CommandContext, api_key: &str) -> Result<(
 
     // Display login success
     print_logged_in_status(&user_info.email);
-    if let Some(expires_at) = get_expiration(api_key) {
+
+    // Use known expiration (v2) or parse from JWT (v1)
+    let expires_at = known_expiration
+        .map(|s| s.to_string())
+        .or_else(|| get_expiration(api_key));
+    if let Some(expires_at) = expires_at {
         print_token_expiration(&expires_at);
     }
 
@@ -173,13 +185,22 @@ struct UserInfo {
     username: Option<String>,
 }
 
-/// Validate an API key by making a request to the whoami endpoint.
+/// Validate an API key by making a request to the appropriate endpoint.
+/// For v1 keys (JWT), uses /api/auth/sessions/whoami.
+/// For v2 keys (ak_ prefix), uses /api/auth/api-keys/v2/authorize.
 /// Returns user info if valid, or an error if invalid.
 async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result<UserInfo> {
     let client = ctx.unauthenticated_client(REQUEST_TIMEOUT);
+    let is_v2 = api_key.starts_with("ak_");
+
+    let endpoint = if is_v2 {
+        "/api/auth/api-keys/v2/authorize"
+    } else {
+        "/api/auth/sessions/whoami"
+    };
 
     let response = client
-        .get("/api/auth/sessions/whoami")
+        .get(endpoint)
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
         .await
@@ -192,22 +213,33 @@ async fn validate_api_key(ctx: &CommandContext, api_key: &str) -> miette::Result
         ));
     }
 
-    let data: WhoamiResponse = response
-        .json()
-        .await
-        .map_err(|e| miette::miette!("Failed to parse whoami response: {}", e))?;
-
-    let username = data.passport.profile.username;
-
-    let email = data
-        .passport
-        .profile
-        .email
-        .or(username.clone())
-        .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
-
-    // Service accounts may not have a user_id
-    let user_id = data.passport.user_id;
+    // V2 authorize returns Passport directly, v1 whoami wraps it
+    let (user_id, username, email) = if is_v2 {
+        let data: WhoamiPassport = response
+            .json()
+            .await
+            .map_err(|e| miette::miette!("Failed to parse authorize response: {}", e))?;
+        let username = data.profile.username;
+        let email = data
+            .profile
+            .email
+            .or(username.clone())
+            .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
+        (data.user_id, username, email)
+    } else {
+        let data: WhoamiResponse = response
+            .json()
+            .await
+            .map_err(|e| miette::miette!("Failed to parse whoami response: {}", e))?;
+        let username = data.passport.profile.username;
+        let email = data
+            .passport
+            .profile
+            .email
+            .or(username.clone())
+            .ok_or_else(|| miette::miette!("API key is not associated with a user"))?;
+        (data.passport.user_id, username, email)
+    };
 
     Ok(UserInfo {
         email,
@@ -227,7 +259,7 @@ async fn login_with_api_key(
     // Validate the API key format
     if !is_valid_api_key(&api_key) {
         return Err(AuthError::InvalidApiKey(
-            "not a valid JWT token".to_string(),
+            "not a valid API key".to_string(),
         ));
     }
 
@@ -252,7 +284,7 @@ async fn login_with_api_key(
         }
     }
 
-    save_and_display_login(ctx, &api_key).await
+    save_and_display_login(ctx, &api_key, None).await
 }
 
 /// Try to read API key from stdin if data is available.
@@ -275,7 +307,7 @@ fn try_read_api_key_from_stdin() -> Option<String> {
 }
 
 /// Perform the device authorization flow.
-async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), AuthError> {
+async fn login_device_flow(ctx: &CommandContext, force: bool, v2: bool) -> Result<(), AuthError> {
     // We use an unauthenticated client since login by definition happens first.
     // The auth flow needs to follow direct URLs from openid-configuration etc.
 
@@ -431,10 +463,14 @@ async fn login_device_flow(ctx: &CommandContext, force: bool) -> Result<(), Auth
             status::blank_line();
             status::success("Authentication complete");
 
-            // Create API key
-            let api_key = create_api_key(client, &token.access_token).await?;
+            // Create API key (v1 or v2 based on flag)
+            let result: ApiKeyCreationResult = if v2 {
+                create_api_key_v2(client, &token.access_token).await?
+            } else {
+                create_api_key(client, &token.access_token).await?
+            };
 
-            return save_and_display_login(ctx, &api_key).await;
+            return save_and_display_login(ctx, &result.api_key, result.expires_at.as_deref()).await;
         }
 
         let error: TokenErrorResponse = response.json().await?;
@@ -480,7 +516,7 @@ pub async fn ensure_logged_in(ctx: &CommandContext) -> Result<(), AuthError> {
         return Err(AuthError::NotLoggedIn);
     }
 
-    login_device_flow(ctx, false).await
+    login_device_flow(ctx, false, false).await
 }
 
 /// Perform login - either via API key or device authorization flow.
@@ -489,6 +525,7 @@ pub async fn ensure_logged_in(ctx: &CommandContext) -> Result<(), AuthError> {
 /// - `api_key`: Positional API key value. Use "-" to read from stdin.
 /// - `prompt_api_key`: If true (--api-key flag), prompt for API key with hidden input.
 /// - `force`: Overwrite existing credentials without confirmation.
+/// - `v2`: If true, generate a v2 API key instead of v1 (only applies to device flow).
 ///
 /// Precedence:
 /// 1. `ana login <key>` - use provided key directly
@@ -501,6 +538,7 @@ pub async fn login(
     api_key: Option<String>,
     prompt_api_key: bool,
     force: bool,
+    v2: bool,
 ) -> Result<(), AuthError> {
     match api_key {
         Some(key) if key == "-" => {
@@ -526,7 +564,7 @@ pub async fn login(
             if let Some(api_key) = try_read_api_key_from_stdin() {
                 login_with_api_key(ctx, api_key, force).await
             } else {
-                login_device_flow(ctx, force).await
+                login_device_flow(ctx, force, v2).await
             }
         }
     }

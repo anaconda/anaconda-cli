@@ -104,6 +104,7 @@ pub enum Action {
         api_key: Option<String>,
         prompt_api_key: bool,
         force: bool,
+        v2: bool,
     },
     Logout,
     ShowApiKey,
@@ -312,7 +313,8 @@ impl Action {
                 api_key,
                 prompt_api_key,
                 force,
-            } => Ok(auth::login(ctx, api_key, prompt_api_key, force).await?),
+                v2,
+            } => Ok(auth::login(ctx, api_key, prompt_api_key, force, v2).await?),
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
@@ -568,10 +570,12 @@ pub fn parse() -> (Action, LogLevel) {
             api_key,
             prompt_api_key,
             force,
+            v2,
         }) => Action::Login {
             api_key,
             prompt_api_key,
             force,
+            v2,
         },
         Some(Commands::Logout) => Action::Logout,
         Some(Commands::Whoami { json }) => Action::Whoami { json },
@@ -582,10 +586,12 @@ pub fn parse() -> (Action, LogLevel) {
                 api_key,
                 prompt_api_key,
                 force,
+                v2,
             }) => Action::Login {
                 api_key,
                 prompt_api_key,
                 force,
+                v2,
             },
             Some(AuthCommands::Logout) => Action::Logout,
             Some(AuthCommands::Whoami { json }) => Action::Whoami { json },
@@ -876,6 +882,10 @@ enum Commands {
         /// Overwrite existing credentials without confirmation
         #[arg(long, short = 'f')]
         force: bool,
+
+        /// Generate a v2 API key instead of v1
+        #[arg(long)]
+        v2: bool,
     },
 
     /// Log out from Anaconda
@@ -997,6 +1007,10 @@ enum AuthCommands {
         /// Overwrite existing credentials without confirmation
         #[arg(long, short = 'f')]
         force: bool,
+
+        /// Generate a v2 API key instead of v1
+        #[arg(long)]
+        v2: bool,
     },
 
     /// Log out from Anaconda
