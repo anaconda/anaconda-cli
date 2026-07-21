@@ -219,7 +219,9 @@ async fn fetch_static_releases(
     Ok(releases)
 }
 
-pub(crate) async fn fetch_available_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
+pub(crate) async fn fetch_available_releases(
+    ctx: &CommandContext,
+) -> Result<Vec<Release>, UpdateError> {
     let mut releases: Vec<_> = match &ctx.config.self_update_url {
         Some(base_url) => {
             // Static hosting - releases are already filtered by channel

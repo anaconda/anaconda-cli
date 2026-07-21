@@ -181,7 +181,10 @@ pub fn show_notification(current: &str, latest: &str) {
         status::highlight(latest),
         current
     ));
-    status::tip(&format!("Update with: {}", status::highlight("ana self update")));
+    status::tip(&format!(
+        "Update with: {}",
+        status::highlight("ana self update")
+    ));
 }
 
 #[cfg(test)]
