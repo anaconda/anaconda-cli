@@ -18,7 +18,7 @@ unstable = []
 anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }
 async-trait = "0.1"
 base64 = "0.22"
-chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
 futures-util = "0.3"
 dirs = "6"
 figment = { version = "0.10", features = ["env"] }

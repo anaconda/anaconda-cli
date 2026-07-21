@@ -24,6 +24,7 @@ mod tools;
 mod ua;
 mod ui;
 mod update;
+mod update_notifier;
 mod utils;
 
 pub const VERSION: &str = env!("PKG_VERSION");

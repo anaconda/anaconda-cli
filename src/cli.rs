@@ -20,6 +20,7 @@ use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
 use crate::ui::status;
 use crate::update;
+use crate::update_notifier;
 use crate::utils::capitalize_first;
 
 /// Log level for tracing output.
@@ -71,16 +72,56 @@ pub async fn execute() {
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
+    let skip_update_check = matches!(
+        &action,
+        Action::Update { .. }
+            | Action::CheckForUpdate
+            | Action::ShowAvailableVersions
+            | Action::TelemetrySubmit
+            | Action::TelemetryKill
+            | Action::TelemetryStatus
+    );
+
     let result = action.execute().await;
 
     if !skip_telemetry_spawn && let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
         tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
+    if result.is_ok() && !skip_update_check {
+        check_for_update_notification().await;
+    }
+
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
         eprintln!("{:?}", e);
         std::process::exit(1);
+    }
+}
+
+async fn check_for_update_notification() {
+    use std::time::Duration;
+
+    if !update_notifier::update_check_enabled() {
+        return;
+    }
+
+    let ctx = crate::context::CommandContext::new();
+
+    let result = tokio::time::timeout(
+        Duration::from_millis(500),
+        update_notifier::check_for_update(&ctx, VERSION),
+    )
+    .await;
+
+    match result {
+        Ok(Some(latest)) => {
+            update_notifier::show_notification(VERSION, &latest);
+        }
+        Ok(None) => {}
+        Err(_) => {
+            tracing::debug!("Update check timed out");
+        }
     }
 }
 

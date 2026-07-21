@@ -22,6 +22,9 @@
 //! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
 //! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
 //! | `ANA_AUTO_UPDATE_TOOLS`          | (per-tool default)         | Auto-update tools on self update; overrides tool defaults |
+//! | `ANA_UPDATE_CHECK`               | `true`                     | Enable background update notifications |
+//! | `ANA_UPDATE_CHECK_INTERVAL_HOURS`| `24`                       | Hours between update checks     |
+//! | `ANA_UPDATE_NOTIFY_INTERVAL_HOURS`| `24`                      | Hours between showing notifications |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
