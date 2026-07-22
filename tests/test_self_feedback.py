@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from helpers import AnaRunner
+
 
 class TestSelfFeedback:
     """Tests for 'ana self feedback' command."""
 
     def test_feedback_prints_issues_url(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "feedback")
+        assert result.returncode == 0
         assert "https://github.com/anaconda/ana-cli/issues/new/choose" in result.stderr
 
     def test_feedback_exits_zero_when_browser_open_fails(
