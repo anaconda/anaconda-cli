@@ -24,6 +24,15 @@ const TOOLS: &[Tool] = &[
         experimental: None,
         auto_update: true,
     },
+    #[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+    Tool {
+        name: "kilo",
+        lockfile: include_str!("../../tool-specs/kilo/pixi.lock"),
+        // No symlink - kilo is accessed via `ana code`
+        binaries: &[],
+        experimental: Some("Kilo Code integration is an experimental alpha feature."),
+        auto_update: true,
+    },
     #[cfg(unix)]
     Tool {
         name: "outerbounds",

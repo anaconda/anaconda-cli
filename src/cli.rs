@@ -7,6 +7,8 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
+#[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+use crate::code::{self, CodeAction, CodeCommands};
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
@@ -128,6 +130,10 @@ pub enum Action {
     ObAutoConfigure {
         instance: String,
     },
+    #[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+    CodeRun {
+        args: Vec<String>,
+    },
     McpRun {
         args: Vec<String>,
     },
@@ -196,6 +202,8 @@ impl Action {
             Action::ObProxy { .. } => "ob",
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
+            #[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+            Action::CodeRun { .. } => "code",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
@@ -289,6 +297,8 @@ impl Action {
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
+            #[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+            Action::CodeRun { args } => code::run(ctx, &args).await,
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -642,6 +652,30 @@ pub fn parse() -> (Action, LogLevel) {
                 },
             }
         }
+        #[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+        Some(Commands::Code { command, args }) => {
+            if !feature::is_feature_enabled("kilo") {
+                use crate::ui::status::{blank_line, highlight, tip, warn};
+                warn(&format!(
+                    "The {} command requires the experimental {} feature.",
+                    highlight("code"),
+                    highlight("kilo")
+                ));
+                tip(&format!(
+                    "Enable it with {}",
+                    highlight("ana feature enable kilo")
+                ));
+                blank_line();
+                std::process::exit(1);
+            }
+            match command {
+                None => Action::CodeRun { args },
+                Some(cmd) => match cmd.into_action() {
+                    CodeAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                    CodeAction::Run(args) => Action::CodeRun { args },
+                },
+            }
+        }
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -932,6 +966,24 @@ enum Commands {
     Ob {
         #[command(subcommand)]
         command: Option<ObCommands>,
+    },
+
+    /// Launch Kilo Code AI coding assistant (experimental)
+    #[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        trailing_var_arg = true,
+        override_usage = "ana code [args]",
+        after_help = "Note: Kilo Code integration is an experimental alpha feature."
+    )]
+    Code {
+        #[command(subcommand)]
+        command: Option<CodeCommands>,
+
+        /// Arguments to pass directly to kilo (when no subcommand)
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 
     /// Manage tools

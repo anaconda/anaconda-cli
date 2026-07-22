@@ -15,10 +15,34 @@ use serde::{Deserialize, Serialize};
 use crate::paths::ana_home;
 
 /// Valid experimental feature names.
-#[cfg(all(unix, feature = "unstable"))]
+#[cfg(all(
+    unix,
+    target_arch = "aarch64",
+    target_os = "macos",
+    feature = "unstable"
+))]
+const VALID_FEATURES: &[&str] = &["kilo", "outerbounds", "wheels"];
+
+#[cfg(all(
+    unix,
+    target_arch = "aarch64",
+    target_os = "macos",
+    not(feature = "unstable")
+))]
+const VALID_FEATURES: &[&str] = &["kilo", "outerbounds"];
+
+#[cfg(all(
+    unix,
+    not(all(target_arch = "aarch64", target_os = "macos")),
+    feature = "unstable"
+))]
 const VALID_FEATURES: &[&str] = &["outerbounds", "wheels"];
 
-#[cfg(all(unix, not(feature = "unstable")))]
+#[cfg(all(
+    unix,
+    not(all(target_arch = "aarch64", target_os = "macos")),
+    not(feature = "unstable")
+))]
 const VALID_FEATURES: &[&str] = &["outerbounds"];
 
 #[cfg(all(windows, feature = "unstable"))]

@@ -1,6 +1,8 @@
 mod anaconda_cli;
 mod auth;
 mod cli;
+#[cfg(all(unix, target_arch = "aarch64", target_os = "macos"))]
+mod code;
 mod config;
 mod context;
 mod diagnostics;

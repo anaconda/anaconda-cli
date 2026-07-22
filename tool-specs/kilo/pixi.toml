@@ -1,0 +1,7 @@
+[workspace]
+name = "kilo"
+channels = ["https://conda.anaconda.org/mattkram", "https://repo.anaconda.com/pkgs/main"]
+platforms = ["osx-arm64"]
+
+[dependencies]
+kilo = "*"

@@ -1,0 +1,18 @@
+version: 7
+platforms:
+- name: osx-arm64
+environments:
+  default:
+    channels:
+    - url: https://conda.anaconda.org/mattkram/
+    - url: https://repo.anaconda.com/pkgs/main/
+    packages:
+      osx-arm64:
+      - conda: https://conda.anaconda.org/mattkram/osx-arm64/kilo-7.4.15-0.conda
+packages:
+- conda: https://conda.anaconda.org/mattkram/osx-arm64/kilo-7.4.15-0.conda
+  sha256: 7eddb716db3f3fc34b98833289fa50dfbb52e89419f0d4896e6b776123eab01f
+  md5: c4a33d66d8884c713249c96dcdaf8c4b
+  license: MIT
+  size: 36311629
+  timestamp: 1784736348582
