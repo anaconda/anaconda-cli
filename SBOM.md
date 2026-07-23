@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-07-22T13:42:08Z<br>
+Generated: 2026-07-23T15:37:40Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 456 (59 platform-specific)<br>
+Packages: 457 (59 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -37,6 +37,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [backtrace](https://crates.io/crates/backtrace) | 0.3.76 | MIT OR Apache-2.0 |  |  |
 | [backtrace-ext](https://crates.io/crates/backtrace-ext) | 0.2.1 | MIT OR Apache-2.0 |  |  |
 | [base64](https://crates.io/crates/base64) | 0.22.1 | MIT OR Apache-2.0 |  |  |
+| [base64](https://crates.io/crates/base64) | 0.23.0 | MIT OR Apache-2.0 |  |  |
 | [bit-set](https://crates.io/crates/bit-set) | 0.8.0 | Apache-2.0 OR MIT |  |  |
 | [bit-vec](https://crates.io/crates/bit-vec) | 0.8.0 | Apache-2.0 OR MIT |  |  |
 | [bitflags](https://crates.io/crates/bitflags) | 1.3.2 | MIT OR Apache-2.0 |  |  |
@@ -471,7 +472,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 249 |
+| MIT OR Apache-2.0 | 250 |
 | MIT | 84 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
