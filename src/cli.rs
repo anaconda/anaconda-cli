@@ -373,7 +373,7 @@ impl Action {
                 Ok(())
             }
             Action::OpenFeedback => {
-                feedback::open_feedback();
+                feedback::open_feedback(&ctx.config);
                 Ok(())
             }
             Action::ApiFetch {
