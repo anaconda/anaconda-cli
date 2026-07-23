@@ -5,18 +5,16 @@
 
 use std::fs;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::config;
 use crate::context::CommandContext;
 use crate::paths::ana_home;
 use crate::update::{fetch_latest_version, parse_version};
 
 const CACHE_FILE: &str = "update-cache.json";
-const DEFAULT_CHECK_INTERVAL_HOURS: u64 = 24;
-const DEFAULT_NOTIFY_INTERVAL_HOURS: u64 = 24;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UpdateCache {
@@ -29,31 +27,6 @@ struct UpdateCache {
 
 fn cache_path() -> PathBuf {
     ana_home().join(CACHE_FILE)
-}
-
-fn check_interval() -> Duration {
-    let hours = std::env::var("ANA_UPDATE_CHECK_INTERVAL_HOURS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_CHECK_INTERVAL_HOURS);
-    Duration::from_secs(hours * 3600)
-}
-
-fn notify_interval() -> Duration {
-    let hours = std::env::var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_NOTIFY_INTERVAL_HOURS);
-    Duration::from_secs(hours * 3600)
-}
-
-pub fn update_check_enabled() -> bool {
-    std::env::var("ANA_UPDATE_CHECK")
-        .map(|v| {
-            let v = v.trim().to_lowercase();
-            !(v.is_empty() || v == "0" || v == "false")
-        })
-        .unwrap_or(true)
 }
 
 fn read_cache() -> Option<UpdateCache> {
@@ -98,7 +71,7 @@ fn is_cache_fresh(cache: &UpdateCache, current_version: &str) -> bool {
     }
 
     let elapsed = Utc::now().signed_duration_since(cache.checked_at);
-    let interval = check_interval();
+    let interval = config::update_check_interval();
     elapsed.num_seconds() < interval.as_secs() as i64
 }
 
@@ -120,7 +93,7 @@ fn should_notify(cache: &UpdateCache) -> bool {
     };
 
     let elapsed = Utc::now().signed_duration_since(notified_at);
-    let interval = notify_interval();
+    let interval = config::update_notify_interval();
     elapsed.num_seconds() >= interval.as_secs() as i64
 }
 
@@ -285,56 +258,60 @@ mod tests {
     #[test]
     fn test_update_check_enabled_default() {
         temp_env::with_var_unset("ANA_UPDATE_CHECK", || {
-            assert!(update_check_enabled());
+            assert!(config::update_check_enabled());
         });
     }
 
     #[test]
     fn test_update_check_enabled_false() {
         temp_env::with_var("ANA_UPDATE_CHECK", Some("false"), || {
-            assert!(!update_check_enabled());
+            assert!(!config::update_check_enabled());
         });
     }
 
     #[test]
     fn test_update_check_enabled_zero() {
         temp_env::with_var("ANA_UPDATE_CHECK", Some("0"), || {
-            assert!(!update_check_enabled());
+            assert!(!config::update_check_enabled());
         });
     }
 
     #[test]
     fn test_update_check_enabled_true() {
         temp_env::with_var("ANA_UPDATE_CHECK", Some("true"), || {
-            assert!(update_check_enabled());
+            assert!(config::update_check_enabled());
         });
     }
 
     #[test]
     fn test_check_interval_default() {
+        use std::time::Duration;
         temp_env::with_var_unset("ANA_UPDATE_CHECK_INTERVAL_HOURS", || {
-            assert_eq!(check_interval(), Duration::from_secs(24 * 3600));
+            assert_eq!(config::update_check_interval(), Duration::from_secs(24 * 3600));
         });
     }
 
     #[test]
     fn test_check_interval_custom() {
+        use std::time::Duration;
         temp_env::with_var("ANA_UPDATE_CHECK_INTERVAL_HOURS", Some("12"), || {
-            assert_eq!(check_interval(), Duration::from_secs(12 * 3600));
+            assert_eq!(config::update_check_interval(), Duration::from_secs(12 * 3600));
         });
     }
 
     #[test]
     fn test_notify_interval_default() {
+        use std::time::Duration;
         temp_env::with_var_unset("ANA_UPDATE_NOTIFY_INTERVAL_HOURS", || {
-            assert_eq!(notify_interval(), Duration::from_secs(24 * 3600));
+            assert_eq!(config::update_notify_interval(), Duration::from_secs(24 * 3600));
         });
     }
 
     #[test]
     fn test_notify_interval_custom() {
+        use std::time::Duration;
         temp_env::with_var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS", Some("12"), || {
-            assert_eq!(notify_interval(), Duration::from_secs(12 * 3600));
+            assert_eq!(config::update_notify_interval(), Duration::from_secs(12 * 3600));
         });
     }
 }

@@ -7,7 +7,7 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::Config;
+use crate::config::{self, Config};
 use crate::context::CommandContext;
 use crate::feature;
 use crate::feedback;
@@ -88,7 +88,7 @@ pub async fn execute() {
         tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
-    if result.is_ok() && !skip_update_check {
+    if result.is_ok() && !skip_update_check && config::update_check_enabled() {
         check_for_update_notification().await;
     }
 
@@ -101,10 +101,6 @@ pub async fn execute() {
 
 async fn check_for_update_notification() {
     use std::time::Duration;
-
-    if !update_notifier::update_check_enabled() {
-        return;
-    }
 
     let ctx = crate::context::CommandContext::new();
 

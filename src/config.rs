@@ -51,6 +51,33 @@ pub fn telemetry_enabled() -> bool {
         .unwrap_or(true)
 }
 
+/// Check if background update checks are enabled.
+pub fn update_check_enabled() -> bool {
+    std::env::var("ANA_UPDATE_CHECK")
+        .map(|v| parse_bool(&v))
+        .unwrap_or(true)
+}
+
+/// Get the interval between update checks.
+pub fn update_check_interval() -> std::time::Duration {
+    const DEFAULT_HOURS: u64 = 24;
+    let hours = std::env::var("ANA_UPDATE_CHECK_INTERVAL_HOURS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_HOURS);
+    std::time::Duration::from_secs(hours * 3600)
+}
+
+/// Get the interval between showing update notifications.
+pub fn update_notify_interval() -> std::time::Duration {
+    const DEFAULT_HOURS: u64 = 24;
+    let hours = std::env::var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_HOURS);
+    std::time::Duration::from_secs(hours * 3600)
+}
+
 const DEFAULT_DOMAIN: &str = "anaconda.com";
 const DEFAULT_CLIENT_ID: &str = "b4ad7f1d-c784-46b5-a9fe-106e50441f5a";
 const DEFAULT_SSL_VERIFY: bool = true;
