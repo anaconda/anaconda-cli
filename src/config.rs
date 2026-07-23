@@ -10,7 +10,7 @@
 //! | `ANA_DOMAIN`                     | `anaconda.com`             | Authentication domain           |
 //! | `ANA_AUTH_CLIENT_ID`             | (Anaconda's ID)            | OAuth client ID                 |
 //! | `ANA_SSL_VERIFY`                 | `true`                     | SSL certificate verification    |
-//! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser during login  |
+//! | `ANA_OPEN_BROWSER`               | `true`                     | Auto-open browser (login, feedback) |
 //! | `ANA_METRICS_ENDPOINT`           | (Anaconda metrics URL)     | OpenTelemetry metrics endpoint (authenticated) |
 //! | `ANA_METRICS_PUBLIC_ENDPOINT`    | (Anaconda public URL)      | OpenTelemetry metrics endpoint (unauthenticated) |
 //! | `ANA_METRICS_EXPORT_INTERVAL_MS` | `1000`                     | Metrics export interval in ms   |
