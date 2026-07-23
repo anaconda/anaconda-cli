@@ -287,7 +287,10 @@ mod tests {
     fn test_check_interval_default() {
         use std::time::Duration;
         temp_env::with_var_unset("ANA_UPDATE_CHECK_INTERVAL_HOURS", || {
-            assert_eq!(config::update_check_interval(), Duration::from_secs(24 * 3600));
+            assert_eq!(
+                config::update_check_interval(),
+                Duration::from_secs(24 * 3600)
+            );
         });
     }
 
@@ -295,7 +298,10 @@ mod tests {
     fn test_check_interval_custom() {
         use std::time::Duration;
         temp_env::with_var("ANA_UPDATE_CHECK_INTERVAL_HOURS", Some("12"), || {
-            assert_eq!(config::update_check_interval(), Duration::from_secs(12 * 3600));
+            assert_eq!(
+                config::update_check_interval(),
+                Duration::from_secs(12 * 3600)
+            );
         });
     }
 
@@ -303,7 +309,10 @@ mod tests {
     fn test_notify_interval_default() {
         use std::time::Duration;
         temp_env::with_var_unset("ANA_UPDATE_NOTIFY_INTERVAL_HOURS", || {
-            assert_eq!(config::update_notify_interval(), Duration::from_secs(24 * 3600));
+            assert_eq!(
+                config::update_notify_interval(),
+                Duration::from_secs(24 * 3600)
+            );
         });
     }
 
@@ -311,7 +320,10 @@ mod tests {
     fn test_notify_interval_custom() {
         use std::time::Duration;
         temp_env::with_var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS", Some("12"), || {
-            assert_eq!(config::update_notify_interval(), Duration::from_secs(12 * 3600));
+            assert_eq!(
+                config::update_notify_interval(),
+                Duration::from_secs(12 * 3600)
+            );
         });
     }
 }
