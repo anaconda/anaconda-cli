@@ -219,7 +219,9 @@ async fn fetch_static_releases(
     Ok(releases)
 }
 
-async fn fetch_available_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
+pub(crate) async fn fetch_available_releases(
+    ctx: &CommandContext,
+) -> Result<Vec<Release>, UpdateError> {
     let mut releases: Vec<_> = match &ctx.config.self_update_url {
         Some(base_url) => {
             // Static hosting - releases are already filtered by channel
@@ -253,6 +255,21 @@ pub enum UpdateCheck {
     Available(Release),
     AlreadyUpToDate,
     NoReleases,
+}
+
+/// Fetch the latest version tag from available releases.
+/// Returns the tag name (e.g., "v0.0.10") or an error.
+pub async fn fetch_latest_version(ctx: &CommandContext) -> Result<String, UpdateError> {
+    let releases = fetch_available_releases(ctx).await?;
+    releases
+        .into_iter()
+        .max_by(|a, b| {
+            let va = parse_version(&a.tag_name).unwrap_or_else(|_| semver::Version::new(0, 0, 0));
+            let vb = parse_version(&b.tag_name).unwrap_or_else(|_| semver::Version::new(0, 0, 0));
+            va.cmp(&vb)
+        })
+        .map(|r| r.tag_name)
+        .ok_or_else(|| UpdateError::Http("No releases available".to_string()))
 }
 
 fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCheck, UpdateError> {

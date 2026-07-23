@@ -22,6 +22,9 @@
 //! | `ANA_PIP_INDEX_URL`              | `https://repo.anaconda.cloud/repo/anaconda-wheels/simple` | Package index URL for Anaconda wheels |
 //! | `ANA_SELF_UPDATE_URL`            | (Anaconda static URL)      | Update URL; set to `github` for GitHub Releases |
 //! | `ANA_AUTO_UPDATE_TOOLS`          | (per-tool default)         | Auto-update tools on self update; overrides tool defaults |
+//! | `ANA_UPDATE_CHECK`               | `true`                     | Enable background update notifications |
+//! | `ANA_UPDATE_CHECK_INTERVAL_HOURS`| `24`                       | Hours between update checks     |
+//! | `ANA_UPDATE_NOTIFY_INTERVAL_HOURS`| `24`                      | Hours between showing notifications |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -46,6 +49,33 @@ pub fn telemetry_enabled() -> bool {
     std::env::var("ANA_ENABLE_TELEMETRY")
         .map(|v| parse_bool(&v))
         .unwrap_or(true)
+}
+
+/// Check if background update checks are enabled.
+pub fn update_check_enabled() -> bool {
+    std::env::var("ANA_UPDATE_CHECK")
+        .map(|v| parse_bool(&v))
+        .unwrap_or(true)
+}
+
+/// Get the interval between update checks.
+pub fn update_check_interval() -> std::time::Duration {
+    const DEFAULT_HOURS: u64 = 24;
+    let hours = std::env::var("ANA_UPDATE_CHECK_INTERVAL_HOURS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_HOURS);
+    std::time::Duration::from_secs(hours * 3600)
+}
+
+/// Get the interval between showing update notifications.
+pub fn update_notify_interval() -> std::time::Duration {
+    const DEFAULT_HOURS: u64 = 24;
+    let hours = std::env::var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_HOURS);
+    std::time::Duration::from_secs(hours * 3600)
 }
 
 const DEFAULT_DOMAIN: &str = "anaconda.com";
