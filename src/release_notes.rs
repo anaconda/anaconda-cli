@@ -1,9 +1,10 @@
 //! Release notes fetching and display.
 //!
-//! Fetches structured release notes from anaconda.sh and displays them
-//! in a user-friendly format after updates.
+//! Fetches release notes from anaconda.sh and renders the markdown body
+//! in the terminal.
 
 use serde::Deserialize;
+use termimad::MadSkin;
 
 use crate::context::CommandContext;
 use crate::errors::UpdateError;
@@ -12,22 +13,7 @@ use crate::ui::status;
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReleaseNotes {
     #[serde(default)]
-    pub sections: Sections,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct Sections {
-    #[serde(default, rename = "what's_changed")]
-    pub whats_changed: Vec<ChangeEntry>,
-    #[serde(default)]
-    pub bug_fixes: Vec<ChangeEntry>,
-    #[serde(default)]
-    pub new_features: Vec<ChangeEntry>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct ChangeEntry {
-    pub description: String,
+    pub body: String,
 }
 
 fn build_release_notes_url(base_url: &str, channel: &str, tag: &str) -> String {
@@ -73,19 +59,53 @@ pub async fn fetch_release_notes(
         .map_err(|e| UpdateError::Http(e.to_string()))
 }
 
-fn strip_conventional_prefix(description: &str) -> &str {
-    let prefixes = [
-        "fix: ", "feat: ", "chore: ", "refac: ", "docs: ", "test: ", "build: ", "ci: ",
-    ];
-    for prefix in prefixes {
-        if let Some(stripped) = description.strip_prefix(prefix) {
-            return stripped;
+fn make_skin() -> MadSkin {
+    let mut skin = MadSkin::default();
+    skin.set_headers_fg(termimad::crossterm::style::Color::Green);
+    skin.bold.set_fg(termimad::crossterm::style::Color::Blue);
+    skin.italic.set_fg(termimad::crossterm::style::Color::DarkGrey);
+    skin
+}
+
+fn strip_html_comments(body: &str) -> String {
+    let mut result = String::with_capacity(body.len());
+    let mut chars = body.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '<'
+            && chars.peek() == Some(&'!')
+            && chars.clone().take(3).collect::<String>() == "!--"
+        {
+            // Skip until -->
+            chars.next(); // !
+            chars.next(); // -
+            chars.next(); // -
+            loop {
+                match chars.next() {
+                    Some('-') if chars.peek() == Some(&'-') => {
+                        chars.next(); // second -
+                        if chars.peek() == Some(&'>') {
+                            chars.next(); // >
+                            break;
+                        }
+                    }
+                    None => break,
+                    _ => {}
+                }
+            }
+        } else {
+            result.push(c);
         }
     }
-    if let Some(pos) = description.find("): ") {
-        return &description[pos + 3..];
-    }
-    description
+
+    result.trim().to_string()
+}
+
+fn render_markdown(body: &str) {
+    let clean_body = strip_html_comments(body);
+    let skin = make_skin();
+    let text = skin.text(&clean_body, None);
+    eprint!("{}", text);
 }
 
 pub async fn show_changelog(ctx: &CommandContext, current_version: &str, version: Option<String>) {
@@ -127,59 +147,25 @@ pub async fn show_changelog(ctx: &CommandContext, current_version: &str, version
     } else {
         eprintln!("  {}", status::section(&format!("CHANGELOG {}", tag)));
     }
+    eprintln!();
 
-    if has_notable_changes(&notes) {
-        display_changelog_sections(&notes);
+    if notes.body.is_empty() {
+        eprintln!("  {}", status::dim("No changelog available."));
     } else {
-        eprintln!();
-        eprintln!("  {}", status::dim("No notable changes."));
+        render_markdown(&notes.body);
     }
     eprintln!();
 }
 
-fn has_notable_changes(notes: &ReleaseNotes) -> bool {
-    !notes.sections.new_features.is_empty()
-        || !notes.sections.bug_fixes.is_empty()
-        || !notes.sections.whats_changed.is_empty()
-}
-
-fn display_changelog_sections(notes: &ReleaseNotes) {
-    if !notes.sections.new_features.is_empty() {
-        eprintln!();
-        eprintln!("  {}", status::highlight("New Features"));
-        for entry in &notes.sections.new_features {
-            let desc = strip_conventional_prefix(&entry.description);
-            eprintln!("  • {}", desc);
-        }
-    }
-
-    if !notes.sections.bug_fixes.is_empty() {
-        eprintln!();
-        eprintln!("  {}", status::highlight("Bug Fixes"));
-        for entry in &notes.sections.bug_fixes {
-            let desc = strip_conventional_prefix(&entry.description);
-            eprintln!("  • {}", desc);
-        }
-    }
-
-    if !notes.sections.whats_changed.is_empty() {
-        eprintln!();
-        eprintln!("  {}", status::highlight("Changes"));
-        for entry in &notes.sections.whats_changed {
-            let desc = strip_conventional_prefix(&entry.description);
-            eprintln!("  • {}", desc);
-        }
-    }
-}
-
 pub fn display_release_notes(notes: &ReleaseNotes) {
-    if !has_notable_changes(notes) {
+    if notes.body.is_empty() {
         return;
     }
 
     eprintln!();
     eprintln!("  {}", status::section("WHAT'S NEW"));
-    display_changelog_sections(notes);
+    eprintln!();
+    render_markdown(&notes.body);
 }
 
 #[cfg(test)]
@@ -205,65 +191,20 @@ mod tests {
     }
 
     #[test]
-    fn test_strip_conventional_prefix_fix() {
-        assert_eq!(
-            strip_conventional_prefix("fix: Clarify shell restart needed"),
-            "Clarify shell restart needed"
-        );
-    }
-
-    #[test]
-    fn test_strip_conventional_prefix_feat() {
-        assert_eq!(
-            strip_conventional_prefix("feat: Add new feature"),
-            "Add new feature"
-        );
-    }
-
-    #[test]
-    fn test_strip_conventional_prefix_with_scope() {
-        assert_eq!(
-            strip_conventional_prefix("chore(deps): Update dependencies"),
-            "Update dependencies"
-        );
-    }
-
-    #[test]
-    fn test_strip_conventional_prefix_no_prefix() {
-        assert_eq!(
-            strip_conventional_prefix("Just a description"),
-            "Just a description"
-        );
-    }
-
-    #[test]
     fn test_deserialize_release_notes() {
-        let json = r#"{
-            "tag": "v0.2.3",
-            "sections": {
-                "bug_fixes": [
-                    {"description": "fix: Something broken", "author": "test", "pr_number": 1}
-                ],
-                "new_features": [
-                    {"description": "feat: Cool feature", "author": "test", "pr_number": 2}
-                ]
-            }
-        }"#;
+        let json = r###"{"tag": "v0.2.3", "body": "## Changes\n\n* fix: Something"}"###;
 
         let notes: ReleaseNotes = serde_json::from_str(json).unwrap();
-        assert_eq!(notes.sections.bug_fixes.len(), 1);
-        assert_eq!(notes.sections.new_features.len(), 1);
+        assert!(notes.body.contains("Changes"));
     }
 
     #[test]
-    fn test_deserialize_release_notes_empty_sections() {
+    fn test_deserialize_release_notes_empty_body() {
         let json = r#"{
-            "tag": "v0.2.3",
-            "sections": {}
+            "tag": "v0.2.3"
         }"#;
 
         let notes: ReleaseNotes = serde_json::from_str(json).unwrap();
-        assert!(notes.sections.bug_fixes.is_empty());
-        assert!(notes.sections.new_features.is_empty());
+        assert!(notes.body.is_empty());
     }
 }
