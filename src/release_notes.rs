@@ -102,10 +102,28 @@ fn strip_html_comments(body: &str) -> String {
     result.trim().to_string()
 }
 
+fn ensure_blank_lines_before_headers(body: &str) -> String {
+    let mut result = String::with_capacity(body.len() + 100);
+    let mut prev_line_blank = true;
+
+    for line in body.lines() {
+        let is_header = line.starts_with('#');
+        if is_header && !prev_line_blank {
+            result.push('\n');
+        }
+        result.push_str(line);
+        result.push('\n');
+        prev_line_blank = line.trim().is_empty();
+    }
+
+    result
+}
+
 fn render_markdown(body: &str) {
     let clean_body = strip_html_comments(body);
+    let spaced_body = ensure_blank_lines_before_headers(&clean_body);
     let skin = make_skin();
-    let text = skin.text(&clean_body, None);
+    let text = skin.text(&spaced_body, None);
     let rendered = text.to_string();
 
     for line in rendered.lines() {
