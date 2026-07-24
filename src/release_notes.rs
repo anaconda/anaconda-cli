@@ -128,22 +128,23 @@ pub async fn show_changelog(ctx: &CommandContext, current_version: &str, version
         eprintln!("  {}", status::section(&format!("CHANGELOG {}", tag)));
     }
 
-    display_changelog_sections(&notes);
+    if has_notable_changes(&notes) {
+        display_changelog_sections(&notes);
+    } else {
+        eprintln!();
+        eprintln!("  {}", status::dim("No notable changes."));
+    }
     eprintln!();
 }
 
+fn has_notable_changes(notes: &ReleaseNotes) -> bool {
+    !notes.sections.new_features.is_empty()
+        || !notes.sections.bug_fixes.is_empty()
+        || !notes.sections.whats_changed.is_empty()
+}
+
 fn display_changelog_sections(notes: &ReleaseNotes) {
-    let has_features = !notes.sections.new_features.is_empty();
-    let has_fixes = !notes.sections.bug_fixes.is_empty();
-    let has_changes = !notes.sections.whats_changed.is_empty();
-
-    if !has_features && !has_fixes && !has_changes {
-        eprintln!();
-        eprintln!("  {}", status::dim("No notable changes."));
-        return;
-    }
-
-    if has_features {
+    if !notes.sections.new_features.is_empty() {
         eprintln!();
         eprintln!("  {}", status::highlight("New Features"));
         for entry in &notes.sections.new_features {
@@ -152,7 +153,7 @@ fn display_changelog_sections(notes: &ReleaseNotes) {
         }
     }
 
-    if has_fixes {
+    if !notes.sections.bug_fixes.is_empty() {
         eprintln!();
         eprintln!("  {}", status::highlight("Bug Fixes"));
         for entry in &notes.sections.bug_fixes {
@@ -161,7 +162,7 @@ fn display_changelog_sections(notes: &ReleaseNotes) {
         }
     }
 
-    if has_changes {
+    if !notes.sections.whats_changed.is_empty() {
         eprintln!();
         eprintln!("  {}", status::highlight("Changes"));
         for entry in &notes.sections.whats_changed {
@@ -172,37 +173,13 @@ fn display_changelog_sections(notes: &ReleaseNotes) {
 }
 
 pub fn display_release_notes(notes: &ReleaseNotes) {
-    let has_features = !notes.sections.new_features.is_empty();
-    let has_fixes = !notes.sections.bug_fixes.is_empty();
-    let has_changes = !notes.sections.whats_changed.is_empty();
-
-    if !has_features && !has_fixes && !has_changes {
+    if !has_notable_changes(notes) {
         return;
     }
 
     eprintln!();
     eprintln!("  {}", status::section("WHAT'S NEW"));
-
-    if has_features {
-        for entry in &notes.sections.new_features {
-            let desc = strip_conventional_prefix(&entry.description);
-            eprintln!("  {} {}", status::highlight("•"), desc);
-        }
-    }
-
-    if has_fixes {
-        for entry in &notes.sections.bug_fixes {
-            let desc = strip_conventional_prefix(&entry.description);
-            eprintln!("  {} {}", status::dim("•"), desc);
-        }
-    }
-
-    if has_changes {
-        for entry in &notes.sections.whats_changed {
-            let desc = strip_conventional_prefix(&entry.description);
-            eprintln!("  {} {}", status::dim("•"), desc);
-        }
-    }
+    display_changelog_sections(notes);
 }
 
 #[cfg(test)]
