@@ -74,6 +74,16 @@ pub(super) fn get_subcommand_examples(path: &str) -> Option<Vec<HelpExample>> {
                 command: format!("ana self update v{}", crate::VERSION),
             },
         ]),
+        "self changelog" => Some(vec![
+            HelpExample {
+                desc: "Show changelog for the latest version".to_string(),
+                command: "ana self changelog".to_string(),
+            },
+            HelpExample {
+                desc: "Show changelog for a specific version".to_string(),
+                command: "ana self changelog v0.2.0".to_string(),
+            },
+        ]),
         _ => None,
     }
 }
