@@ -106,7 +106,11 @@ fn render_markdown(body: &str) {
     let clean_body = strip_html_comments(body);
     let skin = make_skin();
     let text = skin.text(&clean_body, None);
-    eprint!("{}", text);
+    let rendered = text.to_string();
+
+    for line in rendered.lines() {
+        eprintln!("\t{}", line);
+    }
 }
 
 pub async fn show_changelog(ctx: &CommandContext, current_version: &str, version: Option<String>) {
