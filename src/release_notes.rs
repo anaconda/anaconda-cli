@@ -97,15 +97,13 @@ pub async fn show_changelog(ctx: &CommandContext, current_version: &str, version
                 format!("v{}", v)
             }
         }
-        None => {
-            match crate::update::fetch_latest_version(ctx).await {
-                Ok(v) => v,
-                Err(e) => {
-                    status::error(&format!("Failed to fetch latest version: {}", e));
-                    return;
-                }
+        None => match crate::update::fetch_latest_version(ctx).await {
+            Ok(v) => v,
+            Err(e) => {
+                status::error(&format!("Failed to fetch latest version: {}", e));
+                return;
             }
-        }
+        },
     };
 
     let notes = match fetch_release_notes(ctx, &tag).await {
