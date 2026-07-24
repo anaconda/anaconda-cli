@@ -88,6 +88,91 @@ fn strip_conventional_prefix(description: &str) -> &str {
     description
 }
 
+pub async fn show_changelog(ctx: &CommandContext, current_version: &str, version: Option<String>) {
+    let tag = match version {
+        Some(v) => {
+            if v.starts_with('v') {
+                v
+            } else {
+                format!("v{}", v)
+            }
+        }
+        None => {
+            match crate::update::fetch_latest_version(ctx).await {
+                Ok(v) => v,
+                Err(e) => {
+                    status::error(&format!("Failed to fetch latest version: {}", e));
+                    return;
+                }
+            }
+        }
+    };
+
+    let notes = match fetch_release_notes(ctx, &tag).await {
+        Ok(n) => n,
+        Err(e) => {
+            tracing::debug!("Failed to fetch release notes: {}", e);
+            status::error(&format!("No changelog available for {}", tag));
+            return;
+        }
+    };
+
+    let is_current = tag.trim_start_matches('v') == current_version;
+
+    eprintln!();
+    if is_current {
+        eprintln!(
+            "  {} {}",
+            status::section(&format!("CHANGELOG {}", tag)),
+            status::dim("(current)")
+        );
+    } else {
+        eprintln!("  {}", status::section(&format!("CHANGELOG {}", tag)));
+    }
+
+    display_changelog_sections(&notes);
+    eprintln!();
+}
+
+fn display_changelog_sections(notes: &ReleaseNotes) {
+    let has_features = !notes.sections.new_features.is_empty();
+    let has_fixes = !notes.sections.bug_fixes.is_empty();
+    let has_changes = !notes.sections.whats_changed.is_empty();
+
+    if !has_features && !has_fixes && !has_changes {
+        eprintln!();
+        eprintln!("  {}", status::dim("No notable changes."));
+        return;
+    }
+
+    if has_features {
+        eprintln!();
+        eprintln!("  {}", status::highlight("New Features"));
+        for entry in &notes.sections.new_features {
+            let desc = strip_conventional_prefix(&entry.description);
+            eprintln!("  • {}", desc);
+        }
+    }
+
+    if has_fixes {
+        eprintln!();
+        eprintln!("  {}", status::highlight("Bug Fixes"));
+        for entry in &notes.sections.bug_fixes {
+            let desc = strip_conventional_prefix(&entry.description);
+            eprintln!("  • {}", desc);
+        }
+    }
+
+    if has_changes {
+        eprintln!();
+        eprintln!("  {}", status::highlight("Changes"));
+        for entry in &notes.sections.whats_changed {
+            let desc = strip_conventional_prefix(&entry.description);
+            eprintln!("  • {}", desc);
+        }
+    }
+}
+
 pub fn display_release_notes(notes: &ReleaseNotes) {
     let has_features = !notes.sections.new_features.is_empty();
     let has_fixes = !notes.sections.bug_fixes.is_empty();

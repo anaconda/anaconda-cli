@@ -77,6 +77,7 @@ pub async fn execute() {
         Action::Update { .. }
             | Action::CheckForUpdate
             | Action::ShowAvailableVersions
+            | Action::ShowChangelog { .. }
             | Action::TelemetrySubmit
             | Action::TelemetryKill
             | Action::TelemetryStatus
@@ -153,6 +154,9 @@ pub enum Action {
     },
     CheckForUpdate,
     ShowAvailableVersions,
+    ShowChangelog {
+        version: Option<String>,
+    },
     Bootstrap,
     OrgProxy {
         args: Vec<String>,
@@ -227,6 +231,7 @@ impl Action {
             Action::Update { .. } => "self.update",
             Action::CheckForUpdate => "self.update.check",
             Action::ShowAvailableVersions => "self.update.list",
+            Action::ShowChangelog { .. } => "self.changelog",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
             #[cfg(unix)]
@@ -363,6 +368,10 @@ impl Action {
             }
             Action::ShowAvailableVersions => {
                 update::show_available_versions(ctx, VERSION).await;
+                Ok(())
+            }
+            Action::ShowChangelog { version } => {
+                crate::release_notes::show_changelog(ctx, VERSION, version).await;
                 Ok(())
             }
             Action::UserAgent { prefix } => {
@@ -645,6 +654,7 @@ pub fn parse() -> (Action, LogLevel) {
                 }
             }
             Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
+            Some(SelfCommands::Changelog { version }) => Action::ShowChangelog { version },
         },
         Some(Commands::Org { args }) => Action::OrgProxy { args },
         Some(Commands::Mcp { command }) => match command {
@@ -1076,6 +1086,12 @@ enum SelfCommands {
         /// Optional conda prefix to use for AAU tokens
         #[arg(long)]
         prefix: Option<String>,
+    },
+
+    /// Show what's new in a release
+    Changelog {
+        /// Version to show changelog for (defaults to latest)
+        version: Option<String>,
     },
 }
 
