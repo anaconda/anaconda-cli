@@ -63,7 +63,8 @@ fn make_skin() -> MadSkin {
     let mut skin = MadSkin::default();
     skin.set_headers_fg(termimad::crossterm::style::Color::Green);
     skin.bold.set_fg(termimad::crossterm::style::Color::Blue);
-    skin.italic.set_fg(termimad::crossterm::style::Color::DarkGrey);
+    skin.italic
+        .set_fg(termimad::crossterm::style::Color::DarkGrey);
     skin
 }
 
