@@ -109,7 +109,7 @@ fn render_markdown(body: &str) {
     let rendered = text.to_string();
 
     for line in rendered.lines() {
-        eprintln!("\t{}", line);
+        eprintln!("    {}", line);
     }
 }
 
