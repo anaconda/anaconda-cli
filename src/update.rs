@@ -381,8 +381,13 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
                         update_installed_tools();
-                        print_update_success(ctx, current_version, &release.tag_name, start.elapsed())
-                            .await;
+                        print_update_success(
+                            ctx,
+                            current_version,
+                            &release.tag_name,
+                            start.elapsed(),
+                        )
+                        .await;
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
@@ -526,7 +531,8 @@ pub async fn run_update(
         match apply_update(ctx, &release).await {
             Ok(()) => {
                 update_installed_tools();
-                print_update_success(ctx, current_version, &release.tag_name, start.elapsed()).await;
+                print_update_success(ctx, current_version, &release.tag_name, start.elapsed())
+                    .await;
             }
             Err(e) => {
                 tracing::error!("Failed to update: {}", e);
@@ -550,8 +556,13 @@ pub async fn run_update(
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
                         update_installed_tools();
-                        print_update_success(ctx, current_version, &release.tag_name, start.elapsed())
-                            .await;
+                        print_update_success(
+                            ctx,
+                            current_version,
+                            &release.tag_name,
+                            start.elapsed(),
+                        )
+                        .await;
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);

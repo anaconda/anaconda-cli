@@ -31,18 +31,19 @@ pub struct ChangeEntry {
 }
 
 fn build_release_notes_url(base_url: &str, channel: &str, tag: &str) -> String {
-    format!("{}/releases/{}/{}/release-notes.json", base_url, channel, tag)
+    format!(
+        "{}/releases/{}/{}/release-notes.json",
+        base_url, channel, tag
+    )
 }
 
 pub async fn fetch_release_notes(
     ctx: &CommandContext,
     tag: &str,
 ) -> Result<ReleaseNotes, UpdateError> {
-    let base_url = ctx
-        .config
-        .self_update_url
-        .as_deref()
-        .ok_or_else(|| UpdateError::Http("Release notes not available for GitHub releases".to_string()))?;
+    let base_url = ctx.config.self_update_url.as_deref().ok_or_else(|| {
+        UpdateError::Http("Release notes not available for GitHub releases".to_string())
+    })?;
 
     let channel = if ctx.config.include_prereleases {
         "dev"
@@ -73,7 +74,9 @@ pub async fn fetch_release_notes(
 }
 
 fn strip_conventional_prefix(description: &str) -> &str {
-    let prefixes = ["fix: ", "feat: ", "chore: ", "refac: ", "docs: ", "test: ", "build: ", "ci: "];
+    let prefixes = [
+        "fix: ", "feat: ", "chore: ", "refac: ", "docs: ", "test: ", "build: ", "ci: ",
+    ];
     for prefix in prefixes {
         if let Some(stripped) = description.strip_prefix(prefix) {
             return stripped;
