@@ -381,7 +381,8 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
                         update_installed_tools();
-                        print_update_success(current_version, &release.tag_name, start.elapsed());
+                        print_update_success(ctx, current_version, &release.tag_name, start.elapsed())
+                            .await;
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
@@ -406,8 +407,15 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
     }
 }
 
-fn print_update_success(current_version: &str, new_version: &str, elapsed: std::time::Duration) {
+async fn print_update_success(
+    ctx: &CommandContext,
+    current_version: &str,
+    new_version: &str,
+    elapsed: std::time::Duration,
+) {
+    use crate::release_notes::{display_release_notes, fetch_release_notes};
     use crate::ui::status;
+
     eprintln!();
     eprintln!(
         "  {} {}",
@@ -415,6 +423,12 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
         status::dim(&format!("{:.1}s", elapsed.as_secs_f64()))
     );
     eprintln!("  was v{} → now {}", current_version, new_version);
+
+    match fetch_release_notes(ctx, new_version).await {
+        Ok(notes) => display_release_notes(&notes),
+        Err(e) => tracing::debug!("Failed to fetch release notes: {}", e),
+    }
+
     eprintln!();
 }
 
@@ -512,7 +526,7 @@ pub async fn run_update(
         match apply_update(ctx, &release).await {
             Ok(()) => {
                 update_installed_tools();
-                print_update_success(current_version, &release.tag_name, start.elapsed());
+                print_update_success(ctx, current_version, &release.tag_name, start.elapsed()).await;
             }
             Err(e) => {
                 tracing::error!("Failed to update: {}", e);
@@ -536,7 +550,8 @@ pub async fn run_update(
                 match apply_update(ctx, &release).await {
                     Ok(()) => {
                         update_installed_tools();
-                        print_update_success(current_version, &release.tag_name, start.elapsed());
+                        print_update_success(ctx, current_version, &release.tag_name, start.elapsed())
+                            .await;
                     }
                     Err(e) => {
                         tracing::error!("Failed to update: {}", e);
