@@ -786,9 +786,11 @@ mod tests {
         // Should add all 4 required default_channels plus "defaults" to channels
         assert_eq!(actions.len(), 5);
         // Check that defaults is added to channels
-        assert!(actions
-            .iter()
-            .any(|a| matches!(a, MainXCondaAction::EnsureDefaultsInChannels)));
+        assert!(
+            actions
+                .iter()
+                .any(|a| matches!(a, MainXCondaAction::EnsureDefaultsInChannels))
+        );
     }
 
     #[test]
@@ -799,9 +801,11 @@ mod tests {
 
         // Should add all 4 required default_channels, but not "defaults" to channels
         assert_eq!(actions.len(), 4);
-        assert!(!actions
-            .iter()
-            .any(|a| matches!(a, MainXCondaAction::EnsureDefaultsInChannels)));
+        assert!(
+            !actions
+                .iter()
+                .any(|a| matches!(a, MainXCondaAction::EnsureDefaultsInChannels))
+        );
     }
 
     #[test]
