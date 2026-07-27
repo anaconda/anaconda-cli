@@ -617,7 +617,9 @@ class TestMainXEnable:
         """Enabling main-x when already enabled should succeed with 'already enabled' message."""
         # Pre-configure all required default_channels
         condarc_path = Path(feature_env["CONDARC"])
-        default_channels_yaml = "\n".join(f"  - {ch}" for ch in REQUIRED_DEFAULT_CHANNELS)
+        default_channels_yaml = "\n".join(
+            f"  - {ch}" for ch in REQUIRED_DEFAULT_CHANNELS
+        )
         condarc_path.write_text(
             f"channels:\n  - defaults\ndefault_channels:\n{default_channels_yaml}\n"
         )

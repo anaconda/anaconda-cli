@@ -39,7 +39,9 @@ enum CondaChannelAction {
 impl CondaChannelAction {
     fn command_args(&self) -> (&'static str, &'static str, &'static str) {
         match self {
-            CondaChannelAction::AddDefaultChannel(channel) => ("--add", "default_channels", channel),
+            CondaChannelAction::AddDefaultChannel(channel) => {
+                ("--add", "default_channels", channel)
+            }
             CondaChannelAction::AddDefaultsToChannels => ("--add", "channels", "defaults"),
             CondaChannelAction::RemoveMainX => ("--remove", "default_channels", MAIN_X_CHANNEL),
         }
@@ -786,9 +788,11 @@ mod tests {
         // Should add all 4 required default_channels plus "defaults" to channels
         assert_eq!(actions.len(), 5);
         // Check that defaults is added to channels
-        assert!(actions
-            .iter()
-            .any(|a| matches!(a, CondaChannelAction::AddDefaultsToChannels)));
+        assert!(
+            actions
+                .iter()
+                .any(|a| matches!(a, CondaChannelAction::AddDefaultsToChannels))
+        );
     }
 
     #[test]
@@ -799,9 +803,11 @@ mod tests {
 
         // Should add all 4 required default_channels, but not "defaults" to channels
         assert_eq!(actions.len(), 4);
-        assert!(!actions
-            .iter()
-            .any(|a| matches!(a, CondaChannelAction::AddDefaultsToChannels)));
+        assert!(
+            !actions
+                .iter()
+                .any(|a| matches!(a, CondaChannelAction::AddDefaultsToChannels))
+        );
     }
 
     #[test]
