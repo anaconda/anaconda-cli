@@ -16,38 +16,41 @@ use crate::ui::status;
 
 const MAIN_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main";
 const MAIN_X_CHANNEL: &str = "https://repo.anaconda.cloud/repo/main-x";
+const MSYS2_CHANNEL: &str = "https://repo.anaconda.cloud/repo/msys2";
+const R_CHANNEL: &str = "https://repo.anaconda.cloud/repo/r";
 const REPO_HOST: &str = "repo.anaconda.cloud";
 const ANACONDA_DOWNLOAD_URL: &str = "https://www.anaconda.com/download";
 
+/// All default channels that should be present when main-x is enabled.
+/// Order matters: main-x should be first (highest priority).
+const REQUIRED_DEFAULT_CHANNELS: &[&str] =
+    &[MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL];
+
 /// Represents a channel configuration action to be executed for conda.
 enum CondaChannelAction {
-    AddMain,
-    AddMainX,
+    /// Add a channel to default_channels
+    AddDefaultChannel(&'static str),
+    /// Add "defaults" to channels list
+    AddDefaultsToChannels,
+    /// Remove main-x from default_channels
     RemoveMainX,
 }
 
 impl CondaChannelAction {
-    fn commands(&self) -> Vec<(&'static str, &'static str, &'static str)> {
+    fn command_args(&self) -> (&'static str, &'static str, &'static str) {
         match self {
-            CondaChannelAction::AddMain => {
-                vec![("--add", "default_channels", MAIN_CHANNEL)]
-            }
-            CondaChannelAction::AddMainX => {
-                vec![("--add", "default_channels", MAIN_X_CHANNEL)]
-            }
-            CondaChannelAction::RemoveMainX => {
-                vec![("--remove", "default_channels", MAIN_X_CHANNEL)]
-            }
+            CondaChannelAction::AddDefaultChannel(channel) => ("--add", "default_channels", channel),
+            CondaChannelAction::AddDefaultsToChannels => ("--add", "channels", "defaults"),
+            CondaChannelAction::RemoveMainX => ("--remove", "default_channels", MAIN_X_CHANNEL),
         }
     }
 
     fn execute_with_status(&self, conda_bin: &Path) -> miette::Result<()> {
-        for (flag, key, value) in self.commands() {
-            let cmd = format!("conda config {} {} {}", flag, key, value);
-            status::running(&format!("Running {}", status::highlight(&cmd)));
-            run_conda_config(conda_bin, &[flag, key, value])?;
-            status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
-        }
+        let (flag, key, value) = self.command_args();
+        let cmd = format!("conda config {} {} {}", flag, key, value);
+        status::running(&format!("Running {}", status::highlight(&cmd)));
+        run_conda_config(conda_bin, &[flag, key, value])?;
+        status::finish_running(&format!("Ran {}", status::highlight(&cmd)));
         Ok(())
     }
 }
@@ -186,28 +189,24 @@ fn run_pixi_auth_logout(pixi_bin: &Path) -> miette::Result<()> {
 
 /// Plan the actions needed to enable main-x channel for conda.
 ///
-/// Adds main-x to default_channels. If "defaults" is in channels, we don't need
-/// to add main to default_channels since defaults will use default_channels.
-/// If "defaults" is not in channels, we also add main to default_channels.
+/// Ensures all required default_channels are present (main-x, main, msys2, r)
+/// and that "defaults" is in the channels list.
 fn plan_conda_enable_actions(
     channels: &[String],
     default_channels: &[String],
 ) -> Vec<CondaChannelAction> {
-    let has_defaults_in_channels = channels.iter().any(|c| c == "defaults");
-    let has_main_in_default_channels = default_channels.iter().any(|c| c == MAIN_CHANNEL);
-    let has_main_x_in_default_channels = default_channels.iter().any(|c| c == MAIN_X_CHANNEL);
-
     let mut actions = vec![];
 
-    // Add main-x first (will be second after main is prepended)
-    if !has_main_x_in_default_channels {
-        actions.push(CondaChannelAction::AddMainX);
+    // Add any missing required default_channels (in reverse order since --add prepends)
+    for &channel in REQUIRED_DEFAULT_CHANNELS.iter().rev() {
+        if !default_channels.iter().any(|c| c == channel) {
+            actions.push(CondaChannelAction::AddDefaultChannel(channel));
+        }
     }
 
-    // Add main second (prepends, so it ends up first)
-    // Skip if "defaults" is in channels since it will use default_channels
-    if !has_defaults_in_channels && !has_main_in_default_channels {
-        actions.push(CondaChannelAction::AddMain);
+    // Ensure "defaults" is in channels list
+    if !channels.iter().any(|c| c == "defaults") {
+        actions.push(CondaChannelAction::AddDefaultsToChannels);
     }
 
     actions
@@ -297,10 +296,9 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
     status::blank_line();
     status::info("The following commands will be run:");
     for action in &actions {
-        for (flag, key, value) in action.commands() {
-            let cmd = format!("conda config {} {} {}", flag, key, value);
-            eprintln!("  {}", status::highlight(&cmd));
-        }
+        let (flag, key, value) = action.command_args();
+        let cmd = format!("conda config {} {} {}", flag, key, value);
+        eprintln!("  {}", status::highlight(&cmd));
     }
     status::blank_line();
 
@@ -434,10 +432,9 @@ pub async fn disable_main_x_conda(_ctx: &CommandContext, force: bool) -> miette:
     // Show planned changes
     status::info("The following commands will be run:");
     for action in &actions {
-        for (flag, key, value) in action.commands() {
-            let cmd = format!("conda config {} {} {}", flag, key, value);
-            eprintln!("  {}", status::highlight(&cmd));
-        }
+        let (flag, key, value) = action.command_args();
+        let cmd = format!("conda config {} {} {}", flag, key, value);
+        eprintln!("  {}", status::highlight(&cmd));
     }
     status::blank_line();
 
@@ -786,10 +783,12 @@ mod tests {
         let default_channels: Vec<String> = vec![];
         let actions = plan_conda_enable_actions(&channels, &default_channels);
 
-        // Adds main-x first, then main (so main ends up first after prepending)
-        assert_eq!(actions.len(), 2);
-        assert!(matches!(actions[0], CondaChannelAction::AddMainX));
-        assert!(matches!(actions[1], CondaChannelAction::AddMain));
+        // Should add all 4 required default_channels plus "defaults" to channels
+        assert_eq!(actions.len(), 5);
+        // Check that defaults is added to channels
+        assert!(actions
+            .iter()
+            .any(|a| matches!(a, CondaChannelAction::AddDefaultsToChannels)));
     }
 
     #[test]
@@ -798,54 +797,48 @@ mod tests {
         let default_channels: Vec<String> = vec![];
         let actions = plan_conda_enable_actions(&channels, &default_channels);
 
-        // "defaults" is in channels, so only need to add main-x to default_channels
-        assert_eq!(actions.len(), 1);
-        assert!(matches!(actions[0], CondaChannelAction::AddMainX));
+        // Should add all 4 required default_channels, but not "defaults" to channels
+        assert_eq!(actions.len(), 4);
+        assert!(!actions
+            .iter()
+            .any(|a| matches!(a, CondaChannelAction::AddDefaultsToChannels)));
     }
 
     #[test]
-    fn test_plan_conda_enable_actions_conda_forge_and_defaults() {
-        let channels = vec!["conda-forge".to_string(), "defaults".to_string()];
-        let default_channels: Vec<String> = vec![];
-        let actions = plan_conda_enable_actions(&channels, &default_channels);
-
-        // "defaults" is in channels, so only need to add main-x to default_channels
-        assert_eq!(actions.len(), 1);
-        assert!(matches!(actions[0], CondaChannelAction::AddMainX));
-    }
-
-    #[test]
-    fn test_plan_conda_enable_actions_main_and_main_x_already_present() {
+    fn test_plan_conda_enable_actions_all_present() {
         let channels = vec!["defaults".to_string()];
-        let default_channels = vec![MAIN_CHANNEL.to_string(), MAIN_X_CHANNEL.to_string()];
+        let default_channels = vec![
+            MAIN_X_CHANNEL.to_string(),
+            MAIN_CHANNEL.to_string(),
+            MSYS2_CHANNEL.to_string(),
+            R_CHANNEL.to_string(),
+        ];
         let actions = plan_conda_enable_actions(&channels, &default_channels);
 
         assert!(
             actions.is_empty(),
-            "No actions needed when main-x already in default_channels"
+            "No actions needed when all channels already configured"
         );
     }
 
     #[test]
-    fn test_plan_conda_enable_actions_main_x_only_no_defaults() {
-        let channels: Vec<String> = vec![];
-        let default_channels = vec![MAIN_X_CHANNEL.to_string()];
+    fn test_plan_conda_enable_actions_partial_default_channels() {
+        let channels = vec!["defaults".to_string()];
+        let default_channels = vec![MAIN_X_CHANNEL.to_string(), MAIN_CHANNEL.to_string()];
         let actions = plan_conda_enable_actions(&channels, &default_channels);
 
-        // No defaults in channels, so need to add main to default_channels
-        assert_eq!(actions.len(), 1);
-        assert!(matches!(actions[0], CondaChannelAction::AddMain));
+        // Should only add msys2 and r (the missing ones)
+        assert_eq!(actions.len(), 2);
     }
 
     #[test]
-    fn test_plan_conda_enable_actions_main_only() {
+    fn test_plan_conda_enable_actions_main_x_only() {
         let channels = vec!["defaults".to_string()];
-        let default_channels = vec![MAIN_CHANNEL.to_string()];
+        let default_channels = vec![MAIN_X_CHANNEL.to_string()];
         let actions = plan_conda_enable_actions(&channels, &default_channels);
 
-        // Still need to add main-x
-        assert_eq!(actions.len(), 1);
-        assert!(matches!(actions[0], CondaChannelAction::AddMainX));
+        // Should add main, msys2, and r (the missing ones)
+        assert_eq!(actions.len(), 3);
     }
 
     // ========================================================================
@@ -892,28 +885,37 @@ mod tests {
     }
 
     // ========================================================================
-    // CondaChannelAction::commands tests
+    // CondaChannelAction::command_args tests
     // ========================================================================
 
     #[test]
-    fn test_conda_channel_action_add_main_x_commands() {
-        let action = CondaChannelAction::AddMainX;
-        let commands = action.commands();
+    fn test_conda_channel_action_add_default_channel() {
+        let action = CondaChannelAction::AddDefaultChannel(MAIN_X_CHANNEL);
+        let (flag, key, value) = action.command_args();
 
-        assert_eq!(commands.len(), 1);
-        assert_eq!(commands[0], ("--add", "default_channels", MAIN_X_CHANNEL));
+        assert_eq!(flag, "--add");
+        assert_eq!(key, "default_channels");
+        assert_eq!(value, MAIN_X_CHANNEL);
     }
 
     #[test]
-    fn test_conda_channel_action_commands_format() {
-        let action = CondaChannelAction::AddMainX;
-        let commands = action.commands();
+    fn test_conda_channel_action_add_defaults_to_channels() {
+        let action = CondaChannelAction::AddDefaultsToChannels;
+        let (flag, key, value) = action.command_args();
 
-        for (flag, key, value) in commands {
-            assert!(flag.starts_with("--"), "Flag should start with --");
-            assert!(!key.is_empty(), "Key should not be empty");
-            assert!(!value.is_empty(), "Value should not be empty");
-        }
+        assert_eq!(flag, "--add");
+        assert_eq!(key, "channels");
+        assert_eq!(value, "defaults");
+    }
+
+    #[test]
+    fn test_conda_channel_action_remove_main_x() {
+        let action = CondaChannelAction::RemoveMainX;
+        let (flag, key, value) = action.command_args();
+
+        assert_eq!(flag, "--remove");
+        assert_eq!(key, "default_channels");
+        assert_eq!(value, MAIN_X_CHANNEL);
     }
 
     // ========================================================================

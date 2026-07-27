@@ -13,6 +13,11 @@ from mock_auth_server import MockAuthServer
 
 MAIN_CHANNEL = "https://repo.anaconda.cloud/repo/main"
 MAIN_X_CHANNEL = "https://repo.anaconda.cloud/repo/main-x"
+MSYS2_CHANNEL = "https://repo.anaconda.cloud/repo/msys2"
+R_CHANNEL = "https://repo.anaconda.cloud/repo/r"
+
+# All required default_channels when main-x is enabled
+REQUIRED_DEFAULT_CHANNELS = [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]
 
 
 def is_conda_available() -> bool:
@@ -610,10 +615,11 @@ class TestMainXEnable:
         feature_env: dict[str, str],
     ) -> None:
         """Enabling main-x when already enabled should succeed with 'already enabled' message."""
-        # Pre-configure main-x in default_channels
+        # Pre-configure all required default_channels
         condarc_path = Path(feature_env["CONDARC"])
+        default_channels_yaml = "\n".join(f"  - {ch}" for ch in REQUIRED_DEFAULT_CHANNELS)
         condarc_path.write_text(
-            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+            f"channels:\n  - defaults\ndefault_channels:\n{default_channels_yaml}\n"
         )
 
         # Login first
