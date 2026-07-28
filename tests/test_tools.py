@@ -72,7 +72,7 @@ class TestToolHelp:
         assert "miniconda" in result.stdout.lower()
 
 
-class TestToolDownloadMiniconda:
+class TestToolDownloadCommand:
     """Tests for 'ana tool download miniconda' subcommand.
 
     These cases only cover paths that don't require a real network call:
