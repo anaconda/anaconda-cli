@@ -16,6 +16,7 @@ mod installer;
 mod mcp;
 #[cfg(unix)]
 mod outerbounds;
+#[cfg(feature = "outerbounds-native")]
 mod outerbounds_native;
 mod paths;
 mod qr;

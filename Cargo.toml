@@ -13,6 +13,7 @@ rlimit = "0.11"
 default = []
 diagnostics = ["dep:sentry"]
 unstable = []
+outerbounds-native = []
 
 [dependencies]
 anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }
