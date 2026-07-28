@@ -27,7 +27,10 @@ pub struct MetaflowConfig {
     pub obp_metaflow_config_url: Option<String>,
 
     // Metaflow service
-    #[serde(rename = "METAFLOW_SERVICE_URL", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "METAFLOW_SERVICE_URL",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub service_url: Option<String>,
 
     #[serde(rename = "METAFLOW_UI_URL", skip_serializing_if = "Option::is_none")]

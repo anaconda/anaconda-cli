@@ -87,7 +87,9 @@ pub enum ServicePrincipalError {
     #[error("GitHub Actions environment not detected")]
     #[diagnostic(
         code(ana::ob::sp::not_gha),
-        help("Ensure ACTIONS_ID_TOKEN_REQUEST_TOKEN and ACTIONS_ID_TOKEN_REQUEST_URL are set, and 'id-token: write' permission is granted")
+        help(
+            "Ensure ACTIONS_ID_TOKEN_REQUEST_TOKEN and ACTIONS_ID_TOKEN_REQUEST_URL are set, and 'id-token: write' permission is granted"
+        )
     )]
     NotGitHubActions,
 

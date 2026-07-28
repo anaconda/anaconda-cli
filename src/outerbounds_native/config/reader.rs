@@ -3,8 +3,8 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 
-use figment::providers::{Format, Json, Serialized};
 use figment::Figment;
+use figment::providers::{Format, Json, Serialized};
 
 use crate::context::CommandContext;
 use crate::outerbounds_native::errors::ConfigError;
@@ -177,45 +177,44 @@ pub async fn init_config(
         .or(local_config.obp_metaflow_config_url.as_deref())
         .map(String::from);
 
-    let (metaflow, source_url) = match remote_url {
-        Some(url) => {
-            // Check cache first
-            {
-                let cache = REMOTE_CONFIG_CACHE.lock().unwrap();
-                if let Some(cached) = cache.get(&url) {
-                    return Ok(ResolvedConfig {
-                        metaflow: cached.clone(),
-                        ob: ob_config,
-                        profile: profile.map(String::from),
-                        source_url: Some(url),
-                    });
+    let (metaflow, source_url) =
+        match remote_url {
+            Some(url) => {
+                // Check cache first
+                {
+                    let cache = REMOTE_CONFIG_CACHE.lock().unwrap();
+                    if let Some(cached) = cache.get(&url) {
+                        return Ok(ResolvedConfig {
+                            metaflow: cached.clone(),
+                            ob: ob_config,
+                            profile: profile.map(String::from),
+                            source_url: Some(url),
+                        });
+                    }
                 }
-            }
 
-            // Need auth key to fetch remote config
-            let auth_key =
-                local_config
-                    .service_auth_key
-                    .as_ref()
-                    .ok_or_else(|| ConfigError::MissingKey {
+                // Need auth key to fetch remote config
+                let auth_key = local_config.service_auth_key.as_ref().ok_or_else(|| {
+                    ConfigError::MissingKey {
                         key: "METAFLOW_SERVICE_AUTH_KEY".to_string(),
-                    })?;
+                    }
+                })?;
 
-            let mut remote_config = fetch_remote_config(ctx, &url, auth_key).await?;
+                let mut remote_config = fetch_remote_config(ctx, &url, auth_key).await?;
 
-            // Preserve the config URL in the resolved config
-            remote_config.obp_metaflow_config_url = Some(url.clone());
+                // Preserve the config URL in the resolved config
+                remote_config.obp_metaflow_config_url = Some(url.clone());
 
-            // Cache it
-            {
-                let mut cache = REMOTE_CONFIG_CACHE.lock().unwrap();
-                cache.insert(url.clone(), remote_config.clone());
+                // Cache it
+                {
+                    let mut cache = REMOTE_CONFIG_CACHE.lock().unwrap();
+                    cache.insert(url.clone(), remote_config.clone());
+                }
+
+                (remote_config, Some(url))
             }
-
-            (remote_config, Some(url))
-        }
-        None => (local_config, None),
-    };
+            None => (local_config, None),
+        };
 
     Ok(ResolvedConfig {
         metaflow,
@@ -631,7 +630,9 @@ mod tests {
         )
         .unwrap();
 
-        let resolved = init_config(&ctx, dir.path(), Some("staging")).await.unwrap();
+        let resolved = init_config(&ctx, dir.path(), Some("staging"))
+            .await
+            .unwrap();
 
         assert_eq!(resolved.profile, Some("staging".to_string()));
         assert_eq!(

@@ -99,7 +99,7 @@ pub fn decode_config(encoded: &str) -> Result<DecodedConfig, ConfigError> {
         Some(other) => {
             return Err(ConfigError::InvalidConfigType {
                 config_type: other.to_string(),
-            })
+            });
         }
     };
 
@@ -554,15 +554,12 @@ mod tests {
     #[test]
     fn test_serialization_roundtrip_matches_python() {
         // From Python: test_serialization - tests various data types
-        let test_cases: Vec<HashMap<String, Value>> = vec![
-            HashMap::new(),
-            {
-                let mut m = HashMap::new();
-                m.insert("KEY1".to_string(), Value::String("VALUE1".to_string()));
-                m.insert("KEY2".to_string(), Value::Number(2.into()));
-                m
-            },
-        ];
+        let test_cases: Vec<HashMap<String, Value>> = vec![HashMap::new(), {
+            let mut m = HashMap::new();
+            m.insert("KEY1".to_string(), Value::String("VALUE1".to_string()));
+            m.insert("KEY2".to_string(), Value::Number(2.into()));
+            m
+        }];
 
         for original in test_cases {
             let encoded = encode_config(&original).unwrap();

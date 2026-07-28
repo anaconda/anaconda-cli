@@ -8,5 +8,5 @@ pub use reader::{
 };
 pub use types::{MetaflowConfig, ObConfig, ResolvedConfig};
 pub use writer::{
-    config_exists, decode_config, encode_config, write_config, ConfigType, DecodedConfig,
+    ConfigType, DecodedConfig, config_exists, decode_config, encode_config, write_config,
 };
