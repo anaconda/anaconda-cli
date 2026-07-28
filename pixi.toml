@@ -40,7 +40,7 @@ cmd = "python scripts/with_version.py cargo auditable build"
 description = "Build the standalone Rust binary in debug mode"
 
 [tasks.build-release]
-cmd = "python scripts/with_version.py cargo auditable build --release"
+cmd = "python scripts/with_version.py cargo auditable build --release --locked"
 description = "Build the standalone Rust binary in release mode"
 
 [tasks.test]
@@ -48,7 +48,7 @@ cmd = "python scripts/with_version.py cargo test -- --show-output"
 description = "Run the unit tests"
 
 [tasks.test-release]
-cmd = "python scripts/with_version.py cargo test --release"
+cmd = "python scripts/with_version.py cargo test --release --locked"
 depends-on = ["build-release"]
 description = "Run the unit tests in release mode"
 
