@@ -1,19 +1,122 @@
 use std::collections::HashMap;
 use std::env;
+use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, SystemTime};
 
 use figment::Figment;
 use figment::providers::{Format, Json, Serialized};
+use serde::{Deserialize, Serialize};
 
 use crate::context::CommandContext;
 use crate::outerbounds_native::errors::ConfigError;
 
 use super::types::{MetaflowConfig, ObConfig, ResolvedConfig};
 
-/// Cache for remote metaflow configs, keyed by URL
+/// Default TTL for cached remote configs (1 hour)
+const CACHE_TTL: Duration = Duration::from_secs(60 * 60);
+
+/// In-memory cache for remote metaflow configs, keyed by URL
 static REMOTE_CONFIG_CACHE: LazyLock<Mutex<HashMap<String, MetaflowConfig>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// Cached config with timestamp for TTL checking
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CachedConfig {
+    config: MetaflowConfig,
+    #[serde(with = "system_time_serde")]
+    cached_at: SystemTime,
+}
+
+mod system_time_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    pub fn serialize<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let duration = time.duration_since(UNIX_EPOCH).unwrap_or(Duration::ZERO);
+        duration.as_secs().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let secs = u64::deserialize(deserializer)?;
+        Ok(UNIX_EPOCH + Duration::from_secs(secs))
+    }
+}
+
+impl CachedConfig {
+    fn new(config: MetaflowConfig) -> Self {
+        Self {
+            config,
+            cached_at: SystemTime::now(),
+        }
+    }
+
+    fn is_expired(&self) -> bool {
+        self.cached_at
+            .elapsed()
+            .map(|elapsed| elapsed > CACHE_TTL)
+            .unwrap_or(true)
+    }
+}
+
+/// Get the cache directory for remote configs
+fn cache_dir(config_dir: &Path) -> PathBuf {
+    config_dir.join(".cache")
+}
+
+/// Generate a cache filename from a URL
+fn cache_filename(url: &str) -> String {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    url.hash(&mut hasher);
+    format!("remote_config_{:x}.json", hasher.finish())
+}
+
+/// Read cached config from disk if it exists and is not expired
+fn read_disk_cache(config_dir: &Path, url: &str) -> Option<MetaflowConfig> {
+    let cache_path = cache_dir(config_dir).join(cache_filename(url));
+
+    let content = fs::read_to_string(&cache_path).ok()?;
+    let cached: CachedConfig = serde_json::from_str(&content).ok()?;
+
+    if cached.is_expired() {
+        // Clean up expired cache file
+        let _ = fs::remove_file(&cache_path);
+        return None;
+    }
+
+    Some(cached.config)
+}
+
+/// Write config to disk cache
+fn write_disk_cache(config_dir: &Path, url: &str, config: &MetaflowConfig) {
+    let cache_path = cache_dir(config_dir).join(cache_filename(url));
+
+    // Ensure cache directory exists
+    if let Err(e) = fs::create_dir_all(cache_dir(config_dir)) {
+        log::debug!("Failed to create cache directory: {}", e);
+        return;
+    }
+
+    let cached = CachedConfig::new(config.clone());
+    match serde_json::to_string_pretty(&cached) {
+        Ok(content) => {
+            if let Err(e) = fs::write(&cache_path, content) {
+                log::debug!("Failed to write config cache: {}", e);
+            }
+        }
+        Err(e) => {
+            log::debug!("Failed to serialize config for cache: {}", e);
+        }
+    }
+}
 
 /// Get the default metaflow config directory path.
 /// Respects METAFLOW_HOME env var, defaults to ~/.metaflowconfig
@@ -180,7 +283,7 @@ pub async fn init_config(
     let (metaflow, source_url) =
         match remote_url {
             Some(url) => {
-                // Check cache first
+                // Check in-memory cache first
                 {
                     let cache = REMOTE_CONFIG_CACHE.lock().unwrap();
                     if let Some(cached) = cache.get(&url) {
@@ -191,6 +294,21 @@ pub async fn init_config(
                             source_url: Some(url),
                         });
                     }
+                }
+
+                // Check disk cache (with TTL)
+                if let Some(cached) = read_disk_cache(config_dir, &url) {
+                    // Populate in-memory cache
+                    {
+                        let mut cache = REMOTE_CONFIG_CACHE.lock().unwrap();
+                        cache.insert(url.clone(), cached.clone());
+                    }
+                    return Ok(ResolvedConfig {
+                        metaflow: cached,
+                        ob: ob_config,
+                        profile: profile.map(String::from),
+                        source_url: Some(url),
+                    });
                 }
 
                 // Need auth key to fetch remote config
@@ -205,7 +323,10 @@ pub async fn init_config(
                 // Preserve the config URL in the resolved config
                 remote_config.obp_metaflow_config_url = Some(url.clone());
 
-                // Cache it
+                // Cache to disk
+                write_disk_cache(config_dir, &url, &remote_config);
+
+                // Cache in memory
                 {
                     let mut cache = REMOTE_CONFIG_CACHE.lock().unwrap();
                     cache.insert(url.clone(), remote_config.clone());
@@ -677,5 +798,68 @@ mod tests {
         } else {
             assert!(profile.is_none());
         }
+    }
+
+    #[test]
+    fn test_cache_filename_deterministic() {
+        let url = "https://example.com/config";
+        let filename1 = cache_filename(url);
+        let filename2 = cache_filename(url);
+        assert_eq!(filename1, filename2);
+        assert!(filename1.starts_with("remote_config_"));
+        assert!(filename1.ends_with(".json"));
+    }
+
+    #[test]
+    fn test_cache_filename_different_urls() {
+        let filename1 = cache_filename("https://example.com/config1");
+        let filename2 = cache_filename("https://example.com/config2");
+        assert_ne!(filename1, filename2);
+    }
+
+    #[test]
+    fn test_disk_cache_roundtrip() {
+        let tmp = setup_temp_dir();
+        let url = "https://example.com/test-config";
+        let config = MetaflowConfig {
+            service_auth_key: Some("test-key".into()),
+            obp_api_server: Some("api.example.com".into()),
+            ..Default::default()
+        };
+
+        // Write to cache
+        write_disk_cache(tmp.path(), url, &config);
+
+        // Read from cache
+        let cached = read_disk_cache(tmp.path(), url);
+        assert!(cached.is_some());
+
+        let cached = cached.unwrap();
+        assert_eq!(cached.service_auth_key, Some("test-key".into()));
+        assert_eq!(cached.obp_api_server, Some("api.example.com".into()));
+    }
+
+    #[test]
+    fn test_disk_cache_missing_returns_none() {
+        let tmp = setup_temp_dir();
+        let cached = read_disk_cache(tmp.path(), "https://nonexistent.com/config");
+        assert!(cached.is_none());
+    }
+
+    #[test]
+    fn test_cached_config_not_expired() {
+        let config = MetaflowConfig::default();
+        let cached = CachedConfig::new(config);
+        assert!(!cached.is_expired());
+    }
+
+    #[test]
+    fn test_cached_config_expired() {
+        let config = MetaflowConfig::default();
+        let cached = CachedConfig {
+            config,
+            cached_at: SystemTime::now() - Duration::from_secs(2 * 60 * 60), // 2 hours ago
+        };
+        assert!(cached.is_expired());
     }
 }

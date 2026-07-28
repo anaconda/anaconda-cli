@@ -16,6 +16,9 @@ use crate::config::Config;
 use crate::http::{self, Client};
 use crate::telemetry::{SerializableValue, TelemetryEvent};
 
+#[cfg(feature = "outerbounds-native")]
+use crate::outerbounds_native::{ConfigError, ResolvedConfig};
+
 /// Telemetry context for collecting command-specific attributes.
 #[derive(Debug, Default)]
 pub struct TelemetryContext {
@@ -101,6 +104,9 @@ pub struct CommandContext {
     download_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Unauthenticated client (lazy initialized).
     unauthenticated_client: OnceLock<Client>,
+    /// Outerbounds/Metaflow configuration (lazy initialized, feature-gated).
+    #[cfg(feature = "outerbounds-native")]
+    outerbounds_config: OnceLock<Result<ResolvedConfig, ConfigError>>,
 }
 
 impl CommandContext {
@@ -129,6 +135,8 @@ impl CommandContext {
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),
             unauthenticated_client: OnceLock::new(),
+            #[cfg(feature = "outerbounds-native")]
+            outerbounds_config: OnceLock::new(),
         }
     }
 
@@ -171,6 +179,29 @@ impl CommandContext {
             .expect("failed to create unauthenticated client")
         })
     }
+
+    /// Get the Outerbounds/Metaflow configuration (lazy loaded, blocking).
+    ///
+    /// Returns the resolved config which may include remote-fetched values.
+    /// The result is cached after the first call. If a remote fetch is needed,
+    /// this will block the current thread until it completes.
+    #[cfg(feature = "outerbounds-native")]
+    pub fn outerbounds_config(&self) -> Result<&ResolvedConfig, &ConfigError> {
+        use crate::outerbounds_native::{current_profile, default_config_dir, init_config};
+
+        self.outerbounds_config
+            .get_or_init(|| {
+                let config_dir = default_config_dir();
+                let profile = current_profile();
+
+                // Block on the async init_config using the current tokio runtime
+                tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current()
+                        .block_on(init_config(self, &config_dir, profile.as_deref()))
+                })
+            })
+            .as_ref()
+    }
 }
 
 impl Default for CommandContext {
@@ -193,6 +224,8 @@ impl CommandContext {
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),
             unauthenticated_client: OnceLock::new(),
+            #[cfg(feature = "outerbounds-native")]
+            outerbounds_config: OnceLock::new(),
         }
     }
 }
