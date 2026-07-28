@@ -196,8 +196,11 @@ impl CommandContext {
 
                 // Block on the async init_config using the current tokio runtime
                 tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current()
-                        .block_on(init_config(self, &config_dir, profile.as_deref()))
+                    tokio::runtime::Handle::current().block_on(init_config(
+                        self,
+                        &config_dir,
+                        profile.as_deref(),
+                    ))
                 })
             })
             .as_ref()
