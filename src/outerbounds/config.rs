@@ -44,7 +44,9 @@ pub fn ob_config_dir() -> Option<PathBuf> {
 
 /// Returns the current profile from `METAFLOW_PROFILE` environment variable.
 pub fn current_profile() -> Option<String> {
-    std::env::var("METAFLOW_PROFILE").ok().filter(|s| !s.is_empty())
+    std::env::var("METAFLOW_PROFILE")
+        .ok()
+        .filter(|s| !s.is_empty())
 }
 
 /// Main metaflow config from `config.json`.
@@ -179,15 +181,14 @@ impl OuterboundsConfig {
 
     /// Load configuration for a specific profile.
     pub fn load_with_profile(profile: Option<&str>) -> miette::Result<Self> {
-        let mf_config = MetaflowConfig::load_with_profile(profile).ok_or_else(|| {
-            match profile {
+        let mf_config =
+            MetaflowConfig::load_with_profile(profile).ok_or_else(|| match profile {
                 Some(p) if !p.is_empty() => miette!(
                     "Profile config not found: config_{}.json. Run `outerbounds configure` first.",
                     p
                 ),
                 _ => miette!("Metaflow config not found. Run `outerbounds configure` first."),
-            }
-        })?;
+            })?;
 
         let ob_config = ObPerimeterConfig::load_with_profile(profile);
 
@@ -457,7 +458,12 @@ mod tests {
     fn test_metaflow_config_load_with_profile() {
         let tmp = TempDir::new().unwrap();
         let config_dir = tmp.path().join(".metaflowconfig");
-        create_config_in_dir(&config_dir, Some("staging"), "staging-key", "https://api.staging.com");
+        create_config_in_dir(
+            &config_dir,
+            Some("staging"),
+            "staging-key",
+            "https://api.staging.com",
+        );
 
         with_clean_env(tmp.path(), || {
             let config = MetaflowConfig::load_with_profile(Some("staging")).unwrap();
@@ -474,7 +480,12 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let config_dir = tmp.path().join(".metaflowconfig");
         create_config_in_dir(&config_dir, None, "default-key", "https://api.default.com");
-        create_config_in_dir(&config_dir, Some("prod"), "prod-key", "https://api.prod.com");
+        create_config_in_dir(
+            &config_dir,
+            Some("prod"),
+            "prod-key",
+            "https://api.prod.com",
+        );
 
         temp_env::with_vars(
             [
@@ -583,7 +594,9 @@ mod tests {
             assert_eq!(config.current_perimeter, Some("production".to_string()));
             assert_eq!(
                 config.get_config_url(),
-                Some("https://api.prod.obp.outerbounds.com/v1/perimeters/production/metaflowconfigs/default")
+                Some(
+                    "https://api.prod.obp.outerbounds.com/v1/perimeters/production/metaflowconfigs/default"
+                )
             );
         });
     }
@@ -767,11 +780,7 @@ mod tests {
             let result = OuterboundsConfig::load();
             assert!(result.is_err());
             let err = result.unwrap_err().to_string();
-            assert!(
-                err.contains("METAFLOW_SERVICE_AUTH_KEY"),
-                "Error: {}",
-                err
-            );
+            assert!(err.contains("METAFLOW_SERVICE_AUTH_KEY"), "Error: {}", err);
         });
     }
 
@@ -798,7 +807,12 @@ mod tests {
     fn test_outerbounds_config_with_profile() {
         let tmp = TempDir::new().unwrap();
         let config_dir = tmp.path().join(".metaflowconfig");
-        create_config_in_dir(&config_dir, Some("prod"), "prod-key", "https://api.prod.com");
+        create_config_in_dir(
+            &config_dir,
+            Some("prod"),
+            "prod-key",
+            "https://api.prod.com",
+        );
         create_ob_config_with_profile(
             tmp.path(),
             Some("prod"),
@@ -837,10 +851,7 @@ mod tests {
 
     #[test]
     fn test_sanitize_url_without_scheme() {
-        assert_eq!(
-            sanitize_url("api.example.com"),
-            "https://api.example.com"
-        );
+        assert_eq!(sanitize_url("api.example.com"), "https://api.example.com");
     }
 
     #[test]
@@ -849,10 +860,7 @@ mod tests {
             sanitize_url("https://api.example.com/"),
             "https://api.example.com"
         );
-        assert_eq!(
-            sanitize_url("api.example.com/"),
-            "https://api.example.com"
-        );
+        assert_eq!(sanitize_url("api.example.com/"), "https://api.example.com");
     }
 
     #[test]
@@ -1074,7 +1082,10 @@ mod tests {
 
         with_clean_env(tmp.path(), || {
             let config = OuterboundsConfig::load().unwrap();
-            assert_eq!(config.perimeter, "default", "Default profile should not see staging ob_config");
+            assert_eq!(
+                config.perimeter, "default",
+                "Default profile should not see staging ob_config"
+            );
         });
     }
 
@@ -1155,8 +1166,14 @@ mod tests {
     #[test]
     fn test_platform_domain_various_formats() {
         let cases = [
-            ("https://api.foo.obp.outerbounds.com/v1/perimeters/default/metaflowconfigs/default", Some("foo.obp.outerbounds.com")),
-            ("https://api.bar.outerbounds.com/", Some("bar.outerbounds.com")),
+            (
+                "https://api.foo.obp.outerbounds.com/v1/perimeters/default/metaflowconfigs/default",
+                Some("foo.obp.outerbounds.com"),
+            ),
+            (
+                "https://api.bar.outerbounds.com/",
+                Some("bar.outerbounds.com"),
+            ),
             ("https://api.single/", Some("single")),
             ("http://api.notsecure.com/v1", None), // http not https
             ("https://noapi.example.com/v1", None), // missing api. prefix
@@ -1166,7 +1183,11 @@ mod tests {
         for (url, expected) in cases {
             let config = ObPerimeterConfig {
                 current_perimeter: None,
-                config_url: if url.is_empty() { None } else { Some(url.to_string()) },
+                config_url: if url.is_empty() {
+                    None
+                } else {
+                    Some(url.to_string())
+                },
                 config_url_legacy: None,
             };
             assert_eq!(
