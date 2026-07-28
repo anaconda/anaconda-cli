@@ -13,6 +13,11 @@ from mock_auth_server import MockAuthServer
 
 MAIN_CHANNEL = "https://repo.anaconda.cloud/repo/main"
 MAIN_X_CHANNEL = "https://repo.anaconda.cloud/repo/main-x"
+MSYS2_CHANNEL = "https://repo.anaconda.cloud/repo/msys2"
+R_CHANNEL = "https://repo.anaconda.cloud/repo/r"
+
+# All required default_channels when main-x is enabled
+REQUIRED_DEFAULT_CHANNELS = [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]
 
 
 def is_conda_available() -> bool:
@@ -353,6 +358,25 @@ def get_channels(env: dict[str, str]) -> list[str]:
     return channels
 
 
+def get_default_channels(env: dict[str, str]) -> list[str]:
+    """Get the list of configured default_channels from conda."""
+    result = subprocess.run(
+        ["conda", "config", "--show", "default_channels"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
+    assert result.returncode == 0, f"conda config failed: {result.stderr}"
+
+    channels = []
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.startswith("- "):
+            channels.append(line[2:])
+    return channels
+
+
 def get_pixi_channels(env: dict[str, str]) -> list[str]:
     """Get the list of configured default channels from pixi."""
     result = subprocess.run(
@@ -568,9 +592,9 @@ class TestMainXEnable:
         run_ana_feature: AnaRunner,
         feature_env: dict[str, str],
     ) -> None:
-        """Enabling main-x should add the main-x channel to conda config."""
-        # Verify main-x is not in channels initially
-        initial_channels = get_channels(feature_env)
+        """Enabling main-x should add the main-x channel to default_channels."""
+        # Verify main-x is not in default_channels initially
+        initial_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL not in initial_channels
 
         # Login first via mock server (device flow auto-completes)
@@ -581,8 +605,8 @@ class TestMainXEnable:
         result = run_ana_feature("feature", "enable", "main-x", "-f")
         assert result.returncode == 0, f"Enable failed: {result.stderr}"
 
-        # Verify main-x channel was added
-        final_channels = get_channels(feature_env)
+        # Verify main-x channel was added to default_channels
+        final_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL in final_channels
 
     def test_enable_main_x_idempotent(
@@ -591,9 +615,14 @@ class TestMainXEnable:
         feature_env: dict[str, str],
     ) -> None:
         """Enabling main-x when already enabled should succeed with 'already enabled' message."""
-        # Pre-configure main-x channel
+        # Pre-configure all required default_channels
         condarc_path = Path(feature_env["CONDARC"])
-        condarc_path.write_text(f"channels:\n  - {MAIN_X_CHANNEL}\n  - defaults\n")
+        default_channels_yaml = "\n".join(
+            f"  - {ch}" for ch in REQUIRED_DEFAULT_CHANNELS
+        )
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n{default_channels_yaml}\n"
+        )
 
         # Login first
         login_result = run_ana_feature("login")
@@ -649,21 +678,23 @@ class TestMainXDisable:
         run_ana_feature: AnaRunner,
         feature_env: dict[str, str],
     ) -> None:
-        """Disabling main-x should remove the main-x channel from conda config."""
-        # Pre-configure main-x channel
+        """Disabling main-x should remove the main-x channel from default_channels."""
+        # Pre-configure main-x in default_channels
         condarc_path = Path(feature_env["CONDARC"])
-        condarc_path.write_text(f"channels:\n  - {MAIN_X_CHANNEL}\n  - defaults\n")
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
 
-        # Verify main-x is in channels
-        initial_channels = get_channels(feature_env)
+        # Verify main-x is in default_channels
+        initial_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL in initial_channels
 
         # Disable main-x with force flag
         result = run_ana_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
 
-        # Verify main-x channel was removed
-        final_channels = get_channels(feature_env)
+        # Verify main-x channel was removed from default_channels
+        final_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL not in final_channels
 
     def test_disable_main_x_not_enabled(
@@ -672,8 +703,8 @@ class TestMainXDisable:
         feature_env: dict[str, str],
     ) -> None:
         """Disabling main-x when not enabled should succeed with appropriate message."""
-        # Verify main-x is not in channels
-        initial_channels = get_channels(feature_env)
+        # Verify main-x is not in default_channels
+        initial_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL not in initial_channels
 
         result = run_ana_feature("feature", "disable", "main-x", "-f")
@@ -686,25 +717,30 @@ class TestMainXDisable:
         feature_env: dict[str, str],
     ) -> None:
         """Disabling main-x should not affect other configured channels."""
-        # Pre-configure multiple channels including main-x
+        # Pre-configure main-x in default_channels along with main
         condarc_path = Path(feature_env["CONDARC"])
         condarc_path.write_text(
-            f"channels:\n  - {MAIN_X_CHANNEL}\n  - conda-forge\n  - defaults\n"
+            f"channels:\n  - conda-forge\n  - defaults\n"
+            f"default_channels:\n  - {MAIN_X_CHANNEL}\n  - https://repo.anaconda.cloud/repo/main\n"
         )
 
-        initial_channels = get_channels(feature_env)
-        assert "conda-forge" in initial_channels
-        assert "defaults" in initial_channels
+        initial_default_channels = get_default_channels(feature_env)
+        assert MAIN_X_CHANNEL in initial_default_channels
+        assert "https://repo.anaconda.cloud/repo/main" in initial_default_channels
 
         # Disable main-x
         result = run_ana_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0
 
-        # Verify other channels are preserved
+        # Verify main channel is preserved in default_channels, main-x is removed
+        final_default_channels = get_default_channels(feature_env)
+        assert "https://repo.anaconda.cloud/repo/main" in final_default_channels
+        assert MAIN_X_CHANNEL not in final_default_channels
+
+        # Verify channels list is untouched
         final_channels = get_channels(feature_env)
         assert "conda-forge" in final_channels
         assert "defaults" in final_channels
-        assert MAIN_X_CHANNEL not in final_channels
 
 
 @requires_conda
@@ -734,9 +770,11 @@ class TestMainXUserInteraction:
         feature_env: dict[str, str],
     ) -> None:
         """Disable should show conda commands and prompt for confirmation."""
-        # Pre-configure main-x
+        # Pre-configure main-x in default_channels
         condarc_path = Path(feature_env["CONDARC"])
-        condarc_path.write_text(f"channels:\n  - {MAIN_X_CHANNEL}\n  - defaults\n")
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
 
         # Run disable without -f, answer 'n' to abort
         result = run_ana_feature("feature", "disable", "main-x", input="n\n")
@@ -747,8 +785,8 @@ class TestMainXUserInteraction:
         # Should abort when user says no
         assert "Aborted" in result.stderr
 
-        # Channel should still be present
-        final_channels = get_channels(feature_env)
+        # Channel should still be present in default_channels
+        final_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL in final_channels
 
 
@@ -770,16 +808,16 @@ class TestMainXEndToEnd:
         enable_result = run_ana_feature("feature", "enable", "main-x", "-f")
         assert enable_result.returncode == 0
 
-        # Step 3: Verify channel was added
-        channels_after_enable = get_channels(feature_env)
+        # Step 3: Verify channel was added to default_channels
+        channels_after_enable = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL in channels_after_enable
 
         # Step 4: Disable main-x
         disable_result = run_ana_feature("feature", "disable", "main-x", "-f")
         assert disable_result.returncode == 0
 
-        # Step 5: Verify channel was removed
-        channels_after_disable = get_channels(feature_env)
+        # Step 5: Verify channel was removed from default_channels
+        channels_after_disable = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL not in channels_after_disable
 
 
