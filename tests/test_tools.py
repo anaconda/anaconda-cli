@@ -12,7 +12,8 @@ from helpers import AnaRunner
 IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
-# Mirrors the (os, arch) -> filename table in src/installer/mod.rs::detect_target.
+# Maps Python (sys.platform, platform.machine()) values to installer filenames
+# produced by src/installer/mod.rs::detect_target.
 _MINICONDA_FILENAMES = {
     ("darwin", "arm64"): "Miniconda3-latest-MacOSX-arm64.sh",
     ("darwin", "x86_64"): "Miniconda3-latest-MacOSX-x86_64.sh",
@@ -95,12 +96,13 @@ class TestToolDownloadCommand:
         """The pre-flight existence check runs before any network call, so this
         is safe to test without a mock server."""
         existing = tmp_path / _expected_miniconda_filename()
-        existing.touch()
+        sentinel = b"do-not-overwrite"
+        existing.write_bytes(sentinel)
 
         result = run_ana("tool", "download", "miniconda", cwd=tmp_path)
         assert result.returncode != 0
         assert "already exists" in result.stderr.lower()
-        assert existing.exists()  # untouched, not overwritten
+        assert existing.read_bytes() == sentinel
 
 
 class TestToolInstallPixi:
