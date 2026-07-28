@@ -221,6 +221,7 @@ dependencies = [
  "console",
  "dirs",
  "figment",
+ "flate2",
  "futures-util",
  "http 1.4.2",
  "indicatif",
@@ -1286,6 +1287,7 @@ dependencies = [
  "atomic",
  "pear",
  "serde",
+ "serde_json",
  "uncased",
  "version_check",
 ]
