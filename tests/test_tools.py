@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import platform
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,29 @@ from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
+
+# Maps Python (sys.platform, platform.machine()) values to installer filenames
+# produced by src/installer/mod.rs::detect_target.
+_MINICONDA_FILENAMES = {
+    ("darwin", "arm64"): "Miniconda3-latest-MacOSX-arm64.sh",
+    ("darwin", "x86_64"): "Miniconda3-latest-MacOSX-x86_64.sh",
+    ("linux", "x86_64"): "Miniconda3-latest-Linux-x86_64.sh",
+    ("linux", "aarch64"): "Miniconda3-latest-Linux-aarch64.sh",
+    ("win32", "x86_64"): "Miniconda3-latest-Windows-x86_64.exe",
+    ("win32", "amd64"): "Miniconda3-latest-Windows-x86_64.exe",
+}
+
+
+def _expected_miniconda_filename() -> str:
+    """The installer filename ana would pick for the current platform."""
+    key = (sys.platform, platform.machine().lower())
+    filename = _MINICONDA_FILENAMES.get(key)
+    if filename is None:
+        raise RuntimeError(
+            f"no known miniconda filename for platform {key}; "
+            "update _MINICONDA_FILENAMES to match src/installer/mod.rs"
+        )
+    return filename
 
 
 class TestToolHelp:
@@ -42,6 +66,43 @@ class TestToolHelp:
         result = run_ana("tool", "download", "--help")
         assert result.returncode == 0
         assert "miniconda" in result.stdout.lower()
+
+    def test_tool_download_no_args_shows_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "download")
+        assert result.returncode == 0
+        assert "miniconda" in result.stdout.lower()
+
+
+class TestToolDownloadCommand:
+    """Tests for 'ana tool download miniconda' subcommand.
+
+    These cases only cover paths that don't require a real network call:
+    ana tool download miniconda always fetches from the hardcoded
+    https://repo.anaconda.com/miniconda/ (no env var or flag override
+    exists yet to redirect it to a mock server), so actual download,
+    checksum verification, and checksum-mismatch behavior aren't covered
+    here. See src/installer/mod.rs for that logic and its Rust unit tests.
+    """
+
+    def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "download", "nonexistent-installer")
+        assert result.returncode != 0
+        assert "only miniconda is currently supported" in result.stderr.lower()
+        assert "nonexistent-installer" in result.stderr
+
+    def test_download_fails_when_destination_already_exists(
+        self, run_ana: AnaRunner, tmp_path: Path
+    ) -> None:
+        """The pre-flight existence check runs before any network call, so this
+        is safe to test without a mock server."""
+        existing = tmp_path / _expected_miniconda_filename()
+        sentinel = b"do-not-overwrite"
+        existing.write_bytes(sentinel)
+
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path)
+        assert result.returncode != 0
+        assert "already exists" in result.stderr.lower()
+        assert existing.read_bytes() == sentinel
 
 
 class TestToolInstallPixi:
