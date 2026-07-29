@@ -217,9 +217,7 @@ impl CommandContext {
     /// Callers must build full URLs using `outerbounds_config().metaflow.obp_api_server_url()`
     /// or `obp_auth_server_url()` as the base.
     #[cfg(feature = "outerbounds-native")]
-    pub fn obp_client(
-        &self,
-    ) -> Result<&reqwest_middleware::ClientWithMiddleware, &ConfigError> {
+    pub fn obp_client(&self) -> Result<&reqwest_middleware::ClientWithMiddleware, &ConfigError> {
         self.outerbounds_config()?;
 
         Ok(self.obp_client.get_or_init(|| {
