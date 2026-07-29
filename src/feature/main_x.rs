@@ -76,10 +76,11 @@ fn is_wrong_tier_channel(channel: &str, is_premium: bool) -> bool {
         channel.contains(REPO_HOST_COM) && channel.contains("/pkgs/")
     } else {
         // Free: remove any .cloud/repo channels EXCEPT main-x
-        channel.contains(REPO_HOST_CLOUD) && channel.contains("/repo/") && !channel.ends_with("/repo/main-x")
+        channel.contains(REPO_HOST_CLOUD)
+            && channel.contains("/repo/")
+            && !channel.ends_with("/repo/main-x")
     }
 }
-
 
 /// Represents a channel configuration action for enabling/disabling main-x via conda.
 enum MainXCondaAction {
@@ -144,10 +145,7 @@ impl MainXPixiAction {
     fn command_display(&self) -> String {
         match self {
             MainXPixiAction::AddChannel(url) => {
-                format!(
-                    "pixi config prepend --global default-channels {}",
-                    url
-                )
+                format!("pixi config prepend --global default-channels {}", url)
             }
             MainXPixiAction::RemoveMainX(channels_to_keep) => {
                 format_pixi_remove_main_x_command(channels_to_keep)
@@ -166,10 +164,7 @@ impl MainXPixiAction {
         status::running(&format!("Running {}", status::highlight(&cmd)));
         match self {
             MainXPixiAction::AddChannel(url) => {
-                run_pixi_config(
-                    pixi_bin,
-                    &["prepend", "--global", "default-channels", url],
-                )?;
+                run_pixi_config(pixi_bin, &["prepend", "--global", "default-channels", url])?;
             }
             MainXPixiAction::RemoveMainX(channels_to_keep) => {
                 execute_pixi_remove_main_x(pixi_bin, channels_to_keep)?;
@@ -306,7 +301,9 @@ fn plan_conda_enable_actions(
 /// Checks for main-x URLs from both premium (.cloud) and free (.com) domains.
 fn plan_conda_disable_actions(current_channels: &[String]) -> Vec<MainXCondaAction> {
     // Check for main-x from either domain
-    let main_x_url = current_channels.iter().find(|c| c.ends_with("/repo/main-x"));
+    let main_x_url = current_channels
+        .iter()
+        .find(|c| c.ends_with("/repo/main-x"));
     if let Some(url) = main_x_url {
         vec![MainXCondaAction::RemoveChannel(url.clone())]
     } else {
@@ -852,22 +849,46 @@ mod tests {
     #[test]
     fn test_is_wrong_tier_channel_premium() {
         // Premium user should remove .com/pkgs channels
-        assert!(is_wrong_tier_channel("https://repo.anaconda.com/pkgs/main", true));
-        assert!(is_wrong_tier_channel("https://repo.anaconda.com/pkgs/msys2", true));
+        assert!(is_wrong_tier_channel(
+            "https://repo.anaconda.com/pkgs/main",
+            true
+        ));
+        assert!(is_wrong_tier_channel(
+            "https://repo.anaconda.com/pkgs/msys2",
+            true
+        ));
         // Premium user should NOT remove .cloud/repo channels
-        assert!(!is_wrong_tier_channel("https://repo.anaconda.cloud/repo/main", true));
-        assert!(!is_wrong_tier_channel("https://repo.anaconda.cloud/repo/main-x", true));
+        assert!(!is_wrong_tier_channel(
+            "https://repo.anaconda.cloud/repo/main",
+            true
+        ));
+        assert!(!is_wrong_tier_channel(
+            "https://repo.anaconda.cloud/repo/main-x",
+            true
+        ));
     }
 
     #[test]
     fn test_is_wrong_tier_channel_free() {
         // Free user should remove .cloud/repo channels EXCEPT main-x
-        assert!(is_wrong_tier_channel("https://repo.anaconda.cloud/repo/main", false));
-        assert!(is_wrong_tier_channel("https://repo.anaconda.cloud/repo/msys2", false));
+        assert!(is_wrong_tier_channel(
+            "https://repo.anaconda.cloud/repo/main",
+            false
+        ));
+        assert!(is_wrong_tier_channel(
+            "https://repo.anaconda.cloud/repo/msys2",
+            false
+        ));
         // Free user should NOT remove main-x (it's always from .cloud)
-        assert!(!is_wrong_tier_channel("https://repo.anaconda.cloud/repo/main-x", false));
+        assert!(!is_wrong_tier_channel(
+            "https://repo.anaconda.cloud/repo/main-x",
+            false
+        ));
         // Free user should NOT remove .com/pkgs channels
-        assert!(!is_wrong_tier_channel("https://repo.anaconda.com/pkgs/main", false));
+        assert!(!is_wrong_tier_channel(
+            "https://repo.anaconda.com/pkgs/main",
+            false
+        ));
     }
 
     // ========================================================================
@@ -1105,9 +1126,11 @@ mod tests {
 
         // Should add all 4 required channels
         assert_eq!(actions.len(), 4);
-        assert!(actions
-            .iter()
-            .all(|a| matches!(a, MainXPixiAction::AddChannel(_))));
+        assert!(
+            actions
+                .iter()
+                .all(|a| matches!(a, MainXPixiAction::AddChannel(_)))
+        );
     }
 
     #[test]
@@ -1118,9 +1141,11 @@ mod tests {
 
         // Still need to add main, msys2, r
         assert_eq!(actions.len(), 3);
-        assert!(actions
-            .iter()
-            .all(|a| matches!(a, MainXPixiAction::AddChannel(_))));
+        assert!(
+            actions
+                .iter()
+                .all(|a| matches!(a, MainXPixiAction::AddChannel(_)))
+        );
     }
 
     #[test]
@@ -1131,9 +1156,11 @@ mod tests {
 
         // Still need to add main-x, msys2, r
         assert_eq!(actions.len(), 3);
-        assert!(actions
-            .iter()
-            .all(|a| matches!(a, MainXPixiAction::AddChannel(_))));
+        assert!(
+            actions
+                .iter()
+                .all(|a| matches!(a, MainXPixiAction::AddChannel(_)))
+        );
     }
 
     #[test]
@@ -1180,9 +1207,11 @@ mod tests {
         let actions = plan_pixi_enable_actions(&current_channels, &free, false);
 
         // Should not have rewrite action when no wrong-tier channels
-        assert!(!actions
-            .iter()
-            .any(|a| matches!(a, MainXPixiAction::UpgradeChannels(_))));
+        assert!(
+            !actions
+                .iter()
+                .any(|a| matches!(a, MainXPixiAction::UpgradeChannels(_)))
+        );
     }
 
     #[test]
@@ -1204,7 +1233,11 @@ mod tests {
                 // Should not contain .cloud/repo channels except main-x
                 let cloud_repo_non_main_x: Vec<_> = channels
                     .iter()
-                    .filter(|c| c.contains(REPO_HOST_CLOUD) && c.contains("/repo/") && !c.ends_with("/main-x"))
+                    .filter(|c| {
+                        c.contains(REPO_HOST_CLOUD)
+                            && c.contains("/repo/")
+                            && !c.ends_with("/main-x")
+                    })
                     .collect();
                 assert!(cloud_repo_non_main_x.is_empty());
             }

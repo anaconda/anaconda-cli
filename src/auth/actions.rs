@@ -827,10 +827,11 @@ pub async fn has_premium_subscription(ctx: &CommandContext) -> miette::Result<bo
             }
 
             // Check if it's a premium product
-            let is_premium = attr
-                .get("id")
-                .and_then(|v| v.as_str())
-                .is_some_and(|id| PREMIUM_PRODUCT_PREFIXES.iter().any(|prefix| id.starts_with(prefix)));
+            let is_premium = attr.get("id").and_then(|v| v.as_str()).is_some_and(|id| {
+                PREMIUM_PRODUCT_PREFIXES
+                    .iter()
+                    .any(|prefix| id.starts_with(prefix))
+            });
 
             if !is_premium {
                 continue;
