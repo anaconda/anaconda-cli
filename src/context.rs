@@ -107,6 +107,9 @@ pub struct CommandContext {
     /// Outerbounds/Metaflow configuration (lazy initialized, feature-gated).
     #[cfg(feature = "outerbounds-native")]
     outerbounds_config: OnceLock<Result<ResolvedConfig, ConfigError>>,
+    /// Outerbounds Platform API client (lazy initialized, feature-gated).
+    #[cfg(feature = "outerbounds-native")]
+    obp_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
 }
 
 impl CommandContext {
@@ -137,6 +140,8 @@ impl CommandContext {
             unauthenticated_client: OnceLock::new(),
             #[cfg(feature = "outerbounds-native")]
             outerbounds_config: OnceLock::new(),
+            #[cfg(feature = "outerbounds-native")]
+            obp_client: OnceLock::new(),
         }
     }
 
@@ -205,6 +210,32 @@ impl CommandContext {
             })
             .as_ref()
     }
+
+    /// Get or create an Outerbounds Platform API client.
+    ///
+    /// Uses `x-api-key` header authentication from the resolved Outerbounds config.
+    /// Callers must build full URLs using `outerbounds_config().metaflow.obp_api_server_url()`
+    /// or `obp_auth_server_url()` as the base.
+    #[cfg(feature = "outerbounds-native")]
+    pub fn obp_client(
+        &self,
+    ) -> Result<&reqwest_middleware::ClientWithMiddleware, &ConfigError> {
+        self.outerbounds_config()?;
+
+        Ok(self.obp_client.get_or_init(|| {
+            let api_key = self
+                .outerbounds_config
+                .get()
+                .and_then(|r| r.as_ref().ok())
+                .and_then(|c| c.metaflow.service_auth_key.as_deref())
+                .unwrap_or("");
+
+            http::build_client(
+                reqwest::Client::builder().default_headers(http::x_api_key_header(api_key)),
+            )
+            .expect("failed to create OBP client")
+        }))
+    }
 }
 
 impl Default for CommandContext {
@@ -229,6 +260,8 @@ impl CommandContext {
             unauthenticated_client: OnceLock::new(),
             #[cfg(feature = "outerbounds-native")]
             outerbounds_config: OnceLock::new(),
+            #[cfg(feature = "outerbounds-native")]
+            obp_client: OnceLock::new(),
         }
     }
 }
