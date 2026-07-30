@@ -11,13 +11,23 @@ import pytest
 from helpers import AnaRunner
 from mock_auth_server import MockAuthServer
 
-MAIN_CHANNEL = "https://repo.anaconda.cloud/repo/main"
+# Free tier URLs (mock auth server doesn't return premium subscription)
+# main-x is always from .cloud/repo, others are from .com/pkgs for free users
 MAIN_X_CHANNEL = "https://repo.anaconda.cloud/repo/main-x"
-MSYS2_CHANNEL = "https://repo.anaconda.cloud/repo/msys2"
-R_CHANNEL = "https://repo.anaconda.cloud/repo/r"
+MAIN_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/main"
+MSYS2_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/msys2"
+R_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/r"
 
-# All required default_channels when main-x is enabled
-REQUIRED_DEFAULT_CHANNELS = [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]
+# Premium tier URLs (all from .cloud/repo)
+MAIN_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/main"
+MSYS2_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/msys2"
+R_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/r"
+
+# Alias for pixi tests that use real API keys (which have premium subscriptions)
+MAIN_CHANNEL = MAIN_CHANNEL_PREMIUM
+
+# All required default_channels when main-x is enabled (free tier, for mock auth tests)
+REQUIRED_DEFAULT_CHANNELS = [MAIN_X_CHANNEL, MAIN_CHANNEL_FREE, MSYS2_CHANNEL_FREE, R_CHANNEL_FREE]
 
 
 def is_conda_available() -> bool:
