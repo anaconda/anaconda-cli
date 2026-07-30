@@ -23,8 +23,10 @@ MAIN_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/main"
 MSYS2_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/msys2"
 R_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/r"
 
-# Alias for pixi tests that use real API keys (which have premium subscriptions)
+# Aliases for pixi tests that use real API keys (which have premium subscriptions)
 MAIN_CHANNEL = MAIN_CHANNEL_PREMIUM
+MSYS2_CHANNEL = MSYS2_CHANNEL_PREMIUM
+R_CHANNEL = R_CHANNEL_PREMIUM
 
 # All required default_channels when main-x is enabled (free tier, for mock auth tests)
 REQUIRED_DEFAULT_CHANNELS = [
@@ -879,30 +881,21 @@ class TestMainXPixiEnable:
         pixi_feature_env: dict[str, str],
     ) -> None:
         """Enabling main-x with --pixi when already enabled should succeed."""
-        # Pre-configure both main and main-x channels via pixi config
-        # (both are required for "already enabled" since the feature adds both)
-        subprocess.run(
-            [
-                "pixi",
-                "config",
-                "prepend",
-                "--global",
-                "default-channels",
-                MAIN_X_CHANNEL,
-            ],
-            env=pixi_feature_env,
-            check=True,
-        )
-        subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
-            env=pixi_feature_env,
-            check=True,
-        )
+        # Pre-configure all 4 required channels via pixi config
+        # (all are required for "already enabled")
+        for channel in [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]:
+            subprocess.run(
+                ["pixi", "config", "prepend", "--global", "default-channels", channel],
+                env=pixi_feature_env,
+                check=True,
+            )
 
-        # Verify both channels are configured
+        # Verify all channels are configured
         initial_channels = get_pixi_channels(pixi_feature_env)
         assert MAIN_X_CHANNEL in initial_channels
         assert MAIN_CHANNEL in initial_channels
+        assert MSYS2_CHANNEL in initial_channels
+        assert R_CHANNEL in initial_channels
 
         # Login with API key
         api_key = get_test_api_key()
