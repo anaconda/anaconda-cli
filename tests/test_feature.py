@@ -27,7 +27,12 @@ R_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/r"
 MAIN_CHANNEL = MAIN_CHANNEL_PREMIUM
 
 # All required default_channels when main-x is enabled (free tier, for mock auth tests)
-REQUIRED_DEFAULT_CHANNELS = [MAIN_X_CHANNEL, MAIN_CHANNEL_FREE, MSYS2_CHANNEL_FREE, R_CHANNEL_FREE]
+REQUIRED_DEFAULT_CHANNELS = [
+    MAIN_X_CHANNEL,
+    MAIN_CHANNEL_FREE,
+    MSYS2_CHANNEL_FREE,
+    R_CHANNEL_FREE,
+]
 
 
 def is_conda_available() -> bool:
