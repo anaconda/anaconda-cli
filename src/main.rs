@@ -18,6 +18,7 @@ mod mcp;
 mod outerbounds;
 mod paths;
 mod qr;
+mod release_notes;
 mod table;
 mod telemetry;
 mod tools;
