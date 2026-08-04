@@ -36,6 +36,16 @@
       "matchStrings": [
         "# renovate: datasource=conda depName=(?<depName>.*?)\\n[\\w-]+ = \"==(?<currentValue>[\\d.]+)\""
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "Update generic versions in composite actions",
+      "managerFilePatterns": [
+        "action\\.yaml$"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+\\w+_VERSION:\\s*(?<currentValue>.*)"
+      ]
     }
   ],
   "extends": [

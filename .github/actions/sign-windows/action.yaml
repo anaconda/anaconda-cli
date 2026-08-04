@@ -44,10 +44,13 @@ runs:
       shell: pwsh
 
     - name: Get AzureSignTool
+      env:
+        # renovate: datasource=nuget depName=azuresigntool
+        AZURE_SIGNTOOL_VERSION: 7.0.1
       run: |
         # Get AzureSignTool
         if (-not (Get-Command AzureSignTool -ErrorAction SilentlyContinue)) {
-            dotnet tool install --global AzureSignTool
+            dotnet tool install --global AzureSignTool --version $env:AZURE_SIGNTOOL_VERSION
         }
       shell: pwsh
 
