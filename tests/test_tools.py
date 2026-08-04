@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import platform
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -177,6 +179,27 @@ class TestToolInstallPixi:
         assert result.returncode != 0
         assert "unknown tool" in result.stderr.lower()
 
+    @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
+    def test_tool_install_cleans_up_broken_symlink(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Manually deleting the tool dir leaves a broken symlink behind;
+        re-running install should clean it up before recreating it. See
+        CLI-526."""
+        result = run_ana("tool", "install", "pixi")
+        assert result.returncode == 0
+
+        tool_dir = fake_home / ".ana" / "tools" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
+        shutil.rmtree(tool_dir)
+        assert bin_path.is_symlink()
+        assert not bin_path.exists(), "symlink should now be broken"
+
+        result = run_ana("tool", "install", "pixi")
+        assert result.returncode == 0
+        assert bin_path.is_symlink()
+        assert bin_path.exists(), "symlink should be recreated and valid"
+
 
 class TestToolList:
     """Tests for 'ana tool list' subcommand."""
@@ -236,6 +259,26 @@ class TestToolList:
             if "pixi" in line.lower() and "anaconda" not in line.lower()
         ][0]
         assert "✓" in pixi_line_after
+
+    @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
+    def test_tool_list_cleans_up_broken_symlink(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Manually deleting the tool dir leaves a broken symlink behind;
+        `tool list` should clean it up rather than leaving it dangling. See
+        CLI-526."""
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        tool_dir = fake_home / ".ana" / "tools" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
+        shutil.rmtree(tool_dir)
+        assert bin_path.is_symlink()
+        assert not bin_path.exists(), "symlink should now be broken"
+
+        result = run_ana("tool", "list")
+        assert result.returncode == 0
+        assert not bin_path.is_symlink(), "broken symlink should be removed"
 
 
 class TestToolUpdate:

@@ -47,6 +47,11 @@ const INSTALLERS: &[Installer] = &[
 
 /// List all available tools with their installation status.
 pub fn list_tools() -> Vec<ToolInfo> {
+    #[cfg(unix)]
+    if let Err(err) = super::install::cleanup_broken_symlinks(&paths::bin_dir()) {
+        crate::ui::status::warn(&format!("failed to clean up broken symlinks: {err}"));
+    }
+
     specs::all_tools()
         .iter()
         .map(|name| {
