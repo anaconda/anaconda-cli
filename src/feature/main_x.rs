@@ -406,6 +406,56 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     Ok(())
 }
 
+/// Best-effort check for whether main-x is currently enabled for conda.
+///
+/// Returns `false` if conda isn't installed or the check otherwise fails,
+/// since this is only used to decide whether to print an informational
+/// warning, not to drive any state-changing behavior.
+fn is_main_x_enabled_conda() -> bool {
+    find_conda()
+        .and_then(|conda_bin| get_default_channels_conda(&conda_bin))
+        .map(|channels| channels.iter().any(|c| c == MAIN_X_CHANNEL))
+        .unwrap_or(false)
+}
+
+/// Best-effort check for whether main-x is currently enabled for pixi.
+///
+/// Returns `false` if pixi isn't installed or the check otherwise fails,
+/// since this is only used to decide whether to print an informational
+/// warning, not to drive any state-changing behavior.
+fn is_main_x_enabled_pixi() -> bool {
+    find_pixi()
+        .and_then(|pixi_bin| get_configured_channels_pixi(&pixi_bin))
+        .map(|channels| channels.iter().any(|c| c == MAIN_X_CHANNEL))
+        .unwrap_or(false)
+}
+
+/// Warn if main-x is still enabled for a tool other than the one that was
+/// just acted on, so `ana feature disable main-x` (with no flag, or with
+/// the flag for the tool that was already disabled) doesn't read as "fully
+/// disabled" when it only ever touches one tool's configuration.
+fn warn_if_main_x_enabled_elsewhere(other_tool: &str, other_tool_flag: &str) {
+    let still_enabled = match other_tool {
+        "conda" => is_main_x_enabled_conda(),
+        "pixi" => is_main_x_enabled_pixi(),
+        _ => false,
+    };
+
+    if still_enabled {
+        status::blank_line();
+        status::warn(&format!(
+            "{} is still enabled for {}.",
+            status::highlight("main-x"),
+            other_tool
+        ));
+        status::info(&format!(
+            "To disable for {}, run: {}",
+            other_tool,
+            status::highlight(&format!("ana feature disable main-x {}", other_tool_flag))
+        ));
+    }
+}
+
 /// Disable main-x channel configuration for conda.
 ///
 /// This command removes the main-x channel from conda configuration.
@@ -423,9 +473,10 @@ pub async fn disable_main_x_conda(_ctx: &CommandContext, force: bool) -> miette:
 
     if actions.is_empty() {
         status::success(&format!(
-            "{} feature is not enabled",
+            "{} feature is not enabled for conda",
             status::highlight("main-x")
         ));
+        warn_if_main_x_enabled_elsewhere("pixi", "--pixi");
         return Ok(());
     }
 
@@ -453,6 +504,8 @@ pub async fn disable_main_x_conda(_ctx: &CommandContext, force: bool) -> miette:
     status::info("To re-enable, run:");
     eprintln!("  {}", status::highlight("ana feature enable main-x"));
 
+    warn_if_main_x_enabled_elsewhere("pixi", "--pixi");
+
     Ok(())
 }
 
@@ -476,6 +529,7 @@ pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::
             "{} feature is not enabled for pixi",
             status::highlight("main-x")
         ));
+        warn_if_main_x_enabled_elsewhere("conda", "--conda");
         return Ok(());
     }
 
@@ -512,6 +566,8 @@ pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::
         "  {}",
         status::highlight("ana feature enable main-x --pixi")
     );
+
+    warn_if_main_x_enabled_elsewhere("conda", "--conda");
 
     Ok(())
 }
