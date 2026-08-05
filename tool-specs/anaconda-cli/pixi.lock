@@ -18,8 +18,8 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-connector-conda-0.1.17-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-connector-core-0.1.17-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-connector-utilities-0.1.17-py313h06a4308_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-mcp-1.1.1-py313h06a4308_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-opentelemetry-1.1.0-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-mcp-1.1.3-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-opentelemetry-1.2.1-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/annotated-doc-0.0.4-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/annotated-types-0.7.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/anyio-4.12.1-py313h06a4308_0.conda
@@ -257,8 +257,8 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-connector-conda-0.1.17-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-connector-core-0.1.17-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-connector-utilities-0.1.17-py313hd43f75c_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-mcp-1.1.1-py313hd43f75c_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-opentelemetry-1.1.0-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-mcp-1.1.3-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-opentelemetry-1.2.1-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/annotated-doc-0.0.4-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/annotated-types-0.7.0-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anyio-4.12.1-py313hd43f75c_0.conda
@@ -494,8 +494,8 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-connector-conda-0.1.17-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-connector-core-0.1.17-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-connector-utilities-0.1.17-py313hca03da5_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-mcp-1.1.1-py313hca03da5_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-opentelemetry-1.1.0-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-mcp-1.1.3-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-opentelemetry-1.2.1-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/annotated-doc-0.0.4-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/annotated-types-0.7.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anyio-4.12.1-py313hca03da5_0.conda
@@ -714,8 +714,8 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-connector-conda-0.1.17-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-connector-core-0.1.17-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-connector-utilities-0.1.17-py313haa95532_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-mcp-1.1.1-py313haa95532_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-opentelemetry-1.1.0-py313haa95532_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-mcp-1.1.3-py313haa95532_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-opentelemetry-1.2.1-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/annotated-doc-0.0.4-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/annotated-types-0.7.0-py313haa95532_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/win-64/anyio-4.12.1-py313haa95532_0.conda
@@ -1629,14 +1629,14 @@ packages:
   license_family: Proprietary
   size: 184535
   timestamp: 1780346455061
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-mcp-1.1.1-py313h06a4308_0.conda
-  sha256: e5110723ad643d2aa1f35eab1262a36140dcd031fef0aed5e218148e0051b70d
-  md5: 0135828396adb3cb229ca6a6ef7ccaa7
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-mcp-1.1.3-py313h06a4308_0.conda
+  sha256: 5ce611730560fa7a99cfe9433e0b16a30b6b49e03855eace6123c6e28a8ca5e0
+  md5: e1d7b42e257708d6e3d73ea4e5c1418e
   depends:
   - anaconda-anon-usage
   - anaconda-auth >=0.13.0,<1.0.0
-  - anaconda-cli-base >=0.8.1,<1.0.0
-  - anaconda-opentelemetry >=0.8.1,<1.2.0
+  - anaconda-cli-base >=0.9.1,<1.0.0
+  - anaconda-opentelemetry >=1.2.0
   - click >=8.1.0,<9.0.0
   - environments-mcp-server >=1.0.2,<2.0.0
   - mcp-compose >=0.1.12,<2.0.0
@@ -1646,16 +1646,16 @@ packages:
   - rich >=13.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 75075
-  timestamp: 1780062413079
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-mcp-1.1.1-py313hd43f75c_0.conda
-  sha256: 645c82048a8a88715654fe12ceb8129a3b7e32b92b77f99b9506cf2970d0fa4b
-  md5: d6e0121611b5f2b607243474e4d5b059
+  size: 138875
+  timestamp: 1784816386465
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-mcp-1.1.3-py313hd43f75c_0.conda
+  sha256: ee567203a58a89e4471439b65a6b04fcd69c3f9b098b31ffc737b39e85fa7d5f
+  md5: ea2653a963313b316e5e9b3e6d89abb9
   depends:
   - anaconda-anon-usage
   - anaconda-auth >=0.13.0,<1.0.0
-  - anaconda-cli-base >=0.8.1,<1.0.0
-  - anaconda-opentelemetry >=0.8.1,<1.2.0
+  - anaconda-cli-base >=0.9.1,<1.0.0
+  - anaconda-opentelemetry >=1.2.0
   - click >=8.1.0,<9.0.0
   - environments-mcp-server >=1.0.2,<2.0.0
   - mcp-compose >=0.1.12,<2.0.0
@@ -1665,16 +1665,16 @@ packages:
   - rich >=13.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 75772
-  timestamp: 1780062412357
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-mcp-1.1.1-py313hca03da5_0.conda
-  sha256: 7ab3e15eac10410c126524599e5990a28f379c37a3da4ecf27d88278cfd8b4c2
-  md5: 112d00c441d60f4398011c37b74547d5
+  size: 138559
+  timestamp: 1784816392222
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-mcp-1.1.3-py313hca03da5_0.conda
+  sha256: d3206ec7722cc3051b8934bdb4f776543f319020a7308f492ead37980697693f
+  md5: 4a9ddb5ab49f6d2db36603a3d1646ef9
   depends:
   - anaconda-anon-usage
   - anaconda-auth >=0.13.0,<1.0.0
-  - anaconda-cli-base >=0.8.1,<1.0.0
-  - anaconda-opentelemetry >=0.8.1,<1.2.0
+  - anaconda-cli-base >=0.9.1,<1.0.0
+  - anaconda-opentelemetry >=1.2.0
   - click >=8.1.0,<9.0.0
   - environments-mcp-server >=1.0.2,<2.0.0
   - mcp-compose >=0.1.12,<2.0.0
@@ -1684,16 +1684,16 @@ packages:
   - rich >=13.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 75917
-  timestamp: 1780062437196
-- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-mcp-1.1.1-py313haa95532_0.conda
-  sha256: 54ebcbd61bc8d9028e36fa707d19ed6761dab7f3d3376912c2d884a0aab6715b
-  md5: ccd17efbcd4b3ef56b09a7a129088c97
+  size: 138902
+  timestamp: 1784816298813
+- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-mcp-1.1.3-py313haa95532_0.conda
+  sha256: e246175f132b18f563e356d8d7650b9d5f09ac74372c730cb966867b50e85c0a
+  md5: 32e698a951f15dd0f02adc3ddff99dea
   depends:
   - anaconda-anon-usage
   - anaconda-auth >=0.13.0,<1.0.0
-  - anaconda-cli-base >=0.8.1,<1.0.0
-  - anaconda-opentelemetry >=0.8.1,<1.2.0
+  - anaconda-cli-base >=0.9.1,<1.0.0
+  - anaconda-opentelemetry >=1.2.0
   - click >=8.1.0,<9.0.0
   - environments-mcp-server >=1.0.2,<2.0.0
   - mcp-compose >=0.1.12,<2.0.0
@@ -1703,11 +1703,11 @@ packages:
   - rich >=13.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 100193
-  timestamp: 1780062496652
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-opentelemetry-1.1.0-py313h06a4308_0.conda
-  sha256: 0cd6732f7a3f8c4f2911c6bc963a5d5fcd6aeb061a408842d5b6207a6a20aa77
-  md5: d8c5512c00cfaa0c16b6b2c51d866378
+  size: 163813
+  timestamp: 1784816428462
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/anaconda-opentelemetry-1.2.1-py313h06a4308_0.conda
+  sha256: 10cee4148cd5557255263d68a02efb509c962ba850f2691be812947db74268f0
+  md5: 4fda27b26cc7c2a458c197d156384326
   depends:
   - anaconda-anon-usage
   - grpcio >=1.71.0
@@ -1723,11 +1723,11 @@ packages:
   - pyyaml >=6.0.2
   license: Apache-2.0
   license_family: APACHE
-  size: 82788
-  timestamp: 1776808534361
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-opentelemetry-1.1.0-py313hd43f75c_0.conda
-  sha256: 51e17a33a7ce7f80dfe8d9586a2a27d8d9a5e53eff4a07476cf62e55101c381e
-  md5: aab07c0ab08553546780a3a40f8f2cec
+  size: 92112
+  timestamp: 1784013296508
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/anaconda-opentelemetry-1.2.1-py313hd43f75c_0.conda
+  sha256: c195dd0ec625348d8e178a731a371c9b97cb7a5b49af8755942d0c6bf730fb50
+  md5: f206d55417cfbb8d40e3ceb0daf6af6d
   depends:
   - anaconda-anon-usage
   - grpcio >=1.71.0
@@ -1743,11 +1743,11 @@ packages:
   - pyyaml >=6.0.2
   license: Apache-2.0
   license_family: APACHE
-  size: 82829
-  timestamp: 1776808540195
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-opentelemetry-1.1.0-py313hca03da5_0.conda
-  sha256: 9d42f2977265e80eb250f006b3ead63d597c360dfc33e4b8fc1a1cb9dfe29abf
-  md5: 9916fa1108527ee314251aec8a0c7353
+  size: 92435
+  timestamp: 1784013328795
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/anaconda-opentelemetry-1.2.1-py313hca03da5_0.conda
+  sha256: d5ba08808d9284ff8891d7bc5460211615a34f3ff4a41b6cabb5be101cff60cc
+  md5: d62ea340d10993948d70048d978aa3a2
   depends:
   - anaconda-anon-usage
   - grpcio >=1.71.0
@@ -1763,11 +1763,11 @@ packages:
   - pyyaml >=6.0.2
   license: Apache-2.0
   license_family: APACHE
-  size: 83086
-  timestamp: 1776808490341
-- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-opentelemetry-1.1.0-py313haa95532_0.conda
-  sha256: 9ef1e52cdb418a6a4051625f1e24499dc88d5ec73ee314cec82f0ac33d263567
-  md5: 8d4b877231bde39bd3ef1270fb015389
+  size: 91688
+  timestamp: 1784013170182
+- conda: https://repo.anaconda.com/pkgs/main/win-64/anaconda-opentelemetry-1.2.1-py313haa95532_0.conda
+  sha256: 36b0984dba948aeae5a75c78d0f9807f744bf3ea945877b66294ba10f16d9b2d
+  md5: def95f1a22b6da88f4b0e65f5cb05984
   depends:
   - anaconda-anon-usage
   - grpcio >=1.71.0
@@ -1783,8 +1783,8 @@ packages:
   - pyyaml >=6.0.2
   license: Apache-2.0
   license_family: APACHE
-  size: 82692
-  timestamp: 1776808693739
+  size: 92390
+  timestamp: 1784013219041
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/annotated-doc-0.0.4-py313h06a4308_0.conda
   sha256: 436b89319aa90a7338c308e0779c595276ae01430febf7968e8f40c5ae17a456
   md5: 6ceee906e5cc1dae03776e7c64e56877
