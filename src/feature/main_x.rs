@@ -267,7 +267,14 @@ fn is_managed_channel(channel: &str) -> bool {
         return true;
     }
     // Check for main, msys2, r from either tier
-    let suffixes = ["/repo/main", "/pkgs/main", "/repo/msys2", "/pkgs/msys2", "/repo/r", "/pkgs/r"];
+    let suffixes = [
+        "/repo/main",
+        "/pkgs/main",
+        "/repo/msys2",
+        "/pkgs/msys2",
+        "/repo/r",
+        "/pkgs/r",
+    ];
     suffixes.iter().any(|suffix| channel.ends_with(suffix))
 }
 
@@ -1154,7 +1161,12 @@ mod tests {
             .collect();
         assert_eq!(
             add_order,
-            vec![urls.r.clone(), urls.msys2.clone(), urls.main_x.clone(), urls.main.clone()]
+            vec![
+                urls.r.clone(),
+                urls.msys2.clone(),
+                urls.main_x.clone(),
+                urls.main.clone()
+            ]
         );
     }
 
