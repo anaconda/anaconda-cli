@@ -631,7 +631,7 @@ class TestMainXEnable:
         run_ana_feature: AnaRunner,
         feature_env: dict[str, str],
     ) -> None:
-        """Enabling main-x when already enabled should succeed with 'already enabled' message."""
+        """Enabling main-x when already enabled should succeed and ensure correct config."""
         # Pre-configure all required default_channels
         condarc_path = Path(feature_env["CONDARC"])
         default_channels_yaml = "\n".join(
@@ -645,10 +645,14 @@ class TestMainXEnable:
         login_result = run_ana_feature("login")
         assert login_result.returncode == 0
 
-        # Try to enable main-x again
+        # Try to enable main-x again - should succeed and reconfigure channels
         result = run_ana_feature("feature", "enable", "main-x", "-f")
         assert result.returncode == 0
-        assert "already enabled" in result.stderr.lower()
+
+        # Verify channels are still correctly configured
+        final_channels = get_default_channels(feature_env)
+        for ch in REQUIRED_DEFAULT_CHANNELS:
+            assert ch in final_channels, f"Expected {ch} in final channels"
 
     def test_enable_main_x_requires_login(
         self,
