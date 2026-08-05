@@ -327,11 +327,11 @@ impl Action {
                 outerbounds::auto_configure(ctx, &instance).await
             }
             Action::ToolInstall { name } => {
-                tools::install::install_tool(ctx, &name).await?;
+                tools::install_tool(ctx, &name).await?;
                 Ok(())
             }
             Action::ToolUninstall { name, force } => {
-                tools::uninstall::uninstall_tool(ctx, &name, force)?;
+                tools::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
             Action::ToolList => {
@@ -339,7 +339,7 @@ impl Action {
                 Ok(())
             }
             Action::ToolUpdate => {
-                let updated = tools::install::update_installed_tools(ctx).await?;
+                let updated = tools::update_installed_tools(ctx).await?;
                 if updated.is_empty() {
                     eprintln!("All tools are up to date.");
                 }

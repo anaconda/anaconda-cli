@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:874ba002-2b5e-4884-8e89-86f322576c32",
+  "serialNumber": "urn:uuid:19bf709a-fd96-49f7-a95f-c7550b1698ed",
   "metadata": {
-    "timestamp": "2026-08-02T07:02:28Z",
+    "timestamp": "2026-08-04T20:39:31Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -9731,6 +9731,41 @@
     },
     {
       "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.5.10",
+      "author": "Alex Crichton <alex@alexcrichton.com>, Thomas de Zeeuw <thomasdezeeuw@gmail.com>",
+      "name": "socket2",
+      "version": "0.5.10",
+      "description": "Utilities for handling networking sockets with a maximal amount of configuration possible intended. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e22376abed350d73dd1cd119b57ffccad95b4e585a7cda43e286245ce23c0678"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/socket2@0.5.10",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/socket2"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/rust-lang/socket2"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/rust-lang/socket2"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.6.5",
       "author": "Alex Crichton <alex@alexcrichton.com>, Thomas de Zeeuw <thomasdezeeuw@gmail.com>",
       "name": "socket2",
@@ -14794,7 +14829,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
         "registry+https://github.com/rust-lang/crates.io-index#option-ext@0.2.0",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {
@@ -15216,7 +15251,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
         "registry+https://github.com/rust-lang/crates.io-index#percent-encoding@2.3.2",
         "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17",
-        "registry+https://github.com/rust-lang/crates.io-index#socket2@0.6.5",
+        "registry+https://github.com/rust-lang/crates.io-index#socket2@0.5.10",
         "registry+https://github.com/rust-lang/crates.io-index#system-configuration@0.7.0",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.1",
         "registry+https://github.com/rust-lang/crates.io-index#tower-service@0.3.3",
@@ -15368,7 +15403,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#is-terminal@0.4.17",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {
@@ -15607,7 +15642,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#nu-ansi-term@0.50.3",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {
@@ -16759,6 +16794,13 @@
       ]
     },
     {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.5.10",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.52.0"
+      ]
+    },
+    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.6.5",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
@@ -16870,14 +16912,14 @@
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.3",
         "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4",
         "registry+https://github.com/rust-lang/crates.io-index#rustix@1.1.4",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#terminal_size@0.4.4",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#rustix@1.1.4",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {
@@ -17566,7 +17608,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#known-folders@1.4.2",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
     {

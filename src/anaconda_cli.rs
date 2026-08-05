@@ -9,7 +9,7 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
     }
 
     eprintln!("Installing anaconda-cli...");
-    tools::install::install_tool(ctx, "anaconda-cli")
+    tools::install_tool(ctx, "anaconda-cli")
         .await
         .map_err(|e| format!("{:?}", e))?;
 
