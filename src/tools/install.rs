@@ -75,14 +75,14 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
     if prefix.exists()
         && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
         && stored_hash.trim() == current_hash
-        && binaries_exist(&prefix, name)
     {
-        return Ok(false);
-    }
+        if binaries_exist(&prefix, name) {
+            return Ok(false);
+        }
 
-    // Prefix exists but binaries are missing — remove corrupted installation
-    // so that install_tool performs a clean reinstall.
-    if prefix.exists() {
+        // Prefix matches the current lockfile but expected binaries are missing
+        // — remove the corrupted installation so that install_tool performs a
+        // clean reinstall.
         std::fs::remove_dir_all(&prefix)
             .into_diagnostic()
             .with_context(|| {
@@ -107,7 +107,7 @@ fn hash_lockfile(content: &str) -> String {
 
 /// Check that all expected binaries for a tool exist in the prefix directory.
 pub(super) fn binaries_exist(prefix: &Path, name: &str) -> bool {
-    let Some(binaries) = specs::binaries(name) else {
+    let Some(binaries) = validation_binaries(name) else {
         return false;
     };
     binaries.iter().all(|binary| {
@@ -116,6 +116,15 @@ pub(super) fn binaries_exist(prefix: &Path, name: &str) -> bool {
         let path = path.with_extension("exe");
         path.exists()
     })
+}
+
+fn validation_binaries(name: &str) -> Option<Vec<PathBuf>> {
+    if name == "anaconda-cli" {
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        return Some(vec![PathBuf::from(bin_subdir).join("anaconda")]);
+    }
+
+    specs::binaries(name)
 }
 
 /// Install a tool from its lockfile.
@@ -434,6 +443,7 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
 
     #[test]
     fn test_hash_lockfile_deterministic() {
@@ -448,6 +458,25 @@ mod tests {
         let content1 = "version: 6\npackages:\n  - name: foo";
         let content2 = "version: 6\npackages:\n  - name: bar";
         assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
+    }
+
+    #[test]
+    fn test_binaries_exist_checks_anaconda_cli_binary() {
+        let temp = TempDir::new().unwrap();
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        let binary = temp.path().join(bin_subdir).join("anaconda");
+        std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+        #[cfg(windows)]
+        let binary = binary.with_extension("exe");
+        std::fs::write(&binary, "binary").unwrap();
+
+        assert!(binaries_exist(temp.path(), "anaconda-cli"));
+    }
+
+    #[test]
+    fn test_binaries_exist_detects_missing_anaconda_cli_binary() {
+        let temp = TempDir::new().unwrap();
+        assert!(!binaries_exist(temp.path(), "anaconda-cli"));
     }
 
     #[tokio::test]
@@ -468,7 +497,6 @@ mod tests {
     #[cfg(unix)]
     mod unix_tests {
         use super::*;
-        use tempfile::TempDir;
 
         #[test]
         fn test_cleanup_broken_symlinks_removes_broken_only() {
