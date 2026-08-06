@@ -85,7 +85,12 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
     if prefix.exists() {
         std::fs::remove_dir_all(&prefix)
             .into_diagnostic()
-            .with_context(|| format!("failed to remove corrupted tool directory: {}", prefix.display()))?;
+            .with_context(|| {
+                format!(
+                    "failed to remove corrupted tool directory: {}",
+                    prefix.display()
+                )
+            })?;
     }
 
     install_tool(ctx, name).await?;
