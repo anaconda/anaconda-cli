@@ -56,7 +56,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
         .iter()
         .map(|name| {
             let prefix = paths::tool_prefix(name);
-            let installed = prefix.exists();
+            let installed = prefix.exists() && super::install::binaries_exist(&prefix, name);
             let binaries = specs::binaries(name).unwrap_or_default();
             ToolInfo {
                 name,

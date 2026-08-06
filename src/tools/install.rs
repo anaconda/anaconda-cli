@@ -27,7 +27,10 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
 pub fn installed_tools() -> Vec<&'static str> {
     specs::all_tools()
         .into_iter()
-        .filter(|name| paths::tool_prefix(name).exists())
+        .filter(|name| {
+            let prefix = paths::tool_prefix(name);
+            prefix.exists() && binaries_exist(&prefix, name)
+        })
         .collect()
 }
 
@@ -72,8 +75,17 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
     if prefix.exists()
         && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
         && stored_hash.trim() == current_hash
+        && binaries_exist(&prefix, name)
     {
         return Ok(false);
+    }
+
+    // Prefix exists but binaries are missing — remove corrupted installation
+    // so that install_tool performs a clean reinstall.
+    if prefix.exists() {
+        std::fs::remove_dir_all(&prefix)
+            .into_diagnostic()
+            .with_context(|| format!("failed to remove corrupted tool directory: {}", prefix.display()))?;
     }
 
     install_tool(ctx, name).await?;
@@ -86,6 +98,19 @@ fn hash_lockfile(content: &str) -> String {
     let mut hasher = DefaultHasher::new();
     content.hash(&mut hasher);
     format!("{:x}", hasher.finish())
+}
+
+/// Check that all expected binaries for a tool exist in the prefix directory.
+pub(super) fn binaries_exist(prefix: &Path, name: &str) -> bool {
+    let Some(binaries) = specs::binaries(name) else {
+        return false;
+    };
+    binaries.iter().all(|binary| {
+        let path = prefix.join(binary);
+        #[cfg(windows)]
+        let path = path.with_extension("exe");
+        path.exists()
+    })
 }
 
 /// Install a tool from its lockfile.
