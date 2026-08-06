@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:874ba002-2b5e-4884-8e89-86f322576c32",
+  "serialNumber": "urn:uuid:bb3e7bee-a3bb-4ebf-aa23-3cdc778c73fa",
   "metadata": {
-    "timestamp": "2026-08-02T07:02:28Z",
+    "timestamp": "2026-08-05T14:26:41Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -818,16 +818,16 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
       "author": "Marshall Pierce <marshall@mpierce.org>",
       "name": "base64",
-      "version": "0.23.0",
+      "version": "0.23.1",
       "description": "encodes and decodes base64 as bytes or utf8",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "b25655df2c3cdd83c5e5b293b88acd880332b2ddadd7c30ac43144fdc0033da9"
+          "content": "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
         }
       ],
       "licenses": [
@@ -835,7 +835,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/base64@0.23.0",
+      "purl": "pkg:cargo/base64@0.23.1",
       "externalReferences": [
         {
           "type": "documentation",
@@ -14194,7 +14194,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0",
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.1",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
-        "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.0",
+        "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.4",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
@@ -14461,7 +14461,7 @@
       "dependsOn": []
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
       "dependsOn": []
     },
     {
