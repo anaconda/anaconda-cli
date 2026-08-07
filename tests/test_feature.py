@@ -769,7 +769,7 @@ class TestMainXEnable:
         condarc_path = Path(feature_env["CONDARC"])
         condarc_path.write_text(
             "channels:\n  - conda-forge\n  - defaults\n"
-            f"default_channels:\n  - https://conda.anaconda.org/conda-forge\n"
+            "default_channels:\n  - https://conda.anaconda.org/conda-forge\n"
         )
 
         # Login first
@@ -1133,7 +1133,14 @@ class TestMainXPixiEnable:
         """Enabling main-x when only main-x is configured should add main before it."""
         # Pre-configure only main-x (wrong - missing main)
         subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
             env=pixi_feature_env,
             check=True,
         )
