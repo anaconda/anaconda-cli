@@ -985,6 +985,136 @@ class TestMainXEndToEnd:
         assert MAIN_X_CHANNEL not in channels_after_disable
 
 
+@requires_conda
+@requires_api_key
+class TestMainXCondaPackageInstall:
+    """E2E tests for installing packages from main-x via conda.
+
+    These tests require ANA_TEST_API_KEY to be set because they download
+    actual packages from repo.anaconda.cloud which requires authentication.
+    """
+
+    def test_can_install_package_from_main_x(
+        self,
+        ana_binary: Path | None,
+        conda_isolated_env: dict[str, str],
+        tmp_path: Path,
+    ) -> None:
+        """Verify that after enabling main-x, we can actually install packages from it."""
+        if ana_binary is None:
+            pytest.skip("ana binary not found")
+
+        # Set up isolated environment with API key auth
+        # Don't override ANA_KEYRING_PATH - use the default ~/.anaconda/keyring
+        # so both ana and anaconda-auth plugin use the same keyring file
+        api_key = get_test_api_key()
+        assert api_key is not None  # guaranteed by @requires_api_key
+
+        env = {
+            **conda_isolated_env,
+            "ANA_OPEN_BROWSER": "false",
+            "ANACONDA_AUTH_USE_UNIFIED_REPO_API_KEY": "1",
+        }
+
+        # Login with API key
+        login_result = subprocess.run(
+            [str(ana_binary), "login", api_key, "-f"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=30,
+        )
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        enable_result = subprocess.run(
+            [str(ana_binary), "feature", "enable", "main-x", "-f"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=30,
+        )
+        assert enable_result.returncode == 0, f"Enable failed: {enable_result.stderr}"
+
+        # Create a temporary conda environment and install a package from main-x
+        # The channels are configured in .condarc by enable main-x, so conda will use
+        # the anaconda-auth plugin to authenticate downloads from those channels
+        conda_env_path = tmp_path / "test_env"
+
+        # Create env and install abn package using the configured default channels
+        install_result = subprocess.run(
+            [
+                "conda",
+                "create",
+                "-p",
+                str(conda_env_path),
+                "abn",
+                "-y",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=120,
+        )
+
+        # Install should succeed when authenticated
+        assert install_result.returncode == 0, (
+            f"Install failed: {install_result.stderr}\nstdout: {install_result.stdout}"
+        )
+
+        # Cleanup: disable main-x
+        subprocess.run(
+            [str(ana_binary), "feature", "disable", "main-x", "-f"],
+            capture_output=True,
+            env=env,
+            timeout=30,
+        )
+
+    def test_cannot_install_from_main_x_without_auth(
+        self,
+        conda_isolated_env: dict[str, str],
+        tmp_path: Path,
+    ) -> None:
+        """Verify that installing from main-x without authentication fails with 403."""
+        # Create a temporary conda environment without auth
+        conda_env_path = tmp_path / "test_env"
+
+        # Try to create env and install from main-x without auth
+        install_result = subprocess.run(
+            [
+                "conda",
+                "create",
+                "-p",
+                str(conda_env_path),
+                "-c",
+                MAIN_X_CHANNEL,
+                "-c",
+                MAIN_CHANNEL_PREMIUM,
+                "abn",
+                "-y",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=conda_isolated_env,
+            timeout=120,
+        )
+
+        # Should fail - either 403 Forbidden or token not found error
+        assert install_result.returncode != 0, "Install should fail without auth"
+        assert (
+            "403" in install_result.stderr
+            or "Forbidden" in install_result.stderr
+            or "unauthorized" in install_result.stderr.lower()
+            or "Token not found" in install_result.stderr
+            or "403" in install_result.stdout
+            or "Forbidden" in install_result.stdout
+        ), f"Expected auth error, got: {install_result.stderr}"
+
+
 # =============================================================================
 # Pixi Main-X Tests
 # =============================================================================
