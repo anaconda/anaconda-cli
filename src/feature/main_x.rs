@@ -1093,7 +1093,12 @@ mod tests {
             .collect();
         assert_eq!(
             add_order,
-            vec![urls.r.clone(), urls.msys2.clone(), urls.main_x.clone(), urls.main.clone()],
+            vec![
+                urls.r.clone(),
+                urls.msys2.clone(),
+                urls.main_x.clone(),
+                urls.main.clone()
+            ],
             "Add order should result in main before main-x after prepends"
         );
     }
