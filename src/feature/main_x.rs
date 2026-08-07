@@ -54,11 +54,6 @@ impl ChannelUrls {
             }
         }
     }
-
-    fn required_default_channels(&self) -> Vec<&str> {
-        // main must come before main-x so that main-x packages override main
-        vec![&self.main, &self.main_x, &self.msys2, &self.r]
-    }
 }
 
 /// Detect the repo host from configured channel URLs.
@@ -90,6 +85,8 @@ enum MainXCondaAction {
     /// Add "defaults" to channels list
     EnsureDefaultsInChannels,
     /// Remove a channel from default_channels
+    RemoveDefaultChannel(String),
+    /// Remove a channel from channels
     RemoveChannel(String),
 }
 
@@ -102,8 +99,11 @@ impl MainXCondaAction {
             MainXCondaAction::EnsureDefaultsInChannels => {
                 "conda config --add channels defaults".to_string()
             }
-            MainXCondaAction::RemoveChannel(channel) => {
+            MainXCondaAction::RemoveDefaultChannel(channel) => {
                 format!("conda config --remove default_channels {}", channel)
+            }
+            MainXCondaAction::RemoveChannel(channel) => {
+                format!("conda config --remove channels {}", channel)
             }
         }
     }
@@ -119,9 +119,13 @@ impl MainXCondaAction {
             MainXCondaAction::EnsureDefaultsInChannels => {
                 run_conda_config(conda_bin, &["--add", "channels", "defaults"])?;
             }
-            MainXCondaAction::RemoveChannel(channel) => {
+            MainXCondaAction::RemoveDefaultChannel(channel) => {
                 // Ignore "not present" errors
                 let _ = run_conda_config(conda_bin, &["--remove", "default_channels", channel]);
+            }
+            MainXCondaAction::RemoveChannel(channel) => {
+                // Ignore "not present" errors
+                let _ = run_conda_config(conda_bin, &["--remove", "channels", channel]);
             }
         }
 
@@ -260,24 +264,6 @@ fn run_pixi_auth_logout(pixi_bin: &Path, host: &str) -> miette::Result<()> {
     Ok(())
 }
 
-/// Check if a channel is one of our managed channels (main, main-x, msys2, r) from either tier.
-fn is_managed_channel(channel: &str) -> bool {
-    // Check for main-x (always .cloud)
-    if channel.ends_with("/repo/main-x") {
-        return true;
-    }
-    // Check for main, msys2, r from either tier
-    let suffixes = [
-        "/repo/main",
-        "/pkgs/main",
-        "/repo/msys2",
-        "/pkgs/msys2",
-        "/repo/r",
-        "/pkgs/r",
-    ];
-    suffixes.iter().any(|suffix| channel.ends_with(suffix))
-}
-
 /// Plan the actions needed to enable main-x channel for conda.
 ///
 /// Ensures all required default_channels are present (main, main-x, msys2, r)
@@ -287,28 +273,62 @@ fn plan_conda_enable_actions(
     channels: &[String],
     default_channels: &[String],
     urls: &ChannelUrls,
-    _is_premium: bool,
+    is_premium: bool,
 ) -> Vec<MainXCondaAction> {
     let mut actions = vec![];
 
-    // Step 1: Remove any existing managed channels (from either tier)
-    // This ensures we can re-add them in the correct order without duplicates.
-    // Note: removes may fail silently for conda's built-in defaults, but that's OK
-    // because the subsequent adds will put them in .condarc which takes precedence.
-    for channel in default_channels {
-        if is_managed_channel(channel) {
+    // Track which required channels are already present (correct tier)
+    let mut have_main = false;
+    let mut have_main_x = false;
+    let mut have_msys2 = false;
+    let mut have_r = false;
+
+    // Step 1: Remove wrong-tier channels from channels list, track correct ones
+    for channel in channels {
+        if is_wrong_tier_channel(channel, is_premium) {
             actions.push(MainXCondaAction::RemoveChannel(channel.clone()));
+        } else if channel == &urls.main {
+            have_main = true;
+        } else if channel == &urls.main_x {
+            have_main_x = true;
+        } else if channel == &urls.msys2 {
+            have_msys2 = true;
+        } else if channel == &urls.r {
+            have_r = true;
         }
     }
 
-    // Step 2: Add all 4 required channels in reverse order (since --add prepends)
-    // Final order: main, main-x, msys2, r
-    let required = urls.required_default_channels();
-    for channel in required.iter().rev() {
-        actions.push(MainXCondaAction::AddDefaultChannel((*channel).to_string()));
+    // Step 2: Remove wrong-tier channels from default_channels, track correct ones
+    for channel in default_channels {
+        if is_wrong_tier_channel(channel, is_premium) {
+            actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
+        } else if channel == &urls.main {
+            have_main = true;
+        } else if channel == &urls.main_x {
+            have_main_x = true;
+        } else if channel == &urls.msys2 {
+            have_msys2 = true;
+        } else if channel == &urls.r {
+            have_r = true;
+        }
     }
 
-    // Step 3: Ensure "defaults" is in channels list
+    // Step 3: Add missing required channels in reverse order (since --add prepends)
+    // Final order: main, main-x, msys2, r
+    if !have_r {
+        actions.push(MainXCondaAction::AddDefaultChannel(urls.r.clone()));
+    }
+    if !have_msys2 {
+        actions.push(MainXCondaAction::AddDefaultChannel(urls.msys2.clone()));
+    }
+    if !have_main_x {
+        actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
+    }
+    if !have_main {
+        actions.push(MainXCondaAction::AddDefaultChannel(urls.main.clone()));
+    }
+
+    // Step 4: Ensure "defaults" is in channels list
     if !channels.iter().any(|c| c == "defaults") {
         actions.push(MainXCondaAction::EnsureDefaultsInChannels);
     }
@@ -319,13 +339,13 @@ fn plan_conda_enable_actions(
 /// Plan the actions needed to disable main-x channel for conda.
 ///
 /// Checks for main-x URLs from both premium (.cloud) and free (.com) domains.
-fn plan_conda_disable_actions(current_channels: &[String]) -> Vec<MainXCondaAction> {
-    // Check for main-x from either domain
-    let main_x_url = current_channels
+fn plan_conda_disable_actions(default_channels: &[String]) -> Vec<MainXCondaAction> {
+    // Check for main-x from either domain in default_channels
+    let main_x_url = default_channels
         .iter()
         .find(|c| c.ends_with("/repo/main-x"));
     if let Some(url) = main_x_url {
-        vec![MainXCondaAction::RemoveChannel(url.clone())]
+        vec![MainXCondaAction::RemoveDefaultChannel(url.clone())]
     } else {
         vec![]
     }
@@ -1075,18 +1095,8 @@ mod tests {
         ];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
 
-        // Should remove all 4 existing channels and re-add all 4 to ensure correct order
-        let remove_count = actions
-            .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
-            .count();
-        let add_count = actions
-            .iter()
-            .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
-            .count();
-
-        assert_eq!(remove_count, 4, "Should remove all 4 existing channels");
-        assert_eq!(add_count, 4, "Should re-add all 4 channels");
+        // All correct-tier channels already present, nothing to do
+        assert!(actions.is_empty(), "No actions needed when all correct channels present");
     }
 
     #[test]
@@ -1096,18 +1106,18 @@ mod tests {
         let default_channels = vec![urls.main_x.clone(), urls.main.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
 
-        // Should remove the 2 existing channels and add all 4
+        // main and main-x are correct tier, just need to add msys2 and r
         let remove_count = actions
             .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
             .count();
         let add_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 2, "Should remove the 2 existing channels");
-        assert_eq!(add_count, 4, "Should add all 4 channels");
+        assert_eq!(remove_count, 0, "No removes needed - channels are correct tier");
+        assert_eq!(add_count, 2, "Should add msys2 and r");
     }
 
     #[test]
@@ -1117,18 +1127,18 @@ mod tests {
         let default_channels = vec![urls.main_x.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
 
-        // Should remove main-x and add all 4 channels
+        // main-x is correct tier, just need to add main, msys2, r
         let remove_count = actions
             .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
             .count();
         let add_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 1, "Should remove existing main-x");
-        assert_eq!(add_count, 4, "Should add all 4 channels");
+        assert_eq!(remove_count, 0, "No removes needed - main-x is correct tier");
+        assert_eq!(add_count, 3, "Should add main, msys2, r");
     }
 
     #[test]
@@ -1138,20 +1148,20 @@ mod tests {
         let default_channels = vec![urls.main.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
 
-        // Should remove main and add all 4 channels in correct order
+        // main is correct tier, just need to add main-x, msys2, r
         let remove_count = actions
             .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
             .count();
         let add_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 1, "Should remove main");
-        assert_eq!(add_count, 4, "Should add all 4 channels");
+        assert_eq!(remove_count, 0, "No removes needed - main is correct tier");
+        assert_eq!(add_count, 3, "Should add main-x, msys2, r");
 
-        // Verify the add order: r, msys2, main-x, main (reverse of final order since --add prepends)
+        // Verify the add order: r, msys2, main-x (reverse of final order since --add prepends)
         let add_order: Vec<String> = actions
             .iter()
             .filter_map(|a| match a {
@@ -1161,12 +1171,7 @@ mod tests {
             .collect();
         assert_eq!(
             add_order,
-            vec![
-                urls.r.clone(),
-                urls.msys2.clone(),
-                urls.main_x.clone(),
-                urls.main.clone()
-            ]
+            vec![urls.r.clone(), urls.msys2.clone(), urls.main_x.clone()]
         );
     }
 
@@ -1175,22 +1180,24 @@ mod tests {
         let free = free_urls();
         let premium = premium_urls();
         let channels = vec!["defaults".to_string()];
-        // Free tier has .com/pkgs channels (except main-x which is always .cloud/repo)
+        // Free tier has .com/pkgs/main (wrong for premium)
+        // main-x is always .cloud/repo so it's correct for both tiers
         let default_channels = vec![free.main.clone(), free.main_x.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &premium, true);
 
-        // Should remove both existing channels and add all 4 premium channels
+        // Should remove free.main (wrong tier) but keep main-x (correct for both)
+        // Then add premium main, msys2, r
         let remove_count = actions
             .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
             .count();
         let add_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 2, "Should remove free.main and main-x");
-        assert_eq!(add_count, 4, "Should add all 4 premium channels");
+        assert_eq!(remove_count, 1, "Should remove free.main only");
+        assert_eq!(add_count, 3, "Should add premium main, msys2, r");
     }
 
     #[test]
@@ -1203,7 +1210,7 @@ mod tests {
         // Should not have any remove actions when no existing managed channels
         let remove_count = actions
             .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
             .count();
         assert_eq!(remove_count, 0);
 
@@ -1220,22 +1227,24 @@ mod tests {
         let free = free_urls();
         let premium = premium_urls();
         let channels = vec!["defaults".to_string()];
-        // Premium has .cloud/repo channels
+        // Premium has .cloud/repo/main (wrong for free tier)
+        // main-x is always .cloud/repo so it's correct for both tiers
         let default_channels = vec![premium.main.clone(), premium.main_x.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &free, false);
 
-        // Should remove both existing channels and add all 4 free channels
+        // Should remove premium.main (wrong tier) but keep main-x (correct for both)
+        // Then add free main, msys2, r
         let remove_count = actions
             .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveChannel(_)))
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
             .count();
         let add_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 2, "Should remove premium.main and main-x");
-        assert_eq!(add_count, 4, "Should add all 4 free channels");
+        assert_eq!(remove_count, 1, "Should remove premium.main only");
+        assert_eq!(add_count, 3, "Should add free main, msys2, r");
     }
 
     // ========================================================================
@@ -1407,12 +1416,22 @@ mod tests {
     }
 
     #[test]
+    fn test_conda_channel_action_remove_default_channel() {
+        let urls = premium_urls();
+        let action = MainXCondaAction::RemoveDefaultChannel(urls.main_x.clone());
+        let cmd = action.command_display();
+
+        assert!(cmd.contains("conda config --remove default_channels"));
+        assert!(cmd.contains(&urls.main_x));
+    }
+
+    #[test]
     fn test_conda_channel_action_remove_channel() {
         let urls = premium_urls();
         let action = MainXCondaAction::RemoveChannel(urls.main_x.clone());
         let cmd = action.command_display();
 
-        assert!(cmd.contains("conda config --remove default_channels"));
+        assert!(cmd.contains("conda config --remove channels"));
         assert!(cmd.contains(&urls.main_x));
     }
 
