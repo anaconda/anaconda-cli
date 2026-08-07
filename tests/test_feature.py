@@ -685,6 +685,118 @@ class TestMainXEnable:
             f"in {final_channels}"
         )
 
+    def test_enable_main_x_correct_order_with_main_preconfigured(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when main is already configured should keep main before main-x."""
+        # Pre-configure only main channel
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_CHANNEL_FREE}\n"
+        )
+
+        # Login first
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_correct_order_with_main_x_preconfigured(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when only main-x is configured should add main before it."""
+        # Pre-configure only main-x channel (wrong - missing main)
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
+
+        # Login first
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_correct_order_with_extra_channels(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x with other channels configured should preserve order."""
+        # Pre-configure with conda-forge and some existing channels
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            "channels:\n  - conda-forge\n  - defaults\n"
+            f"default_channels:\n  - https://conda.anaconda.org/conda-forge\n"
+        )
+
+        # Login first
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
     def test_enable_main_x_requires_login(
         self,
         ana_binary: Path | None,
@@ -952,6 +1064,130 @@ class TestMainXPixiEnable:
         api_key = get_test_api_key()
         login_result = run_ana_pixi_feature("login", api_key, "-f")
         assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_pixi_correct_order_with_main_preconfigured(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when main is already configured should insert main-x after main."""
+        # Pre-configure main channel only
+        subprocess.run(
+            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_pixi_correct_order_with_main_x_preconfigured(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when only main-x is configured should add main before it."""
+        # Pre-configure only main-x (wrong - missing main)
+        subprocess.run(
+            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_X_CHANNEL],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_pixi_correct_order_with_extra_channels(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x with other channels configured should preserve main before main-x."""
+        # Pre-configure conda-forge
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                "https://conda.anaconda.org/conda-forge",
+            ],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
 
         # Enable main-x
         result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
