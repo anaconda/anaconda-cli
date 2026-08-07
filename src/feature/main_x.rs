@@ -1096,7 +1096,10 @@ mod tests {
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
 
         // All correct-tier channels already present, nothing to do
-        assert!(actions.is_empty(), "No actions needed when all correct channels present");
+        assert!(
+            actions.is_empty(),
+            "No actions needed when all correct channels present"
+        );
     }
 
     #[test]
@@ -1116,7 +1119,10 @@ mod tests {
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 0, "No removes needed - channels are correct tier");
+        assert_eq!(
+            remove_count, 0,
+            "No removes needed - channels are correct tier"
+        );
         assert_eq!(add_count, 2, "Should add msys2 and r");
     }
 
@@ -1137,7 +1143,10 @@ mod tests {
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 0, "No removes needed - main-x is correct tier");
+        assert_eq!(
+            remove_count, 0,
+            "No removes needed - main-x is correct tier"
+        );
         assert_eq!(add_count, 3, "Should add main, msys2, r");
     }
 
