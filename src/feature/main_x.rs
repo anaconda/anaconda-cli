@@ -1081,6 +1081,21 @@ mod tests {
                 .iter()
                 .any(|a| matches!(a, MainXCondaAction::EnsureDefaultsInChannels))
         );
+
+        // Verify add order: r, msys2, main-x, main (reverse since --add prepends)
+        // Final order after prepends: main, main-x, msys2, r
+        let add_order: Vec<String> = actions
+            .iter()
+            .filter_map(|a| match a {
+                MainXCondaAction::AddDefaultChannel(c) => Some(c.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            add_order,
+            vec![urls.r.clone(), urls.msys2.clone(), urls.main_x.clone(), urls.main.clone()],
+            "Add order should result in main before main-x after prepends"
+        );
     }
 
     #[test]

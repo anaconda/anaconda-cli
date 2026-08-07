@@ -654,6 +654,37 @@ class TestMainXEnable:
         for ch in REQUIRED_DEFAULT_CHANNELS:
             assert ch in final_channels, f"Expected {ch} in final channels"
 
+    def test_enable_main_x_correct_order(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x should configure channels with main before main-x."""
+        # Login first via mock server
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
     def test_enable_main_x_requires_login(
         self,
         ana_binary: Path | None,
@@ -910,6 +941,38 @@ class TestMainXPixiEnable:
         result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
         assert result.returncode == 0
         assert "already enabled" in result.stderr.lower()
+
+    def test_enable_main_x_pixi_correct_order(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x with --pixi should configure channels with main before main-x."""
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
 
     def test_enable_main_x_pixi_requires_login(
         self,
