@@ -138,7 +138,13 @@ mod tests {
             ChannelAction::Run(args) => {
                 assert_eq!(
                     args,
-                    vec!["create", "--public", "--namespace", "my-namespace", "org/channel"]
+                    vec![
+                        "create",
+                        "--public",
+                        "--namespace",
+                        "my-namespace",
+                        "org/channel"
+                    ]
                 );
             }
             _ => panic!("Expected Run action"),
@@ -164,7 +170,10 @@ mod tests {
         };
         match cmd_with_namespace.into_action() {
             ChannelAction::Run(args) => {
-                assert_eq!(args, vec!["remove", "--namespace", "my-namespace", "org/channel"]);
+                assert_eq!(
+                    args,
+                    vec!["remove", "--namespace", "my-namespace", "org/channel"]
+                );
             }
             _ => panic!("Expected Run action"),
         }
