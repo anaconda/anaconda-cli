@@ -6,12 +6,8 @@ use super::{InitOptions, ensure_configured, init_project, open_app, view_app};
 
 /// Run the outerbounds CLI wrapper with the given arguments.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
-    // Auto-install outerbounds tool if not present
-    if !crate::paths::bin_path("outerbounds").exists() {
-        status::info("Installing outerbounds tool...");
-        tools::install::install_tool(ctx, "outerbounds").await?;
-        status::blank_line();
-    }
+    // Auto-install or update outerbounds tool as needed
+    tools::install::ensure_tool(ctx, "outerbounds").await?;
 
     // Handle `ob app open <name>`
     if args.len() >= 3 && args[0] == "app" && args[1] == "open" {

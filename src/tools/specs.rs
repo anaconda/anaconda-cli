@@ -9,6 +9,8 @@ struct Tool {
     binaries: &'static [&'static [&'static str]],
     /// If set, the tool is experimental and this message will be shown as a warning.
     experimental: Option<&'static str>,
+    /// Whether this tool should be auto-updated when `ana` is updated.
+    auto_update: bool,
 }
 
 /// Embedded tool configurations.
@@ -20,6 +22,7 @@ const TOOLS: &[Tool] = &[
         // to avoid shadowing users' existing anaconda command from anaconda-auth
         binaries: &[],
         experimental: None,
+        auto_update: true,
     },
     #[cfg(unix)]
     Tool {
@@ -27,12 +30,14 @@ const TOOLS: &[Tool] = &[
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
+        auto_update: true,
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
         experimental: None,
+        auto_update: false,
     },
 ];
 
@@ -78,6 +83,11 @@ pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
 }
 
+/// Returns whether auto-update is enabled for a tool by default.
+pub fn auto_update_default(name: &str) -> bool {
+    find_tool(name).is_some_and(|t| t.auto_update)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,5 +106,20 @@ mod tests {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
             assert!(content("unknown-tool").is_none());
         });
+    }
+
+    #[test]
+    fn test_auto_update_default_anaconda_cli() {
+        assert!(auto_update_default("anaconda-cli"));
+    }
+
+    #[test]
+    fn test_auto_update_default_pixi() {
+        assert!(!auto_update_default("pixi"));
+    }
+
+    #[test]
+    fn test_auto_update_default_unknown_tool() {
+        assert!(!auto_update_default("unknown-tool"));
     }
 }

@@ -228,7 +228,7 @@ def merge_audit(sbom: dict, audit: dict) -> None:
 
         ratings = []
         cvss = advisory.get("cvss")
-        if cvss:
+        if cvss and isinstance(cvss, dict):
             score = cvss.get("score")
             if score is not None:
                 severity = _cvss_to_severity(float(score))

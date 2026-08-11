@@ -2,14 +2,40 @@
 
 from __future__ import annotations
 
+import platform
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
+
+# Maps Python (sys.platform, platform.machine()) values to installer filenames
+# produced by src/installer/mod.rs::detect_target.
+_MINICONDA_FILENAMES = {
+    ("darwin", "arm64"): "Miniconda3-latest-MacOSX-arm64.sh",
+    ("darwin", "x86_64"): "Miniconda3-latest-MacOSX-x86_64.sh",
+    ("linux", "x86_64"): "Miniconda3-latest-Linux-x86_64.sh",
+    ("linux", "aarch64"): "Miniconda3-latest-Linux-aarch64.sh",
+    ("win32", "x86_64"): "Miniconda3-latest-Windows-x86_64.exe",
+    ("win32", "amd64"): "Miniconda3-latest-Windows-x86_64.exe",
+}
+
+
+def _expected_miniconda_filename() -> str:
+    """The installer filename ana would pick for the current platform."""
+    key = (sys.platform, platform.machine().lower())
+    filename = _MINICONDA_FILENAMES.get(key)
+    if filename is None:
+        raise RuntimeError(
+            f"no known miniconda filename for platform {key}; "
+            "update _MINICONDA_FILENAMES to match src/installer/mod.rs"
+        )
+    return filename
 
 
 class TestToolHelp:
@@ -42,6 +68,43 @@ class TestToolHelp:
         result = run_ana("tool", "download", "--help")
         assert result.returncode == 0
         assert "miniconda" in result.stdout.lower()
+
+    def test_tool_download_no_args_shows_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "download")
+        assert result.returncode == 0
+        assert "miniconda" in result.stdout.lower()
+
+
+class TestToolDownloadCommand:
+    """Tests for 'ana tool download miniconda' subcommand.
+
+    These cases only cover paths that don't require a real network call:
+    ana tool download miniconda always fetches from the hardcoded
+    https://repo.anaconda.com/miniconda/ (no env var or flag override
+    exists yet to redirect it to a mock server), so actual download,
+    checksum verification, and checksum-mismatch behavior aren't covered
+    here. See src/installer/mod.rs for that logic and its Rust unit tests.
+    """
+
+    def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "download", "nonexistent-installer")
+        assert result.returncode != 0
+        assert "only miniconda is currently supported" in result.stderr.lower()
+        assert "nonexistent-installer" in result.stderr
+
+    def test_download_fails_when_destination_already_exists(
+        self, run_ana: AnaRunner, tmp_path: Path
+    ) -> None:
+        """The pre-flight existence check runs before any network call, so this
+        is safe to test without a mock server."""
+        existing = tmp_path / _expected_miniconda_filename()
+        sentinel = b"do-not-overwrite"
+        existing.write_bytes(sentinel)
+
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path)
+        assert result.returncode != 0
+        assert "already exists" in result.stderr.lower()
+        assert existing.read_bytes() == sentinel
 
 
 class TestToolInstallPixi:
@@ -116,6 +179,27 @@ class TestToolInstallPixi:
         assert result.returncode != 0
         assert "unknown tool" in result.stderr.lower()
 
+    @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
+    def test_tool_install_cleans_up_broken_symlink(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Manually deleting the tool dir leaves a broken symlink behind;
+        re-running install should clean it up before recreating it. See
+        CLI-526."""
+        result = run_ana("tool", "install", "pixi")
+        assert result.returncode == 0
+
+        tool_dir = fake_home / ".ana" / "tools" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
+        shutil.rmtree(tool_dir)
+        assert bin_path.is_symlink()
+        assert not bin_path.exists(), "symlink should now be broken"
+
+        result = run_ana("tool", "install", "pixi")
+        assert result.returncode == 0
+        assert bin_path.is_symlink()
+        assert bin_path.exists(), "symlink should be recreated and valid"
+
 
 class TestToolList:
     """Tests for 'ana tool list' subcommand."""
@@ -175,6 +259,77 @@ class TestToolList:
             if "pixi" in line.lower() and "anaconda" not in line.lower()
         ][0]
         assert "✓" in pixi_line_after
+
+    @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
+    def test_tool_list_cleans_up_broken_symlink(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Manually deleting the tool dir leaves a broken symlink behind;
+        `tool list` should clean it up rather than leaving it dangling. See
+        CLI-526."""
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        tool_dir = fake_home / ".ana" / "tools" / "pixi"
+        bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
+        shutil.rmtree(tool_dir)
+        assert bin_path.is_symlink()
+        assert not bin_path.exists(), "symlink should now be broken"
+
+        result = run_ana("tool", "list")
+        assert result.returncode == 0
+        assert not bin_path.is_symlink(), "broken symlink should be removed"
+
+
+class TestToolUpdate:
+    """Tests for 'ana tool update' subcommand."""
+
+    def test_tool_update_help(self, run_ana: AnaRunner) -> None:
+        result = run_ana("tool", "update", "--help")
+        assert result.returncode == 0
+        assert "Update all installed tools" in result.stdout
+
+    def test_tool_update_no_tools_installed(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update with no tools installed shows up to date."""
+        result = run_ana("tool", "update")
+        assert result.returncode == 0
+        assert "up to date" in result.stderr.lower()
+
+    def test_tool_update_updates_installed_tool(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update updates an installed tool when lockfile hash changes."""
+        # First install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Verify hash file was created
+        hash_file = fake_home / ".ana" / "tools" / "pixi" / ".lockfile-hash"
+        assert hash_file.exists(), "Lockfile hash should be stored after install"
+
+        # Corrupt the hash to simulate a lockfile change
+        hash_file.write_text("fakehash")
+
+        # Run tool update - should detect mismatch and update
+        # Note: pixi has auto_update=false by default, so we must enable it via env
+        update_result = run_ana("tool", "update", env={"ANA_AUTO_UPDATE_TOOLS": "true"})
+        assert update_result.returncode == 0
+        assert "pixi" in update_result.stderr.lower()
+
+    def test_tool_update_skips_up_to_date_tools(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Test that tool update skips tools that are already up to date."""
+        # First install pixi
+        install_result = run_ana("tool", "install", "pixi")
+        assert install_result.returncode == 0
+
+        # Run tool update - should show up to date
+        update_result = run_ana("tool", "update")
+        assert update_result.returncode == 0
+        assert "up to date" in update_result.stderr.lower()
 
 
 class TestToolUninstall:

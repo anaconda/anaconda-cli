@@ -18,19 +18,19 @@ fn left_margin() -> String {
 /// Print a command row: "    command      description"
 /// If the description contains "(experimental)", it will be styled in amber.
 fn print_command_row(term: &Term, name: &str, desc: &str) {
-    let styled_name = HelpStyle::Command.style().apply_to(name);
+    let styled_name = HelpStyle::Command.apply(name);
     let styled_desc = if let Some(idx) = desc.find("(experimental)") {
         let before = &desc[..idx];
         let tag = "(experimental)";
         let after = &desc[idx + tag.len()..];
         format!(
             "{}{}{}",
-            HelpStyle::Desc.style().apply_to(before),
+            HelpStyle::Desc.apply(before),
             crate::ui::status::note_experimental(tag),
-            HelpStyle::Desc.style().apply_to(after)
+            HelpStyle::Desc.apply(after)
         )
     } else {
-        HelpStyle::Desc.style().apply_to(desc).to_string()
+        HelpStyle::Desc.apply(desc)
     };
     let _ = term.write_line(&format!(
         "{}  {styled_name:<20} {styled_desc}",
@@ -40,27 +40,24 @@ fn print_command_row(term: &Term, name: &str, desc: &str) {
 
 /// Print an option row with optional short/long flags
 fn print_option_row(term: &Term, short: Option<&str>, long: Option<&str>, desc: &str) {
-    let cmd_style = HelpStyle::Command.style();
-    let dim_style = HelpStyle::Dim.style();
-
     let (name, visible_len) = match (short, long) {
         (Some(s), Some(l)) => {
             let styled = format!(
                 "{}{}{}",
-                cmd_style.apply_to(s),
-                dim_style.apply_to(", "),
-                cmd_style.apply_to(l)
+                HelpStyle::Command.apply(s),
+                HelpStyle::Dim.apply(", "),
+                HelpStyle::Command.apply(l)
             );
             let visible = s.len() + 2 + l.len(); // "s" + ", " + "l"
             (styled, visible)
         }
-        (Some(s), None) => (cmd_style.apply_to(s).to_string(), s.len()),
-        (None, Some(l)) => (cmd_style.apply_to(l).to_string(), l.len()),
+        (Some(s), None) => (HelpStyle::Command.apply(s), s.len()),
+        (None, Some(l)) => (HelpStyle::Command.apply(l), l.len()),
         (None, None) => (String::new(), 0),
     };
 
     let padding = " ".repeat(20_usize.saturating_sub(visible_len));
-    let styled_desc = HelpStyle::Desc.style().apply_to(desc);
+    let styled_desc = HelpStyle::Desc.apply(desc);
     let _ = term.write_line(&format!("{}  {name}{padding} {styled_desc}", left_margin()));
 }
 
@@ -69,7 +66,7 @@ fn print_section(term: &Term, name: &str) {
     let _ = term.write_line(&format!(
         "{}{}",
         left_margin(),
-        HelpStyle::Section.style().apply_to(name.to_uppercase())
+        HelpStyle::Section.apply(name.to_uppercase())
     ));
 }
 
@@ -122,21 +119,15 @@ fn print_header(term: &Term) {
     let _ = term.write_line(&format!(
         "{}{} {}",
         ind,
-        HelpStyle::Command.style().apply_to("ana"),
+        HelpStyle::Command.apply("ana"),
         VERSION
     ));
-    let _ = term.write_line(&format!(
-        "{}{}",
-        ind,
-        HelpStyle::Desc.style().apply_to(TAGLINE)
-    ));
+    let _ = term.write_line(&format!("{}{}", ind, HelpStyle::Desc.apply(TAGLINE)));
     let _ = term.write_line("");
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
-        HelpStyle::Desc
-            .style()
-            .apply_to("Usage: ana [OPTIONS] COMMAND [ARGS]...")
+        HelpStyle::Desc.apply("Usage: ana [OPTIONS] COMMAND [ARGS]...")
     ));
     let _ = term.write_line("");
 }
@@ -148,8 +139,6 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     let margin = left_margin();
     let inner_width: usize = 76;
     let cmd_left_margin = "  "; // Indent for command lines
-    let border = HelpStyle::BoxBorder.style();
-    let bg = HelpStyle::BoxDesc.style(); // For consistent background
 
     // Box-drawing characters for rounded corners
     let horizontal = "─";
@@ -157,9 +146,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     // Top border
     let _ = term.write_line(&format!(
         "{margin}{}{}{}",
-        border.apply_to("╭"),
-        border.apply_to(horizontal.repeat(inner_width)),
-        border.apply_to("╮")
+        HelpStyle::BoxBorder.apply("╭"),
+        HelpStyle::BoxBorder.apply(horizontal.repeat(inner_width)),
+        HelpStyle::BoxBorder.apply("╮")
     ));
 
     // Content lines
@@ -172,9 +161,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
         let padded_desc = format!(" {comment}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
             "{margin}{}{}{}",
-            border.apply_to("│"),
-            HelpStyle::BoxDesc.style().apply_to(&padded_desc),
-            border.apply_to("│")
+            HelpStyle::BoxBorder.apply("│"),
+            HelpStyle::BoxDesc.apply(&padded_desc),
+            HelpStyle::BoxBorder.apply("│")
         ));
 
         // Command line (left_margined)
@@ -183,9 +172,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
         let padded_cmd = format!(" {cmd_with_left_margin}{}", " ".repeat(padding));
         let _ = term.write_line(&format!(
             "{margin}{}{}{}",
-            border.apply_to("│"),
-            HelpStyle::BoxCommand.style().apply_to(&padded_cmd),
-            border.apply_to("│")
+            HelpStyle::BoxBorder.apply("│"),
+            HelpStyle::BoxCommand.apply(&padded_cmd),
+            HelpStyle::BoxBorder.apply("│")
         ));
 
         // Add spacing between examples (except after last)
@@ -193,9 +182,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
             let empty_line = " ".repeat(inner_width);
             let _ = term.write_line(&format!(
                 "{margin}{}{}{}",
-                border.apply_to("│"),
-                bg.apply_to(&empty_line),
-                border.apply_to("│")
+                HelpStyle::BoxBorder.apply("│"),
+                HelpStyle::BoxDesc.apply(&empty_line),
+                HelpStyle::BoxBorder.apply("│")
             ));
         }
     }
@@ -203,9 +192,9 @@ fn print_examples_block(term: &Term, examples: Vec<HelpExample>) {
     // Bottom border
     let _ = term.write_line(&format!(
         "{margin}{}{}{}",
-        border.apply_to("╰"),
-        border.apply_to(horizontal.repeat(inner_width)),
-        border.apply_to("╯")
+        HelpStyle::BoxBorder.apply("╰"),
+        HelpStyle::BoxBorder.apply(horizontal.repeat(inner_width)),
+        HelpStyle::BoxBorder.apply("╯")
     ));
     let _ = term.write_line("");
 }
@@ -243,10 +232,8 @@ fn print_footer(term: &Term) {
     let _ = term.write_line(&format!(
         "{}{} {}",
         left_margin(),
-        HelpStyle::Desc
-            .style()
-            .apply_to("Full documentation and guides at"),
-        HelpStyle::Section.style().apply_to(format!("→ {DOCS_URL}")),
+        HelpStyle::Desc.apply("Full documentation and guides at"),
+        HelpStyle::Section.apply(format!("→ {DOCS_URL}")),
     ));
     let _ = term.write_line("");
 }
@@ -275,11 +262,7 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     }
 
     let usage = build_usage_string(cmd, path);
-    let _ = term.write_line(&format!(
-        "{}{}",
-        ind,
-        HelpStyle::Dim.style().apply_to(usage)
-    ));
+    let _ = term.write_line(&format!("{}{}", ind, HelpStyle::Dim.apply(usage)));
     let _ = term.write_line("");
 
     // Examples (if available for this subcommand)

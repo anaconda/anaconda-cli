@@ -7,7 +7,7 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::Config;
+use crate::config::{self, Config};
 use crate::context::CommandContext;
 use crate::feature;
 use crate::feedback;
@@ -21,6 +21,7 @@ use crate::packages::{self, ChannelAction, ChannelSubcommands};
 use crate::tools;
 use crate::ui::status;
 use crate::update;
+use crate::update_notifier;
 use crate::utils::capitalize_first;
 
 /// Log level for tracing output.
@@ -72,16 +73,52 @@ pub async fn execute() {
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
+    let skip_update_check = matches!(
+        &action,
+        Action::Update { .. }
+            | Action::CheckForUpdate
+            | Action::ShowAvailableVersions
+            | Action::TelemetrySubmit
+            | Action::TelemetryKill
+            | Action::TelemetryStatus
+    );
+
     let result = action.execute().await;
 
     if !skip_telemetry_spawn && let Err(e) = crate::telemetry::spawn_telemetry_submitter() {
         tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
+    if result.is_ok() && !skip_update_check && config::update_check_enabled() {
+        check_for_update_notification().await;
+    }
+
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
         eprintln!("{:?}", e);
         std::process::exit(1);
+    }
+}
+
+async fn check_for_update_notification() {
+    use std::time::Duration;
+
+    let ctx = crate::context::CommandContext::new();
+
+    let result = tokio::time::timeout(
+        Duration::from_millis(500),
+        update_notifier::check_for_update(&ctx, VERSION),
+    )
+    .await;
+
+    match result {
+        Ok(Some(latest)) => {
+            update_notifier::show_notification(VERSION, &latest);
+        }
+        Ok(None) => {}
+        Err(_) => {
+            tracing::debug!("Update check timed out");
+        }
     }
 }
 
@@ -147,6 +184,7 @@ pub enum Action {
         force: bool,
     },
     ToolList,
+    ToolUpdate,
     ApiFetch {
         method: String,
         url: String,
@@ -206,6 +244,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
+            Action::ToolUpdate => "tool.update",
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
@@ -305,6 +344,13 @@ impl Action {
                 tools::list::print_tool_list(ctx);
                 Ok(())
             }
+            Action::ToolUpdate => {
+                let updated = tools::install::update_installed_tools(ctx).await?;
+                if updated.is_empty() {
+                    eprintln!("All tools are up to date.");
+                }
+                Ok(())
+            }
             Action::Login {
                 api_key,
                 prompt_api_key,
@@ -333,7 +379,7 @@ impl Action {
                 Ok(())
             }
             Action::OpenFeedback => {
-                feedback::open_feedback();
+                feedback::open_feedback(&ctx.config);
                 Ok(())
             }
             Action::ApiFetch {
@@ -651,6 +697,7 @@ pub fn parse() -> (Action, LogLevel) {
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
+            Some(ToolCommands::Update) => Action::ToolUpdate,
             Some(ToolCommands::Download { name }) => match name {
                 None => Action::ShowSubcommandHelp("tool download".to_string()),
                 Some(name) => Action::ToolDownload { name },
@@ -1078,6 +1125,9 @@ enum ToolCommands {
         #[arg(short = 'y', long = "yes")]
         force: bool,
     },
+
+    /// Update all installed tools
+    Update,
 
     /// Download an installer (currently miniconda only)
     Download {

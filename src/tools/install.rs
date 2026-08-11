@@ -23,6 +23,71 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
     mp
 });
 
+/// Returns the names of all currently installed tools.
+pub fn installed_tools() -> Vec<&'static str> {
+    specs::all_tools()
+        .into_iter()
+        .filter(|name| paths::tool_prefix(name).exists())
+        .collect()
+}
+
+/// Update all installed tools that have outdated lockfiles.
+///
+/// Only updates tools where auto-update is enabled. The global config setting
+/// `auto_update_tools` overrides individual tool defaults when set.
+///
+/// Returns the names of tools that were updated.
+pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
+    let mut updated = Vec::new();
+    for name in installed_tools() {
+        if should_auto_update(ctx, name) && ensure_tool(ctx, name).await? {
+            updated.push(name.to_string());
+        }
+    }
+    Ok(updated)
+}
+
+/// Check if a tool should be auto-updated.
+///
+/// If `auto_update_tools` is set in config, use that value for all tools.
+/// Otherwise, defer to each tool's default setting.
+fn should_auto_update(ctx: &CommandContext, name: &str) -> bool {
+    ctx.config
+        .auto_update_tools
+        .unwrap_or_else(|| specs::auto_update_default(name))
+}
+
+/// Ensure a managed tool is installed and up-to-date.
+///
+/// Returns `true` if an install/update was performed, `false` if already current.
+pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<bool> {
+    let prefix = paths::tool_prefix(name);
+    let hash_file = prefix.join(".lockfile-hash");
+
+    let lock_content =
+        specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+    let current_hash = hash_lockfile(&lock_content);
+
+    // Check if tool is installed and lockfile hash matches
+    if prefix.exists()
+        && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
+        && stored_hash.trim() == current_hash
+    {
+        return Ok(false);
+    }
+
+    install_tool(ctx, name).await?;
+    Ok(true)
+}
+
+fn hash_lockfile(content: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
 /// Install a tool from its lockfile.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
@@ -43,6 +108,12 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     eprintln!("Installing {} into {}", name, prefix.display());
 
     install_from_lockfile(ctx, &prefix, &lock_content).await?;
+
+    // Store the lockfile hash for future update checks
+    let hash_file = prefix.join(".lockfile-hash");
+    std::fs::write(&hash_file, hash_lockfile(&lock_content))
+        .into_diagnostic()
+        .context("failed to write lockfile hash")?;
 
     // Create symlinks in bin directory
     create_bin_symlinks(&prefix, &binaries)?;
@@ -153,11 +224,45 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
+    #[cfg(unix)]
+    cleanup_broken_symlinks(&bin_dir)?;
+
     for binary in binaries {
         #[cfg(unix)]
         create_bin_symlink(&bin_dir, prefix, binary)?;
         #[cfg(windows)]
         create_bin_shim(&bin_dir, prefix, binary)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(unix)]
+/// Remove broken symlinks left behind in ~/.ana/bin/, e.g. when a tool's
+/// install directory was deleted manually instead of via `ana tool uninstall`.
+pub(super) fn cleanup_broken_symlinks(bin_dir: &Path) -> miette::Result<()> {
+    if !bin_dir.exists() {
+        return Ok(());
+    }
+
+    for entry in std::fs::read_dir(bin_dir)
+        .into_diagnostic()
+        .context("failed to read bin directory")?
+    {
+        let path = entry.into_diagnostic()?.path();
+        // Only treat a missing target as broken; leave symlinks alone if the
+        // target merely couldn't be stat'd (e.g. a permission error), since
+        // `Path::exists()` can't distinguish the two cases.
+        let target_missing = matches!(
+            std::fs::metadata(&path),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound
+        );
+        if path.is_symlink() && target_missing {
+            std::fs::remove_file(&path)
+                .into_diagnostic()
+                .with_context(|| format!("failed to remove broken symlink: {}", path.display()))?;
+            eprintln!("   Removed broken symlink: {}", path.display());
+        }
     }
 
     Ok(())
@@ -300,6 +405,21 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_hash_lockfile_deterministic() {
+        let content = "version: 6\npackages:\n  - name: foo";
+        let hash1 = hash_lockfile(content);
+        let hash2 = hash_lockfile(content);
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_hash_lockfile_different_content() {
+        let content1 = "version: 6\npackages:\n  - name: foo";
+        let content2 = "version: 6\npackages:\n  - name: bar";
+        assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
+    }
+
     #[tokio::test]
     async fn test_lockfile_parse_error() {
         let ctx = CommandContext::new();
@@ -313,6 +433,74 @@ mod tests {
             "error should mention parsing: {}",
             err
         );
+    }
+
+    #[cfg(unix)]
+    mod unix_tests {
+        use super::*;
+        use tempfile::TempDir;
+
+        #[test]
+        fn test_cleanup_broken_symlinks_removes_broken_only() {
+            let temp = TempDir::new().unwrap();
+            let bin_dir = temp.path().join("bin");
+            std::fs::create_dir_all(&bin_dir).unwrap();
+
+            // A valid symlink pointing to a file that exists
+            let target = temp.path().join("target");
+            std::fs::write(&target, "binary").unwrap();
+            let valid_link = bin_dir.join("valid");
+            std::os::unix::fs::symlink(&target, &valid_link).unwrap();
+
+            // A broken symlink pointing to a file that doesn't exist
+            let broken_link = bin_dir.join("broken");
+            std::os::unix::fs::symlink(temp.path().join("missing"), &broken_link).unwrap();
+
+            cleanup_broken_symlinks(&bin_dir).unwrap();
+
+            assert!(valid_link.exists(), "valid symlink should remain");
+            assert!(
+                !broken_link.is_symlink(),
+                "broken symlink should be removed"
+            );
+        }
+
+        #[test]
+        fn test_cleanup_broken_symlinks_missing_bin_dir_is_ok() {
+            let temp = TempDir::new().unwrap();
+            let bin_dir = temp.path().join("does-not-exist");
+            assert!(cleanup_broken_symlinks(&bin_dir).is_ok());
+        }
+
+        #[test]
+        fn test_cleanup_broken_symlinks_keeps_unreadable_target() {
+            use std::os::unix::fs::PermissionsExt;
+
+            let temp = TempDir::new().unwrap();
+            let bin_dir = temp.path().join("bin");
+            std::fs::create_dir_all(&bin_dir).unwrap();
+
+            // A symlink whose target exists but sits behind a directory with
+            // no execute permission, so stat()-ing it fails with
+            // PermissionDenied rather than NotFound. This must NOT be
+            // treated as broken.
+            let locked_dir = temp.path().join("locked");
+            std::fs::create_dir_all(&locked_dir).unwrap();
+            let target = locked_dir.join("target");
+            std::fs::write(&target, "binary").unwrap();
+            let link = bin_dir.join("tool");
+            std::os::unix::fs::symlink(&target, &link).unwrap();
+
+            std::fs::set_permissions(&locked_dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+            let result = cleanup_broken_symlinks(&bin_dir);
+            std::fs::set_permissions(&locked_dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+            result.unwrap();
+            assert!(
+                link.is_symlink(),
+                "symlink with unreadable (not missing) target should be kept"
+            );
+        }
     }
 
     #[cfg(windows)]

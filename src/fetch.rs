@@ -85,6 +85,7 @@ mod tests {
             include_prereleases: false,
             pip_index_url: "https://example.com/simple".to_string(),
             self_update_url: Some("https://example.com".to_string()),
+            auto_update_tools: None,
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]

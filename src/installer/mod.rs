@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::path::Path;
 
 use futures_util::StreamExt;
@@ -10,6 +11,13 @@ use tokio::io::AsyncWriteExt;
 
 use crate::context::CommandContext;
 use crate::ui::progress::build_progress_bar;
+
+fn to_hex(bytes: impl AsRef<[u8]>) -> String {
+    bytes.as_ref().iter().fold(String::new(), |mut acc, b| {
+        write!(acc, "{:02x}", b).unwrap();
+        acc
+    })
+}
 
 const MINICONDA_BASE_URL: &str = "https://repo.anaconda.com/miniconda/";
 
@@ -144,7 +152,7 @@ async fn download_and_verify(
         .map_err(|e| miette!("failed to flush temp file: {}", e))?;
     drop(file);
 
-    let actual_sha = format!("{:x}", hasher.finalize());
+    let actual_sha = to_hex(hasher.finalize());
     finalize_verified_download(&temp_path, &actual_sha, expected_sha, dest).await
 }
 
@@ -396,7 +404,7 @@ mod tests {
         let temp = dest.with_extension("tmp");
 
         tokio::fs::write(&temp, b"fake content").await.unwrap();
-        let actual_sha = format!("{:x}", Sha256::digest(b"fake content"));
+        let actual_sha = to_hex(Sha256::digest(b"fake content"));
         let expected_sha = "0".repeat(64);
 
         let result = finalize_verified_download(&temp, &actual_sha, &expected_sha, &dest).await;
@@ -420,7 +428,7 @@ mod tests {
         let temp = dest.with_extension("tmp");
 
         tokio::fs::write(&temp, b"fake content").await.unwrap();
-        let actual_sha = format!("{:x}", Sha256::digest(b"fake content"));
+        let actual_sha = to_hex(Sha256::digest(b"fake content"));
 
         // expected provided in UPPERCASE to exercise case-insensitive comparison
         let expected_sha = actual_sha.to_uppercase();
@@ -432,5 +440,18 @@ mod tests {
         assert!(dest.exists(), "dest file should exist after rename");
         let contents = tokio::fs::read(&dest).await.unwrap();
         assert_eq!(contents, b"fake content");
+    }
+
+    #[test]
+    fn test_to_hex_known_values() {
+        // Verify our hex formatting produces correct SHA256 for known inputs.
+        assert_eq!(
+            to_hex(Sha256::digest(b"hello world")),
+            "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+        );
+        assert_eq!(
+            to_hex(Sha256::digest(b"")),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
     }
 }
