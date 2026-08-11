@@ -24,6 +24,10 @@ pub enum ChannelSubcommands {
         /// Create a public channel
         #[arg(long)]
         public: bool,
+
+        /// Namespace for the channel
+        #[arg(long)]
+        namespace: Option<String>,
     },
 
     /// Remove a channel
@@ -31,6 +35,10 @@ pub enum ChannelSubcommands {
         /// Channel in format org/channel
         #[arg(required_unless_present = "help", default_value = "")]
         channel: String,
+
+        /// Namespace for the channel
+        #[arg(long)]
+        namespace: Option<String>,
     },
 
     /// Upload a package to a channel
@@ -56,6 +64,7 @@ impl ChannelSubcommands {
                 channel,
                 private,
                 public,
+                namespace,
             } => {
                 let mut cmd_args = vec!["create".to_string()];
                 if private {
@@ -64,11 +73,21 @@ impl ChannelSubcommands {
                 if public {
                     cmd_args.push("--public".to_string());
                 }
+                if let Some(ns) = namespace {
+                    cmd_args.push("--namespace".to_string());
+                    cmd_args.push(ns);
+                }
                 cmd_args.push(channel);
                 ChannelAction::Run(cmd_args)
             }
-            ChannelSubcommands::Remove { channel } => {
-                ChannelAction::Run(vec!["remove".to_string(), channel])
+            ChannelSubcommands::Remove { channel, namespace } => {
+                let mut cmd_args = vec!["remove".to_string()];
+                if let Some(ns) = namespace {
+                    cmd_args.push("--namespace".to_string());
+                    cmd_args.push(ns);
+                }
+                cmd_args.push(channel);
+                ChannelAction::Run(cmd_args)
             }
             ChannelSubcommands::Upload {
                 channel,
@@ -100,10 +119,27 @@ mod tests {
             channel: "org/channel".to_string(),
             private: true,
             public: false,
+            namespace: None,
         };
         match cmd.into_action() {
             ChannelAction::Run(args) => {
                 assert_eq!(args, vec!["create", "--private", "org/channel"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+
+        let cmd_with_namespace = ChannelSubcommands::Create {
+            channel: "org/channel".to_string(),
+            private: false,
+            public: true,
+            namespace: Some("my-namespace".to_string()),
+        };
+        match cmd_with_namespace.into_action() {
+            ChannelAction::Run(args) => {
+                assert_eq!(
+                    args,
+                    vec!["create", "--public", "--namespace", "my-namespace", "org/channel"]
+                );
             }
             _ => panic!("Expected Run action"),
         }
@@ -113,10 +149,22 @@ mod tests {
     fn test_remove_builds_args() {
         let cmd = ChannelSubcommands::Remove {
             channel: "org/channel".to_string(),
+            namespace: None,
         };
         match cmd.into_action() {
             ChannelAction::Run(args) => {
                 assert_eq!(args, vec!["remove", "org/channel"]);
+            }
+            _ => panic!("Expected Run action"),
+        }
+
+        let cmd_with_namespace = ChannelSubcommands::Remove {
+            channel: "org/channel".to_string(),
+            namespace: Some("my-namespace".to_string()),
+        };
+        match cmd_with_namespace.into_action() {
+            ChannelAction::Run(args) => {
+                assert_eq!(args, vec!["remove", "--namespace", "my-namespace", "org/channel"]);
             }
             _ => panic!("Expected Run action"),
         }

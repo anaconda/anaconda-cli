@@ -3,8 +3,8 @@ use crate::paths;
 use crate::tools;
 use crate::ui::status;
 
-/// Run the `anaconda channels` command with the given arguments.
-/// Auto-installs anaconda-cli if not present.
+/// Run the `anaconda channel` command with the given arguments.
+/// Auto-installs anaconda-cli if not present (which includes anaconda-client).
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
     if !paths::bin_path("anaconda").exists() {
         status::info("Installing anaconda-cli...");
@@ -12,7 +12,7 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
         status::blank_line();
     }
 
-    let mut channel_args = vec!["channels".to_string()];
+    let mut channel_args = vec!["channel".to_string()];
     channel_args.extend(args.iter().cloned());
     tools::run_tool_binary("anaconda-cli", "anaconda", &channel_args)
 }
