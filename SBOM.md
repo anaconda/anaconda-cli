@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-09T05:04:54Z<br>
+Generated: 2026-08-11T04:27:24Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 457 (59 platform-specific)<br>
+Packages: 463 (65 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**Security advisories: 0 found at this time**
 
@@ -94,6 +94,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [digest](https://crates.io/crates/digest) | 0.11.3 | MIT OR Apache-2.0 |  |  |
 | [dirs](https://crates.io/crates/dirs) | 6.0.0 | MIT OR Apache-2.0 |  |  |
 | [dirs-sys](https://crates.io/crates/dirs-sys) | 0.5.0 | MIT OR Apache-2.0 |  |  |
+| [dispatch2](https://crates.io/crates/dispatch2) | 0.3.1 | Zlib OR Apache-2.0 OR MIT | macos |  |
 | [displaydoc](https://crates.io/crates/displaydoc) | 0.2.6 | MIT OR Apache-2.0 |  |  |
 | [document-features](https://crates.io/crates/document-features) | 0.2.12 | MIT OR Apache-2.0 |  |  |
 | [dyn-clone](https://crates.io/crates/dyn-clone) | 1.0.20 | MIT OR Apache-2.0 |  |  |
@@ -216,6 +217,11 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [num-conv](https://crates.io/crates/num-conv) | 0.2.2 | MIT OR Apache-2.0 |  |  |
 | [num-traits](https://crates.io/crates/num-traits) | 0.2.19 | MIT OR Apache-2.0 |  |  |
 | [num\_cpus](https://crates.io/crates/num_cpus) | 1.17.0 | MIT OR Apache-2.0 |  |  |
+| [objc2](https://crates.io/crates/objc2) | 0.6.4 | MIT | macos |  |
+| [objc2-app-kit](https://crates.io/crates/objc2-app-kit) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macos |  |
+| [objc2-core-foundation](https://crates.io/crates/objc2-core-foundation) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macos |  |
+| [objc2-encode](https://crates.io/crates/objc2-encode) | 4.1.0 | MIT | macos |  |
+| [objc2-foundation](https://crates.io/crates/objc2-foundation) | 0.3.2 | MIT | macos |  |
 | [object](https://crates.io/crates/object) | 0.37.3 | Apache-2.0 OR MIT | linux, macos |  |
 | [once\_cell](https://crates.io/crates/once_cell) | 1.21.4 | MIT OR Apache-2.0 |  |  |
 | [once\_cell\_polyfill](https://crates.io/crates/once_cell_polyfill) | 1.70.2 | MIT OR Apache-2.0 | windows |  |
@@ -423,7 +429,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [version\_check](https://crates.io/crates/version_check) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [wait-timeout](https://crates.io/crates/wait-timeout) | 0.2.1 | MIT OR Apache-2.0 |  |  |
 | [want](https://crates.io/crates/want) | 0.3.1 | MIT |  |  |
-| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.1 | MIT OR Apache-2.0 |  |  |
+| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.4 | MIT OR Apache-2.0 |  |  |
 | [which](https://crates.io/crates/which) | 8.0.5 | MIT |  |  |
 | [winapi](https://crates.io/crates/winapi) | 0.3.9 | MIT OR Apache-2.0 | windows |  |
 | [windows](https://crates.io/crates/windows) | 0.52.0 | MIT OR Apache-2.0 | windows |  |
@@ -473,12 +479,13 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | License | Count |
 | --- | ---: |
 | MIT OR Apache-2.0 | 250 |
-| MIT | 84 |
+| MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
 | BSD-3-Clause | 19 |
 | Unicode-3.0 | 18 |
 | Unlicense OR MIT | 4 |
+| Zlib OR Apache-2.0 OR MIT | 4 |
 | ISC | 3 |
 | Apache-2.0 OR BSD-2-Clause | 2 |
 | Apache-2.0 OR ISC OR MIT | 2 |
@@ -496,5 +503,4 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | MIT OR Apache-2.0 OR Zlib | 1 |
 | MIT OR LGPL-3.0-or-later | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
-| Zlib OR Apache-2.0 OR MIT | 1 |
 | bzip2-1.0.6 | 1 |
