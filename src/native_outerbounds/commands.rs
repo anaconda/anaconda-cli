@@ -80,6 +80,101 @@ pub enum ObnAction {
         perimeter: Option<String>,
     },
 
+    // Integration creation
+    IntegrationsAnacondaCreate {
+        name: String,
+        description: Option<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsArtifactoryCreate {
+        name: String,
+        description: Option<String>,
+        url: String,
+        username: String,
+        password: String,
+        perimeter: Option<String>,
+    },
+    IntegrationsAzureArtifactsCreate {
+        name: String,
+        description: Option<String>,
+        organization: String,
+        project: String,
+        feed: String,
+        username: String,
+        pat: String,
+        perimeter: Option<String>,
+    },
+    IntegrationsCodeArtifactsCreate {
+        name: String,
+        description: Option<String>,
+        domain_name: String,
+        domain_owner: String,
+        aws_region: String,
+        target_role: Option<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsContainerRegistryCreate {
+        name: String,
+        description: Option<String>,
+        registry_domain: String,
+        target_role_arn: Option<String>,
+        use_task_role: bool,
+        username: Option<String>,
+        password: Option<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsCustomSecretCreate {
+        name: String,
+        description: Option<String>,
+        secrets: Vec<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsCustomSecretUpdate {
+        name: String,
+        description: Option<String>,
+        secrets: Vec<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsGitPypiRepositoryCreate {
+        name: String,
+        description: Option<String>,
+        repository_url: String,
+        username: Option<String>,
+        password: Option<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsGitlabArtifactsCreate {
+        name: String,
+        description: Option<String>,
+        gitlab_url: String,
+        project_id: String,
+        username: Option<String>,
+        password: Option<String>,
+        perimeter: Option<String>,
+    },
+    IntegrationsPrivateCondaChannelsAdd {
+        channel_name: String,
+        host_integration_name: String,
+        is_default: bool,
+        perimeter: Option<String>,
+    },
+    IntegrationsPrivatePypiRepositoriesAdd {
+        repository_name: String,
+        host_integration_name: String,
+        is_default: bool,
+        perimeter: Option<String>,
+    },
+    IntegrationsS3ProxyCreate {
+        name: String,
+        description: Option<String>,
+        bucket_name: String,
+        endpoint_url: String,
+        region: String,
+        access_key_id: String,
+        secret_access_key: String,
+        perimeter: Option<String>,
+    },
+
     // FlowProject
     FlowprojectGetMetadata {
         id: Option<String>,
@@ -380,17 +475,340 @@ pub enum IntegrationsCommands {
     },
 
     /// List all private PyPI repositories
-    #[command(name = "list-private-pypi")]
-    ListPrivatePypi {
+    #[command(name = "list-private-pypi-repositories")]
+    ListPrivatePypiRepositories {
         /// Override the current perimeter
         #[arg(long)]
         perimeter: Option<String>,
     },
 
     /// List all private Conda channels
-    #[command(name = "list-private-conda")]
+    #[command(name = "list-private-conda-channels")]
     ListPrivateConda {
         /// Override the current perimeter
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+
+    /// Create an Anaconda integration
+    #[command(subcommand)]
+    Anaconda(AnacondaCommands),
+
+    /// Create an Artifactory integration
+    #[command(subcommand)]
+    Artifactory(ArtifactoryCommands),
+
+    /// Create an Azure Artifacts integration
+    #[command(name = "azure-artifacts", subcommand)]
+    AzureArtifacts(AzureArtifactsCommands),
+
+    /// Create a CodeArtifacts integration
+    #[command(name = "code-artifacts", subcommand)]
+    CodeArtifacts(CodeArtifactsCommands),
+
+    /// Create a Container Registry integration
+    #[command(name = "container-registry", subcommand)]
+    ContainerRegistry(ContainerRegistryCommands),
+
+    /// Create a Custom Secret integration
+    #[command(name = "custom-secret", subcommand)]
+    CustomSecret(CustomSecretCommands),
+
+    /// Create a Git PyPI Repository integration
+    #[command(name = "git-pypi-repository", subcommand)]
+    GitPypiRepository(GitPypiRepositoryCommands),
+
+    /// Create a GitLab Artifacts integration
+    #[command(name = "gitlab-artifacts", subcommand)]
+    GitlabArtifacts(GitlabArtifactsCommands),
+
+    /// Add private Conda channels
+    #[command(name = "private-conda-channels", subcommand)]
+    PrivateCondaChannels(PrivateCondaChannelsCommands),
+
+    /// Add private PyPI repositories
+    #[command(name = "private-pypi-repositories", subcommand)]
+    PrivatePypiRepositories(PrivatePypiRepositoriesCommands),
+
+    /// Create an S3 Proxy integration
+    #[command(name = "s3-proxy", subcommand)]
+    S3Proxy(S3ProxyCommands),
+}
+
+// Integration subcommands
+
+#[derive(Subcommand, Debug)]
+pub enum AnacondaCommands {
+    /// Create an Anaconda integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ArtifactoryCommands {
+    /// Create an Artifactory integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Artifactory URL
+        #[arg(long)]
+        url: String,
+        /// Username for authentication
+        #[arg(long)]
+        username: String,
+        /// Password/API key for authentication
+        #[arg(long)]
+        password: String,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AzureArtifactsCommands {
+    /// Create an Azure Artifacts integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Azure DevOps organization
+        #[arg(long)]
+        organization: String,
+        /// Azure DevOps project
+        #[arg(long)]
+        project: String,
+        /// Azure Artifacts feed name
+        #[arg(long)]
+        feed: String,
+        /// Username for authentication
+        #[arg(long)]
+        username: String,
+        /// Personal Access Token
+        #[arg(long)]
+        pat: String,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CodeArtifactsCommands {
+    /// Create a CodeArtifacts integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// CodeArtifacts domain name
+        #[arg(long)]
+        domain_name: String,
+        /// CodeArtifacts domain owner (AWS account ID)
+        #[arg(long)]
+        domain_owner: String,
+        /// AWS region
+        #[arg(long)]
+        aws_region: String,
+        /// Target IAM role ARN for cross-account access
+        #[arg(long)]
+        target_role: Option<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ContainerRegistryCommands {
+    /// Create a Container Registry integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Registry domain (e.g., docker.io, gcr.io)
+        #[arg(long)]
+        registry_domain: String,
+        /// Target Role ARN (for AWS ECR authentication)
+        #[arg(long)]
+        target_role_arn: Option<String>,
+        /// Use the task's IAM role for authentication (for AWS ECR)
+        #[arg(long)]
+        use_task_role: bool,
+        /// Username for registry authentication (for non-ECR registries)
+        #[arg(long)]
+        username: Option<String>,
+        /// Password for registry authentication (for non-ECR registries)
+        #[arg(long)]
+        password: Option<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CustomSecretCommands {
+    /// Create a Custom Secret integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Secret key-value pairs (format: key=value)
+        #[arg(long = "secret", short = 's')]
+        secrets: Vec<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+    /// Update a Custom Secret integration
+    Update {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Secret key-value pairs (format: key=value)
+        #[arg(long = "secret", short = 's')]
+        secrets: Vec<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum GitPypiRepositoryCommands {
+    /// Create a Git PyPI Repository integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// Git repository URL
+        #[arg(long)]
+        repository_url: String,
+        /// Username for authentication
+        #[arg(long)]
+        username: Option<String>,
+        /// Password for authentication
+        #[arg(long)]
+        password: Option<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum GitlabArtifactsCommands {
+    /// Create a GitLab Artifacts integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// GitLab URL (defaults to gitlab.com)
+        #[arg(long, default_value = "gitlab.com")]
+        gitlab_url: String,
+        /// GitLab project ID
+        #[arg(long)]
+        project_id: String,
+        /// Username for authentication
+        #[arg(long)]
+        username: Option<String>,
+        /// Password/token for authentication
+        #[arg(long)]
+        password: Option<String>,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum PrivateCondaChannelsCommands {
+    /// Add a private Conda channel
+    Add {
+        /// Channel name
+        #[arg(long)]
+        channel_name: String,
+        /// Host integration name (credentials)
+        #[arg(long)]
+        host_integration_name: String,
+        /// Set as default channel
+        #[arg(long)]
+        is_default: bool,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum PrivatePypiRepositoriesCommands {
+    /// Add a private PyPI repository
+    Add {
+        /// Repository name
+        #[arg(long)]
+        repository_name: String,
+        /// Host integration name (credentials)
+        #[arg(long)]
+        host_integration_name: String,
+        /// Set as default repository
+        #[arg(long)]
+        is_default: bool,
+        /// Perimeter ID
+        #[arg(long)]
+        perimeter: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum S3ProxyCommands {
+    /// Create an S3 Proxy integration
+    Create {
+        /// Integration name
+        name: String,
+        /// Description of the integration
+        #[arg(long)]
+        description: Option<String>,
+        /// S3 bucket name
+        #[arg(long)]
+        bucket_name: String,
+        /// S3 endpoint URL
+        #[arg(long)]
+        endpoint_url: String,
+        /// AWS region
+        #[arg(long)]
+        region: String,
+        /// AWS Access Key ID
+        #[arg(long)]
+        access_key_id: String,
+        /// AWS Secret Access Key
+        #[arg(long)]
+        secret_access_key: String,
+        /// Perimeter ID
         #[arg(long)]
         perimeter: Option<String>,
     },
@@ -642,12 +1060,194 @@ impl ObnCommands {
                 Some(IntegrationsCommands::Delete { name, perimeter }) => {
                     ObnAction::IntegrationsDelete { name, perimeter }
                 }
-                Some(IntegrationsCommands::ListPrivatePypi { perimeter }) => {
+                Some(IntegrationsCommands::ListPrivatePypiRepositories { perimeter }) => {
                     ObnAction::IntegrationsListPrivatePypi { perimeter }
                 }
                 Some(IntegrationsCommands::ListPrivateConda { perimeter }) => {
                     ObnAction::IntegrationsListPrivateConda { perimeter }
                 }
+                Some(IntegrationsCommands::Anaconda(AnacondaCommands::Create {
+                    name,
+                    description,
+                    perimeter,
+                })) => ObnAction::IntegrationsAnacondaCreate {
+                    name,
+                    description,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::Artifactory(ArtifactoryCommands::Create {
+                    name,
+                    description,
+                    url,
+                    username,
+                    password,
+                    perimeter,
+                })) => ObnAction::IntegrationsArtifactoryCreate {
+                    name,
+                    description,
+                    url,
+                    username,
+                    password,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::AzureArtifacts(AzureArtifactsCommands::Create {
+                    name,
+                    description,
+                    organization,
+                    project,
+                    feed,
+                    username,
+                    pat,
+                    perimeter,
+                })) => ObnAction::IntegrationsAzureArtifactsCreate {
+                    name,
+                    description,
+                    organization,
+                    project,
+                    feed,
+                    username,
+                    pat,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::CodeArtifacts(CodeArtifactsCommands::Create {
+                    name,
+                    description,
+                    domain_name,
+                    domain_owner,
+                    aws_region,
+                    target_role,
+                    perimeter,
+                })) => ObnAction::IntegrationsCodeArtifactsCreate {
+                    name,
+                    description,
+                    domain_name,
+                    domain_owner,
+                    aws_region,
+                    target_role,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::ContainerRegistry(
+                    ContainerRegistryCommands::Create {
+                        name,
+                        description,
+                        registry_domain,
+                        target_role_arn,
+                        use_task_role,
+                        username,
+                        password,
+                        perimeter,
+                    },
+                )) => ObnAction::IntegrationsContainerRegistryCreate {
+                    name,
+                    description,
+                    registry_domain,
+                    target_role_arn,
+                    use_task_role,
+                    username,
+                    password,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::CustomSecret(CustomSecretCommands::Create {
+                    name,
+                    description,
+                    secrets,
+                    perimeter,
+                })) => ObnAction::IntegrationsCustomSecretCreate {
+                    name,
+                    description,
+                    secrets,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::CustomSecret(CustomSecretCommands::Update {
+                    name,
+                    description,
+                    secrets,
+                    perimeter,
+                })) => ObnAction::IntegrationsCustomSecretUpdate {
+                    name,
+                    description,
+                    secrets,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::GitPypiRepository(
+                    GitPypiRepositoryCommands::Create {
+                        name,
+                        description,
+                        repository_url,
+                        username,
+                        password,
+                        perimeter,
+                    },
+                )) => ObnAction::IntegrationsGitPypiRepositoryCreate {
+                    name,
+                    description,
+                    repository_url,
+                    username,
+                    password,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::GitlabArtifacts(GitlabArtifactsCommands::Create {
+                    name,
+                    description,
+                    gitlab_url,
+                    project_id,
+                    username,
+                    password,
+                    perimeter,
+                })) => ObnAction::IntegrationsGitlabArtifactsCreate {
+                    name,
+                    description,
+                    gitlab_url,
+                    project_id,
+                    username,
+                    password,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::PrivateCondaChannels(
+                    PrivateCondaChannelsCommands::Add {
+                        channel_name,
+                        host_integration_name,
+                        is_default,
+                        perimeter,
+                    },
+                )) => ObnAction::IntegrationsPrivateCondaChannelsAdd {
+                    channel_name,
+                    host_integration_name,
+                    is_default,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::PrivatePypiRepositories(
+                    PrivatePypiRepositoriesCommands::Add {
+                        repository_name,
+                        host_integration_name,
+                        is_default,
+                        perimeter,
+                    },
+                )) => ObnAction::IntegrationsPrivatePypiRepositoriesAdd {
+                    repository_name,
+                    host_integration_name,
+                    is_default,
+                    perimeter,
+                },
+                Some(IntegrationsCommands::S3Proxy(S3ProxyCommands::Create {
+                    name,
+                    description,
+                    bucket_name,
+                    endpoint_url,
+                    region,
+                    access_key_id,
+                    secret_access_key,
+                    perimeter,
+                })) => ObnAction::IntegrationsS3ProxyCreate {
+                    name,
+                    description,
+                    bucket_name,
+                    endpoint_url,
+                    region,
+                    access_key_id,
+                    secret_access_key,
+                    perimeter,
+                },
             },
             ObnCommands::Flowproject { command } => match command {
                 None => ObnAction::ShowHelp("obn flowproject".to_string()),

@@ -111,6 +111,225 @@ pub async fn run(
             integrations::list_private_conda(ctx, perimeter.as_deref()).await
         }
 
+        // Integration creation
+        ObnAction::IntegrationsAnacondaCreate {
+            name,
+            description,
+            perimeter,
+        } => {
+            integrations::anaconda_create(ctx, &name, description.as_deref(), perimeter.as_deref())
+                .await
+        }
+        ObnAction::IntegrationsArtifactoryCreate {
+            name,
+            description,
+            url,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::artifactory_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &url,
+                &username,
+                &password,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsAzureArtifactsCreate {
+            name,
+            description,
+            organization,
+            project,
+            feed,
+            username,
+            pat,
+            perimeter,
+        } => {
+            integrations::azure_artifacts_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &organization,
+                &project,
+                &feed,
+                &username,
+                &pat,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsCodeArtifactsCreate {
+            name,
+            description,
+            domain_name,
+            domain_owner,
+            aws_region,
+            target_role,
+            perimeter,
+        } => {
+            integrations::code_artifacts_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &domain_name,
+                &domain_owner,
+                &aws_region,
+                target_role.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsContainerRegistryCreate {
+            name,
+            description,
+            registry_domain,
+            target_role_arn,
+            use_task_role,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::container_registry_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &registry_domain,
+                target_role_arn.as_deref(),
+                use_task_role,
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsCustomSecretCreate {
+            name,
+            description,
+            secrets,
+            perimeter,
+        } => {
+            integrations::custom_secret_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &secrets,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsCustomSecretUpdate {
+            name,
+            description,
+            secrets,
+            perimeter,
+        } => {
+            integrations::custom_secret_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                &secrets,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsGitPypiRepositoryCreate {
+            name,
+            description,
+            repository_url,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::git_pypi_repository_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &repository_url,
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsGitlabArtifactsCreate {
+            name,
+            description,
+            gitlab_url,
+            project_id,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::gitlab_artifacts_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &gitlab_url,
+                &project_id,
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsPrivateCondaChannelsAdd {
+            channel_name,
+            host_integration_name,
+            is_default,
+            perimeter,
+        } => {
+            integrations::private_conda_channels_add(
+                ctx,
+                &channel_name,
+                &host_integration_name,
+                is_default,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsPrivatePypiRepositoriesAdd {
+            repository_name,
+            host_integration_name,
+            is_default,
+            perimeter,
+        } => {
+            integrations::private_pypi_repositories_add(
+                ctx,
+                &repository_name,
+                &host_integration_name,
+                is_default,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsS3ProxyCreate {
+            name,
+            description,
+            bucket_name,
+            endpoint_url,
+            region,
+            access_key_id,
+            secret_access_key,
+            perimeter,
+        } => {
+            integrations::s3_proxy_create(
+                ctx,
+                &name,
+                description.as_deref(),
+                &bucket_name,
+                &endpoint_url,
+                &region,
+                &access_key_id,
+                &secret_access_key,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+
         // Flowproject
         ObnAction::FlowprojectGetMetadata { id } => {
             flowproject::get_metadata(ctx, id.as_deref()).await
