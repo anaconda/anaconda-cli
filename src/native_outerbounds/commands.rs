@@ -82,42 +82,35 @@ pub enum ObnAction {
 
     // FlowProject
     FlowprojectGetMetadata {
-        project: String,
-        branch: String,
+        id: Option<String>,
     },
     FlowprojectDeleteMetadata {
-        project: String,
-        branch: String,
+        id: String,
+        output: Option<String>,
     },
     FlowprojectListTemplates {
-        project: String,
-        branch: String,
+        id: String,
+        output: Option<String>,
     },
     FlowprojectTeardownBranch {
-        project: String,
-        branch: String,
+        id: String,
         dry_run: bool,
+        output: Option<String>,
     },
 
     // Secrets
-    SecretsGetMetadata {
-        integration_name: String,
-    },
     SecretsGet {
-        integration_name: String,
-        json: bool,
-    },
-    SecretsGetMany {
-        integration_names: Vec<String>,
-        json: bool,
+        secret_ids: Vec<String>,
+        format: Option<String>,
+        role: Option<String>,
+        file: Option<String>,
     },
 
     // Tutorials
     TutorialsPull {
         url: String,
-        destination: Option<String>,
-        verify_hash: Option<String>,
-        force: bool,
+        destination_dir: String,
+        force_overwrite: bool,
     },
 
     // Workstations
@@ -408,106 +401,88 @@ pub enum FlowprojectCommands {
     /// Get flowproject metadata for a project/branch
     #[command(name = "get-metadata")]
     GetMetadata {
-        /// Project name
+        /// The ID for this deployment
         #[arg(long)]
-        project: String,
-
-        /// Branch name
-        #[arg(long)]
-        branch: String,
+        id: Option<String>,
     },
 
     /// Delete flowproject metadata for a project/branch
     #[command(name = "delete-metadata")]
     DeleteMetadata {
-        /// Project name
+        /// project/branch identifier
         #[arg(long)]
-        project: String,
+        id: String,
 
-        /// Branch name
-        #[arg(long)]
-        branch: String,
+        /// Output format
+        #[arg(long, short = 'o')]
+        output: Option<String>,
     },
 
     /// List deployed workflow templates for a project/branch
     #[command(name = "list-templates")]
     ListTemplates {
-        /// Project name
+        /// project/branch identifier
         #[arg(long)]
-        project: String,
+        id: String,
 
-        /// Branch name
-        #[arg(long)]
-        branch: String,
+        /// Output format
+        #[arg(long, short = 'o')]
+        output: Option<String>,
     },
 
     /// Tear down all deployed resources for a project/branch
     #[command(name = "teardown-branch")]
     TeardownBranch {
-        /// Project name
+        /// project/branch identifier
         #[arg(long)]
-        project: String,
+        id: String,
 
-        /// Branch name
-        #[arg(long)]
-        branch: String,
-
-        /// Show what would be deleted without actually deleting
+        /// Print what would be deleted without deleting
         #[arg(long)]
         dry_run: bool,
+
+        /// Output format
+        #[arg(long, short = 'o')]
+        output: Option<String>,
     },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum SecretsCommands {
-    /// Get secret metadata (backend type, resource ID)
-    #[command(name = "get-metadata")]
-    GetMetadata {
-        /// Integration name
-        integration_name: String,
-    },
-
-    /// Fetch secret values from cloud secret manager
+    /// Get secrets
     Get {
-        /// Integration name
-        integration_name: String,
+        /// Secret IDs (integration names)
+        secret_ids: Vec<String>,
 
-        /// Output as JSON
+        /// Format of the output (text, json, shell)
+        #[arg(long, value_parser = ["text", "json", "shell"])]
+        format: Option<String>,
+
+        /// Any additional IAM role required to access the secrets
         #[arg(long)]
-        json: bool,
-    },
+        role: Option<String>,
 
-    /// Fetch multiple secrets at once
-    #[command(name = "get-many")]
-    GetMany {
-        /// Integration names
-        #[arg(required = true)]
-        integration_names: Vec<String>,
-
-        /// Output as JSON
-        #[arg(long)]
-        json: bool,
+        /// The file to write the output to
+        #[arg(long, short = 'f')]
+        file: Option<String>,
     },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum TutorialsCommands {
-    /// Download and extract tutorials
+    /// Pull Outerbounds tutorials
     Pull {
-        /// URL to download tutorials from
+        /// URL to pull the tutorials from
+        #[arg(long)]
         url: String,
 
-        /// Destination directory (defaults to current directory)
+        /// Show output in the specified format
         #[arg(long)]
-        destination: Option<String>,
+        destination_dir: String,
 
-        /// Expected SHA256 hash for verification
+        /// Overwrite all existing files across all tutorials
         #[arg(long)]
-        verify_hash: Option<String>,
-
-        /// Overwrite existing files
-        #[arg(long, short = 'f')]
-        force: bool,
+        force_overwrite: bool,
     },
 }
 
@@ -676,57 +651,43 @@ impl ObnCommands {
             },
             ObnCommands::Flowproject { command } => match command {
                 None => ObnAction::ShowHelp("obn flowproject".to_string()),
-                Some(FlowprojectCommands::GetMetadata { project, branch }) => {
-                    ObnAction::FlowprojectGetMetadata { project, branch }
+                Some(FlowprojectCommands::GetMetadata { id }) => {
+                    ObnAction::FlowprojectGetMetadata { id }
                 }
-                Some(FlowprojectCommands::DeleteMetadata { project, branch }) => {
-                    ObnAction::FlowprojectDeleteMetadata { project, branch }
+                Some(FlowprojectCommands::DeleteMetadata { id, output }) => {
+                    ObnAction::FlowprojectDeleteMetadata { id, output }
                 }
-                Some(FlowprojectCommands::ListTemplates { project, branch }) => {
-                    ObnAction::FlowprojectListTemplates { project, branch }
+                Some(FlowprojectCommands::ListTemplates { id, output }) => {
+                    ObnAction::FlowprojectListTemplates { id, output }
                 }
-                Some(FlowprojectCommands::TeardownBranch {
-                    project,
-                    branch,
-                    dry_run,
-                }) => ObnAction::FlowprojectTeardownBranch {
-                    project,
-                    branch,
-                    dry_run,
-                },
+                Some(FlowprojectCommands::TeardownBranch { id, dry_run, output }) => {
+                    ObnAction::FlowprojectTeardownBranch { id, dry_run, output }
+                }
             },
             ObnCommands::Secrets { command } => match command {
                 None => ObnAction::ShowHelp("obn secrets".to_string()),
-                Some(SecretsCommands::GetMetadata { integration_name }) => {
-                    ObnAction::SecretsGetMetadata { integration_name }
-                }
                 Some(SecretsCommands::Get {
-                    integration_name,
-                    json,
+                    secret_ids,
+                    format,
+                    role,
+                    file,
                 }) => ObnAction::SecretsGet {
-                    integration_name,
-                    json,
-                },
-                Some(SecretsCommands::GetMany {
-                    integration_names,
-                    json,
-                }) => ObnAction::SecretsGetMany {
-                    integration_names,
-                    json,
+                    secret_ids,
+                    format,
+                    role,
+                    file,
                 },
             },
             ObnCommands::Tutorials { command } => match command {
                 None => ObnAction::ShowHelp("obn tutorials".to_string()),
                 Some(TutorialsCommands::Pull {
                     url,
-                    destination,
-                    verify_hash,
-                    force,
+                    destination_dir,
+                    force_overwrite,
                 }) => ObnAction::TutorialsPull {
                     url,
-                    destination,
-                    verify_hash,
-                    force,
+                    destination_dir,
+                    force_overwrite,
                 },
             },
             ObnCommands::Workstations { command } => match command {

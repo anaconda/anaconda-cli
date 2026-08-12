@@ -1,14 +1,24 @@
-use miette::Result;
+use miette::{miette, Result};
+use outerbounds::FlowProjectCommands;
 
 use crate::context::CommandContext;
 use crate::ui::status;
 
 use super::output::{create_table, print_table};
 
-pub async fn get_metadata(ctx: &CommandContext, project: &str, branch: &str) -> Result<()> {
+fn parse_id(id: &str) -> Result<(String, String)> {
+    FlowProjectCommands::parse_id(id).map_err(|e| miette!("{}", e))
+}
+
+pub async fn get_metadata(ctx: &CommandContext, id: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
-    let metadata = ob.flowproject().get_metadata(project, branch).await?;
+    let (project, branch) = match id {
+        Some(id_str) => parse_id(id_str)?,
+        None => return Err(miette!("--id is required")),
+    };
+
+    let metadata = ob.flowproject().get_metadata(&project, &branch).await?;
 
     match metadata {
         Some(m) => {
@@ -58,10 +68,15 @@ pub async fn get_metadata(ctx: &CommandContext, project: &str, branch: &str) -> 
     Ok(())
 }
 
-pub async fn delete_metadata(ctx: &CommandContext, project: &str, branch: &str) -> Result<()> {
+pub async fn delete_metadata(
+    ctx: &CommandContext,
+    id: &str,
+    _output: Option<&str>,
+) -> Result<()> {
+    let (project, branch) = parse_id(id)?;
     let ob = ctx.outerbounds_client().await?;
 
-    let result = ob.flowproject().delete_metadata(project, branch).await?;
+    let result = ob.flowproject().delete_metadata(&project, &branch).await?;
 
     if result.success {
         status::success(&format!(
@@ -75,10 +90,11 @@ pub async fn delete_metadata(ctx: &CommandContext, project: &str, branch: &str) 
     Ok(())
 }
 
-pub async fn list_templates(ctx: &CommandContext, project: &str, branch: &str) -> Result<()> {
+pub async fn list_templates(ctx: &CommandContext, id: &str, _output: Option<&str>) -> Result<()> {
+    let (project, branch) = parse_id(id)?;
     let ob = ctx.outerbounds_client().await?;
 
-    let templates = ob.flowproject().list_templates(project, branch).await?;
+    let templates = ob.flowproject().list_templates(&project, &branch).await?;
 
     if templates.is_empty() {
         println!("No workflow templates found for {}/{}", project, branch);
@@ -95,15 +111,16 @@ pub async fn list_templates(ctx: &CommandContext, project: &str, branch: &str) -
 
 pub async fn teardown_branch(
     ctx: &CommandContext,
-    project: &str,
-    branch: &str,
+    id: &str,
     dry_run: bool,
+    _output: Option<&str>,
 ) -> Result<()> {
+    let (project, branch) = parse_id(id)?;
     let ob = ctx.outerbounds_client().await?;
 
     let result = ob
         .flowproject()
-        .teardown_branch(project, branch, dry_run)
+        .teardown_branch(&project, &branch, dry_run)
         .await?;
 
     if dry_run {

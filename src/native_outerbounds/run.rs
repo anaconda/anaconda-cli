@@ -112,50 +112,42 @@ pub async fn run(
         }
 
         // Flowproject
-        ObnAction::FlowprojectGetMetadata { project, branch } => {
-            flowproject::get_metadata(ctx, &project, &branch).await
+        ObnAction::FlowprojectGetMetadata { id } => {
+            flowproject::get_metadata(ctx, id.as_deref()).await
         }
-        ObnAction::FlowprojectDeleteMetadata { project, branch } => {
-            flowproject::delete_metadata(ctx, &project, &branch).await
+        ObnAction::FlowprojectDeleteMetadata { id, output } => {
+            flowproject::delete_metadata(ctx, &id, output.as_deref()).await
         }
-        ObnAction::FlowprojectListTemplates { project, branch } => {
-            flowproject::list_templates(ctx, &project, &branch).await
+        ObnAction::FlowprojectListTemplates { id, output } => {
+            flowproject::list_templates(ctx, &id, output.as_deref()).await
         }
-        ObnAction::FlowprojectTeardownBranch {
-            project,
-            branch,
-            dry_run,
-        } => flowproject::teardown_branch(ctx, &project, &branch, dry_run).await,
+        ObnAction::FlowprojectTeardownBranch { id, dry_run, output } => {
+            flowproject::teardown_branch(ctx, &id, dry_run, output.as_deref()).await
+        }
 
         // Secrets
-        ObnAction::SecretsGetMetadata { integration_name } => {
-            secrets::get_metadata(ctx, &integration_name).await
-        }
         ObnAction::SecretsGet {
-            integration_name,
-            json,
-        } => secrets::get(ctx, &integration_name, json).await,
-        ObnAction::SecretsGetMany {
-            integration_names,
-            json,
-        } => secrets::get_many(ctx, &integration_names, json).await,
+            secret_ids,
+            format,
+            role,
+            file,
+        } => {
+            secrets::get(
+                ctx,
+                &secret_ids,
+                format.as_deref(),
+                role.as_deref(),
+                file.as_deref(),
+            )
+            .await
+        }
 
         // Tutorials
         ObnAction::TutorialsPull {
             url,
-            destination,
-            verify_hash,
-            force,
-        } => {
-            tutorials::pull(
-                ctx,
-                &url,
-                destination.as_deref(),
-                verify_hash.as_deref(),
-                force,
-            )
-            .await
-        }
+            destination_dir,
+            force_overwrite,
+        } => tutorials::pull(ctx, &url, &destination_dir, force_overwrite).await,
 
         // Workstations
         ObnAction::WorkstationsList => workstations::list(ctx).await,
