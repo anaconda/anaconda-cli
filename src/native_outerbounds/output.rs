@@ -1,4 +1,4 @@
-use comfy_table::{presets::UTF8_FULL_CONDENSED, Cell, ContentArrangement, Table};
+use comfy_table::{Cell, ContentArrangement, Table, presets::UTF8_FULL_CONDENSED};
 
 pub fn create_table(headers: &[&str]) -> Table {
     let mut table = Table::new();

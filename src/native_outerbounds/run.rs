@@ -1,7 +1,9 @@
 use miette::Result;
 
 use super::commands::ObnAction;
-use super::{app, check, configure, flowproject, integrations, perimeter, secrets, tutorials, workstations};
+use super::{
+    app, check, configure, flowproject, integrations, perimeter, secrets, tutorials, workstations,
+};
 use crate::context::CommandContext;
 use crate::help;
 
@@ -44,9 +46,10 @@ pub async fn run(ctx: &CommandContext, action: ObnAction) -> Result<()> {
         } => check::check(ctx, workstation, python, latency).await,
         ObnAction::PerimeterList => perimeter::list(ctx).await,
         ObnAction::PerimeterShowCurrent => perimeter::show_current(ctx).await,
-        ObnAction::PerimeterSwitch { perimeter_id, force } => {
-            perimeter::switch(ctx, &perimeter_id, force).await
-        }
+        ObnAction::PerimeterSwitch {
+            perimeter_id,
+            force,
+        } => perimeter::switch(ctx, &perimeter_id, force).await,
         ObnAction::AppList { perimeter, name } => {
             app::list(ctx, perimeter.as_deref(), name.as_deref()).await
         }
@@ -59,7 +62,16 @@ pub async fn run(ctx: &CommandContext, action: ObnAction) -> Result<()> {
             worker_id,
             perimeter,
             previous,
-        } => app::logs(ctx, &id, worker_id.as_deref(), perimeter.as_deref(), previous).await,
+        } => {
+            app::logs(
+                ctx,
+                &id,
+                worker_id.as_deref(),
+                perimeter.as_deref(),
+                previous,
+            )
+            .await
+        }
         ObnAction::IntegrationsList { perimeter } => {
             integrations::list(ctx, perimeter.as_deref()).await
         }

@@ -1,5 +1,5 @@
-use miette::{miette, Result};
-use outerbounds::{get_ci_jwt, ServicePrincipalParams};
+use miette::{Result, miette};
+use outerbounds::{ServicePrincipalParams, get_ci_jwt};
 
 use crate::context::CommandContext;
 use crate::ui::status;
@@ -11,7 +11,10 @@ pub async fn configure(
     force: bool,
 ) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
-    let result = ob.configure().configure(encoded_config, echo, force).await?;
+    let result = ob
+        .configure()
+        .configure(encoded_config, echo, force)
+        .await?;
 
     status::success(&format!("Configuration saved to {}", result.config_path));
 

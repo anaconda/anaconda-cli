@@ -32,7 +32,11 @@ pub async fn get(ctx: &CommandContext, integration_name: &str, json: bool) -> Re
     Ok(())
 }
 
-pub async fn get_many(ctx: &CommandContext, integration_names: &[String], json: bool) -> Result<()> {
+pub async fn get_many(
+    ctx: &CommandContext,
+    integration_names: &[String],
+    json: bool,
+) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
     let names: Vec<&str> = integration_names.iter().map(|s| s.as_str()).collect();

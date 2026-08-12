@@ -1,4 +1,4 @@
-use miette::{miette, Result};
+use miette::{Result, miette};
 use outerbounds::CapsuleFilters;
 
 use crate::context::CommandContext;
@@ -20,11 +20,10 @@ async fn get_api_context(ctx: &CommandContext) -> Result<(String, String)> {
         .ok_or_else(|| miette!("OBP_API_SERVER not found in config"))?
         .clone();
 
-    let perimeter = ob
-        .perimeter()
-        .show_current()
-        .await?
-        .ok_or_else(|| miette!("No perimeter set. Run 'ana obn perimeter switch <id>' first."))?;
+    let perimeter =
+        ob.perimeter().show_current().await?.ok_or_else(|| {
+            miette!("No perimeter set. Run 'ana obn perimeter switch <id>' first.")
+        })?;
 
     Ok((api_url, perimeter))
 }
@@ -57,7 +56,13 @@ pub async fn list(
         let ready = capsule
             .status
             .as_ref()
-            .map(|s| if s.ready_to_serve_traffic { "Yes" } else { "No" })
+            .map(|s| {
+                if s.ready_to_serve_traffic {
+                    "Yes"
+                } else {
+                    "No"
+                }
+            })
             .unwrap_or("unknown");
         let created = capsule
             .metadata

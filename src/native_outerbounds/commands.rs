@@ -586,9 +586,13 @@ impl ObnCommands {
                 None => ObnAction::ShowHelp("obn perimeter".to_string()),
                 Some(PerimeterCommands::List) => ObnAction::PerimeterList,
                 Some(PerimeterCommands::ShowCurrent) => ObnAction::PerimeterShowCurrent,
-                Some(PerimeterCommands::Switch { perimeter_id, force }) => {
-                    ObnAction::PerimeterSwitch { perimeter_id, force }
-                }
+                Some(PerimeterCommands::Switch {
+                    perimeter_id,
+                    force,
+                }) => ObnAction::PerimeterSwitch {
+                    perimeter_id,
+                    force,
+                },
             },
             ObnCommands::App { command } => match command {
                 None => ObnAction::ShowHelp("obn app".to_string()),

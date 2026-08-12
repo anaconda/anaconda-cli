@@ -8,7 +8,10 @@ use super::output::{create_table, print_table};
 pub async fn list(ctx: &CommandContext, perimeter_override: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
-    let result = ob.integrations().list_in_perimeter(perimeter_override).await?;
+    let result = ob
+        .integrations()
+        .list_in_perimeter(perimeter_override)
+        .await?;
 
     if result.integrations.is_empty() {
         println!("No integrations found");
@@ -35,11 +38,7 @@ pub async fn list(ctx: &CommandContext, perimeter_override: Option<&str>) -> Res
     Ok(())
 }
 
-pub async fn get(
-    ctx: &CommandContext,
-    name: &str,
-    perimeter_override: Option<&str>,
-) -> Result<()> {
+pub async fn get(ctx: &CommandContext, name: &str, perimeter_override: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
     let integration = ob

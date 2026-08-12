@@ -54,10 +54,7 @@ pub async fn hibernate(ctx: &CommandContext, workstation_id: &str) -> Result<()>
         }
     } else {
         let msg = result.message.as_deref().unwrap_or("Unknown error");
-        status::warn(&format!(
-            "Failed to hibernate {}: {}",
-            workstation_id, msg
-        ));
+        status::warn(&format!("Failed to hibernate {}: {}", workstation_id, msg));
     }
 
     Ok(())
@@ -75,10 +72,7 @@ pub async fn restart(ctx: &CommandContext, workstation_id: &str) -> Result<()> {
         }
     } else {
         let msg = result.message.as_deref().unwrap_or("Unknown error");
-        status::warn(&format!(
-            "Failed to restart {}: {}",
-            workstation_id, msg
-        ));
+        status::warn(&format!("Failed to restart {}: {}", workstation_id, msg));
     }
 
     Ok(())
