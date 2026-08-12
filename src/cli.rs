@@ -784,6 +784,25 @@ fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
         return (Action::ShowVersion, LogLevel::Off);
     }
 
+    // If user passed --help/-h but clap errored on missing required args,
+    // show help instead of the error
+    if e.kind() == clap::error::ErrorKind::MissingRequiredArgument {
+        let args: Vec<String> = std::env::args().collect();
+        if args.iter().any(|a| a == "--help" || a == "-h") {
+            // Extract subcommand path from args (skip binary name and flags)
+            let path: Vec<&str> = args
+                .iter()
+                .skip(1)
+                .filter(|a| !a.starts_with('-'))
+                .map(|s| s.as_str())
+                .collect();
+            if path.is_empty() {
+                return (Action::ShowHelp, LogLevel::Off);
+            }
+            return (Action::ShowSubcommandHelp(path.join(" ")), LogLevel::Off);
+        }
+    }
+
     print_clap_error(&e);
     std::process::exit(2);
 }

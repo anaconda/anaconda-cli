@@ -7,6 +7,8 @@ pub enum ObnAction {
     // Configure
     Configure {
         encoded_config: String,
+        config_dir: String,
+        profile: Option<String>,
         echo: bool,
         force: bool,
     },
@@ -16,42 +18,52 @@ pub enum ObnAction {
         perimeter: Option<String>,
         jwt_token: Option<String>,
         github_actions: bool,
+        config_dir: String,
+        profile: Option<String>,
         echo: bool,
         force: bool,
     },
 
     // Check
     Check {
+        no_config: bool,
+        output: Option<String>,
         workstation: bool,
-        python: bool,
         latency: bool,
+        latency_requests: u32,
+        latency_timeout: f64,
     },
 
     // Perimeter
     PerimeterList,
     PerimeterShowCurrent,
     PerimeterSwitch {
-        perimeter_id: String,
+        config_dir: String,
+        profile: Option<String>,
+        output: Option<String>,
+        id: Option<String>,
         force: bool,
     },
 
     // App
     AppList {
-        perimeter: Option<String>,
+        project: Option<String>,
+        branch: Option<String>,
         name: Option<String>,
+        tags: Vec<String>,
+        format: Option<String>,
+        auth_type: Option<String>,
     },
     AppInfo {
         id: String,
-        perimeter: Option<String>,
+        format: Option<String>,
     },
     AppDelete {
         ids: Vec<String>,
-        perimeter: Option<String>,
     },
     AppLogs {
         id: String,
         worker_id: Option<String>,
-        perimeter: Option<String>,
         previous: bool,
     },
 
@@ -142,65 +154,93 @@ pub enum ObnAction {
 
 #[derive(Subcommand, Debug)]
 pub enum ObnCommands {
-    /// Decode and save Outerbounds Platform configuration
+    /// Decode Outerbounds Platform configuration strings
     Configure {
         /// Base64-encoded configuration string
         encoded_config: String,
+
+        /// Path to Metaflow configuration directory
+        #[arg(long, short = 'd', default_value = "~/.metaflowconfig")]
+        config_dir: String,
+
+        /// Configure a named profile. Activate the profile by setting METAFLOW_PROFILE environment variable
+        #[arg(long, short = 'p')]
+        profile: Option<String>,
 
         /// Print decoded configuration to stdout
         #[arg(long, short = 'e')]
         echo: bool,
 
-        /// Overwrite existing configuration without confirmation
+        /// Force overwrite of existing configuration
         #[arg(long, short = 'f')]
         force: bool,
     },
 
-    /// Authenticate service principals using JWT (for CI/CD)
+    /// Authenticate service principals using JWT minted by their IDPs and configure Metaflow
     #[command(name = "service-principal-configure")]
     ServicePrincipalConfigure {
-        /// Name of the service principal
+        /// The name of service principals to authenticate
         #[arg(long, short = 'n')]
         name: Option<String>,
 
-        /// Full domain of the target OBP deployment (e.g., 'foo.obp.outerbounds.com')
+        /// The full domain of the target Outerbounds Platform deployment (eg. 'foo.obp.outerbounds.com')
         #[arg(long)]
         deployment_domain: Option<String>,
 
-        /// Perimeter to authenticate in (defaults to 'default')
+        /// The name of the perimeter to authenticate the service principal in
         #[arg(long, short = 'p')]
         perimeter: Option<String>,
 
-        /// JWT token for authentication
+        /// The JWT token that will be used to authenticate against the OBP Auth Server
         #[arg(long, short = 't')]
         jwt_token: Option<String>,
 
-        /// Use GitHub Actions OIDC to get JWT token
+        /// Set if the command is being run in a GitHub Actions environment
         #[arg(long)]
         github_actions: bool,
 
-        /// Print configuration to stdout
+        /// Path to Metaflow configuration directory
+        #[arg(long, short = 'd', default_value = "~/.metaflowconfig")]
+        config_dir: String,
+
+        /// Configure a named profile. Activate the profile by setting METAFLOW_PROFILE environment variable
+        #[arg(long)]
+        profile: Option<String>,
+
+        /// Print decoded configuration to stdout
         #[arg(long, short = 'e')]
         echo: bool,
 
-        /// Overwrite existing configuration without confirmation
+        /// Force overwrite of existing configuration
         #[arg(long, short = 'f')]
         force: bool,
     },
 
-    /// Check packages and configuration for compatibility
+    /// Check packages and configuration for common errors
     Check {
-        /// Include workstation-specific checks
-        #[arg(long)]
+        /// Skip validating local Metaflow configuration
+        #[arg(long, short = 'n')]
+        no_config: bool,
+
+        /// Show output in the specified format
+        #[arg(long, short = 'o')]
+        output: Option<String>,
+
+        /// Check whether all workstation dependencies are installed correctly
+        #[arg(long, short = 'w')]
         workstation: bool,
 
-        /// Include Python package checks
-        #[arg(long)]
-        python: bool,
-
-        /// Run latency checks
-        #[arg(long)]
+        /// Check API latency for Workstations, Auth Server, and EKS endpoints
+        #[arg(long, short = 'l')]
         latency: bool,
+
+        /// Number of requests per endpoint for latency check
+        #[arg(long, default_value = "10")]
+        latency_requests: u32,
+
+        /// Connection timeout in seconds for latency check requests
+        #[arg(long, default_value = "10.0")]
+        latency_timeout: f64,
     },
 
     /// Manage perimeters
@@ -258,16 +298,29 @@ pub enum PerimeterCommands {
     /// List all available perimeters
     List,
 
-    /// Show the currently active perimeter
+    /// Show current perimeter
     #[command(name = "show-current")]
     ShowCurrent,
 
-    /// Switch to a different perimeter
+    /// Switch current perimeter
     Switch {
-        /// Perimeter ID to switch to
-        perimeter_id: String,
+        /// Path to Metaflow configuration directory
+        #[arg(long, short = 'd', default_value = "~/.metaflowconfig")]
+        config_dir: String,
 
-        /// Force switch without confirmation
+        /// The named metaflow profile in which your workstation exists
+        #[arg(long, short = 'p')]
+        profile: Option<String>,
+
+        /// Show output in the specified format
+        #[arg(long, short = 'o')]
+        output: Option<String>,
+
+        /// Perimeter name to switch to
+        #[arg(long)]
+        id: Option<String>,
+
+        /// Force change the existing perimeter
         #[arg(long, short = 'f')]
         force: bool,
     },
@@ -277,37 +330,49 @@ pub enum PerimeterCommands {
 pub enum AppCommands {
     /// List apps in the Outerbounds Platform
     List {
-        /// Override the current perimeter
+        /// Filter apps by project
         #[arg(long)]
-        perimeter: Option<String>,
+        project: Option<String>,
 
-        /// Filter by app name
+        /// Filter apps by branch
+        #[arg(long)]
+        branch: Option<String>,
+
+        /// Filter apps by name
         #[arg(long)]
         name: Option<String>,
+
+        /// Filter apps by tag. Format KEY=VALUE
+        #[arg(long = "tag", value_name = "KEY=VALUE")]
+        tags: Vec<String>,
+
+        /// Format the output
+        #[arg(long, value_parser = ["json", "text"])]
+        format: Option<String>,
+
+        /// Filter apps by Auth type
+        #[arg(long, value_parser = ["Browser", "API", "BrowserAndApi"])]
+        auth_type: Option<String>,
     },
 
-    /// Get detailed information about an app
+    /// Get detailed information about an app from the Outerbounds Platform
     Info {
         /// App ID
         id: String,
 
-        /// Override the current perimeter
-        #[arg(long)]
-        perimeter: Option<String>,
+        /// Format the output
+        #[arg(long, value_parser = ["json", "text"])]
+        format: Option<String>,
     },
 
-    /// Delete one or more apps
+    /// Delete an app/apps from the Outerbounds Platform
     Delete {
         /// App IDs to delete
         #[arg(required = true)]
         ids: Vec<String>,
-
-        /// Override the current perimeter
-        #[arg(long)]
-        perimeter: Option<String>,
     },
 
-    /// Get logs for an app worker
+    /// Get logs for an app worker from the Outerbounds Platform
     Logs {
         /// App ID
         id: String,
@@ -315,10 +380,6 @@ pub enum AppCommands {
         /// Worker ID (defaults to first worker)
         #[arg(long)]
         worker_id: Option<String>,
-
-        /// Override the current perimeter
-        #[arg(long)]
-        perimeter: Option<String>,
 
         /// Get logs from previous container instance
         #[arg(long)]
@@ -549,10 +610,14 @@ impl ObnCommands {
         match self {
             ObnCommands::Configure {
                 encoded_config,
+                config_dir,
+                profile,
                 echo,
                 force,
             } => ObnAction::Configure {
                 encoded_config,
+                config_dir,
+                profile,
                 echo,
                 force,
             },
@@ -562,6 +627,8 @@ impl ObnCommands {
                 perimeter,
                 jwt_token,
                 github_actions,
+                config_dir,
+                profile,
                 echo,
                 force,
             } => ObnAction::ServicePrincipalConfigure {
@@ -570,48 +637,60 @@ impl ObnCommands {
                 perimeter,
                 jwt_token,
                 github_actions,
+                config_dir,
+                profile,
                 echo,
                 force,
             },
             ObnCommands::Check {
+                no_config,
+                output,
                 workstation,
-                python,
                 latency,
+                latency_requests,
+                latency_timeout,
             } => ObnAction::Check {
+                no_config,
+                output,
                 workstation,
-                python,
                 latency,
+                latency_requests,
+                latency_timeout,
             },
             ObnCommands::Perimeter { command } => match command {
                 None => ObnAction::ShowHelp("obn perimeter".to_string()),
                 Some(PerimeterCommands::List) => ObnAction::PerimeterList,
                 Some(PerimeterCommands::ShowCurrent) => ObnAction::PerimeterShowCurrent,
-                Some(PerimeterCommands::Switch {
-                    perimeter_id,
-                    force,
-                }) => ObnAction::PerimeterSwitch {
-                    perimeter_id,
-                    force,
-                },
+                Some(PerimeterCommands::Switch { output, id, force }) => {
+                    ObnAction::PerimeterSwitch { output, id, force }
+                }
             },
             ObnCommands::App { command } => match command {
                 None => ObnAction::ShowHelp("obn app".to_string()),
-                Some(AppCommands::List { perimeter, name }) => {
-                    ObnAction::AppList { perimeter, name }
-                }
-                Some(AppCommands::Info { id, perimeter }) => ObnAction::AppInfo { id, perimeter },
-                Some(AppCommands::Delete { ids, perimeter }) => {
-                    ObnAction::AppDelete { ids, perimeter }
-                }
+                Some(AppCommands::List {
+                    project,
+                    branch,
+                    name,
+                    tags,
+                    format,
+                    auth_type,
+                }) => ObnAction::AppList {
+                    project,
+                    branch,
+                    name,
+                    tags,
+                    format,
+                    auth_type,
+                },
+                Some(AppCommands::Info { id, format }) => ObnAction::AppInfo { id, format },
+                Some(AppCommands::Delete { ids }) => ObnAction::AppDelete { ids },
                 Some(AppCommands::Logs {
                     id,
                     worker_id,
-                    perimeter,
                     previous,
                 }) => ObnAction::AppLogs {
                     id,
                     worker_id,
-                    perimeter,
                     previous,
                 },
             },

@@ -1,22 +1,37 @@
-use miette::{Result, miette};
-use outerbounds::{ServicePrincipalParams, get_ci_jwt};
+use std::path::Path;
 
-use crate::context::CommandContext;
+use miette::{miette, Result};
+use outerbounds::{get_ci_jwt, Outerbounds, ServicePrincipalParams};
+
 use crate::ui::status;
 
+fn expand_tilde(path: &str) -> String {
+    if path.starts_with("~/")
+        && let Some(home) = dirs::home_dir() {
+            return path.replacen("~", &home.to_string_lossy(), 1);
+        }
+    path.to_string()
+}
+
 pub async fn configure(
-    ctx: &CommandContext,
     encoded_config: &str,
+    config_dir: &str,
+    profile: Option<&str>,
     echo: bool,
     force: bool,
 ) -> Result<()> {
-    let ob = ctx.outerbounds_client().await?;
+    let config_path = expand_tilde(config_dir);
+    let ob = Outerbounds::without_config(Some(Path::new(&config_path)), profile);
+
     let result = ob
         .configure()
         .configure(encoded_config, echo, force)
-        .await?;
+        .await
+        .map_err(|e| miette!("{}", e))?;
 
-    status::success(&format!("Configuration saved to {}", result.config_path));
+    if result.written {
+        status::success(&format!("Configuration saved to {}", result.config_path));
+    }
 
     if echo {
         println!("\nDecoded configuration:");
@@ -31,16 +46,18 @@ pub async fn configure(
 
 #[allow(clippy::too_many_arguments)]
 pub async fn service_principal_configure(
-    ctx: &CommandContext,
     name: Option<&str>,
     deployment_domain: Option<&str>,
     perimeter: Option<&str>,
     jwt_token: Option<&str>,
     github_actions: bool,
+    config_dir: &str,
+    profile: Option<&str>,
     echo: bool,
     force: bool,
 ) -> Result<()> {
-    let ob = ctx.outerbounds_client().await?;
+    let config_path = expand_tilde(config_dir);
+    let ob = Outerbounds::without_config(Some(Path::new(&config_path)), profile);
 
     // Get JWT token - either from argument or GitHub Actions OIDC
     let token = match jwt_token {
@@ -51,7 +68,7 @@ pub async fn service_principal_configure(
                 miette!("--deployment-domain is required when using --github-actions")
             })?;
             let audience = format!("https://auth.{}/origin", domain);
-            get_ci_jwt(&audience).await?
+            get_ci_jwt(&audience).await.map_err(|e| miette!("{}", e))?
         }
         None => {
             return Err(miette!(
@@ -72,7 +89,8 @@ pub async fn service_principal_configure(
     let result = ob
         .configure()
         .service_principal_configure(&params, echo, force)
-        .await?;
+        .await
+        .map_err(|e| miette!("{}", e))?;
 
     status::success(&format!(
         "Service principal configuration saved to {}",

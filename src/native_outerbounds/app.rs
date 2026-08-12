@@ -1,5 +1,5 @@
-use miette::{Result, miette};
-use outerbounds::CapsuleFilters;
+use miette::{miette, Result};
+use outerbounds::{CapsuleFilters, Tag};
 
 use crate::context::CommandContext;
 use crate::ui::status;
@@ -28,21 +28,52 @@ async fn get_api_context(ctx: &CommandContext) -> Result<(String, String)> {
     Ok((api_url, perimeter))
 }
 
+fn parse_tags(tags: &[String]) -> Vec<Tag> {
+    tags.iter()
+        .filter_map(|t| {
+            let parts: Vec<&str> = t.splitn(2, '=').collect();
+            if parts.len() == 2 {
+                Some(Tag {
+                    key: parts[0].to_string(),
+                    value: parts[1].to_string(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[allow(clippy::too_many_arguments)]
 pub async fn list(
     ctx: &CommandContext,
-    perimeter_override: Option<&str>,
-    name_filter: Option<&str>,
+    project: Option<&str>,
+    branch: Option<&str>,
+    name: Option<&str>,
+    tags: &[String],
+    format: Option<&str>,
+    auth_type: Option<&str>,
 ) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
-    let (api_url, default_perimeter) = get_api_context(ctx).await?;
-    let perimeter = perimeter_override.unwrap_or(&default_perimeter);
+    let (api_url, perimeter) = get_api_context(ctx).await?;
 
     let filters = CapsuleFilters {
-        name: name_filter.map(|s| s.to_string()),
-        ..Default::default()
+        project: project.map(|s| s.to_string()),
+        branch: branch.map(|s| s.to_string()),
+        name: name.map(|s| s.to_string()),
+        id: None,
+        auth_type: auth_type.map(|s| s.to_string()),
+        tags: parse_tags(tags),
     };
 
-    let capsules = ob.app().list(&api_url, perimeter, filters).await?;
+    let capsules = ob.app().list(&api_url, &perimeter, filters).await?;
+
+    if format == Some("json") {
+        let json = serde_json::to_string_pretty(&capsules)
+            .map_err(|e| miette!("Failed to serialize: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
 
     if capsules.is_empty() {
         println!("No apps found");
@@ -77,12 +108,19 @@ pub async fn list(
     Ok(())
 }
 
-pub async fn info(ctx: &CommandContext, id: &str, perimeter_override: Option<&str>) -> Result<()> {
+pub async fn info(ctx: &CommandContext, id: &str, format: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
-    let (api_url, default_perimeter) = get_api_context(ctx).await?;
-    let perimeter = perimeter_override.unwrap_or(&default_perimeter);
+    let (api_url, perimeter) = get_api_context(ctx).await?;
 
-    let app_info = ob.app().info(&api_url, perimeter, id).await?;
+    let app_info = ob.app().info(&api_url, &perimeter, id).await?;
+
+    if format == Some("json") {
+        let json = serde_json::to_string_pretty(&app_info)
+            .map_err(|e| miette!("Failed to serialize: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
+
     let capsule = &app_info.capsule;
 
     println!("App ID: {}", capsule.id);
@@ -143,16 +181,11 @@ pub async fn info(ctx: &CommandContext, id: &str, perimeter_override: Option<&st
     Ok(())
 }
 
-pub async fn delete(
-    ctx: &CommandContext,
-    ids: &[String],
-    perimeter_override: Option<&str>,
-) -> Result<()> {
+pub async fn delete(ctx: &CommandContext, ids: &[String]) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
-    let (api_url, default_perimeter) = get_api_context(ctx).await?;
-    let perimeter = perimeter_override.unwrap_or(&default_perimeter);
+    let (api_url, perimeter) = get_api_context(ctx).await?;
 
-    let results = ob.app().delete(&api_url, perimeter, ids).await?;
+    let results = ob.app().delete(&api_url, &perimeter, ids).await?;
 
     for result in &results {
         if result.success {
@@ -170,18 +203,16 @@ pub async fn logs(
     ctx: &CommandContext,
     id: &str,
     worker_id: Option<&str>,
-    perimeter_override: Option<&str>,
     previous: bool,
 ) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
-    let (api_url, default_perimeter) = get_api_context(ctx).await?;
-    let perimeter = perimeter_override.unwrap_or(&default_perimeter);
+    let (api_url, perimeter) = get_api_context(ctx).await?;
 
     // If no worker_id provided, get the first worker
     let worker = match worker_id {
         Some(w) => w.to_string(),
         None => {
-            let app_info = ob.app().info(&api_url, perimeter, id).await?;
+            let app_info = ob.app().info(&api_url, &perimeter, id).await?;
             app_info
                 .workers
                 .first()
@@ -192,7 +223,7 @@ pub async fn logs(
 
     let logs = ob
         .app()
-        .logs(&api_url, perimeter, id, &worker, previous)
+        .logs(&api_url, &perimeter, id, &worker, previous)
         .await?;
 
     for log_line in &logs {

@@ -7,7 +7,12 @@ use super::{
 use crate::context::CommandContext;
 use crate::help;
 
-pub async fn run(ctx: &CommandContext, action: ObnAction) -> Result<()> {
+pub async fn run(
+    ctx: &CommandContext,
+    action: ObnAction,
+    config_dir: &str,
+    profile: Option<&str>,
+) -> Result<()> {
     match action {
         ObnAction::ShowHelp(path) => {
             help::print_subcommand_help(&get_subcommand(&path), &path);
@@ -17,7 +22,7 @@ pub async fn run(ctx: &CommandContext, action: ObnAction) -> Result<()> {
             encoded_config,
             echo,
             force,
-        } => configure::configure(ctx, &encoded_config, echo, force).await,
+        } => configure::configure(&encoded_config, config_dir, profile, echo, force).await,
         ObnAction::ServicePrincipalConfigure {
             name,
             deployment_domain,
@@ -28,50 +33,68 @@ pub async fn run(ctx: &CommandContext, action: ObnAction) -> Result<()> {
             force,
         } => {
             configure::service_principal_configure(
-                ctx,
                 name.as_deref(),
                 deployment_domain.as_deref(),
                 perimeter.as_deref(),
                 jwt_token.as_deref(),
                 github_actions,
+                config_dir,
+                profile,
                 echo,
                 force,
             )
             .await
         }
         ObnAction::Check {
+            no_config,
+            output,
             workstation,
-            python,
             latency,
-        } => check::check(ctx, workstation, python, latency).await,
-        ObnAction::PerimeterList => perimeter::list(ctx).await,
-        ObnAction::PerimeterShowCurrent => perimeter::show_current(ctx).await,
-        ObnAction::PerimeterSwitch {
-            perimeter_id,
-            force,
-        } => perimeter::switch(ctx, &perimeter_id, force).await,
-        ObnAction::AppList { perimeter, name } => {
-            app::list(ctx, perimeter.as_deref(), name.as_deref()).await
-        }
-        ObnAction::AppInfo { id, perimeter } => app::info(ctx, &id, perimeter.as_deref()).await,
-        ObnAction::AppDelete { ids, perimeter } => {
-            app::delete(ctx, &ids, perimeter.as_deref()).await
-        }
-        ObnAction::AppLogs {
-            id,
-            worker_id,
-            perimeter,
-            previous,
+            latency_requests,
+            latency_timeout,
         } => {
-            app::logs(
+            check::check(
                 ctx,
-                &id,
-                worker_id.as_deref(),
-                perimeter.as_deref(),
-                previous,
+                no_config,
+                output.as_deref(),
+                workstation,
+                latency,
+                latency_requests,
+                latency_timeout,
             )
             .await
         }
+        ObnAction::PerimeterList => perimeter::list(ctx).await,
+        ObnAction::PerimeterShowCurrent => perimeter::show_current(ctx).await,
+        ObnAction::PerimeterSwitch { output, id, force } => {
+            perimeter::switch(config_dir, profile, output.as_deref(), id.as_deref(), force).await
+        }
+        ObnAction::AppList {
+            project,
+            branch,
+            name,
+            tags,
+            format,
+            auth_type,
+        } => {
+            app::list(
+                ctx,
+                project.as_deref(),
+                branch.as_deref(),
+                name.as_deref(),
+                &tags,
+                format.as_deref(),
+                auth_type.as_deref(),
+            )
+            .await
+        }
+        ObnAction::AppInfo { id, format } => app::info(ctx, &id, format.as_deref()).await,
+        ObnAction::AppDelete { ids } => app::delete(ctx, &ids).await,
+        ObnAction::AppLogs {
+            id,
+            worker_id,
+            previous,
+        } => app::logs(ctx, &id, worker_id.as_deref(), previous).await,
         ObnAction::IntegrationsList { perimeter } => {
             integrations::list(ctx, perimeter.as_deref()).await
         }

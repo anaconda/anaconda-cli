@@ -6,22 +6,33 @@ use crate::ui::status;
 
 pub async fn check(
     ctx: &CommandContext,
+    no_config: bool,
+    output: Option<&str>,
     workstation: bool,
-    python: bool,
     latency: bool,
+    latency_requests: u32,
+    latency_timeout: f64,
 ) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
     let opts = CheckOptions {
-        no_config: false,
+        no_config,
         workstation,
-        python,
+        python: false, // Python checks are handled differently in the Python CLI
         latency,
-        latency_requests: 10,
-        latency_timeout: 10.0,
+        latency_requests,
+        latency_timeout,
     };
 
     let response = ob.check().check(opts).await?;
+
+    // Handle JSON output format
+    if output == Some("json") {
+        let json = serde_json::to_string_pretty(&response)
+            .map_err(|e| miette::miette!("Failed to serialize response: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
 
     for result in &response.data.steps {
         let icon = match result.status {
@@ -33,7 +44,7 @@ pub async fn check(
         println!("{} {}: {}", icon, result.name, result.message);
 
         if !result.help.is_empty() {
-            println!("    Help: {}", result.help);
+            tracing::debug!("Help: {}", result.help);
         }
     }
 
@@ -55,7 +66,7 @@ pub async fn check(
                 println!("no successful requests");
             }
             for err in &lat.errors {
-                println!("    Error: {}", err);
+                tracing::debug!("Error: {}", err);
             }
         }
     }
