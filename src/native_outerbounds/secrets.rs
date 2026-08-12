@@ -19,9 +19,8 @@ pub async fn get(
 
     let output_format = match format {
         Some("json") => SecretFormat::Json,
-        Some("shell") => SecretFormat::Shell,
         Some("text") | None => SecretFormat::Text,
-        Some(f) => return Err(miette!("Invalid format: {}. Use text, json, or shell.", f)),
+        Some(f) => return Err(miette!("Invalid format: {}. Use text or json.", f)),
     };
 
     let output = outerbounds::format_secrets(&secrets, output_format);

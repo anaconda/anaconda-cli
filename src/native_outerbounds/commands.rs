@@ -454,8 +454,8 @@ pub enum SecretsCommands {
         /// Secret IDs (integration names)
         secret_ids: Vec<String>,
 
-        /// Format of the output (text, json, shell)
-        #[arg(long, value_parser = ["text", "json", "shell"])]
+        /// Format of the output (text, json)
+        #[arg(long, value_parser = ["text", "json"])]
         format: Option<String>,
 
         /// Any additional IAM role required to access the secrets
@@ -476,7 +476,7 @@ pub enum TutorialsCommands {
         #[arg(long)]
         url: String,
 
-        /// Show output in the specified format
+        /// Directory to download tutorials to
         #[arg(long)]
         destination_dir: String,
 
