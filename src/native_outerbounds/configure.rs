@@ -1,15 +1,16 @@
 use std::path::Path;
 
-use miette::{miette, Result};
-use outerbounds::{get_ci_jwt, Outerbounds, ServicePrincipalParams};
+use miette::{Result, miette};
+use outerbounds::{Outerbounds, ServicePrincipalParams, get_ci_jwt};
 
 use crate::ui::status;
 
 fn expand_tilde(path: &str) -> String {
     if path.starts_with("~/")
-        && let Some(home) = dirs::home_dir() {
-            return path.replacen("~", &home.to_string_lossy(), 1);
-        }
+        && let Some(home) = dirs::home_dir()
+    {
+        return path.replacen("~", &home.to_string_lossy(), 1);
+    }
     path.to_string()
 }
 

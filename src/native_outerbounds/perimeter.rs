@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use miette::{miette, Result};
+use miette::{Result, miette};
 use outerbounds::Outerbounds;
 
 use crate::context::CommandContext;
@@ -10,9 +10,10 @@ use super::output::{create_table, print_table};
 
 fn expand_tilde(path: &str) -> String {
     if path.starts_with("~/")
-        && let Some(home) = dirs::home_dir() {
-            return path.replacen("~", &home.to_string_lossy(), 1);
-        }
+        && let Some(home) = dirs::home_dir()
+    {
+        return path.replacen("~", &home.to_string_lossy(), 1);
+    }
     path.to_string()
 }
 
