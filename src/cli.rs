@@ -15,6 +15,8 @@ use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
+#[cfg(feature = "obp")]
+use crate::native_outerbounds::{ObnAction, ObnCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
@@ -165,6 +167,8 @@ pub enum Action {
     ObAutoConfigure {
         instance: String,
     },
+    #[cfg(feature = "obp")]
+    Obn(ObnAction),
     McpRun {
         args: Vec<String>,
     },
@@ -233,6 +237,8 @@ impl Action {
             Action::ObProxy { .. } => "ob",
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
+            #[cfg(feature = "obp")]
+            Action::Obn(_) => "obn",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
@@ -326,6 +332,8 @@ impl Action {
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
+            #[cfg(feature = "obp")]
+            Action::Obn(action) => crate::native_outerbounds::run(ctx, action).await,
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -679,6 +687,11 @@ pub fn parse() -> (Action, LogLevel) {
                 },
             }
         }
+        #[cfg(feature = "obp")]
+        Some(Commands::Obn { command }) => match command {
+            None => Action::ShowSubcommandHelp("obn".to_string()),
+            Some(cmd) => Action::Obn(cmd.into_action()),
+        },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -969,6 +982,18 @@ enum Commands {
     Ob {
         #[command(subcommand)]
         command: Option<ObCommands>,
+    },
+
+    /// Outerbounds platform CLI (native Rust implementation)
+    #[cfg(feature = "obp")]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana obn <command> [options]"
+    )]
+    Obn {
+        #[command(subcommand)]
+        command: Option<ObnCommands>,
     },
 
     /// Manage tools

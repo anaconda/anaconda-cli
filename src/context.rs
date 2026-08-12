@@ -10,6 +10,8 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use opentelemetry::Value;
+#[cfg(feature = "obp")]
+use tokio::sync::OnceCell;
 
 use crate::VERSION;
 use crate::config::Config;
@@ -101,6 +103,9 @@ pub struct CommandContext {
     download_client: OnceLock<reqwest_middleware::ClientWithMiddleware>,
     /// Unauthenticated client (lazy initialized).
     unauthenticated_client: OnceLock<Client>,
+    /// Outerbounds client (lazy initialized, async).
+    #[cfg(feature = "obp")]
+    outerbounds_client: OnceCell<outerbounds::Outerbounds>,
 }
 
 impl CommandContext {
@@ -129,6 +134,8 @@ impl CommandContext {
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),
             unauthenticated_client: OnceLock::new(),
+            #[cfg(feature = "obp")]
+            outerbounds_client: OnceCell::const_new(),
         }
     }
 
@@ -171,6 +178,18 @@ impl CommandContext {
             .expect("failed to create unauthenticated client")
         })
     }
+
+    /// Get or create the Outerbounds client (async initialization).
+    #[cfg(feature = "obp")]
+    pub async fn outerbounds_client(&self) -> miette::Result<&outerbounds::Outerbounds> {
+        self.outerbounds_client
+            .get_or_try_init(|| async {
+                outerbounds::Outerbounds::new(None, None)
+                    .await
+                    .map_err(|e| miette::miette!("Failed to initialize Outerbounds client: {}", e))
+            })
+            .await
+    }
 }
 
 impl Default for CommandContext {
@@ -193,6 +212,8 @@ impl CommandContext {
             github_client: OnceLock::new(),
             download_client: OnceLock::new(),
             unauthenticated_client: OnceLock::new(),
+            #[cfg(feature = "obp")]
+            outerbounds_client: OnceCell::const_new(),
         }
     }
 }

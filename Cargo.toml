@@ -10,9 +10,11 @@ rlimit = "0.11"
 [features]
 # Diagnostics (Sentry) is opt-in. Enable with `cargo build --features diagnostics`.
 # Unstable features are hidden and disabled by default.
+# OBP (Outerbounds Platform) enables native Rust implementations of outerbounds commands.
 default = []
 diagnostics = ["dep:sentry"]
 unstable = []
+obp = ["dep:outerbounds"]
 
 [dependencies]
 anaconda-anon-usage = { version = "0.8.0-pre.9", features = ["rattler", "reqwest"] }
@@ -54,6 +56,7 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 opentelemetry = "0.31.0"
 owo-colors = { version = "4", features = ["supports-colors"] }
 url = "2.5.8"
+outerbounds = { path = "../ob-cli-lib", features = ["aws", "kubernetes"], optional = true }
 
 [dev-dependencies]
 temp-env = "0.3"

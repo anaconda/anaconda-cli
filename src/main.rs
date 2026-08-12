@@ -14,6 +14,8 @@ mod http;
 mod input;
 mod installer;
 mod mcp;
+#[cfg(feature = "obp")]
+mod native_outerbounds;
 #[cfg(unix)]
 mod outerbounds;
 mod paths;
