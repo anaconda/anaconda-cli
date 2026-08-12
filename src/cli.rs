@@ -168,7 +168,11 @@ pub enum Action {
         instance: String,
     },
     #[cfg(feature = "obp")]
-    Obn(ObnAction),
+    Obn {
+        action: ObnAction,
+        config_dir: String,
+        profile: Option<String>,
+    },
     McpRun {
         args: Vec<String>,
     },
@@ -238,7 +242,7 @@ impl Action {
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             #[cfg(feature = "obp")]
-            Action::Obn(_) => "obn",
+            Action::Obn { .. } => "obn",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
@@ -333,7 +337,11 @@ impl Action {
                 outerbounds::auto_configure(ctx, &instance).await
             }
             #[cfg(feature = "obp")]
-            Action::Obn(action) => crate::native_outerbounds::run(ctx, action).await,
+            Action::Obn {
+                action,
+                config_dir,
+                profile,
+            } => crate::native_outerbounds::run(ctx, action, &config_dir, profile.as_deref()).await,
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -688,9 +696,17 @@ pub fn parse() -> (Action, LogLevel) {
             }
         }
         #[cfg(feature = "obp")]
-        Some(Commands::Obn { command }) => match command {
+        Some(Commands::Obn {
+            config_dir,
+            profile,
+            command,
+        }) => match command {
             None => Action::ShowSubcommandHelp("obn".to_string()),
-            Some(cmd) => Action::Obn(cmd.into_action()),
+            Some(cmd) => Action::Obn {
+                action: cmd.into_action(),
+                config_dir,
+                profile,
+            },
         },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
@@ -1008,9 +1024,17 @@ enum Commands {
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
-        override_usage = "ana obn <command> [options]"
+        override_usage = "ana obn [OPTIONS] <command> [options]"
     )]
     Obn {
+        /// Path to Metaflow configuration directory
+        #[arg(long, short = 'd', default_value = "~/.metaflowconfig", global = true)]
+        config_dir: String,
+
+        /// Configure a named profile. Activate by setting METAFLOW_PROFILE env var
+        #[arg(long, short = 'p', global = true)]
+        profile: Option<String>,
+
         #[command(subcommand)]
         command: Option<ObnCommands>,
     },

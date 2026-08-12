@@ -7,8 +7,6 @@ pub enum ObnAction {
     // Configure
     Configure {
         encoded_config: String,
-        config_dir: String,
-        profile: Option<String>,
         echo: bool,
         force: bool,
     },
@@ -18,8 +16,6 @@ pub enum ObnAction {
         perimeter: Option<String>,
         jwt_token: Option<String>,
         github_actions: bool,
-        config_dir: String,
-        profile: Option<String>,
         echo: bool,
         force: bool,
     },
@@ -38,8 +34,6 @@ pub enum ObnAction {
     PerimeterList,
     PerimeterShowCurrent,
     PerimeterSwitch {
-        config_dir: String,
-        profile: Option<String>,
         output: Option<String>,
         id: Option<String>,
         force: bool,
@@ -159,14 +153,6 @@ pub enum ObnCommands {
         /// Base64-encoded configuration string
         encoded_config: String,
 
-        /// Path to Metaflow configuration directory
-        #[arg(long, short = 'd', default_value = "~/.metaflowconfig")]
-        config_dir: String,
-
-        /// Configure a named profile. Activate the profile by setting METAFLOW_PROFILE environment variable
-        #[arg(long, short = 'p')]
-        profile: Option<String>,
-
         /// Print decoded configuration to stdout
         #[arg(long, short = 'e')]
         echo: bool,
@@ -188,7 +174,7 @@ pub enum ObnCommands {
         deployment_domain: Option<String>,
 
         /// The name of the perimeter to authenticate the service principal in
-        #[arg(long, short = 'p')]
+        #[arg(long)]
         perimeter: Option<String>,
 
         /// The JWT token that will be used to authenticate against the OBP Auth Server
@@ -198,14 +184,6 @@ pub enum ObnCommands {
         /// Set if the command is being run in a GitHub Actions environment
         #[arg(long)]
         github_actions: bool,
-
-        /// Path to Metaflow configuration directory
-        #[arg(long, short = 'd', default_value = "~/.metaflowconfig")]
-        config_dir: String,
-
-        /// Configure a named profile. Activate the profile by setting METAFLOW_PROFILE environment variable
-        #[arg(long)]
-        profile: Option<String>,
 
         /// Print decoded configuration to stdout
         #[arg(long, short = 'e')]
@@ -304,14 +282,6 @@ pub enum PerimeterCommands {
 
     /// Switch current perimeter
     Switch {
-        /// Path to Metaflow configuration directory
-        #[arg(long, short = 'd', default_value = "~/.metaflowconfig")]
-        config_dir: String,
-
-        /// The named metaflow profile in which your workstation exists
-        #[arg(long, short = 'p')]
-        profile: Option<String>,
-
         /// Show output in the specified format
         #[arg(long, short = 'o')]
         output: Option<String>,
@@ -528,7 +498,7 @@ pub enum TutorialsCommands {
         url: String,
 
         /// Destination directory (defaults to current directory)
-        #[arg(long, short = 'd')]
+        #[arg(long)]
         destination: Option<String>,
 
         /// Expected SHA256 hash for verification
@@ -610,14 +580,10 @@ impl ObnCommands {
         match self {
             ObnCommands::Configure {
                 encoded_config,
-                config_dir,
-                profile,
                 echo,
                 force,
             } => ObnAction::Configure {
                 encoded_config,
-                config_dir,
-                profile,
                 echo,
                 force,
             },
@@ -627,8 +593,6 @@ impl ObnCommands {
                 perimeter,
                 jwt_token,
                 github_actions,
-                config_dir,
-                profile,
                 echo,
                 force,
             } => ObnAction::ServicePrincipalConfigure {
@@ -637,8 +601,6 @@ impl ObnCommands {
                 perimeter,
                 jwt_token,
                 github_actions,
-                config_dir,
-                profile,
                 echo,
                 force,
             },
