@@ -27,7 +27,10 @@ static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock:
 pub fn installed_tools() -> Vec<&'static str> {
     specs::all_tools()
         .into_iter()
-        .filter(|name| paths::tool_prefix(name).exists())
+        .filter(|name| {
+            let prefix = paths::tool_prefix(name);
+            prefix.exists() && binaries_exist(&prefix)
+        })
         .collect()
 }
 
@@ -73,7 +76,21 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
         && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
         && stored_hash.trim() == current_hash
     {
-        return Ok(false);
+        if binaries_exist(&prefix) {
+            return Ok(false);
+        }
+
+        // Prefix matches the current lockfile but expected binaries are missing
+        // — remove the corrupted installation so that install_tool performs a
+        // clean reinstall.
+        std::fs::remove_dir_all(&prefix)
+            .into_diagnostic()
+            .with_context(|| {
+                format!(
+                    "failed to remove corrupted tool directory: {}",
+                    prefix.display()
+                )
+            })?;
     }
 
     install_tool(ctx, name).await?;
@@ -86,6 +103,29 @@ fn hash_lockfile(content: &str) -> String {
     let mut hasher = DefaultHasher::new();
     content.hash(&mut hasher);
     format!("{:x}", hasher.finish())
+}
+
+/// Check that all files rattler linked into the tool's `bin`/`Scripts`
+/// directory are still present on disk.
+///
+/// Uses the `PrefixRecord`s rattler wrote to `conda-meta` as the source of
+/// truth for what was actually installed, rather than a hardcoded per-tool
+/// binary list, so this works for any tool without needing to know which
+/// binaries matter.
+pub(super) fn binaries_exist(prefix: &Path) -> bool {
+    let Ok(records) = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix) else {
+        return false;
+    };
+    if records.is_empty() {
+        return false;
+    }
+
+    let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+    records
+        .iter()
+        .flat_map(|record| record.paths_data.paths.iter())
+        .filter(|entry| entry.relative_path.starts_with(bin_subdir))
+        .all(|entry| prefix.join(&entry.relative_path).exists())
 }
 
 /// Install a tool from its lockfile.
@@ -404,6 +444,7 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
 
     #[test]
     fn test_hash_lockfile_deterministic() {
@@ -418,6 +459,93 @@ mod tests {
         let content1 = "version: 6\npackages:\n  - name: foo";
         let content2 = "version: 6\npackages:\n  - name: bar";
         assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
+    }
+
+    /// Writes a fake `PrefixRecord` into `<prefix>/conda-meta`, as if rattler
+    /// had linked a package with the given relative file paths.
+    fn write_fake_prefix_record(prefix: &Path, package_name: &str, relative_paths: &[&str]) {
+        use rattler_conda_types::package::DistArchiveIdentifier;
+        use rattler_conda_types::prefix_record::{PathType, PathsEntry};
+        use rattler_conda_types::{PackageName, PackageRecord, RepoDataRecord, Version};
+
+        let package_record = PackageRecord::new(
+            PackageName::new_unchecked(package_name),
+            Version::major(1),
+            "0".to_string(),
+        );
+        let identifier =
+            DistArchiveIdentifier::try_from_filename(&format!("{package_name}-1-0.conda")).unwrap();
+        let repodata_record = RepoDataRecord {
+            package_record,
+            identifier,
+            url: url::Url::parse("file:///dev/null").unwrap(),
+            channel: None,
+        };
+        let paths = relative_paths
+            .iter()
+            .map(|p| PathsEntry {
+                relative_path: PathBuf::from(p),
+                original_path: None,
+                path_type: PathType::HardLink,
+                no_link: false,
+                sha256: None,
+                sha256_in_prefix: None,
+                size_in_bytes: None,
+                file_mode: None,
+                prefix_placeholder: None,
+            })
+            .collect();
+        let record = PrefixRecord::from_repodata_record(repodata_record, paths);
+
+        let conda_meta = prefix.join("conda-meta");
+        std::fs::create_dir_all(&conda_meta).unwrap();
+        record
+            .write_to_path(conda_meta.join(record.file_name()), false)
+            .unwrap();
+    }
+
+    #[test]
+    fn test_binaries_exist_checks_linked_binary() {
+        let temp = TempDir::new().unwrap();
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        let relative = format!("{bin_subdir}/anaconda");
+        write_fake_prefix_record(temp.path(), "anaconda-cli-base", &[&relative]);
+
+        let binary = temp.path().join(&relative);
+        std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+        std::fs::write(&binary, "binary").unwrap();
+
+        assert!(binaries_exist(temp.path()));
+    }
+
+    #[test]
+    fn test_binaries_exist_detects_missing_linked_binary() {
+        let temp = TempDir::new().unwrap();
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        write_fake_prefix_record(
+            temp.path(),
+            "anaconda-cli-base",
+            &[&format!("{bin_subdir}/anaconda")],
+        );
+
+        // Binary is recorded in conda-meta but was never created on disk.
+        assert!(!binaries_exist(temp.path()));
+    }
+
+    #[test]
+    fn test_binaries_exist_false_when_no_conda_meta() {
+        let temp = TempDir::new().unwrap();
+        assert!(!binaries_exist(temp.path()));
+    }
+
+    #[test]
+    fn test_binaries_exist_ignores_non_bin_files() {
+        let temp = TempDir::new().unwrap();
+        // A package that only installs files outside bin/Scripts (e.g. a
+        // library-only dependency) shouldn't affect the binary check.
+        write_fake_prefix_record(temp.path(), "some-lib", &["lib/some-lib.so"]);
+
+        assert!(binaries_exist(temp.path()));
     }
 
     #[tokio::test]
@@ -438,7 +566,6 @@ mod tests {
     #[cfg(unix)]
     mod unix_tests {
         use super::*;
-        use tempfile::TempDir;
 
         #[test]
         fn test_cleanup_broken_symlinks_removes_broken_only() {
