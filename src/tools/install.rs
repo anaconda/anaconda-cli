@@ -29,7 +29,7 @@ pub fn installed_tools() -> Vec<&'static str> {
         .into_iter()
         .filter(|name| {
             let prefix = paths::tool_prefix(name);
-            prefix.exists() && binaries_exist(&prefix, name)
+            prefix.exists() && binaries_exist(&prefix)
         })
         .collect()
 }
@@ -76,7 +76,7 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
         && let Ok(stored_hash) = std::fs::read_to_string(&hash_file)
         && stored_hash.trim() == current_hash
     {
-        if binaries_exist(&prefix, name) {
+        if binaries_exist(&prefix) {
             return Ok(false);
         }
 
@@ -105,26 +105,27 @@ fn hash_lockfile(content: &str) -> String {
     format!("{:x}", hasher.finish())
 }
 
-/// Check that all expected binaries for a tool exist in the prefix directory.
-pub(super) fn binaries_exist(prefix: &Path, name: &str) -> bool {
-    let Some(binaries) = validation_binaries(name) else {
+/// Check that all files rattler linked into the tool's `bin`/`Scripts`
+/// directory are still present on disk.
+///
+/// Uses the `PrefixRecord`s rattler wrote to `conda-meta` as the source of
+/// truth for what was actually installed, rather than a hardcoded per-tool
+/// binary list, so this works for any tool without needing to know which
+/// binaries matter.
+pub(super) fn binaries_exist(prefix: &Path) -> bool {
+    let Ok(records) = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix) else {
         return false;
     };
-    binaries.iter().all(|binary| {
-        let path = prefix.join(binary);
-        #[cfg(windows)]
-        let path = path.with_extension("exe");
-        path.exists()
-    })
-}
-
-fn validation_binaries(name: &str) -> Option<Vec<PathBuf>> {
-    if name == "anaconda-cli" {
-        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
-        return Some(vec![PathBuf::from(bin_subdir).join("anaconda")]);
+    if records.is_empty() {
+        return false;
     }
 
-    specs::binaries(name)
+    let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+    records
+        .iter()
+        .flat_map(|record| record.paths_data.paths.iter())
+        .filter(|entry| entry.relative_path.starts_with(bin_subdir))
+        .all(|entry| prefix.join(&entry.relative_path).exists())
 }
 
 /// Install a tool from its lockfile.
@@ -460,23 +461,91 @@ mod tests {
         assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
     }
 
-    #[test]
-    fn test_binaries_exist_checks_anaconda_cli_binary() {
-        let temp = TempDir::new().unwrap();
-        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
-        let binary = temp.path().join(bin_subdir).join("anaconda");
-        std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
-        #[cfg(windows)]
-        let binary = binary.with_extension("exe");
-        std::fs::write(&binary, "binary").unwrap();
+    /// Writes a fake `PrefixRecord` into `<prefix>/conda-meta`, as if rattler
+    /// had linked a package with the given relative file paths.
+    fn write_fake_prefix_record(prefix: &Path, package_name: &str, relative_paths: &[&str]) {
+        use rattler_conda_types::package::DistArchiveIdentifier;
+        use rattler_conda_types::prefix_record::{PathType, PathsEntry};
+        use rattler_conda_types::{PackageName, PackageRecord, RepoDataRecord, Version};
 
-        assert!(binaries_exist(temp.path(), "anaconda-cli"));
+        let package_record = PackageRecord::new(
+            PackageName::new_unchecked(package_name),
+            Version::major(1),
+            "0".to_string(),
+        );
+        let identifier =
+            DistArchiveIdentifier::try_from_filename(&format!("{package_name}-1-0.conda")).unwrap();
+        let repodata_record = RepoDataRecord {
+            package_record,
+            identifier,
+            url: url::Url::parse("file:///dev/null").unwrap(),
+            channel: None,
+        };
+        let paths = relative_paths
+            .iter()
+            .map(|p| PathsEntry {
+                relative_path: PathBuf::from(p),
+                original_path: None,
+                path_type: PathType::HardLink,
+                no_link: false,
+                sha256: None,
+                sha256_in_prefix: None,
+                size_in_bytes: None,
+                file_mode: None,
+                prefix_placeholder: None,
+            })
+            .collect();
+        let record = PrefixRecord::from_repodata_record(repodata_record, paths);
+
+        let conda_meta = prefix.join("conda-meta");
+        std::fs::create_dir_all(&conda_meta).unwrap();
+        record
+            .write_to_path(conda_meta.join(record.file_name()), false)
+            .unwrap();
     }
 
     #[test]
-    fn test_binaries_exist_detects_missing_anaconda_cli_binary() {
+    fn test_binaries_exist_checks_linked_binary() {
         let temp = TempDir::new().unwrap();
-        assert!(!binaries_exist(temp.path(), "anaconda-cli"));
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        let relative = format!("{bin_subdir}/anaconda");
+        write_fake_prefix_record(temp.path(), "anaconda-cli-base", &[&relative]);
+
+        let binary = temp.path().join(&relative);
+        std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+        std::fs::write(&binary, "binary").unwrap();
+
+        assert!(binaries_exist(temp.path()));
+    }
+
+    #[test]
+    fn test_binaries_exist_detects_missing_linked_binary() {
+        let temp = TempDir::new().unwrap();
+        let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+        write_fake_prefix_record(
+            temp.path(),
+            "anaconda-cli-base",
+            &[&format!("{bin_subdir}/anaconda")],
+        );
+
+        // Binary is recorded in conda-meta but was never created on disk.
+        assert!(!binaries_exist(temp.path()));
+    }
+
+    #[test]
+    fn test_binaries_exist_false_when_no_conda_meta() {
+        let temp = TempDir::new().unwrap();
+        assert!(!binaries_exist(temp.path()));
+    }
+
+    #[test]
+    fn test_binaries_exist_ignores_non_bin_files() {
+        let temp = TempDir::new().unwrap();
+        // A package that only installs files outside bin/Scripts (e.g. a
+        // library-only dependency) shouldn't affect the binary check.
+        write_fake_prefix_record(temp.path(), "some-lib", &["lib/some-lib.so"]);
+
+        assert!(binaries_exist(temp.path()));
     }
 
     #[tokio::test]
