@@ -189,6 +189,59 @@ def pixi_feature_env(
 
 
 @pytest.fixture
+def conda_and_pixi_feature_env(
+    conda_isolated_env: dict[str, str],
+    pixi_isolated_env: dict[str, str],
+    mock_auth_server: MockAuthServer,
+    keyring_path: Path,
+) -> dict[str, str]:
+    """Environment for cross-tool main-x tests: isolated conda AND pixi
+    together, so checks against one tool's config never see the other
+    tool's real, ambient (non-test) configuration on the machine running
+    the tests.
+    """
+    return {
+        **conda_isolated_env,
+        **pixi_isolated_env,
+        "ANA_DOMAIN": mock_auth_server.domain,
+        "ANA_KEYRING_PATH": str(keyring_path),
+        "ANA_OPEN_BROWSER": "false",
+        "ANA_USE_HTTPS": "false",
+    }
+
+
+@pytest.fixture
+def run_ana_conda_and_pixi_feature(
+    ana_binary: Path | None,
+    conda_and_pixi_feature_env: dict[str, str],
+) -> AnaRunner:
+    """Provide a function to run ana with isolated conda AND pixi configs."""
+    if ana_binary is None:
+        pytest.skip(
+            "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
+        )
+
+    def _run(
+        *args: str,
+        env: dict[str, str] | None = None,
+        input: str | None = None,
+        cwd: Path | str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        merged_env = {**conda_and_pixi_feature_env, **(env or {})}
+        return subprocess.run(
+            [str(ana_binary), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=merged_env,
+            input=input,
+            cwd=cwd,
+        )
+
+    return _run
+
+
+@pytest.fixture
 def pip_isolated_env(fake_home: Path, env_isolated: dict[str, str]) -> dict[str, str]:
     """Provide an environment with isolated pip configuration.
 
@@ -1526,6 +1579,115 @@ class TestMainXPixiDisable:
         assert MAIN_X_CHANNEL not in final_channels, "main-x should be removed"
         assert MAIN_CHANNEL in final_channels, "main channel should be preserved"
         assert "conda-forge" in final_channels, "conda-forge should be preserved"
+
+
+@requires_conda
+@requires_pixi
+class TestMainXDisableCrossToolWarning:
+    """Regression tests for CLI-621: disabling main-x for one tool (conda or
+    pixi) must warn if the other tool still has it enabled, instead of
+    reporting "not enabled" in a way that reads as fully disabled.
+    """
+
+    def test_disable_conda_warns_when_pixi_still_enabled(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+        conda_and_pixi_feature_env: dict[str, str],
+    ) -> None:
+        # Enable main-x for pixi only (conda's default_channels stays clean).
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
+            env=conda_and_pixi_feature_env,
+            check=True,
+        )
+        assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
+        assert MAIN_X_CHANNEL not in get_default_channels(conda_and_pixi_feature_env)
+
+        # Disable via the conda-default path (no --pixi flag).
+        result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
+        assert result.returncode == 0
+
+        assert "not enabled for conda" in result.stderr.lower()
+        assert "still enabled for pixi" in result.stderr.lower()
+        assert "--pixi" in result.stderr
+
+        # pixi's config must be untouched by the conda-only disable.
+        assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
+
+    def test_disable_pixi_warns_when_conda_still_enabled(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+        conda_and_pixi_feature_env: dict[str, str],
+    ) -> None:
+        # Enable main-x for conda only (pixi's config stays clean).
+        condarc_path = Path(conda_and_pixi_feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
+        assert MAIN_X_CHANNEL in get_default_channels(conda_and_pixi_feature_env)
+        assert MAIN_X_CHANNEL not in get_pixi_channels(conda_and_pixi_feature_env)
+
+        result = run_ana_conda_and_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f"
+        )
+        assert result.returncode == 0
+
+        assert "not enabled for pixi" in result.stderr.lower()
+        assert "still enabled for conda" in result.stderr.lower()
+        assert "--conda" in result.stderr
+
+        # conda's config must be untouched by the pixi-only disable.
+        assert MAIN_X_CHANNEL in get_default_channels(conda_and_pixi_feature_env)
+
+    def test_disable_conda_no_warning_when_pixi_also_disabled(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+    ) -> None:
+        """No false-positive warning when neither tool has main-x enabled."""
+        result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
+        assert result.returncode == 0
+        assert "not enabled for conda" in result.stderr.lower()
+        assert "still enabled for pixi" not in result.stderr.lower()
+
+    def test_disable_conda_still_warns_after_actually_removing_channel(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+        conda_and_pixi_feature_env: dict[str, str],
+    ) -> None:
+        """The warning fires on the "successfully disabled" path too, not
+        just the "already not enabled" early-return path."""
+        condarc_path = Path(conda_and_pixi_feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
+            env=conda_and_pixi_feature_env,
+            check=True,
+        )
+
+        result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
+        assert result.returncode == 0
+
+        # conda's channel was actually removed...
+        assert MAIN_X_CHANNEL not in get_default_channels(conda_and_pixi_feature_env)
+        # ...but pixi's was left alone, so the warning should still show.
+        assert "still enabled for pixi" in result.stderr.lower()
+        assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
 
 
 @requires_pixi
