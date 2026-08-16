@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-09T05:04:54Z<br>
+Generated: 2026-08-16T04:43:45Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 457 (59 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 1 across 1 package**
 
 ## Packages
 
@@ -144,7 +144,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [heck](https://crates.io/crates/heck) | 0.5.0 | MIT OR Apache-2.0 |  |  |
 | [hex](https://crates.io/crates/hex) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [hostname](https://crates.io/crates/hostname) | 0.4.2 | MIT |  |  |
-| [http](https://crates.io/crates/http) | 1.4.2 | MIT OR Apache-2.0 |  |  |
+| [http](https://crates.io/crates/http) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [http-auth](https://crates.io/crates/http-auth) | 0.1.10 | MIT OR Apache-2.0 |  |  |
 | [http-body](https://crates.io/crates/http-body) | 1.1.0 | MIT |  |  |
 | [http-body-util](https://crates.io/crates/http-body-util) | 0.1.4 | MIT |  |  |
@@ -423,7 +423,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [version\_check](https://crates.io/crates/version_check) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [wait-timeout](https://crates.io/crates/wait-timeout) | 0.2.1 | MIT OR Apache-2.0 |  |  |
 | [want](https://crates.io/crates/want) | 0.3.1 | MIT |  |  |
-| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.1 | MIT OR Apache-2.0 |  |  |
+| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.1 | MIT OR Apache-2.0 |  | 1 |
 | [which](https://crates.io/crates/which) | 8.0.5 | MIT |  |  |
 | [winapi](https://crates.io/crates/winapi) | 0.3.9 | MIT OR Apache-2.0 | windows |  |
 | [windows](https://crates.io/crates/windows) | 0.52.0 | MIT OR Apache-2.0 | windows |  |
@@ -467,6 +467,12 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd](https://crates.io/crates/zstd) | 0.13.3 | MIT |  |  |
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
+
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| webbrowser | 1.2.1 | [RUSTSEC-2026-0257](https://rustsec.org/advisories/RUSTSEC-2026-0257.html) |  |  |  |
 
 ## License Summary
 
