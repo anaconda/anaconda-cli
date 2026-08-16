@@ -37,7 +37,7 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "str
 reqwest-middleware = { version = "0.5", features = ["json", "form", "query"] }
 rpassword = "7"
 self-replace = "1.5"
-sentry = { version = "0.48", optional = true }
+sentry = { version = "0.49", optional = true }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.11"
