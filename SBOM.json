@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:c5914e43-9916-4dea-a928-a81eecc6ff13",
+  "serialNumber": "urn:uuid:eae2e925-cf5b-4e71-beee-c22edf994d31",
   "metadata": {
-    "timestamp": "2026-08-09T05:04:54Z",
+    "timestamp": "2026-08-16T04:42:35Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -637,16 +637,16 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
       "author": "David Tolnay <dtolnay@gmail.com>",
       "name": "async-trait",
-      "version": "0.1.91",
+      "version": "0.1.92",
       "description": "Type erasure for async trait methods",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ae36dc4177970ef04fde5178d3e2429882def40e57a451f919c098f72baa6cec"
+          "content": "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
         }
       ],
       "licenses": [
@@ -654,7 +654,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/async-trait@0.1.91",
+      "purl": "pkg:cargo/async-trait@0.1.92",
       "externalReferences": [
         {
           "type": "documentation",
@@ -14193,7 +14193,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0",
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.1",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
@@ -14352,7 +14352,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-reqwest-middleware@0.5.1",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.104",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
@@ -14423,7 +14423,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.107",
         "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.47",
@@ -15671,7 +15671,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#opentelemetry-http@0.31.0",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#bytes@1.12.1",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#opentelemetry@0.31.0",
@@ -16188,7 +16188,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.104",
         "registry+https://github.com/rust-lang/crates.io-index#astral-reqwest-middleware@0.5.1",
         "registry+https://github.com/rust-lang/crates.io-index#async-once-cell@0.5.4",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#fs-err@3.3.1",
         "registry+https://github.com/rust-lang/crates.io-index#futures@0.3.33",
@@ -16352,7 +16352,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#reqwest-middleware@0.5.2",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.104",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
@@ -17084,7 +17084,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#tonic@0.14.6",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#bytes@1.12.1",
         "registry+https://github.com/rust-lang/crates.io-index#http-body-util@0.1.4",
@@ -17715,6 +17715,22 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#windows_x86_64_msvc@0.52.6",
       "dependsOn": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2026-0257",
+      "description": "On Unix platforms handled by `src/unix.rs`, affected versions substitute the\ncaller-supplied URL into the `BROWSER` environment-variable template before\ntokenizing the resulting string with `split_ascii_whitespace()`. If an\napplication passes an attacker-controlled non-HTTP(S) URL whose parsed form\nretains spaces and the effective `BROWSER` template contains `%s`, text that\nshould remain within one URL argument becomes additional browser arguments.\n\nThe issue was reproduced with Chromium by injecting\n`--remote-debugging-port`, which exposed a local DevTools endpoint, and\n`--proxy-server`, which redirected browser traffic through an\nattacker-controlled proxy. The available arguments and resulting impact depend\non the browser launched by the affected application.\n\nVersion 1.2.2 fixes the issue by tokenizing the `BROWSER` template before\nsubstituting the URL, preserving the URL as part of a single argument. Users\nshould upgrade to version 1.2.2 or later. Applications that only need HTTP(S)\nURLs can also enable the crate's `hardened` feature as defense in depth.\n\nThis issue was reported by\n[@dywzju09-blip](https://github.com/dywzju09-blip).",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0257.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#webbrowser@1.2.1"
+        }
+      ]
     }
   ]
 }
