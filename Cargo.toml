@@ -24,7 +24,7 @@ dirs = "6"
 figment = { version = "0.10", features = ["env"] }
 http = "1"
 clap = { version = "4", features = ["derive"] }
-comfy-table = "7"
+comfy-table = "8"
 console = "0.16"
 indicatif = "0.18"
 log = "0.4"
