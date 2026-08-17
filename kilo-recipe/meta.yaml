@@ -1,0 +1,35 @@
+# This file created by conda-build 26.3.0
+# meta.yaml template originally from:
+# /Users/mattkram/dev/feedstocks/kilo-feedstock/recipe, last modified Wed Jul 22 11:03:41 2026
+# ------------------------------------------------
+
+package:
+  name: kilo
+  version: 7.4.15
+source:
+  - url: https://github.com/Kilo-Org/kilocode/releases/download/v7.4.15/kilo-darwin-arm64.zip
+    sha256: a6009d19037ea9e34f35e5cce5553f504a0f535669f518210ee94aa398316179
+build:
+  number: '0'
+  string: '0'
+requirements:
+  build:
+    - unzip 6.0 h1a28f6b_0
+  run: []
+test:
+  commands:
+    - kilo --version
+    - kilo --help
+about:
+  home: https://kilo.ai
+  license: MIT
+  license_file: LICENSE
+  summary: Kilo Code - AI coding agent CLI
+  description: "Kilo Code is an open-source AI coding agent that helps developers\nbuild and ship code faster. This package provides the CLI.\n"
+  dev_url: https://github.com/Kilo-Org/kilocode
+  doc_url: https://kilo.ai/docs
+extra:
+  recipe-maintainers:
+    - mattkram
+  final: true
+  copy_test_source_files: true

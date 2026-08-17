@@ -1,0 +1,45 @@
+{% set name = "kilo" %}
+{% set version = "7.4.15" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/Kilo-Org/kilocode/releases/download/v{{ version }}/kilo-linux-x64.tar.gz  # [linux and x86_64]
+    sha256: d9c2ce0835efc1d8ba9de006b7e7cc7ae673a705076e1a58ed1c28d3f5210543  # [linux and x86_64]
+  - url: https://github.com/Kilo-Org/kilocode/releases/download/v{{ version }}/kilo-linux-arm64.tar.gz  # [linux and aarch64]
+    sha256: 59b013cfa8ddadea264e3510029a09a282d0ef6e988dea85a28ba59798a30602  # [linux and aarch64]
+  - url: https://github.com/Kilo-Org/kilocode/releases/download/v{{ version }}/kilo-darwin-x64.zip  # [osx and x86_64]
+    sha256: 33735f700efdc4a510ceb9fa75c323b320e6b52b69a212d41cba90e96a929452  # [osx and x86_64]
+  - url: https://github.com/Kilo-Org/kilocode/releases/download/v{{ version }}/kilo-darwin-arm64.zip  # [osx and arm64]
+    sha256: a6009d19037ea9e34f35e5cce5553f504a0f535669f518210ee94aa398316179  # [osx and arm64]
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - unzip  # [osx]
+  run: []
+
+test:
+  commands:
+    - kilo --version
+    - kilo --help
+
+about:
+  home: https://kilo.ai
+  license: MIT
+  license_file: LICENSE
+  summary: Kilo Code - AI coding agent CLI
+  description: |
+    Kilo Code is an open-source AI coding agent that helps developers
+    build and ship code faster. This package provides the CLI.
+  dev_url: https://github.com/Kilo-Org/kilocode
+  doc_url: https://kilo.ai/docs
+
+extra:
+  recipe-maintainers:
+    - mattkram
