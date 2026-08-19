@@ -264,11 +264,36 @@ fn run_pixi_auth_logout(pixi_bin: &Path, host: &str) -> miette::Result<()> {
     Ok(())
 }
 
+/// All channel URLs managed by this feature, across both tiers.
+/// main-x is identical in both tiers, so it only appears once.
+fn managed_channel_urls() -> Vec<String> {
+    let premium = ChannelUrls::new(true);
+    let free = ChannelUrls::new(false);
+    vec![
+        premium.main,
+        premium.main_x,
+        premium.msys2,
+        premium.r,
+        free.main,
+        free.msys2,
+        free.r,
+    ]
+}
+
 /// Plan the actions needed to enable main-x channel for conda.
 ///
-/// Ensures all required default_channels are present (main, main-x, msys2, r)
-/// and that "defaults" is in the channels list.
+/// Ensures default_channels contains the required channels for the user's
+/// tier (main, main-x, msys2, r, in that order) followed by any custom
+/// channels, and that "defaults" is in the channels list.
 /// Ensures main comes before main-x (so main-x packages override main).
+///
+/// The required channels are always rewritten as a group rather than added
+/// piecemeal: `conda config --show` reports conda's built-in default_channels
+/// even when none are explicitly configured, but the first `conda config
+/// --add` writes an explicit list containing only the added channel, which
+/// would silently drop the implicit ones. Rewriting the group also fixes the
+/// ordering when only some of the channels are already present, since
+/// `conda config --add` prepends.
 fn plan_conda_enable_actions(
     channels: &[String],
     default_channels: &[String],
@@ -277,58 +302,53 @@ fn plan_conda_enable_actions(
 ) -> Vec<MainXCondaAction> {
     let mut actions = vec![];
 
-    // Track which required channels are already present (correct tier)
-    let mut have_main = false;
-    let mut have_main_x = false;
-    let mut have_msys2 = false;
-    let mut have_r = false;
-
-    // Step 1: Remove wrong-tier channels from channels list, track correct ones
+    // Step 1: Remove wrong-tier channels from the channels list
     for channel in channels {
         if is_wrong_tier_channel(channel, is_premium) {
             actions.push(MainXCondaAction::RemoveChannel(channel.clone()));
-        } else if channel == &urls.main {
-            have_main = true;
-        } else if channel == &urls.main_x {
-            have_main_x = true;
-        } else if channel == &urls.msys2 {
-            have_msys2 = true;
-        } else if channel == &urls.r {
-            have_r = true;
         }
     }
 
-    // Step 2: Remove wrong-tier channels from default_channels, track correct ones
-    for channel in default_channels {
-        if is_wrong_tier_channel(channel, is_premium) {
-            actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
-        } else if channel == &urls.main {
-            have_main = true;
-        } else if channel == &urls.main_x {
-            have_main_x = true;
-        } else if channel == &urls.msys2 {
-            have_msys2 = true;
-        } else if channel == &urls.r {
-            have_r = true;
+    // Step 2: Rewrite default_channels unless it already matches the desired
+    // layout: required channels first (main, main-x, msys2, r), then any
+    // custom channels in their existing relative order.
+    let managed = managed_channel_urls();
+    let desired: Vec<String> = [
+        urls.main.clone(),
+        urls.main_x.clone(),
+        urls.msys2.clone(),
+        urls.r.clone(),
+    ]
+    .into_iter()
+    .chain(
+        default_channels
+            .iter()
+            .filter(|c| !managed.contains(*c) && !is_wrong_tier_channel(c, is_premium))
+            .cloned(),
+    )
+    .collect();
+
+    if default_channels != desired.as_slice() {
+        // Remove managed and wrong-tier channels so the adds below land in
+        // the right order. Removing a channel that only exists as an implicit
+        // conda default fails harmlessly and the error is ignored on execute.
+        for channel in default_channels {
+            if managed.contains(channel) || is_wrong_tier_channel(channel, is_premium) {
+                actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
+            }
+        }
+        // Add in reverse order since `conda config --add` prepends
+        for channel in [
+            urls.r.clone(),
+            urls.msys2.clone(),
+            urls.main_x.clone(),
+            urls.main.clone(),
+        ] {
+            actions.push(MainXCondaAction::AddDefaultChannel(channel));
         }
     }
 
-    // Step 3: Add missing required channels in reverse order (since --add prepends)
-    // Final order: main, main-x, msys2, r
-    if !have_r {
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.r.clone()));
-    }
-    if !have_msys2 {
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.msys2.clone()));
-    }
-    if !have_main_x {
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
-    }
-    if !have_main {
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.main.clone()));
-    }
-
-    // Step 4: Ensure "defaults" is in channels list
+    // Step 3: Ensure "defaults" is in channels list
     if !channels.iter().any(|c| c == "defaults") {
         actions.push(MainXCondaAction::EnsureDefaultsInChannels);
     }
@@ -1182,10 +1202,10 @@ mod tests {
     fn test_plan_conda_enable_actions_partial_default_channels() {
         let urls = premium_urls();
         let channels = vec!["defaults".to_string()];
+        // main-x before main is the wrong order, so the group is rewritten
         let default_channels = vec![urls.main_x.clone(), urls.main.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
 
-        // main and main-x are correct tier, just need to add msys2 and r
         let remove_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
@@ -1195,58 +1215,10 @@ mod tests {
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(
-            remove_count, 0,
-            "No removes needed - channels are correct tier"
-        );
-        assert_eq!(add_count, 2, "Should add msys2 and r");
-    }
+        assert_eq!(remove_count, 2, "Should remove main-x and main");
+        assert_eq!(add_count, 4, "Should re-add all 4 in correct order");
 
-    #[test]
-    fn test_plan_conda_enable_actions_main_x_only() {
-        let urls = premium_urls();
-        let channels = vec!["defaults".to_string()];
-        let default_channels = vec![urls.main_x.clone()];
-        let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
-
-        // main-x is correct tier, just need to add main, msys2, r
-        let remove_count = actions
-            .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
-            .count();
-        let add_count = actions
-            .iter()
-            .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
-            .count();
-
-        assert_eq!(
-            remove_count, 0,
-            "No removes needed - main-x is correct tier"
-        );
-        assert_eq!(add_count, 3, "Should add main, msys2, r");
-    }
-
-    #[test]
-    fn test_plan_conda_enable_actions_main_only() {
-        let urls = premium_urls();
-        let channels = vec!["defaults".to_string()];
-        let default_channels = vec![urls.main.clone()];
-        let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
-
-        // main is correct tier, just need to add main-x, msys2, r
-        let remove_count = actions
-            .iter()
-            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
-            .count();
-        let add_count = actions
-            .iter()
-            .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
-            .count();
-
-        assert_eq!(remove_count, 0, "No removes needed - main is correct tier");
-        assert_eq!(add_count, 3, "Should add main-x, msys2, r");
-
-        // Verify the add order: r, msys2, main-x (reverse of final order since --add prepends)
+        // Verify the add order: r, msys2, main-x, main (reverse since --add prepends)
         let add_order: Vec<String> = actions
             .iter()
             .filter_map(|a| match a {
@@ -1256,7 +1228,72 @@ mod tests {
             .collect();
         assert_eq!(
             add_order,
-            vec![urls.r.clone(), urls.msys2.clone(), urls.main_x.clone()]
+            vec![
+                urls.r.clone(),
+                urls.msys2.clone(),
+                urls.main_x.clone(),
+                urls.main.clone()
+            ]
+        );
+    }
+
+    #[test]
+    fn test_plan_conda_enable_actions_main_x_only() {
+        let urls = premium_urls();
+        let channels = vec!["defaults".to_string()];
+        let default_channels = vec![urls.main_x.clone()];
+        let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
+
+        // main-x alone is missing the rest of the group, so it is rewritten
+        let remove_count = actions
+            .iter()
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
+            .count();
+        let add_count = actions
+            .iter()
+            .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
+            .count();
+
+        assert_eq!(remove_count, 1, "Should remove main-x");
+        assert_eq!(add_count, 4, "Should re-add all 4 in correct order");
+    }
+
+    #[test]
+    fn test_plan_conda_enable_actions_main_only() {
+        let urls = premium_urls();
+        let channels = vec!["defaults".to_string()];
+        let default_channels = vec![urls.main.clone()];
+        let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, true);
+
+        // main alone is missing the rest of the group, so it is rewritten
+        let remove_count = actions
+            .iter()
+            .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
+            .count();
+        let add_count = actions
+            .iter()
+            .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
+            .count();
+
+        assert_eq!(remove_count, 1, "Should remove main");
+        assert_eq!(add_count, 4, "Should re-add all 4 in correct order");
+
+        // Verify the add order: r, msys2, main-x, main (reverse since --add prepends)
+        let add_order: Vec<String> = actions
+            .iter()
+            .filter_map(|a| match a {
+                MainXCondaAction::AddDefaultChannel(c) => Some(c.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            add_order,
+            vec![
+                urls.r.clone(),
+                urls.msys2.clone(),
+                urls.main_x.clone(),
+                urls.main.clone()
+            ]
         );
     }
 
@@ -1270,8 +1307,7 @@ mod tests {
         let default_channels = vec![free.main.clone(), free.main_x.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &premium, true);
 
-        // Should remove free.main (wrong tier) but keep main-x (correct for both)
-        // Then add premium main, msys2, r
+        // Should remove both free channels, then re-add the premium group
         let remove_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
@@ -1281,8 +1317,8 @@ mod tests {
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 1, "Should remove free.main only");
-        assert_eq!(add_count, 3, "Should add premium main, msys2, r");
+        assert_eq!(remove_count, 2, "Should remove free main and main-x");
+        assert_eq!(add_count, 4, "Should add premium main, main-x, msys2, r");
     }
 
     #[test]
@@ -1317,8 +1353,7 @@ mod tests {
         let default_channels = vec![premium.main.clone(), premium.main_x.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &free, false);
 
-        // Should remove premium.main (wrong tier) but keep main-x (correct for both)
-        // Then add free main, msys2, r
+        // Should remove both premium channels, then re-add the free group
         let remove_count = actions
             .iter()
             .filter(|a| matches!(a, MainXCondaAction::RemoveDefaultChannel(_)))
@@ -1328,8 +1363,8 @@ mod tests {
             .filter(|a| matches!(a, MainXCondaAction::AddDefaultChannel(_)))
             .count();
 
-        assert_eq!(remove_count, 1, "Should remove premium.main only");
-        assert_eq!(add_count, 3, "Should add free main, msys2, r");
+        assert_eq!(remove_count, 2, "Should remove premium main and main-x");
+        assert_eq!(add_count, 4, "Should add free main, main-x, msys2, r");
     }
 
     // ========================================================================
