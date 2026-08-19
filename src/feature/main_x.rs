@@ -614,7 +614,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
 fn is_main_x_enabled_conda() -> bool {
     find_conda()
         .and_then(|conda_bin| get_default_channels_conda(&conda_bin))
-        .map(|channels| channels.iter().any(|c| c == MAIN_X_CHANNEL))
+        .map(|channels| channels.iter().any(|c| c.ends_with("/repo/main-x")))
         .unwrap_or(false)
 }
 
@@ -626,7 +626,7 @@ fn is_main_x_enabled_conda() -> bool {
 fn is_main_x_enabled_pixi() -> bool {
     find_pixi()
         .and_then(|pixi_bin| get_configured_channels_pixi(&pixi_bin))
-        .map(|channels| channels.iter().any(|c| c == MAIN_X_CHANNEL))
+        .map(|channels| channels.iter().any(|c| c.ends_with("/repo/main-x")))
         .unwrap_or(false)
 }
 
