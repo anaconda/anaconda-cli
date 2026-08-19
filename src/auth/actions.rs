@@ -772,6 +772,88 @@ pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
     Ok(())
 }
 
+/// Premium subscription product codes.
+const PREMIUM_PRODUCT_PREFIXES: &[&str] = &["commercial_subscription", "security_subscription"];
+
+/// Check if the current user has an active premium subscription.
+///
+/// Premium subscriptions include:
+/// - `commercial_subscription` (Commercial Edition)
+/// - `security_subscription` (Security Edition)
+///
+/// Returns `true` if the user has at least one active (non-expired) premium subscription.
+pub async fn has_premium_subscription(ctx: &CommandContext) -> miette::Result<bool> {
+    let response = ctx
+        .client()
+        .get("/api/auth/sessions/whoami")
+        .send()
+        .await
+        .map_err(AuthError::from)?;
+
+    if !response.status().is_success() {
+        return Err(miette::miette!(
+            "Failed to fetch account info: {}",
+            response.status()
+        ));
+    }
+
+    let data: serde_json::Value = response.json().await.map_err(AuthError::from)?;
+
+    let organizations = data
+        .get("passport")
+        .and_then(|p| p.get("organizations"))
+        .and_then(|v| v.as_array());
+
+    let Some(orgs) = organizations else {
+        return Ok(false);
+    };
+
+    let now = chrono::Utc::now();
+
+    for org in orgs {
+        let Some(attrs) = org.get("attributes").and_then(|v| v.as_array()) else {
+            continue;
+        };
+
+        for attr in attrs {
+            // Check if this is a subscription attribute
+            let is_subscription = attr
+                .get("group")
+                .and_then(|v| v.as_str())
+                .is_some_and(|g| g == "subscriptions");
+
+            if !is_subscription {
+                continue;
+            }
+
+            // Check if it's a premium product
+            let is_premium = attr.get("id").and_then(|v| v.as_str()).is_some_and(|id| {
+                PREMIUM_PRODUCT_PREFIXES
+                    .iter()
+                    .any(|prefix| id.starts_with(prefix))
+            });
+
+            if !is_premium {
+                continue;
+            }
+
+            // Check if it's not expired
+            let is_active = attr
+                .get("data")
+                .and_then(|d| d.get("expires_at"))
+                .and_then(|v| v.as_str())
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .is_some_and(|expires| expires >= now);
+
+            if is_active {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
