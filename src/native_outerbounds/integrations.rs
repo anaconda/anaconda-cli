@@ -888,9 +888,6 @@ pub async fn private_pypi_repositories_remove(
     }
 
     builder.remove(repository_name).await?;
-    status::success(&format!(
-        "Removed PyPI repository: {}",
-        repository_name
-    ));
+    status::success(&format!("Removed PyPI repository: {}", repository_name));
     Ok(())
 }

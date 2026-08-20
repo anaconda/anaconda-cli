@@ -344,8 +344,14 @@ impl Action {
                 profile,
                 verbose,
             } => {
-                crate::native_outerbounds::run(ctx, action, &config_dir, profile.as_deref(), verbose)
-                    .await
+                crate::native_outerbounds::run(
+                    ctx,
+                    action,
+                    &config_dir,
+                    profile.as_deref(),
+                    verbose,
+                )
+                .await
             }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;

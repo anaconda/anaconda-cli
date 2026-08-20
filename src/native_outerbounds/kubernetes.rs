@@ -71,8 +71,7 @@ pub async fn kill(
         println!("\nJobs:");
         let mut table = create_table(&["Name", "Run ID", "User", "Status", "Action"]);
         for job in &jobs {
-            let will_delete =
-                clear_everything || job.outcome == outerbounds::JobOutcome::Delete;
+            let will_delete = clear_everything || job.outcome == outerbounds::JobOutcome::Delete;
             let action = if will_delete { "delete" } else { "keep" };
             table.add_row(vec![
                 &job.name,
@@ -89,8 +88,7 @@ pub async fn kill(
         println!("\nJobSets:");
         let mut table = create_table(&["Name", "Run ID", "User", "Status", "Action"]);
         for jobset in &jobsets {
-            let will_delete =
-                clear_everything || jobset.outcome == outerbounds::JobOutcome::Delete;
+            let will_delete = clear_everything || jobset.outcome == outerbounds::JobOutcome::Delete;
             let action = if will_delete { "delete" } else { "keep" };
             table.add_row(vec![
                 &jobset.name,

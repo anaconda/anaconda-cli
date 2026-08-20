@@ -78,9 +78,7 @@ pub async fn run(
         ObnAction::PerimeterEnsureCloudCreds {
             cspr_override,
             output,
-        } => {
-            perimeter::ensure_cloud_creds(ctx, cspr_override.as_deref(), output.as_deref()).await
-        }
+        } => perimeter::ensure_cloud_creds(ctx, cspr_override.as_deref(), output.as_deref()).await,
         ObnAction::PerimeterSwitch { output, id, force } => {
             perimeter::switch(config_dir, profile, output.as_deref(), id.as_deref(), force).await
         }
@@ -600,9 +598,7 @@ pub async fn run(
         ObnAction::FlowprojectGetMetadata { id } => {
             flowproject::get_metadata(ctx, id.as_deref()).await
         }
-        ObnAction::FlowprojectSetMetadata { json } => {
-            flowproject::set_metadata(ctx, &json).await
-        }
+        ObnAction::FlowprojectSetMetadata { json } => flowproject::set_metadata(ctx, &json).await,
         ObnAction::FlowprojectDeleteMetadata { id, yes, output } => {
             flowproject::delete_metadata(ctx, &id, yes, output.as_deref()).await
         }
@@ -655,9 +651,7 @@ pub async fn run(
         ObnAction::WorkstationsGetLinks {
             perimeter_id,
             output,
-        } => {
-            workstations::get_links(ctx, perimeter_id.as_deref(), output.as_deref()).await
-        }
+        } => workstations::get_links(ctx, perimeter_id.as_deref(), output.as_deref()).await,
         ObnAction::WorkstationsConfigureKubeconfig {
             binary_path,
             kubeconfig_path,

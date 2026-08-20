@@ -497,7 +497,11 @@ pub enum ObnCommands {
     },
 
     /// Commands for interacting with Fast Bakery
-    #[command(name = "fast-bakery", subcommand_required = false, arg_required_else_help = false)]
+    #[command(
+        name = "fast-bakery",
+        subcommand_required = false,
+        arg_required_else_help = false
+    )]
     FastBakery {
         #[command(subcommand)]
         command: Option<FastBakeryCommands>,
@@ -1792,7 +1796,7 @@ impl ObnCommands {
                         options: Box::new(args.into_deploy_options()),
                         status_file,
                     }
-                },
+                }
                 Some(AppCommands::Logs {
                     id,
                     name,
@@ -2211,7 +2215,7 @@ impl ObnCommands {
                     dry_run,
                     yes,
                     output,
-                }
+                },
             },
             ObnCommands::Secrets { command } => match command {
                 None => ObnAction::ShowHelp("obn secrets".to_string()),

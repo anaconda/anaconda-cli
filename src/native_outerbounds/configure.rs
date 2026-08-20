@@ -72,8 +72,8 @@ pub async fn service_principal_configure(
 
     // Fill in unset values from obproject.toml if requested
     if from_obproject_toml {
-        let defaults = ObProjectConfig::from_toml_file(Path::new(toml_path))
-            .map_err(|e| miette!("{}", e))?;
+        let defaults =
+            ObProjectConfig::from_toml_file(Path::new(toml_path)).map_err(|e| miette!("{}", e))?;
         params = params.with_toml_defaults(&defaults);
     }
 

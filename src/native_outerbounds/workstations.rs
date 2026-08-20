@@ -115,7 +115,9 @@ pub async fn get_links(
 
     let links = match perimeter_id {
         Some(p) if !p.is_empty() => {
-            ob.workstations().get_relevant_links_for_perimeter(p).await?
+            ob.workstations()
+                .get_relevant_links_for_perimeter(p)
+                .await?
         }
         _ => ob.workstations().get_relevant_links()?,
     };

@@ -15,10 +15,7 @@ pub async fn pull(
 
     let dest_path = Path::new(destination_dir);
 
-    let result = ob
-        .tutorials()
-        .pull(url, dest_path, force_overwrite)
-        .await?;
+    let result = ob.tutorials().pull(url, dest_path, force_overwrite).await?;
 
     status::success(&format!("Downloaded tutorials to {}", destination_dir));
 

@@ -1,6 +1,6 @@
 use std::fs;
 
-use miette::{miette, Result};
+use miette::{Result, miette};
 use outerbounds::SecretFormat;
 
 use crate::context::CommandContext;

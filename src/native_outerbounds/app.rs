@@ -253,11 +253,7 @@ pub async fn delete(
     let ob = ctx.outerbounds_client().await?;
     let (api_url, perimeter) = get_api_context(ctx).await?;
 
-    if ids.is_empty()
-        && name.is_none()
-        && project.is_none()
-        && branch.is_none()
-        && tags.is_empty()
+    if ids.is_empty() && name.is_none() && project.is_none() && branch.is_none() && tags.is_empty()
     {
         return Err(miette!(
             "At least one of the options needs to be provided. You can use IDs, --name, --project, --branch, --tag"

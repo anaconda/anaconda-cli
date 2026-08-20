@@ -1,4 +1,4 @@
-use miette::{miette, Result};
+use miette::{Result, miette};
 use outerbounds::FlowProjectCommands;
 
 use crate::context::CommandContext;
