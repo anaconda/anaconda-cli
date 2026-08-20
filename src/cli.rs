@@ -15,6 +15,8 @@ use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
+#[cfg(feature = "obp")]
+use crate::native_outerbounds::{ObnAction, ObnCommands};
 #[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 use crate::tools;
@@ -165,6 +167,13 @@ pub enum Action {
     ObAutoConfigure {
         instance: String,
     },
+    #[cfg(feature = "obp")]
+    Obn {
+        action: ObnAction,
+        config_dir: String,
+        profile: Option<String>,
+        verbose: u8,
+    },
     McpRun {
         args: Vec<String>,
     },
@@ -233,6 +242,8 @@ impl Action {
             Action::ObProxy { .. } => "ob",
             #[cfg(unix)]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
+            #[cfg(feature = "obp")]
+            Action::Obn { .. } => "obn",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
@@ -325,6 +336,22 @@ impl Action {
             #[cfg(unix)]
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
+            }
+            #[cfg(feature = "obp")]
+            Action::Obn {
+                action,
+                config_dir,
+                profile,
+                verbose,
+            } => {
+                crate::native_outerbounds::run(
+                    ctx,
+                    action,
+                    &config_dir,
+                    profile.as_deref(),
+                    verbose,
+                )
+                .await
             }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
@@ -679,6 +706,20 @@ pub fn parse() -> (Action, LogLevel) {
                 },
             }
         }
+        #[cfg(feature = "obp")]
+        Some(Commands::Obn {
+            config_dir,
+            profile,
+            command,
+        }) => match command {
+            None => Action::ShowSubcommandHelp("obn".to_string()),
+            Some(cmd) => Action::Obn {
+                action: cmd.into_action(),
+                config_dir,
+                profile,
+                verbose: cli.verbose,
+            },
+        },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -769,6 +810,25 @@ fn get_subcommand_path_from_matches(matches: &clap::ArgMatches) -> Option<String
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return (Action::ShowVersion, LogLevel::Off);
+    }
+
+    // If user passed --help/-h but clap errored on missing required args,
+    // show help instead of the error
+    if e.kind() == clap::error::ErrorKind::MissingRequiredArgument {
+        let args: Vec<String> = std::env::args().collect();
+        if args.iter().any(|a| a == "--help" || a == "-h") {
+            // Extract subcommand path from args (skip binary name and flags)
+            let path: Vec<&str> = args
+                .iter()
+                .skip(1)
+                .filter(|a| !a.starts_with('-'))
+                .map(|s| s.as_str())
+                .collect();
+            if path.is_empty() {
+                return (Action::ShowHelp, LogLevel::Off);
+            }
+            return (Action::ShowSubcommandHelp(path.join(" ")), LogLevel::Off);
+        }
     }
 
     print_clap_error(&e);
@@ -969,6 +1029,26 @@ enum Commands {
     Ob {
         #[command(subcommand)]
         command: Option<ObCommands>,
+    },
+
+    /// Outerbounds platform CLI (native Rust implementation)
+    #[cfg(feature = "obp")]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana obn [OPTIONS] <command> [options]"
+    )]
+    Obn {
+        /// Path to Metaflow configuration directory
+        #[arg(long, short = 'd', default_value = "~/.metaflowconfig", global = true)]
+        config_dir: String,
+
+        /// Configure a named profile. Activate by setting METAFLOW_PROFILE env var
+        #[arg(long, short = 'p', global = true)]
+        profile: Option<String>,
+
+        #[command(subcommand)]
+        command: Option<ObnCommands>,
     },
 
     /// Manage tools
