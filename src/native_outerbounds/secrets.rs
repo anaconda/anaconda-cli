@@ -17,13 +17,20 @@ pub async fn get(
     let names: Vec<&str> = secret_ids.iter().map(|s| s.as_str()).collect();
     let secrets = ob.secrets().get_many(&names).await?;
 
-    let output_format = match format {
-        Some("json") => SecretFormat::Json,
-        Some("text") | None => SecretFormat::Text,
-        Some(f) => return Err(miette!("Invalid format: {}. Use text or json.", f)),
+    let output = match format {
+        Some("json") => outerbounds::format_secrets(&secrets, SecretFormat::Json),
+        Some("text") | None => outerbounds::format_secrets(&secrets, SecretFormat::Text),
+        Some("shell") => secrets
+            .iter()
+            .flat_map(|s| {
+                s.values
+                    .iter()
+                    .map(|(k, v)| format!("export {}=\"{}\"", k, v))
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
+        Some(f) => return Err(miette!("Invalid format: {}. Use text, json, or shell.", f)),
     };
-
-    let output = outerbounds::format_secrets(&secrets, output_format);
 
     match file {
         Some(path) => {

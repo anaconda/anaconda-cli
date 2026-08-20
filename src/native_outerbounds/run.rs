@@ -2,7 +2,8 @@ use miette::Result;
 
 use super::commands::ObnAction;
 use super::{
-    app, check, configure, flowproject, integrations, perimeter, secrets, tutorials, workstations,
+    app, check, configure, fast_bakery, flowproject, integrations, kubernetes, perimeter, secrets,
+    tutorials, workstations,
 };
 use crate::context::CommandContext;
 use crate::help;
@@ -12,6 +13,7 @@ pub async fn run(
     action: ObnAction,
     config_dir: &str,
     profile: Option<&str>,
+    verbose: u8,
 ) -> Result<()> {
     match action {
         ObnAction::ShowHelp(path) => {
@@ -29,6 +31,8 @@ pub async fn run(
             perimeter,
             jwt_token,
             github_actions,
+            from_obproject_toml,
+            toml_path,
             echo,
             force,
         } => {
@@ -38,6 +42,8 @@ pub async fn run(
                 perimeter.as_deref(),
                 jwt_token.as_deref(),
                 github_actions,
+                from_obproject_toml,
+                &toml_path,
                 config_dir,
                 profile,
                 echo,
@@ -61,11 +67,20 @@ pub async fn run(
                 latency,
                 latency_requests,
                 latency_timeout,
+                verbose > 0,
             )
             .await
         }
-        ObnAction::PerimeterList => perimeter::list(ctx).await,
-        ObnAction::PerimeterShowCurrent => perimeter::show_current(ctx).await,
+        ObnAction::PerimeterList { output } => perimeter::list(ctx, output.as_deref()).await,
+        ObnAction::PerimeterShowCurrent { output } => {
+            perimeter::show_current(ctx, output.as_deref()).await
+        }
+        ObnAction::PerimeterEnsureCloudCreds {
+            cspr_override,
+            output,
+        } => {
+            perimeter::ensure_cloud_creds(ctx, cspr_override.as_deref(), output.as_deref()).await
+        }
         ObnAction::PerimeterSwitch { output, id, force } => {
             perimeter::switch(config_dir, profile, output.as_deref(), id.as_deref(), force).await
         }
@@ -88,19 +103,75 @@ pub async fn run(
             )
             .await
         }
-        ObnAction::AppInfo { id, format } => app::info(ctx, &id, format.as_deref()).await,
-        ObnAction::AppDelete { ids } => app::delete(ctx, &ids).await,
+        ObnAction::AppInfo {
+            id,
+            name,
+            project,
+            branch,
+            format,
+        } => {
+            app::info(
+                ctx,
+                id.as_deref(),
+                name.as_deref(),
+                project.as_deref(),
+                branch.as_deref(),
+                format.as_deref(),
+            )
+            .await
+        }
+        ObnAction::AppDelete {
+            ids,
+            name,
+            project,
+            branch,
+            tags,
+            auto_approve,
+        } => {
+            app::delete(
+                ctx,
+                &ids,
+                name.as_deref(),
+                project.as_deref(),
+                branch.as_deref(),
+                &tags,
+                auto_approve,
+            )
+            .await
+        }
+        ObnAction::AppDeploy {
+            options,
+            status_file,
+        } => app::deploy(ctx, *options, status_file.as_deref()).await,
         ObnAction::AppLogs {
             id,
+            name,
+            project,
+            branch,
             worker_id,
             previous,
-        } => app::logs(ctx, &id, worker_id.as_deref(), previous).await,
+            file,
+        } => {
+            app::logs(
+                ctx,
+                id.as_deref(),
+                name.as_deref(),
+                project.as_deref(),
+                branch.as_deref(),
+                worker_id.as_deref(),
+                previous,
+                file.as_deref(),
+            )
+            .await
+        }
         ObnAction::IntegrationsList { perimeter } => {
             integrations::list(ctx, perimeter.as_deref()).await
         }
-        ObnAction::IntegrationsGet { name, perimeter } => {
-            integrations::get(ctx, &name, perimeter.as_deref()).await
-        }
+        ObnAction::IntegrationsGet {
+            name,
+            perimeter,
+            show_secret_values,
+        } => integrations::get(ctx, &name, perimeter.as_deref(), show_secret_values).await,
         ObnAction::IntegrationsDelete { name, perimeter } => {
             integrations::delete(ctx, &name, perimeter.as_deref()).await
         }
@@ -330,19 +401,220 @@ pub async fn run(
             .await
         }
 
+        // Integration updates
+        ObnAction::IntegrationsS3ProxyUpdate {
+            name,
+            description,
+            bucket_name,
+            endpoint_url,
+            region,
+            access_key_id,
+            secret_access_key,
+            perimeter,
+        } => {
+            integrations::s3_proxy_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                bucket_name.as_deref(),
+                endpoint_url.as_deref(),
+                region.as_deref(),
+                access_key_id.as_deref(),
+                secret_access_key.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsCodeArtifactsUpdate {
+            name,
+            description,
+            domain_name,
+            domain_owner,
+            aws_region,
+            target_role,
+            perimeter,
+        } => {
+            integrations::code_artifacts_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                domain_name.as_deref(),
+                domain_owner.as_deref(),
+                aws_region.as_deref(),
+                target_role.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsArtifactoryUpdate {
+            name,
+            description,
+            url,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::artifactory_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                url.as_deref(),
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsAzureArtifactsUpdate {
+            name,
+            description,
+            organization,
+            project,
+            username,
+            pat,
+            perimeter,
+        } => {
+            integrations::azure_artifacts_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                organization.as_deref(),
+                project.as_deref(),
+                username.as_deref(),
+                pat.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsGitlabArtifactsUpdate {
+            name,
+            description,
+            gitlab_url,
+            project_id,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::gitlab_artifacts_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                gitlab_url.as_deref(),
+                project_id.as_deref(),
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsContainerRegistryUpdate {
+            name,
+            description,
+            registry_domain,
+            target_role_arn,
+            use_task_role,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::container_registry_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                registry_domain.as_deref(),
+                target_role_arn.as_deref(),
+                use_task_role,
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsGitPypiRepositoryUpdate {
+            name,
+            description,
+            repository_urls,
+            username,
+            password,
+            perimeter,
+        } => {
+            integrations::git_pypi_repository_update(
+                ctx,
+                &name,
+                description.as_deref(),
+                &repository_urls,
+                username.as_deref(),
+                password.as_deref(),
+                perimeter.as_deref(),
+            )
+            .await
+        }
+        ObnAction::IntegrationsPrivateCondaChannelsRemove {
+            channel_name,
+            perimeter,
+        } => {
+            integrations::private_conda_channels_remove(ctx, &channel_name, perimeter.as_deref())
+                .await
+        }
+        ObnAction::IntegrationsPrivatePypiRepositoriesRemove {
+            repository_name,
+            perimeter,
+        } => {
+            integrations::private_pypi_repositories_remove(
+                ctx,
+                &repository_name,
+                perimeter.as_deref(),
+            )
+            .await
+        }
+
+        // Fast Bakery
+        ObnAction::FastBakeryGetLoginPassword => fast_bakery::get_login_password(ctx).await,
+        ObnAction::FastBakeryConfigureDockerLogin {
+            registry_url,
+            output,
+        } => fast_bakery::configure_docker_login(ctx, &registry_url, output.as_deref()).await,
+
+        // Kubernetes
+        ObnAction::KubernetesKill {
+            flow_name,
+            run_id,
+            my_runs,
+            dry_run,
+            auto_approve,
+            clear_everything,
+        } => {
+            kubernetes::kill(
+                ctx,
+                &flow_name,
+                run_id.as_deref(),
+                my_runs,
+                dry_run,
+                auto_approve,
+                clear_everything,
+            )
+            .await
+        }
+
         // Flowproject
         ObnAction::FlowprojectGetMetadata { id } => {
             flowproject::get_metadata(ctx, id.as_deref()).await
         }
-        ObnAction::FlowprojectDeleteMetadata { id, output } => {
-            flowproject::delete_metadata(ctx, &id, output.as_deref()).await
+        ObnAction::FlowprojectSetMetadata { json } => {
+            flowproject::set_metadata(ctx, &json).await
+        }
+        ObnAction::FlowprojectDeleteMetadata { id, yes, output } => {
+            flowproject::delete_metadata(ctx, &id, yes, output.as_deref()).await
         }
         ObnAction::FlowprojectListTemplates { id, output } => {
             flowproject::list_templates(ctx, &id, output.as_deref()).await
         }
-        ObnAction::FlowprojectTeardownBranch { id, dry_run, output } => {
-            flowproject::teardown_branch(ctx, &id, dry_run, output.as_deref()).await
-        }
+        ObnAction::FlowprojectTeardownBranch {
+            id,
+            dry_run,
+            yes,
+            output,
+        } => flowproject::teardown_branch(ctx, &id, dry_run, yes, output.as_deref()).await,
 
         // Secrets
         ObnAction::SecretsGet {
@@ -369,7 +641,7 @@ pub async fn run(
         } => tutorials::pull(ctx, &url, &destination_dir, force_overwrite).await,
 
         // Workstations
-        ObnAction::WorkstationsList => workstations::list(ctx).await,
+        ObnAction::WorkstationsList { output } => workstations::list(ctx, output.as_deref()).await,
         ObnAction::WorkstationsHibernate { workstation_id } => {
             workstations::hibernate(ctx, &workstation_id).await
         }
@@ -380,7 +652,12 @@ pub async fn run(
         ObnAction::WorkstationsGetNamespace { workstation_id } => {
             workstations::get_namespace(ctx, &workstation_id).await
         }
-        ObnAction::WorkstationsGetLinks => workstations::get_links(ctx).await,
+        ObnAction::WorkstationsGetLinks {
+            perimeter_id,
+            output,
+        } => {
+            workstations::get_links(ctx, perimeter_id.as_deref(), output.as_deref()).await
+        }
         ObnAction::WorkstationsConfigureKubeconfig {
             binary_path,
             kubeconfig_path,
@@ -392,9 +669,11 @@ pub async fn run(
             )
             .await
         }
-        ObnAction::WorkstationsPrepareSsh { workstation_id } => {
-            workstations::prepare_ssh(ctx, &workstation_id).await
-        }
+        ObnAction::WorkstationsPrepareSsh {
+            workstation_id,
+            setup_context,
+            mode,
+        } => workstations::prepare_ssh(ctx, &workstation_id, &setup_context, &mode).await,
         ObnAction::WorkstationsInstallKubectl {
             install_dir,
             version,

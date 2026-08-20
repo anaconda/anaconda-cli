@@ -172,6 +172,7 @@ pub enum Action {
         action: ObnAction,
         config_dir: String,
         profile: Option<String>,
+        verbose: u8,
     },
     McpRun {
         args: Vec<String>,
@@ -341,7 +342,11 @@ impl Action {
                 action,
                 config_dir,
                 profile,
-            } => crate::native_outerbounds::run(ctx, action, &config_dir, profile.as_deref()).await,
+                verbose,
+            } => {
+                crate::native_outerbounds::run(ctx, action, &config_dir, profile.as_deref(), verbose)
+                    .await
+            }
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
@@ -706,6 +711,7 @@ pub fn parse() -> (Action, LogLevel) {
                 action: cmd.into_action(),
                 config_dir,
                 profile,
+                verbose: cli.verbose,
             },
         },
         Some(Commands::Tool { command }) => match command {

@@ -17,9 +17,16 @@ fn expand_tilde(path: &str) -> String {
     path.to_string()
 }
 
-pub async fn list(ctx: &CommandContext) -> Result<()> {
+pub async fn list(ctx: &CommandContext, output: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
     let result = ob.perimeter().list().await?;
+
+    if output == Some("json") {
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| miette!("Failed to serialize response: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
 
     let mut table = create_table(&["ID", "Current"]);
 
@@ -32,9 +39,18 @@ pub async fn list(ctx: &CommandContext) -> Result<()> {
     Ok(())
 }
 
-pub async fn show_current(ctx: &CommandContext) -> Result<()> {
+pub async fn show_current(ctx: &CommandContext, output: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
     let current = ob.perimeter().show_current().await?;
+
+    if output == Some("json") {
+        let json = serde_json::to_string_pretty(&serde_json::json!({
+            "current_perimeter": current,
+        }))
+        .map_err(|e| miette!("Failed to serialize response: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
 
     match current {
         Some(perimeter_id) => {
@@ -42,6 +58,48 @@ pub async fn show_current(ctx: &CommandContext) -> Result<()> {
         }
         None => {
             println!("No perimeter currently set");
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn ensure_cloud_creds(
+    ctx: &CommandContext,
+    cspr_override: Option<&str>,
+    output: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+
+    let result = ob.perimeter().ensure_cloud_creds(cspr_override).await?;
+
+    if output == Some("json") {
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| miette!("Failed to serialize response: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
+
+    use outerbounds::EnsureCloudCredsResult;
+    match result {
+        EnsureCloudCredsResult::Skipped { reason } => {
+            status::info(&format!("Skipped: {}", reason));
+        }
+        EnsureCloudCredsResult::Gcp { credentials_path } => {
+            status::success(&format!(
+                "GCP credentials written to {}",
+                credentials_path.display()
+            ));
+        }
+        EnsureCloudCredsResult::Aws {
+            token_path,
+            config_path,
+        } => {
+            status::success(&format!(
+                "AWS credentials written (token: {}, config: {})",
+                token_path.display(),
+                config_path.display()
+            ));
         }
     }
 

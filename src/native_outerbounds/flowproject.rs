@@ -68,12 +68,39 @@ pub async fn get_metadata(ctx: &CommandContext, id: Option<&str>) -> Result<()> 
     Ok(())
 }
 
+pub async fn set_metadata(ctx: &CommandContext, json: &str) -> Result<()> {
+    let metadata: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| miette!("Invalid JSON metadata: {}", e))?;
+
+    let ob = ctx.outerbounds_client().await?;
+    let result = ob.flowproject().set_metadata(metadata).await?;
+
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&result).map_err(|e| miette!("Failed to serialize: {}", e))?
+    );
+
+    Ok(())
+}
+
 pub async fn delete_metadata(
     ctx: &CommandContext,
     id: &str,
+    yes: bool,
     _output: Option<&str>,
 ) -> Result<()> {
     let (project, branch) = parse_id(id)?;
+
+    if !yes
+        && !crate::input::prompt_yes_no(
+            &format!("Delete flowproject metadata for {}/{}?", project, branch),
+            false,
+        )
+    {
+        status::info("Aborted.");
+        return Ok(());
+    }
+
     let ob = ctx.outerbounds_client().await?;
 
     let result = ob.flowproject().delete_metadata(&project, &branch).await?;
@@ -113,9 +140,25 @@ pub async fn teardown_branch(
     ctx: &CommandContext,
     id: &str,
     dry_run: bool,
+    yes: bool,
     _output: Option<&str>,
 ) -> Result<()> {
     let (project, branch) = parse_id(id)?;
+
+    if !dry_run
+        && !yes
+        && !crate::input::prompt_yes_no(
+            &format!(
+                "Tear down all deployed resources for {}/{}?",
+                project, branch
+            ),
+            false,
+        )
+    {
+        status::info("Aborted.");
+        return Ok(());
+    }
+
     let ob = ctx.outerbounds_client().await?;
 
     let result = ob

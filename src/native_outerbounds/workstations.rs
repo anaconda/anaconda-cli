@@ -7,10 +7,17 @@ use crate::ui::status;
 
 use super::output::{create_table, print_table};
 
-pub async fn list(ctx: &CommandContext) -> Result<()> {
+pub async fn list(ctx: &CommandContext, output: Option<&str>) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
     let result = ob.workstations().list().await?;
+
+    if output == Some("json") {
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| miette::miette!("Failed to serialize response: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
 
     if result.workstations.is_empty() {
         println!("No workstations found");
@@ -99,10 +106,26 @@ pub async fn get_namespace(ctx: &CommandContext, workstation_id: &str) -> Result
     Ok(())
 }
 
-pub async fn get_links(ctx: &CommandContext) -> Result<()> {
+pub async fn get_links(
+    ctx: &CommandContext,
+    perimeter_id: Option<&str>,
+    output: Option<&str>,
+) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
-    let links = ob.workstations().get_relevant_links()?;
+    let links = match perimeter_id {
+        Some(p) if !p.is_empty() => {
+            ob.workstations().get_relevant_links_for_perimeter(p).await?
+        }
+        _ => ob.workstations().get_relevant_links()?,
+    };
+
+    if output == Some("json") {
+        let json = serde_json::to_string_pretty(&links)
+            .map_err(|e| miette::miette!("Failed to serialize links: {}", e))?;
+        println!("{}", json);
+        return Ok(());
+    }
 
     if links.is_empty() {
         println!("No relevant links found");
@@ -138,8 +161,33 @@ pub async fn configure_kubeconfig(
     Ok(())
 }
 
-pub async fn prepare_ssh(ctx: &CommandContext, workstation_id: &str) -> Result<()> {
+pub async fn prepare_ssh(
+    ctx: &CommandContext,
+    workstation_id: &str,
+    setup_context: &str,
+    mode: &str,
+) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
+
+    if setup_context == "remote" {
+        let setup_mode = match mode {
+            "workstation-init" => outerbounds::SshSetupMode::Init,
+            _ => outerbounds::SshSetupMode::Connect,
+        };
+
+        ob.workstations()
+            .prepare_ssh_access_remote(setup_mode)
+            .await?;
+
+        status::success("SSH access prepared on workstation");
+        return Ok(());
+    }
+
+    if mode == "workstation-init" {
+        return Err(miette::miette!(
+            "workstation-init mode is not supported for local setup"
+        ));
+    }
 
     let result = ob
         .workstations()

@@ -1,4 +1,5 @@
 use miette::{Result, miette};
+use outerbounds::commands::{DeployOptions, DeployProgress};
 use outerbounds::{CapsuleFilters, Tag};
 
 use crate::context::CommandContext;
@@ -42,6 +43,56 @@ fn parse_tags(tags: &[String]) -> Vec<Tag> {
             }
         })
         .collect()
+}
+
+/// Resolve an app ID from either an explicit ID or name-based lookup.
+///
+/// Mirrors the Python CLI: exactly one of id/name is required; a name lookup
+/// that matches multiple apps is an error directing the user to --id.
+async fn resolve_app_id(
+    ctx: &CommandContext,
+    id: Option<&str>,
+    name: Option<&str>,
+    project: Option<&str>,
+    branch: Option<&str>,
+) -> Result<String> {
+    match (id, name) {
+        (Some(_), Some(_)) => {
+            return Err(miette!("Please provide either an ID or --name, not both."));
+        }
+        (None, None) => {
+            return Err(miette!("Either an ID or --name must be provided."));
+        }
+        _ => {}
+    }
+
+    if let Some(id) = id {
+        return Ok(id.to_string());
+    }
+
+    let name = name.expect("checked above");
+    let ob = ctx.outerbounds_client().await?;
+    let (api_url, perimeter) = get_api_context(ctx).await?;
+
+    let filters = CapsuleFilters {
+        project: project.map(String::from),
+        branch: branch.map(String::from),
+        name: Some(name.to_string()),
+        id: None,
+        auth_type: None,
+        tags: Vec::new(),
+    };
+
+    let capsules = ob.app().list(&api_url, &perimeter, filters).await?;
+
+    match capsules.len() {
+        0 => Err(miette!("No app found with name: {}", name)),
+        1 => Ok(capsules[0].id.clone()),
+        _ => Err(miette!(
+            "Multiple apps found with name: {}. Please use an ID to specify exactly which app you want.",
+            name
+        )),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -108,11 +159,19 @@ pub async fn list(
     Ok(())
 }
 
-pub async fn info(ctx: &CommandContext, id: &str, format: Option<&str>) -> Result<()> {
+pub async fn info(
+    ctx: &CommandContext,
+    id: Option<&str>,
+    name: Option<&str>,
+    project: Option<&str>,
+    branch: Option<&str>,
+    format: Option<&str>,
+) -> Result<()> {
+    let id = resolve_app_id(ctx, id, name, project, branch).await?;
     let ob = ctx.outerbounds_client().await?;
     let (api_url, perimeter) = get_api_context(ctx).await?;
 
-    let app_info = ob.app().info(&api_url, &perimeter, id).await?;
+    let app_info = ob.app().info(&api_url, &perimeter, &id).await?;
 
     if format == Some("json") {
         let json = serde_json::to_string_pretty(&app_info)
@@ -181,11 +240,65 @@ pub async fn info(ctx: &CommandContext, id: &str, format: Option<&str>) -> Resul
     Ok(())
 }
 
-pub async fn delete(ctx: &CommandContext, ids: &[String]) -> Result<()> {
+#[allow(clippy::too_many_arguments)]
+pub async fn delete(
+    ctx: &CommandContext,
+    ids: &[String],
+    name: Option<&str>,
+    project: Option<&str>,
+    branch: Option<&str>,
+    tags: &[String],
+    auto_approve: bool,
+) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
     let (api_url, perimeter) = get_api_context(ctx).await?;
 
-    let results = ob.app().delete(&api_url, &perimeter, ids).await?;
+    if ids.is_empty()
+        && name.is_none()
+        && project.is_none()
+        && branch.is_none()
+        && tags.is_empty()
+    {
+        return Err(miette!(
+            "At least one of the options needs to be provided. You can use IDs, --name, --project, --branch, --tag"
+        ));
+    }
+
+    // Resolve filter-based selection to IDs via list
+    let mut all_ids: Vec<String> = ids.to_vec();
+    if name.is_some() || project.is_some() || branch.is_some() || !tags.is_empty() {
+        let filters = CapsuleFilters {
+            project: project.map(String::from),
+            branch: branch.map(String::from),
+            name: name.map(String::from),
+            id: None,
+            auth_type: None,
+            tags: parse_tags(tags),
+        };
+        let capsules = ob.app().list(&api_url, &perimeter, filters).await?;
+        all_ids.extend(capsules.iter().map(|c| c.id.clone()));
+    }
+    all_ids.sort();
+    all_ids.dedup();
+
+    if all_ids.is_empty() {
+        println!("No apps matched the given filters");
+        return Ok(());
+    }
+
+    status::warn("The following apps will be deleted:");
+    for id in &all_ids {
+        println!("  - {}", id);
+    }
+
+    if !auto_approve
+        && !crate::input::prompt_yes_no("Are you sure you want to delete these apps?", false)
+    {
+        status::info("Aborted.");
+        return Ok(());
+    }
+
+    let results = ob.app().delete(&api_url, &perimeter, &all_ids).await?;
 
     for result in &results {
         if result.success {
@@ -199,12 +312,82 @@ pub async fn delete(ctx: &CommandContext, ids: &[String]) -> Result<()> {
     Ok(())
 }
 
+pub async fn deploy(
+    ctx: &CommandContext,
+    options: DeployOptions,
+    status_file: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+
+    let app = outerbounds::commands::deploy(ob, options, |progress| match progress {
+        DeployProgress::BakingStarted => status::info("Baking image..."),
+        DeployProgress::BakingCompleted { image } => {
+            status::success(&format!("Baked image: {}", image))
+        }
+        DeployProgress::PackagingStarted => status::info("Packaging code..."),
+        DeployProgress::PackagingCompleted { url, .. } => {
+            status::success(&format!("Packaged code: {}", url))
+        }
+        DeployProgress::Submitting => status::info("Submitting deployment..."),
+        DeployProgress::Submitted { capsule_id } => {
+            status::info(&format!("Deployment submitted: {}", capsule_id))
+        }
+        DeployProgress::WaitingForReadiness { running, target } => {
+            status::waiting(&format!(
+                "Waiting for readiness ({}/{} workers running)...",
+                running, target
+            ));
+        }
+        DeployProgress::WorkerCrashloop { worker_id } => {
+            status::warn(&format!("Worker {} is crashlooping", worker_id))
+        }
+        DeployProgress::Ready { .. } => {}
+        DeployProgress::Failed { .. } => {}
+    })
+    .await?;
+
+    status::blank_line();
+    status::celebrate(&format!("Deployed app: {}", app.name));
+    println!("ID: {}", app.id);
+    println!("Version: {}", app.version);
+    println!("Auth type: {}", app.auth_type);
+    if !app.public_url.is_empty() {
+        println!("URL: {}", app.public_url);
+    }
+
+    if let Some(path) = status_file {
+        let status_json = serde_json::json!({
+            "id": app.id,
+            "name": app.name,
+            "version": app.version,
+            "auth_type": app.auth_type,
+            "public_url": app.public_url,
+            "internal_url": app.internal_url,
+        });
+        std::fs::write(
+            path,
+            serde_json::to_string_pretty(&status_json)
+                .map_err(|e| miette!("Failed to serialize deployment status: {}", e))?,
+        )
+        .map_err(|e| miette!("Failed to write status file {}: {}", path, e))?;
+        status::info(&format!("Deployment status written to {}", path));
+    }
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
 pub async fn logs(
     ctx: &CommandContext,
-    id: &str,
+    id: Option<&str>,
+    name: Option<&str>,
+    project: Option<&str>,
+    branch: Option<&str>,
     worker_id: Option<&str>,
     previous: bool,
+    file: Option<&str>,
 ) -> Result<()> {
+    let id = resolve_app_id(ctx, id, name, project, branch).await?;
     let ob = ctx.outerbounds_client().await?;
     let (api_url, perimeter) = get_api_context(ctx).await?;
 
@@ -212,7 +395,7 @@ pub async fn logs(
     let worker = match worker_id {
         Some(w) => w.to_string(),
         None => {
-            let app_info = ob.app().info(&api_url, &perimeter, id).await?;
+            let app_info = ob.app().info(&api_url, &perimeter, &id).await?;
             app_info
                 .workers
                 .first()
@@ -223,12 +406,23 @@ pub async fn logs(
 
     let logs = ob
         .app()
-        .logs(&api_url, &perimeter, id, &worker, previous)
+        .logs(&api_url, &perimeter, &id, &worker, previous)
         .await?;
 
-    for log_line in &logs {
-        if let Some(ref msg) = log_line.message {
-            println!("{}", msg);
+    let output: String = logs
+        .iter()
+        .filter_map(|l| l.message.as_deref())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    match file {
+        Some(path) => {
+            std::fs::write(path, &output)
+                .map_err(|e| miette!("Failed to write logs to {}: {}", path, e))?;
+            status::success(&format!("Logs written to {}", path));
+        }
+        None => {
+            println!("{}", output);
         }
     }
 

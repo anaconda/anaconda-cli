@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use miette::{Result, miette};
+use outerbounds::commands::ObProjectConfig;
 use outerbounds::{Outerbounds, ServicePrincipalParams, get_ci_jwt};
 
 use crate::ui::status;
@@ -52,6 +53,8 @@ pub async fn service_principal_configure(
     perimeter: Option<&str>,
     jwt_token: Option<&str>,
     github_actions: bool,
+    from_obproject_toml: bool,
+    toml_path: &str,
     config_dir: &str,
     profile: Option<&str>,
     echo: bool,
@@ -60,32 +63,34 @@ pub async fn service_principal_configure(
     let config_path = expand_tilde(config_dir);
     let ob = Outerbounds::without_config(Some(Path::new(&config_path)), profile);
 
+    let mut params = ServicePrincipalParams::new(
+        name.unwrap_or_default(),
+        deployment_domain.unwrap_or_default(),
+        perimeter,
+        jwt_token.unwrap_or_default(),
+    );
+
+    // Fill in unset values from obproject.toml if requested
+    if from_obproject_toml {
+        let defaults = ObProjectConfig::from_toml_file(Path::new(toml_path))
+            .map_err(|e| miette!("{}", e))?;
+        params = params.with_toml_defaults(&defaults);
+    }
+
     // Get JWT token - either from argument or GitHub Actions OIDC
-    let token = match jwt_token {
-        Some(t) => t.to_string(),
-        None if github_actions => {
-            // Need to determine audience from deployment domain
-            let domain = deployment_domain.ok_or_else(|| {
-                miette!("--deployment-domain is required when using --github-actions")
-            })?;
-            let audience = format!("https://auth.{}/origin", domain);
-            get_ci_jwt(&audience).await.map_err(|e| miette!("{}", e))?
-        }
-        None => {
+    if params.jwt_token.is_empty() {
+        if github_actions {
+            params.jwt_token = get_ci_jwt(&params.audience())
+                .await
+                .map_err(|e| miette!("{}", e))?;
+        } else {
             return Err(miette!(
-                "Either --jwt-token or --github-actions must be specified"
+                "No JWT token provided. Please provide either a valid jwt token or set --github-actions"
             ));
         }
-    };
+    }
 
-    let name = name
-        .ok_or_else(|| miette!("--name is required"))?
-        .to_string();
-    let deployment_domain = deployment_domain
-        .ok_or_else(|| miette!("--deployment-domain is required"))?
-        .to_string();
-
-    let params = ServicePrincipalParams::new(name, deployment_domain, perimeter, token);
+    params.validate().map_err(|e| miette!("{}", e))?;
 
     let result = ob
         .configure()

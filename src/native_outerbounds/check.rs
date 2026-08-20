@@ -4,6 +4,7 @@ use outerbounds::{CheckOptions, CheckStatus};
 use crate::context::CommandContext;
 use crate::ui::status;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn check(
     ctx: &CommandContext,
     no_config: bool,
@@ -12,6 +13,7 @@ pub async fn check(
     latency: bool,
     latency_requests: u32,
     latency_timeout: f64,
+    verbose: bool,
 ) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
 
@@ -43,8 +45,8 @@ pub async fn check(
 
         println!("{} {}: {}", icon, result.name, result.message);
 
-        if !result.help.is_empty() {
-            tracing::debug!("Help: {}", result.help);
+        if verbose && !result.help.is_empty() {
+            println!("    {}", result.help);
         }
     }
 
@@ -65,8 +67,10 @@ pub async fn check(
             } else {
                 println!("no successful requests");
             }
-            for err in &lat.errors {
-                tracing::debug!("Error: {}", err);
+            if verbose {
+                for err in &lat.errors {
+                    println!("    error: {}", err);
+                }
             }
         }
     }
@@ -83,6 +87,10 @@ pub async fn check(
         CheckStatus::Fail => {
             status::blank_line();
             status::warn("Some checks failed");
+            if !verbose {
+                status::info("Run 'ana obn check -v' to see more details.");
+            }
+            return Err(miette::miette!("Checks failed"));
         }
     }
 

@@ -38,14 +38,44 @@ pub async fn list(ctx: &CommandContext, perimeter_override: Option<&str>) -> Res
     Ok(())
 }
 
-pub async fn get(ctx: &CommandContext, name: &str, perimeter_override: Option<&str>) -> Result<()> {
+pub async fn get(
+    ctx: &CommandContext,
+    name: &str,
+    perimeter_override: Option<&str>,
+    show_secret_values: bool,
+) -> Result<()> {
     let ob = ctx.outerbounds_client().await?;
+
+    if show_secret_values {
+        let result = ob
+            .integrations()
+            .get_with_secret_values(name, perimeter_override)
+            .await?;
+
+        print_integration(&result.integration);
+
+        if let Some(values) = &result.secret_values {
+            println!("\nSecret values:");
+            for (k, v) in values {
+                println!("  {}: {}", k, v);
+            }
+        } else if let Some(err) = &result.secret_fetch_error {
+            status::warn(&format!("Failed to fetch secret values: {}", err));
+        }
+        return Ok(());
+    }
 
     let integration = ob
         .integrations()
         .get_in_perimeter(name, perimeter_override)
         .await?;
 
+    print_integration(&integration);
+
+    Ok(())
+}
+
+fn print_integration(integration: &outerbounds::Integration) {
     println!("Name: {}", integration.integration_name);
     println!("Type: {}", integration.integration_type);
     println!("Status: {}", integration.integration_status);
@@ -67,8 +97,6 @@ pub async fn get(ctx: &CommandContext, name: &str, perimeter_override: Option<&s
             serde_json::to_string_pretty(&integration.integration_spec).unwrap_or_default()
         );
     }
-
-    Ok(())
 }
 
 pub async fn delete(
@@ -545,5 +573,324 @@ pub async fn s3_proxy_create(
 
     let integration = builder.create(name).await?;
     print_integration_created(&integration);
+    Ok(())
+}
+
+fn print_integration_updated(integration: &outerbounds::Integration) {
+    status::success(&format!(
+        "Updated integration: {}",
+        integration.integration_name
+    ));
+    println!("Type: {}", integration.integration_type);
+    println!("Status: {}", integration.integration_status);
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn s3_proxy_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    bucket_name: Option<&str>,
+    endpoint_url: Option<&str>,
+    region: Option<&str>,
+    access_key_id: Option<&str>,
+    secret_access_key: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.s3_proxy();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if let Some(b) = bucket_name {
+        builder = builder.bucket_name(b);
+    }
+    if let Some(u) = endpoint_url {
+        builder = builder.endpoint_url(u);
+    }
+    if let Some(r) = region {
+        builder = builder.region(r);
+    }
+    if let Some(k) = access_key_id {
+        builder = builder.access_key_id(k);
+    }
+    if let Some(s) = secret_access_key {
+        builder = builder.secret_access_key(s);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn code_artifacts_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    domain_name: Option<&str>,
+    domain_owner: Option<&str>,
+    aws_region: Option<&str>,
+    target_role: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.code_artifacts();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if let Some(d) = domain_name {
+        builder = builder.domain_name(d);
+    }
+    if let Some(o) = domain_owner {
+        builder = builder.domain_owner(o);
+    }
+    if let Some(r) = aws_region {
+        builder = builder.aws_region(r);
+    }
+    if let Some(role) = target_role {
+        builder = builder.target_role(role);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+pub async fn artifactory_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    url: Option<&str>,
+    username: Option<&str>,
+    password: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.artifactory();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if let Some(u) = url {
+        builder = builder.domain(u);
+    }
+    if let Some(user) = username {
+        builder = builder.username(user);
+    }
+    if let Some(pass) = password {
+        builder = builder.password(pass);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn azure_artifacts_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    organization: Option<&str>,
+    project: Option<&str>,
+    username: Option<&str>,
+    pat: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.azure_artifacts();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if let Some(o) = organization {
+        builder = builder.organization(o);
+    }
+    if let Some(proj) = project {
+        builder = builder.project_name(proj);
+    }
+    if let Some(u) = username {
+        builder = builder.username(u);
+    }
+    if let Some(pat) = pat {
+        builder = builder.password(pat);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn gitlab_artifacts_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    gitlab_url: Option<&str>,
+    project_id: Option<&str>,
+    username: Option<&str>,
+    password: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.gitlab_artifacts();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if let Some(u) = gitlab_url {
+        builder = builder.gitlab_url(u);
+    }
+    if let Some(id) = project_id {
+        builder = builder.project_id(id);
+    }
+    if let Some(u) = username {
+        builder = builder.username(u);
+    }
+    if let Some(p) = password {
+        builder = builder.password(p);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn container_registry_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    registry_domain: Option<&str>,
+    target_role_arn: Option<&str>,
+    use_task_role: bool,
+    username: Option<&str>,
+    password: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.container_registry();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if let Some(d) = registry_domain {
+        builder = builder.registry_domain(d);
+    }
+    if let Some(role) = target_role_arn {
+        builder = builder.target_role_arn(role);
+    }
+    if use_task_role {
+        builder = builder.use_task_role(true);
+    }
+    if let Some(u) = username {
+        builder = builder.username(u);
+    }
+    if let Some(p) = password {
+        builder = builder.password(p);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+pub async fn git_pypi_repository_update(
+    ctx: &CommandContext,
+    name: &str,
+    description: Option<&str>,
+    repository_urls: &[String],
+    username: Option<&str>,
+    password: Option<&str>,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.git_pypi_repository();
+    if let Some(desc) = description {
+        builder = builder.description(desc);
+    }
+    if !repository_urls.is_empty() {
+        builder = builder.repository_urls(repository_urls.iter().map(|s| s.as_str()).collect());
+    }
+    if let Some(u) = username {
+        builder = builder.username(u);
+    }
+    if let Some(p) = password {
+        builder = builder.password(p);
+    }
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    let integration = builder.update(name).await?;
+    print_integration_updated(&integration);
+    Ok(())
+}
+
+pub async fn private_conda_channels_remove(
+    ctx: &CommandContext,
+    channel_name: &str,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.private_conda_channels();
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    builder.remove(channel_name).await?;
+    status::success(&format!("Removed Conda channel: {}", channel_name));
+    Ok(())
+}
+
+pub async fn private_pypi_repositories_remove(
+    ctx: &CommandContext,
+    repository_name: &str,
+    perimeter: Option<&str>,
+) -> Result<()> {
+    let ob = ctx.outerbounds_client().await?;
+    let integrations = ob.integrations();
+
+    let mut builder = integrations.private_pypi_repositories();
+    if let Some(p) = perimeter {
+        builder = builder.perimeter(p);
+    }
+
+    builder.remove(repository_name).await?;
+    status::success(&format!(
+        "Removed PyPI repository: {}",
+        repository_name
+    ));
     Ok(())
 }
