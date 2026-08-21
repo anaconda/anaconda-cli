@@ -62,8 +62,8 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/common/data/ci ana_test_api_key | ana-test-api-key ;
-            anaconda-cli/common/data/ci sentry_dsn | sentry-dsn
+            anaconda-cli/dev/data/ci ana_test_api_key | ana-test-api-key ;
+            anaconda-cli/dev/data/ci sentry_dsn | sentry-dsn
 
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash

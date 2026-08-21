@@ -54,7 +54,7 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/common/data/ci anaconda_org_upload_token | anaconda-org-upload-token
+            anaconda-cli/dev/data/ci anaconda_org_upload_token | anaconda-org-upload-token
 
       - name: Upload to anaconda.org
         uses: anaconda/actions/upload-package@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
@@ -176,7 +176,7 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/common/data/ci slack_webhook_url | slack-webhook-url
+            anaconda-cli/dev/data/ci slack_webhook_url | slack-webhook-url
 
       - name: Post to Slack
         env:
