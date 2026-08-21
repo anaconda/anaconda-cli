@@ -29,8 +29,6 @@ jobs:
       name: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    env:
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     permissions:
       contents: read   # To access the Vault
       id-token: write  # Required to authenticate with Azure via OIDC
@@ -51,8 +49,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Fetch CI secrets from Vault
+        id: vault
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          exportEnv: false
+          extraHeaders: |
+            CF-Access-Client-Id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          method: jwt
+          namespace: admin
+          role: ${{ secrets.VAULT_ROLE }}
+          url: ${{ secrets.EXT_VAULT_ADDR }}
+          secrets: |
+            anaconda-cli/common/data/ci ana_test_api_key | ana-test-api-key ;
+            anaconda-cli/common/data/ci sentry_dsn | sentry-dsn
+
       - name: Hash SENTRY_DSN for cache key
         id: dsn-hash
+        env:
+          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
         run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
         shell: bash
 
@@ -78,6 +94,7 @@ jobs:
         if: ${{ !inputs.skip-tests }}
         env:
           RUST_BACKTRACE: 1
+          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
         run: pixi run test-release
 
       - name: Pre-compile shim for signing (Windows)
@@ -98,6 +115,7 @@ jobs:
 
       - name: Build release binary
         env:
+          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
           WINDOWS_SHIM_PATH: ${{ runner.os == 'Windows' && 'target/shim/shim.exe' || '' }}
         run: pixi run build-release
 
@@ -132,15 +150,18 @@ jobs:
           # Disable Sentry for pre-merge builds (PRs, merge queue) to avoid polluting error tracking
           ANA_SENTRY_DISABLED: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
           # API key for tests requiring real authentication (pixi, uv, pip feature tests)
-          ANA_TEST_API_KEY: ${{ secrets.ANA_TEST_API_KEY }}
+          ANA_TEST_API_KEY: ${{ steps.vault.outputs.ana-test-api-key }}
           CERTIFICATE_TRUSTED: ${{ inputs.environment == 'prod' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MACOS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-notarize-macos.outputs.fingerprint }}
           MACOS_DEVELOPER_ID: ${{ steps.sign-notarize-macos.outputs.developer-id }}
+          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
           WINDOWS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-windows.outputs.fingerprint }}
         run: pixi run test-integration
 
       - name: Build conda package
+        env:
+          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
         run: pixi run build-conda
 
       - name: Upload conda package
