@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-09T05:04:54Z<br>
+Generated: 2026-09-08T19:37:51Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 457 (59 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
 ## Packages
 
@@ -54,7 +54,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cc](https://crates.io/crates/cc) | 1.3.0 | MIT OR Apache-2.0 |  |  |
 | [cfg-if](https://crates.io/crates/cfg-if) | 1.0.4 | MIT OR Apache-2.0 |  |  |
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.2 | MIT | linux, macos |  |
-| [chacha20](https://crates.io/crates/chacha20) | 0.10.1 | MIT OR Apache-2.0 |  |  |
+| [chacha20](https://crates.io/crates/chacha20) | 0.10.2 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  |  |
 | [clap](https://crates.io/crates/clap) | 4.6.6 | MIT OR Apache-2.0 |  |  |
 | [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.6 | MIT OR Apache-2.0 |  |  |
@@ -135,7 +135,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [getrandom](https://crates.io/crates/getrandom) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [gimli](https://crates.io/crates/gimli) | 0.32.3 | MIT OR Apache-2.0 | linux, macos |  |
 | [glob](https://crates.io/crates/glob) | 0.3.4 | MIT OR Apache-2.0 |  |  |
-| [h2](https://crates.io/crates/h2) | 0.4.15 | MIT |  |  |
+| [h2](https://crates.io/crates/h2) | 0.4.15 | MIT |  | 1 |
 | [halfbrown](https://crates.io/crates/halfbrown) | 0.4.0 | Apache-2.0 OR MIT |  |  |
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.12.3 | MIT OR Apache-2.0 |  |  |
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.14.5 | MIT OR Apache-2.0 |  |  |
@@ -423,7 +423,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [version\_check](https://crates.io/crates/version_check) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [wait-timeout](https://crates.io/crates/wait-timeout) | 0.2.1 | MIT OR Apache-2.0 |  |  |
 | [want](https://crates.io/crates/want) | 0.3.1 | MIT |  |  |
-| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.1 | MIT OR Apache-2.0 |  |  |
+| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.1 | MIT OR Apache-2.0 |  | 1 |
 | [which](https://crates.io/crates/which) | 8.0.5 | MIT |  |  |
 | [winapi](https://crates.io/crates/winapi) | 0.3.9 | MIT OR Apache-2.0 | windows |  |
 | [windows](https://crates.io/crates/windows) | 0.52.0 | MIT OR Apache-2.0 | windows |  |
@@ -467,6 +467,13 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd](https://crates.io/crates/zstd) | 0.13.3 | MIT |  |  |
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
+
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
+| webbrowser | 1.2.1 | [RUSTSEC-2026-0257](https://rustsec.org/advisories/RUSTSEC-2026-0257.html) |  |  |  |
 
 ## License Summary
 
