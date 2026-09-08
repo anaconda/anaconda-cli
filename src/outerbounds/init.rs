@@ -316,6 +316,7 @@ fn is_valid_project_name(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::fs;
     use tempfile::TempDir;
 
@@ -442,6 +443,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_init_project_creates_structure() {
         let tmp = TempDir::new().unwrap();
         let project_path = tmp.path().join("test_project");
@@ -489,6 +491,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_init_project_template_substitution() {
         let tmp = TempDir::new().unwrap();
         let project_path = tmp.path().join("subst_test");
@@ -515,6 +518,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_init_project_fails_if_exists() {
         let tmp = TempDir::new().unwrap();
 
@@ -543,6 +547,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_init_project_invalid_name_fails() {
         let tmp = TempDir::new().unwrap();
 
@@ -568,6 +573,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_init_project_not_configured_fails() {
         let tmp = TempDir::new().unwrap();
 
@@ -592,6 +598,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_expand_tilde() {
         let tmp = TempDir::new().unwrap();
 
