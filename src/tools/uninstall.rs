@@ -153,11 +153,13 @@ fn remove_shims_cfg_entries(binaries: &[&str]) -> miette::Result<()> {
 mod tests {
     #[cfg(windows)]
     mod windows_tests {
+        use serial_test::serial;
         use tempfile::TempDir;
 
         use super::super::remove_shims_cfg_entries;
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_removes_single() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -181,6 +183,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_removes_multiple() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -205,6 +208,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_handles_missing_file() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -217,6 +221,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_preserves_trailing_newlines() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");

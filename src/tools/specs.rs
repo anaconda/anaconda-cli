@@ -91,8 +91,10 @@ pub fn auto_update_default(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial(env)]
     fn test_content_embedded() {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
             let lockfile = content("anaconda-cli");
@@ -102,6 +104,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_content_unknown_tool() {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
             assert!(content("unknown-tool").is_none());
