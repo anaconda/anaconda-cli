@@ -180,7 +180,7 @@ jobs:
 
       - name: Post to Slack
         env:
-          SLACK_WEBHOOK_URL: ${{ steps.vault.outputs.slack-webhook-url }}  # zizmor: ignore[secrets-outside-env]
+          SLACK_WEBHOOK_URL: ${{ steps.vault.outputs.slack-webhook-url }}
           RELEASE_BODY: ${{ github.event.release.body }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
