@@ -5,23 +5,17 @@ inputs:
   binary-path:
     description: The path to the binary to sign and notarize.
     required: true
-  vault-approle-path:
-    description: The approle for the HashiCorp Vault namespace.
-    required: true
   vault-cf-client-id:
     description: CloudFlare client ID to access the HashiCorp Vault from a public GitHub runner.
     required: true
   vault-cf-client-secret:
     description: CloudFlare secret to access the HashiCorp Vault from a public GitHub runner.
     required: true
-  vault-role-id:
-    description: Role ID for the HashiCorp Vault namespace.
-    required: true
-  vault-secret-id:
-    description: Secret ID for the HashiCorp Vault namespace.
-    required: true
   vault-mount:
     description: HashiCorp Vault mount to retrieve secrets from (`dev` or `prod`).
+    required: true
+  vault-role:
+    description: The role for the HashiCorp Vault namespace.
     required: true
   vault-url:
     description: URL to the HashiCorp Vault.
@@ -62,11 +56,9 @@ runs:
         extraHeaders: |
           CF-Access-Client-Id: ${{ inputs.vault-cf-client-id }}
           CF-Access-Client-Secret: ${{ inputs.vault-cf-client-secret }}
-        method: approle
+        method: jwt
         namespace: admin
-        path: ${{ inputs.vault-approle-path }}
-        roleId: ${{ inputs.vault-role-id }}
-        secretId: ${{ inputs.vault-secret-id }}
+        role: ${{ inputs.vault-role }}
         url: ${{ inputs.vault-url }}
         secrets: |
           anaconda-cli/${{ inputs.vault-mount }}/data/macos/application_certificate base64 | base64 ;
@@ -125,11 +117,9 @@ runs:
         extraHeaders: |
           CF-Access-Client-Id: ${{ inputs.vault-cf-client-id }}
           CF-Access-Client-Secret: ${{ inputs.vault-cf-client-secret }}
-        method: approle
+        method: jwt
         namespace: admin
-        path: ${{ inputs.vault-approle-path }}
-        roleId: ${{ inputs.vault-role-id }}
-        secretId: ${{ inputs.vault-secret-id }}
+        role: ${{ inputs.vault-role }}
         url: ${{ inputs.vault-url }}
         secrets: |
           anaconda-cli/${{ inputs.vault-mount }}/data/macos/notarization_credentials key | key ;

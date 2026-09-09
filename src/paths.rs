@@ -61,6 +61,7 @@ pub fn bin_path(name: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_home_dir_returns_path() {
@@ -73,6 +74,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_ana_home_default() {
         temp_env::with_var_unset("ANA_HOME", || {
             let ana = ana_home();
@@ -85,6 +87,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_ana_home_from_env() {
         temp_env::with_var("ANA_HOME", Some("/custom/ana/path"), || {
             assert_eq!(ana_home(), PathBuf::from("/custom/ana/path"));
@@ -92,6 +95,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_tools_dir() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(tools_dir(), PathBuf::from("/test/ana/tools"));
@@ -99,6 +103,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_bin_dir() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(bin_dir(), PathBuf::from("/test/ana/bin"));
@@ -106,6 +111,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_tool_prefix() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(
@@ -126,6 +132,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_bin_path() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             let path = bin_path("pixi");

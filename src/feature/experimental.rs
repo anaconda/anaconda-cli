@@ -124,6 +124,7 @@ pub fn disable_feature(name: &str) -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::TempDir;
 
     #[test]
@@ -144,6 +145,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
+    #[serial(env)]
     fn test_enable_disable_feature() {
         let tmp = TempDir::new().unwrap();
 
@@ -171,6 +173,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_enable_invalid_feature() {
         let tmp = TempDir::new().unwrap();
 
@@ -183,6 +186,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
+    #[serial(env)]
     fn test_enable_outerbounds_invalid_on_windows() {
         let tmp = TempDir::new().unwrap();
 
@@ -195,6 +199,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_load_config_missing_file() {
         let tmp = TempDir::new().unwrap();
 
@@ -207,6 +212,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
+    #[serial(env)]
     fn test_load_config_preserves_other_content() {
         let tmp = TempDir::new().unwrap();
 

@@ -5,23 +5,17 @@ inputs:
   binary-path:
     description: The path to the binary to sign and notarize.
     required: true
-  vault-approle-path:
-    description: The approle for the HashiCorp Vault namespace.
-    required: true
   vault-cf-client-id:
     description: CloudFlare client ID to access the HashiCorp Vault from a public GitHub runner.
     required: true
   vault-cf-client-secret:
     description: CloudFlare secret to access the HashiCorp Vault from a public GitHub runner.
     required: true
-  vault-role-id:
-    description: Role ID for the HashiCorp Vault namespace.
-    required: true
-  vault-secret-id:
-    description: Secret ID for the HashiCorp Vault namespace.
-    required: true
   vault-mount:
     description: HashiCorp Vault mount to retrieve secrets from (`dev` or `prod`).
+    required: true
+  vault-role:
+    description: The role for the HashiCorp Vault namespace.
     required: true
   vault-url:
     description: URL to the HashiCorp Vault.
@@ -50,10 +44,13 @@ runs:
       shell: pwsh
 
     - name: Get AzureSignTool
+      env:
+        # renovate: datasource=nuget depName=azuresigntool
+        AZURE_SIGNTOOL_VERSION: 7.0.1
       run: |
         # Get AzureSignTool
         if (-not (Get-Command AzureSignTool -ErrorAction SilentlyContinue)) {
-            dotnet tool install --global AzureSignTool
+            dotnet tool install --global AzureSignTool --version $env:AZURE_SIGNTOOL_VERSION
         }
       shell: pwsh
 
@@ -65,11 +62,9 @@ runs:
         extraHeaders: |
           CF-Access-Client-Id: ${{ inputs.vault-cf-client-id }}
           CF-Access-Client-Secret: ${{ inputs.vault-cf-client-secret }}
-        method: approle
+        method: jwt
         namespace: admin
-        path: ${{ inputs.vault-approle-path }}
-        roleId: ${{ inputs.vault-role-id }}
-        secretId: ${{ inputs.vault-secret-id }}
+        role: ${{ inputs.vault-role }}
         url: ${{ inputs.vault-url }}
         secrets: |
           anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate certificate_name | certificate-name;
@@ -80,7 +75,7 @@ runs:
           anaconda-cli/${{ inputs.vault-mount }}/data/windows/certificate url | url
 
     - name: Log into Azure
-      uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+      uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
       with:
         client-id: ${{ steps.certificate.outputs.client-id }}
         subscription-id: ${{ steps.certificate.outputs.subscription-id }}

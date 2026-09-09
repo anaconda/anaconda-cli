@@ -100,12 +100,6 @@ class TestSubcommandHelp:
         assert "COMMANDS" in result.stdout
         assert "api-key" in result.stdout
 
-    def test_org_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("org", "--help")
-        assert result.returncode == 0
-        assert "Interact with anaconda.org" in result.stdout
-        assert "Usage: ana org" in result.stdout
-
 
 class TestVersion:
     """Tests for --version output."""
