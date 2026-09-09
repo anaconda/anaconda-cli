@@ -3,7 +3,7 @@ REM don't pollute stdout and break version/output assertions.
 set ANA_ENABLE_TELEMETRY=false
 set RUST_LOG=off
 
-set "BINFILE=%RECIPE_DIR%\..\target\release\ana.exe"
+set "BINFILE=%RECIPE_DIR%\..\target\conda-package\release\ana.exe"
 echo Binary path: %BINFILE%
 if not exist "%BINFILE%" (
   echo FAIL: Release binary not found

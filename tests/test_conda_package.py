@@ -1,0 +1,205 @@
+"""Integration tests for the conda package build of ana.
+
+Builds the anaconda-cli conda package (the `conda-package` feature build:
+no self-update, no tool management, binaries resolved from $CONDA_PREFIX),
+installs it into a real conda environment, and smoke-tests the packaged
+binary.
+
+The package build is session-scoped and reused across tests. To skip the
+build and test a pre-built package, set ANA_CONDA_PACKAGE_PATH to the
+.conda file, or run `pixi run build-conda` first (output/ is reused).
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from collections.abc import Generator
+from pathlib import Path
+
+import pytest
+from helpers import IS_WINDOWS
+from helpers import REPO_ROOT
+
+PACKAGE_NAME = "anaconda-cli"
+
+
+def _find_built_package() -> Path | None:
+    """Find an existing anaconda-cli package in the rattler-build output dir."""
+    output_dir = REPO_ROOT / "output"
+    if not output_dir.is_dir():
+        return None
+    packages = sorted(
+        output_dir.glob(f"*/{PACKAGE_NAME}-*.conda"),
+        key=lambda p: p.stat().st_mtime,
+    )
+    return packages[-1] if packages else None
+
+
+def _build_package() -> None:
+    """Build the conda package via the pixi task (binary + rattler-build)."""
+    if shutil.which("pixi"):
+        cmd = ["pixi", "run", "build-conda"]
+    elif shutil.which("rattler-build") and shutil.which("cargo"):
+        with_version = REPO_ROOT / "scripts" / "with_version.py"
+        subprocess.run(
+            [
+                sys.executable,
+                str(with_version),
+                "cargo",
+                "build",
+                "--release",
+                "--no-default-features",
+                "--features",
+                "conda-package",
+                "--target-dir",
+                "target/conda-package",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+        )
+        cmd = [
+            sys.executable,
+            str(with_version),
+            "rattler-build",
+            "build",
+            "--recipe",
+            "conda.recipe",
+        ]
+    else:
+        pytest.skip("building the conda package requires pixi or rattler-build + cargo")
+
+    subprocess.run(cmd, cwd=REPO_ROOT, check=True)
+
+
+@pytest.fixture(scope="session")
+def conda_package() -> Path:
+    """Provide the path to the anaconda-cli .conda package, building if needed."""
+    if env_path := os.getenv("ANA_CONDA_PACKAGE_PATH"):
+        path = Path(env_path)
+        if path.is_file():
+            return path
+        pytest.fail(f"ANA_CONDA_PACKAGE_PATH does not exist: {path}")
+
+    package = _find_built_package()
+    if package is None:
+        _build_package()
+        package = _find_built_package()
+    if package is None:
+        pytest.fail("conda package build succeeded but no .conda found in output/")
+    return package
+
+
+@pytest.fixture(scope="session")
+def conda_env_prefix(
+    conda_package: Path, tmp_path_factory: pytest.TempPathFactory
+) -> Generator[Path, None, None]:
+    """Install the package (no deps) into a fresh conda environment."""
+    conda = shutil.which("conda")
+    if conda is None:
+        pytest.skip("conda is required to install the package into an environment")
+
+    prefix = tmp_path_factory.mktemp("conda-env") / "env"
+    result = subprocess.run(
+        [
+            conda,
+            "create",
+            "-y",
+            "--no-deps",
+            "-p",
+            str(prefix),
+            str(conda_package),
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if result.returncode != 0:
+        pytest.fail(
+            f"conda create failed for {conda_package}:\n{result.stdout}\n{result.stderr}"
+        )
+
+    yield prefix
+
+    if IS_WINDOWS:
+        subprocess.run(["cmd", "/c", "rmdir", "/s", "/q", str(prefix)], check=False)
+    else:
+        shutil.rmtree(prefix, ignore_errors=True)
+
+
+@pytest.fixture(scope="session")
+def run_packaged_ana(
+    conda_env_prefix: Path, tmp_path_factory: pytest.TempPathFactory
+) -> Generator:
+    """Run the packaged ana binary with CONDA_PREFIX pointed at the test env."""
+    home = tmp_path_factory.mktemp("conda-home")
+    binary = conda_env_prefix / "bin" / ("ana.exe" if IS_WINDOWS else "ana")
+    if not binary.exists():
+        pytest.fail(f"packaged binary not found at {binary}")
+
+    env = {key: val for key, val in os.environ.items() if not key.startswith("ANA_")}
+    env["CONDA_PREFIX"] = str(conda_env_prefix)
+    env["ANA_ENABLE_TELEMETRY"] = "false"
+    env["RUST_LOG"] = "off"
+    if IS_WINDOWS:
+        env["USERPROFILE"] = str(home)
+    else:
+        env["HOME"] = str(home)
+
+    def _run(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [str(binary), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=60,
+        )
+
+    yield _run
+
+
+class TestCondaPackage:
+    """Smoke tests for the packaged conda build of ana."""
+
+    def test_version(self, run_packaged_ana, conda_package: Path) -> None:
+        result = run_packaged_ana("--version")
+        assert result.returncode == 0
+        version = conda_package.name.removeprefix(f"{PACKAGE_NAME}-").split("-")[0]
+        assert version in result.stdout
+
+    def test_help(self, run_packaged_ana) -> None:
+        result = run_packaged_ana("--help")
+        assert result.returncode == 0
+        assert "Usage" in result.stdout
+
+    def test_self_update_unavailable(self, run_packaged_ana) -> None:
+        result = run_packaged_ana("self", "update")
+        assert result.returncode == 1
+        assert "Self-update is not available" in result.stderr
+
+    def test_tool_install_unavailable(self, run_packaged_ana) -> None:
+        result = run_packaged_ana("tool", "install", "pixi")
+        assert result.returncode == 1
+        assert "Tool management is not available" in result.stderr
+
+    def test_tool_uninstall_unavailable(self, run_packaged_ana) -> None:
+        result = run_packaged_ana("tool", "uninstall", "pixi")
+        assert result.returncode == 1
+        assert "Tool management is not available" in result.stderr
+
+    def test_tool_list_works(self, run_packaged_ana) -> None:
+        result = run_packaged_ana("tool", "list")
+        assert result.returncode == 0
+        assert "anaconda-cli" in result.stdout
+        assert "anaconda-auth" in result.stdout
+        assert "anaconda-mcp" in result.stdout
+
+    def test_mcp_requires_anaconda_mcp(self, run_packaged_ana) -> None:
+        """anaconda-mcp is a run dependency, but --no-deps install omits it,
+        so the conda-meta guard should fire."""
+        result = run_packaged_ana("mcp", "serve")
+        assert result.returncode == 1
+        assert "anaconda-mcp" in result.stderr
