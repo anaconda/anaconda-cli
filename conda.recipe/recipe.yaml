@@ -12,7 +12,12 @@ build:
 
 requirements:
   run:
+    - anaconda-audit
+    - anaconda-auth
     - anaconda-client
+    - anaconda-env-log
+    - anaconda-mcp
+    - anaconda-repo-cli
 
 about:
   homepage: https://github.com/anaconda/ana-cli
