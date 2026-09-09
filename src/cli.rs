@@ -360,9 +360,7 @@ impl Action {
                 Ok(())
             }
             #[cfg(not(tool_install))]
-            Action::ToolUpdate => {
-                Err(crate::errors::ToolManagementUnavailableError.into())
-            }
+            Action::ToolUpdate => Err(crate::errors::ToolManagementUnavailableError.into()),
             #[cfg(tool_install)]
             Action::ToolUpdate => {
                 let updated = tools::install::update_installed_tools(ctx).await?;
