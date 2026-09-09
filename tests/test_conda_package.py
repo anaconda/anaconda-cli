@@ -2,12 +2,16 @@
 
 Builds the anaconda-cli conda package (the `conda-package` feature build:
 no self-update, no tool management, binaries resolved from $CONDA_PREFIX),
-installs it into a real conda environment, and smoke-tests the packaged
-binary.
+installs it into a real conda environment with its full dependency tree
+resolved from repo.anaconda.com, and smoke-tests the packaged binary.
 
-The package build is session-scoped and reused across tests. To skip the
-build and test a pre-built package, set ANA_CONDA_PACKAGE_PATH to the
-.conda file, or run `pixi run build-conda` first (output/ is reused).
+The package build and environment creation are session-scoped and reused
+across tests. To skip the build and test a pre-built package, set
+ANA_CONDA_PACKAGE_PATH to the .conda file, or run `pixi run build-conda`
+first (output/ is reused).
+
+Note: the environment install is network-dependent and slow (it downloads
+the full anaconda-* dependency tree on first run).
 """
 
 from __future__ import annotations
@@ -96,21 +100,35 @@ def conda_package() -> Path:
 def conda_env_prefix(
     conda_package: Path, tmp_path_factory: pytest.TempPathFactory
 ) -> Generator[Path, None, None]:
-    """Install the package (no deps) into a fresh conda environment."""
+    """Install the package with its full dependency tree into a fresh env.
+
+    The local rattler-build output dir serves as the channel for
+    anaconda-cli itself; run dependencies resolve from the anaconda-cloud
+    and pkgs/main channels.
+    """
     conda = shutil.which("conda")
     if conda is None:
         pytest.skip("conda is required to install the package into an environment")
 
     prefix = tmp_path_factory.mktemp("conda-env") / "env"
+    local_channel = conda_package.parent.parent.as_uri()
     result = subprocess.run(
         [
             conda,
             "create",
             "-y",
-            "--no-deps",
             "-p",
             str(prefix),
-            str(conda_package),
+            "-c",
+            local_channel,
+            "-c",
+            "anaconda-cloud",
+            # anaconda-repo-cli is only published under the dev label
+            "-c",
+            "anaconda-cloud/label/dev",
+            "-c",
+            "https://repo.anaconda.com/pkgs/main",
+            PACKAGE_NAME,
         ],
         capture_output=True,
         text=True,
@@ -194,12 +212,22 @@ class TestCondaPackage:
         result = run_packaged_ana("tool", "list")
         assert result.returncode == 0
         assert "anaconda-cli" in result.stdout
-        assert "anaconda-auth" in result.stdout
-        assert "anaconda-mcp" in result.stdout
 
-    def test_mcp_requires_anaconda_mcp(self, run_packaged_ana) -> None:
-        """anaconda-mcp is a run dependency, but --no-deps install omits it,
-        so the conda-meta guard should fire."""
-        result = run_packaged_ana("mcp", "serve")
-        assert result.returncode == 1
-        assert "anaconda-mcp" in result.stderr
+    def test_run_deps_installed(self, conda_env_prefix: Path) -> None:
+        """All run dependencies from the recipe are installed in the env."""
+        conda_meta = conda_env_prefix / "conda-meta"
+        for dep in [
+            "anaconda-audit",
+            "anaconda-auth",
+            "anaconda-client",
+            "anaconda-env-log",
+            "anaconda-mcp",
+            "anaconda-repo-cli",
+        ]:
+            assert any(conda_meta.glob(f"{dep}-*.json")), f"{dep} not installed"
+
+    def test_anaconda_binary_available(self, conda_env_prefix: Path) -> None:
+        """The `anaconda` binary that ana proxies to comes from a run dep."""
+        bin_subdir = "Scripts" if IS_WINDOWS else "bin"
+        binary = "anaconda.exe" if IS_WINDOWS else "anaconda"
+        assert (conda_env_prefix / bin_subdir / binary).exists()
