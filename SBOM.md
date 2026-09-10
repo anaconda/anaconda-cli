@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-09T16:32:30Z<br>
+Generated: 2026-09-10T16:19:24Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 457 (58 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -144,7 +144,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [heck](https://crates.io/crates/heck) | 0.5.0 | MIT OR Apache-2.0 |  |  |
 | [hex](https://crates.io/crates/hex) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [hostname](https://crates.io/crates/hostname) | 0.4.2 | MIT |  |  |
-| [http](https://crates.io/crates/http) | 1.4.2 | MIT OR Apache-2.0 |  |  |
+| [http](https://crates.io/crates/http) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [http-auth](https://crates.io/crates/http-auth) | 0.1.10 | MIT OR Apache-2.0 |  |  |
 | [http-body](https://crates.io/crates/http-body) | 1.1.0 | MIT |  |  |
 | [http-body-util](https://crates.io/crates/http-body-util) | 0.1.4 | MIT |  |  |
