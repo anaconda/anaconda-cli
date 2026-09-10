@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-09T16:32:30Z<br>
+Generated: 2026-09-10T16:18:02Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 457 (58 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -31,7 +31,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [async-compression](https://crates.io/crates/async-compression) | 0.4.42 | MIT OR Apache-2.0 |  |  |
 | [async-once-cell](https://crates.io/crates/async-once-cell) | 0.5.4 | MIT OR Apache-2.0 |  |  |
 | [async-spooled-tempfile](https://crates.io/crates/async-spooled-tempfile) | 0.1.0 | Apache-2.0 OR MIT |  |  |
-| [async-trait](https://crates.io/crates/async-trait) | 0.1.91 | MIT OR Apache-2.0 |  |  |
+| [async-trait](https://crates.io/crates/async-trait) | 0.1.92 | MIT OR Apache-2.0 |  |  |
 | [atomic-waker](https://crates.io/crates/atomic-waker) | 1.1.2 | Apache-2.0 OR MIT |  |  |
 | [autocfg](https://crates.io/crates/autocfg) | 1.5.1 | Apache-2.0 OR MIT |  |  |
 | [backtrace](https://crates.io/crates/backtrace) | 0.3.76 | MIT OR Apache-2.0 |  |  |
