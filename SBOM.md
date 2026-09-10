@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-09T16:32:30Z<br>
+Generated: 2026-09-10T16:19:27Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 457 (58 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -62,7 +62,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [clap\_lex](https://crates.io/crates/clap_lex) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [cmov](https://crates.io/crates/cmov) | 0.5.4 | Apache-2.0 OR MIT |  |  |
 | [colorchoice](https://crates.io/crates/colorchoice) | 1.0.5 | MIT OR Apache-2.0 |  |  |
-| [comfy-table](https://crates.io/crates/comfy-table) | 7.2.2 | MIT |  |  |
+| [comfy-table](https://crates.io/crates/comfy-table) | 8.0.0 | MIT |  |  |
 | [compression-codecs](https://crates.io/crates/compression-codecs) | 0.4.38 | MIT OR Apache-2.0 |  |  |
 | [compression-core](https://crates.io/crates/compression-core) | 0.4.32 | MIT OR Apache-2.0 |  |  |
 | [configparser](https://crates.io/crates/configparser) | 3.2.0 | MIT OR LGPL-3.0-or-later | linux |  |

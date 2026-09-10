@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:1b3652e1-c073-49f8-86ee-9c5047357a1e",
+  "serialNumber": "urn:uuid:a321c483-5ddf-4709-88f6-03ed29719023",
   "metadata": {
-    "timestamp": "2026-09-09T16:32:30Z",
+    "timestamp": "2026-09-10T16:19:27Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -1581,16 +1581,16 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@8.0.0",
       "author": "Arne Beer <contact@arne.beer>",
       "name": "comfy-table",
-      "version": "7.2.2",
+      "version": "8.0.0",
       "description": "An easy to use library for building beautiful tables with automatic content wrapping",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "958c5d6ecf1f214b4c2bbbbf6ab9523a864bd136dcf71a7e8904799acfe1ad47"
+          "content": "136c8c4c3823846e8ba6d4bda011b4e5d5827b8bb0ac26c31f9ab31abe9f54f2"
         }
       ],
       "licenses": [
@@ -1598,7 +1598,7 @@
           "expression": "MIT"
         }
       ],
-      "purl": "pkg:cargo/comfy-table@7.2.2",
+      "purl": "pkg:cargo/comfy-table@8.0.0",
       "externalReferences": [
         {
           "type": "documentation",
@@ -14192,7 +14192,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
-        "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
+        "registry+https://github.com/rust-lang/crates.io-index#comfy-table@8.0.0",
         "registry+https://github.com/rust-lang/crates.io-index#console@0.16.4",
         "registry+https://github.com/rust-lang/crates.io-index#dirs@6.0.0",
         "registry+https://github.com/rust-lang/crates.io-index#figment@0.10.19",
@@ -14600,7 +14600,7 @@
       "dependsOn": []
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@8.0.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#crossterm@0.29.0",
         "registry+https://github.com/rust-lang/crates.io-index#unicode-segmentation@1.13.3",
