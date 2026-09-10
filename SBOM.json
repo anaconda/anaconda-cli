@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:c1ce35f7-0b42-44fb-b430-b4b1b9676dd7",
+  "serialNumber": "urn:uuid:1b3652e1-c073-49f8-86ee-9c5047357a1e",
   "metadata": {
-    "timestamp": "2026-09-08T19:37:51Z",
+    "timestamp": "2026-09-09T16:32:30Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -1350,12 +1350,6 @@
         {
           "type": "vcs",
           "url": "https://github.com/katharostech/cfg_aliases"
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:ana:platforms",
-          "value": "linux,macos"
         }
       ]
     },
@@ -14195,6 +14189,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.1",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
+        "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",

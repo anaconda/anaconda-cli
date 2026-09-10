@@ -45,9 +45,32 @@ const INSTALLERS: &[Installer] = &[
     },
 ];
 
+/// Check if a tool is installed as a conda package in the current environment.
+#[cfg(not(tool_install))]
+fn is_conda_package_installed(name: &str) -> bool {
+    let Some(prefix) = paths::conda_prefix() else {
+        return false;
+    };
+
+    let conda_meta = prefix.join("conda-meta");
+    std::fs::read_dir(&conda_meta)
+        .map(|entries| {
+            entries.filter_map(|e| e.ok()).any(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(&format!("{name}-"))
+            })
+        })
+        .unwrap_or(false)
+}
+
 /// List all available tools with their installation status.
+///
+/// When built with `conda-package` feature, installation status reflects the
+/// conda environment's conda-meta entries rather than `~/.ana/tools/`.
 pub fn list_tools() -> Vec<ToolInfo> {
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     if let Err(err) = super::install::cleanup_broken_symlinks(&paths::bin_dir()) {
         crate::ui::status::warn(&format!("failed to clean up broken symlinks: {err}"));
     }
@@ -55,8 +78,10 @@ pub fn list_tools() -> Vec<ToolInfo> {
     specs::all_tools()
         .iter()
         .map(|name| {
-            let prefix = paths::tool_prefix(name);
-            let installed = prefix.exists();
+            #[cfg(tool_install)]
+            let installed = paths::tool_prefix(name).exists();
+            #[cfg(not(tool_install))]
+            let installed = is_conda_package_installed(name);
             let binaries = specs::binaries(name).unwrap_or_default();
             ToolInfo {
                 name,

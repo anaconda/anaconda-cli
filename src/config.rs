@@ -52,6 +52,7 @@ pub fn telemetry_enabled() -> bool {
 }
 
 /// Check if background update checks are enabled.
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn update_check_enabled() -> bool {
     std::env::var("ANA_UPDATE_CHECK")
         .map(|v| parse_bool(&v))
@@ -59,6 +60,7 @@ pub fn update_check_enabled() -> bool {
 }
 
 /// Get the interval between update checks.
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn update_check_interval() -> std::time::Duration {
     const DEFAULT_HOURS: u64 = 24;
     let hours = std::env::var("ANA_UPDATE_CHECK_INTERVAL_HOURS")
@@ -69,6 +71,7 @@ pub fn update_check_interval() -> std::time::Duration {
 }
 
 /// Get the interval between showing update notifications.
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn update_notify_interval() -> std::time::Duration {
     const DEFAULT_HOURS: u64 = 24;
     let hours = std::env::var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS")
