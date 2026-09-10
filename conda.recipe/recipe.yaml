@@ -1,5 +1,5 @@
 package:
-  name: ana-cli
+  name: anaconda-cli
   version: ${{ env.get("PKG_VERSION") | default("0.0.0") }}
 
 source:
@@ -7,6 +7,19 @@ source:
 
 build:
   number: 0
+  # The binary is pre-built by CI before rattler-build runs.
+  # build.sh/build.bat use $RECIPE_DIR to find the pre-built binary at
+  # target/conda-package/release/ (separate target dir so the conda build
+  # never clobbers the standalone target/release binary).
+
+requirements:
+  run:
+    - anaconda-audit
+    - anaconda-auth
+    - anaconda-client
+    - anaconda-env-log
+    - anaconda-mcp
+    - anaconda-repo-cli
 
 about:
   homepage: https://github.com/anaconda/ana-cli

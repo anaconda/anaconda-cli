@@ -7,7 +7,7 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::{self, Config};
+use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
 use crate::feedback;
@@ -15,11 +15,16 @@ use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpAction, McpCommands};
-#[cfg(unix)]
+#[cfg(all(unix, tool_install))]
 use crate::outerbounds::{self, ObAction, ObCommands};
+#[cfg(tool_install)]
 use crate::tools;
+#[cfg(not(tool_install))]
+use crate::tools::list as tools_list;
 use crate::ui::status;
+#[cfg(self_update)]
 use crate::update;
+#[cfg(self_update)]
 use crate::update_notifier;
 use crate::utils::capitalize_first;
 
@@ -72,6 +77,7 @@ pub async fn execute() {
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
+    #[cfg(self_update)]
     let skip_update_check = matches!(
         &action,
         Action::Update { .. }
@@ -88,7 +94,8 @@ pub async fn execute() {
         tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
-    if result.is_ok() && !skip_update_check && config::update_check_enabled() {
+    #[cfg(self_update)]
+    if result.is_ok() && !skip_update_check && crate::config::update_check_enabled() {
         check_for_update_notification().await;
     }
 
@@ -99,6 +106,7 @@ pub async fn execute() {
     }
 }
 
+#[cfg(self_update)]
 async fn check_for_update_notification() {
     use std::time::Duration;
 
@@ -132,6 +140,7 @@ fn build_tracing_filter(level: LogLevel) -> tracing_subscriber::EnvFilter {
 }
 
 /// Action to be performed, returned by parse()
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub enum Action {
     ShowHelp,
     ShowSubcommandHelp(String),
@@ -157,11 +166,11 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     ObProxy {
         args: Vec<String>,
     },
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     ObAutoConfigure {
         instance: String,
     },
@@ -229,9 +238,9 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObProxy { .. } => "ob",
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
             Action::McpRun { .. } => "mcp",
             Action::UserAgent { .. } => "user-agent",
@@ -320,24 +329,43 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::McpRun { args } => mcp::run(ctx, &args).await,
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
-            #[cfg(unix)]
+            #[cfg(all(unix, tool_install))]
             Action::ObAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
+            #[cfg(not(tool_install))]
+            Action::ToolInstall { name: _ } => {
+                Err(crate::errors::ToolManagementUnavailableError.into())
+            }
+            #[cfg(tool_install)]
             Action::ToolInstall { name } => {
                 tools::install::install_tool(ctx, &name).await?;
                 Ok(())
             }
+            #[cfg(not(tool_install))]
+            Action::ToolUninstall { name: _, force: _ } => {
+                Err(crate::errors::ToolManagementUnavailableError.into())
+            }
+            #[cfg(tool_install)]
             Action::ToolUninstall { name, force } => {
                 tools::uninstall::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
+            #[cfg(not(tool_install))]
+            Action::ToolList => {
+                tools_list::print_tool_list(ctx);
+                Ok(())
+            }
+            #[cfg(tool_install)]
             Action::ToolList => {
                 tools::list::print_tool_list(ctx);
                 Ok(())
             }
+            #[cfg(not(tool_install))]
+            Action::ToolUpdate => Err(crate::errors::ToolManagementUnavailableError.into()),
+            #[cfg(tool_install)]
             Action::ToolUpdate => {
                 let updated = tools::install::update_installed_tools(ctx).await?;
                 if updated.is_empty() {
@@ -353,14 +381,26 @@ impl Action {
             Action::Logout => Ok(auth::logout(ctx)?),
             Action::ShowApiKey => Ok(auth::show_api_key(ctx)?),
             Action::Whoami { json } => Ok(auth::whoami(ctx, json).await?),
+            #[cfg(not(self_update))]
+            Action::Update {
+                version: _,
+                force: _,
+            } => Err(crate::errors::SelfUpdateUnavailableError.into()),
+            #[cfg(self_update)]
             Action::Update { version, force } => {
                 update::run_update(ctx, VERSION, version, force).await;
                 Ok(())
             }
+            #[cfg(not(self_update))]
+            Action::CheckForUpdate => Err(crate::errors::SelfUpdateUnavailableError.into()),
+            #[cfg(self_update)]
             Action::CheckForUpdate => {
                 update::check_for_update(ctx, VERSION).await;
                 Ok(())
             }
+            #[cfg(not(self_update))]
+            Action::ShowAvailableVersions => Err(crate::errors::SelfUpdateUnavailableError.into()),
+            #[cfg(self_update)]
             Action::ShowAvailableVersions => {
                 update::show_available_versions(ctx, VERSION).await;
                 Ok(())
@@ -654,7 +694,7 @@ pub fn parse() -> (Action, LogLevel) {
                 McpAction::Run(args) => Action::McpRun { args },
             },
         },
-        #[cfg(unix)]
+        #[cfg(all(unix, tool_install))]
         Some(Commands::Ob { command }) => {
             if !feature::is_feature_enabled("outerbounds") {
                 use crate::ui::status::{blank_line, highlight, tip, warn};
@@ -823,9 +863,9 @@ fn print_clap_error(e: &clap::Error) {
 /// Get subcommand names and descriptions from clap for help introspection.
 /// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     let show_ob = feature::is_feature_enabled("outerbounds");
-    #[cfg(not(unix))]
+    #[cfg(not(all(unix, tool_install)))]
     let show_ob = false;
 
     Cli::command()
@@ -959,7 +999,7 @@ enum Commands {
     },
 
     /// Outerbounds platform CLI (experimental)
-    #[cfg(unix)]
+    #[cfg(all(unix, tool_install))]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
