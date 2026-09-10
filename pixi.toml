@@ -61,6 +61,14 @@ description = "Run the unit tests in release mode"
 cmd = "pytest tests -v"
 description = "Run integration tests"
 
+[tasks.check-minimal]
+cmd = "python scripts/with_version.py cargo check --no-default-features --target-dir target/conda-package"
+description = "Check the minimal (no default features) build compiles"
+
+[tasks.test-conda-package]
+cmd = "python scripts/with_version.py cargo test --no-default-features --features conda-package --target-dir target/conda-package"
+description = "Run unit tests against the conda-package feature build"
+
 [tasks.sbom]
 cmd = "./scripts/update_lockfiles.sh"
 description = "Regenerate Cargo.lock (if needed) and update SBOM"
