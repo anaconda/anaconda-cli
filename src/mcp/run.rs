@@ -19,10 +19,9 @@ fn is_anaconda_mcp_installed() -> bool {
     std::fs::read_dir(&conda_meta)
         .map(|entries| {
             entries.filter_map(|e| e.ok()).any(|entry| {
-                entry
-                    .file_name()
-                    .to_string_lossy()
-                    .starts_with("anaconda-mcp-")
+                let file_name = entry.file_name();
+                let file_name = file_name.to_string_lossy();
+                file_name.starts_with("anaconda-mcp-") && file_name.ends_with(".json")
             })
         })
         .unwrap_or(false)
