@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-09T16:32:30Z<br>
+Generated: 2026-09-10T16:18:38Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 457 (58 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -360,9 +360,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [terminal\_size](https://crates.io/crates/terminal_size) | 0.4.4 | MIT OR Apache-2.0 |  |  |
 | [textwrap](https://crates.io/crates/textwrap) | 0.16.2 | MIT |  |  |
 | [thiserror](https://crates.io/crates/thiserror) | 1.0.69 | MIT OR Apache-2.0 |  |  |
-| [thiserror](https://crates.io/crates/thiserror) | 2.0.19 | MIT OR Apache-2.0 |  |  |
+| [thiserror](https://crates.io/crates/thiserror) | 2.0.20 | MIT OR Apache-2.0 |  |  |
 | [thiserror-impl](https://crates.io/crates/thiserror-impl) | 1.0.69 | MIT OR Apache-2.0 |  |  |
-| [thiserror-impl](https://crates.io/crates/thiserror-impl) | 2.0.19 | MIT OR Apache-2.0 |  |  |
+| [thiserror-impl](https://crates.io/crates/thiserror-impl) | 2.0.20 | MIT OR Apache-2.0 |  |  |
 | [thread\_local](https://crates.io/crates/thread_local) | 1.1.10 | MIT OR Apache-2.0 |  |  |
 | [time](https://crates.io/crates/time) | 0.3.54 | MIT OR Apache-2.0 |  |  |
 | [time-core](https://crates.io/crates/time-core) | 0.1.9 | MIT OR Apache-2.0 |  |  |
