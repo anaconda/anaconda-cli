@@ -185,7 +185,7 @@ pub struct OuterboundsNotConfiguredError;
 pub struct ToolManagementUnavailableError;
 
 /// Error when anaconda-mcp is not installed (conda-package build).
-#[cfg(feature = "conda-package")]
+#[cfg(not(tool_install))]
 #[derive(Error, Debug, Diagnostic)]
 #[error("The mcp subcommand requires anaconda-mcp to be installed.")]
 #[diagnostic(

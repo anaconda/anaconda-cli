@@ -165,14 +165,20 @@ def run_packaged_ana(
         env["USERPROFILE"] = str(home)
     else:
         env["HOME"] = str(home)
+    env_base = env
 
-    def _run(*args: str) -> subprocess.CompletedProcess[str]:
+    def _run(
+        *args: str, env: dict[str, str | None] | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        # Overlay env vars; a value of None removes the variable
+        merged = {**env_base, **(env or {})}
+        merged = {k: v for k, v in merged.items() if v is not None}
         return subprocess.run(
             [str(binary), *args],
             capture_output=True,
             text=True,
             encoding="utf-8",
-            env=env,
+            env=merged,
             timeout=60,
         )
 
@@ -211,7 +217,31 @@ class TestCondaPackage:
     def test_tool_list_works(self, run_packaged_ana) -> None:
         result = run_packaged_ana("tool", "list")
         assert result.returncode == 0
-        assert "anaconda-cli" in result.stdout
+        # Installation status comes from the env's conda-meta entries
+        cli_row = next(
+            line for line in result.stdout.splitlines() if "anaconda-cli" in line
+        )
+        assert "✓" in cli_row
+
+    def test_works_without_conda_prefix(self, run_packaged_ana) -> None:
+        """The prefix is derived from the executable location, so invoking
+        ana by absolute path without an activated environment works."""
+        result = run_packaged_ana("tool", "list", env={"CONDA_PREFIX": None})
+        assert result.returncode == 0
+        cli_row = next(
+            line for line in result.stdout.splitlines() if "anaconda-cli" in line
+        )
+        assert "✓" in cli_row
+
+    def test_org_proxies_to_installed_anaconda(self, run_packaged_ana) -> None:
+        """ana org locates and executes the anaconda binary from a run dep.
+
+        The proxied command itself may fail (no login); what matters is that
+        binary resolution succeeded rather than erroring with 'not found'.
+        """
+        result = run_packaged_ana("org", "whoami")
+        assert "not found at" not in result.stderr
+        assert "Could not determine conda environment prefix" not in result.stderr
 
     def test_run_deps_installed(self, conda_env_prefix: Path) -> None:
         """All run dependencies from the recipe are installed in the env."""

@@ -1,17 +1,16 @@
-#[cfg(not(tool_install))]
-use std::path::PathBuf;
-
 use crate::context::CommandContext;
+#[cfg(not(tool_install))]
+use crate::paths;
 use crate::tools;
 
 /// Check if anaconda-mcp is installed by looking for its conda-meta entry.
 #[cfg(not(tool_install))]
 fn is_anaconda_mcp_installed() -> bool {
-    let Some(conda_prefix) = std::env::var("CONDA_PREFIX").ok() else {
+    let Some(conda_prefix) = paths::conda_prefix() else {
         return false;
     };
 
-    let conda_meta = PathBuf::from(&conda_prefix).join("conda-meta");
+    let conda_meta = conda_prefix.join("conda-meta");
     if !conda_meta.is_dir() {
         return false;
     }

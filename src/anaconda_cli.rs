@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::context::CommandContext;
-#[cfg(tool_install)]
 use crate::paths;
 #[cfg(tool_install)]
 use crate::tools;
@@ -36,17 +35,15 @@ pub async fn run_bootstrap(ctx: &mut CommandContext) -> Result<(), String> {
 /// Resolve the path to the anaconda binary.
 #[cfg(not(tool_install))]
 fn resolve_anaconda_bin() -> Result<PathBuf, String> {
-    let conda_prefix = std::env::var("CONDA_PREFIX")
-        .map_err(|_| "CONDA_PREFIX not set. Are you in an active conda environment?".to_string())?;
+    let conda_prefix = paths::conda_prefix().ok_or_else(|| {
+        "Could not determine conda environment prefix. Are you in an active conda environment?"
+            .to_string()
+    })?;
 
     let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
-    let binary = if cfg!(windows) {
-        "anaconda.exe"
-    } else {
-        "anaconda"
-    };
+    let binary = paths::binary_name("anaconda");
 
-    let anaconda_bin = PathBuf::from(&conda_prefix).join(bin_subdir).join(binary);
+    let anaconda_bin = conda_prefix.join(bin_subdir).join(binary);
 
     if !anaconda_bin.exists() {
         return Err(format!(

@@ -3,26 +3,25 @@ use std::process::Command;
 
 use miette::miette;
 
-#[cfg(tool_install)]
 use crate::paths;
 
 /// Resolve the path to a tool binary.
 ///
-/// When built with `conda-package` feature, looks in `$CONDA_PREFIX/bin/`.
-/// Otherwise, looks in the tool's installation directory under `~/.ana/tools/`.
+/// When built with `conda-package` feature, looks in the conda environment's
+/// binary directory. Otherwise, looks in the tool's installation directory
+/// under `~/.ana/tools/`.
 #[cfg(not(tool_install))]
 fn resolve_tool_binary(binary_name: &str) -> miette::Result<PathBuf> {
-    let conda_prefix = std::env::var("CONDA_PREFIX")
-        .map_err(|_| miette!("CONDA_PREFIX not set. Are you in an active conda environment?"))?;
+    let conda_prefix = paths::conda_prefix().ok_or_else(|| {
+        miette!(
+            "Could not determine conda environment prefix. Are you in an active conda environment?"
+        )
+    })?;
 
     let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
-    let binary = if cfg!(windows) {
-        format!("{}.exe", binary_name)
-    } else {
-        binary_name.to_string()
-    };
+    let binary = paths::binary_name(binary_name);
 
-    let tool_bin = PathBuf::from(&conda_prefix).join(bin_subdir).join(&binary);
+    let tool_bin = conda_prefix.join(bin_subdir).join(&binary);
 
     if !tool_bin.exists() {
         return Err(miette!(
@@ -59,7 +58,7 @@ fn resolve_tool_binary_with_tool_name(
 /// Run a binary from within a tool's installation directory.
 ///
 /// When built with `conda-package` feature, the `tool_name` parameter is ignored
-/// and the binary is resolved from `$CONDA_PREFIX/bin/`.
+/// and the binary is resolved from the conda environment's binary directory.
 #[cfg(not(tool_install))]
 pub fn run_tool_binary(_tool_name: &str, binary_name: &str, args: &[String]) -> miette::Result<()> {
     let tool_bin = resolve_tool_binary(binary_name)?;

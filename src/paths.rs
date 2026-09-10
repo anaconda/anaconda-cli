@@ -52,6 +52,26 @@ pub fn binary_name(name: &str) -> String {
     }
 }
 
+/// Resolve the conda environment prefix for the conda-package build.
+///
+/// Prefers the prefix implied by the current executable location
+/// (`<prefix>/bin/ana`), falling back to `$CONDA_PREFIX`. This allows ana
+/// to work when invoked by absolute path without an activated environment.
+/// The exe-derived path is only trusted if it looks like a conda prefix
+/// (i.e. it contains a `conda-meta` directory).
+#[cfg(not(tool_install))]
+pub fn conda_prefix() -> Option<PathBuf> {
+    if let Ok(exe) = std::env::current_exe()
+        && let Ok(exe) = exe.canonicalize()
+        && let Some(prefix) = exe.parent().and_then(|bin| bin.parent())
+        && prefix.join("conda-meta").is_dir()
+    {
+        return Some(prefix.to_path_buf());
+    }
+
+    std::env::var("CONDA_PREFIX").ok().map(PathBuf::from)
+}
+
 /// Returns the path to a binary in the bin directory, adding .exe on Windows.
 #[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn bin_path(name: &str) -> PathBuf {

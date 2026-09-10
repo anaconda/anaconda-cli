@@ -7,7 +7,7 @@ use miette::miette;
 use crate::VERSION;
 use crate::anaconda_cli;
 use crate::auth;
-use crate::config::{self, Config};
+use crate::config::Config;
 use crate::context::CommandContext;
 use crate::feature;
 use crate::feedback;
@@ -24,6 +24,7 @@ use crate::tools::list as tools_list;
 use crate::ui::status;
 #[cfg(self_update)]
 use crate::update;
+#[cfg(self_update)]
 use crate::update_notifier;
 use crate::utils::capitalize_first;
 
@@ -76,6 +77,7 @@ pub async fn execute() {
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
+    #[cfg(self_update)]
     let skip_update_check = matches!(
         &action,
         Action::Update { .. }
@@ -92,7 +94,8 @@ pub async fn execute() {
         tracing::debug!("Failed to spawn telemetry submitter: {}", e);
     }
 
-    if result.is_ok() && !skip_update_check && config::update_check_enabled() {
+    #[cfg(self_update)]
+    if result.is_ok() && !skip_update_check && crate::config::update_check_enabled() {
         check_for_update_notification().await;
     }
 
@@ -103,6 +106,7 @@ pub async fn execute() {
     }
 }
 
+#[cfg(self_update)]
 async fn check_for_update_notification() {
     use std::time::Duration;
 

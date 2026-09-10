@@ -97,6 +97,16 @@ jobs:
           SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
         run: pixi run test-release
 
+      - name: Test conda-package feature build
+        if: ${{ !inputs.skip-tests }}
+        env:
+          RUST_BACKTRACE: 1
+        # Separate target dir: a conda-package build must never clobber
+        # target/release/ana, which the integration tests below rely on.
+        run: |
+          python scripts/with_version.py cargo check --no-default-features --target-dir target/conda-package
+          python scripts/with_version.py cargo test --no-default-features --features conda-package --target-dir target/conda-package
+
       - name: Pre-compile shim for signing (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: pixi run build-shim
