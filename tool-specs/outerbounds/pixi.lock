@@ -58,16 +58,16 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/noarch/mccabe-0.7.0-pyhd3eb1b0_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/mdurl-0.1.2-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/metaflow-checkpoint-0.2.10-py313h06a4308_1.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/metaflow-torchrun-0.2.1-py313h06a4308_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/metaflow-torchrun-0.2.2-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/multidict-6.7.1-py313h47b2149_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/ncurses-6.5-h7934f7d_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/oauthlib-3.3.1-py313h06a4308_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-2.19.34.1-py313h06a4308_1.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-extensions-1.6.24-py313h06a4308_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-stubs-6.0.12.37-py313h06a4308_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-project-utils-0.2.34-py313h06a4308_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-2.19.37.3-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-extensions-1.6.32-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-stubs-6.0.12.48-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-project-utils-0.2.40-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.7-h1b28b03_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-64/outerbounds-0.12.37-py313h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/outerbounds-0.12.48-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/packaging-26.0-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/platformdirs-4.9.4-py313h06a4308_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-64/propcache-0.4.1-py313h47b2149_0.conda
@@ -164,16 +164,16 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/noarch/mccabe-0.7.0-pyhd3eb1b0_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/mdurl-0.1.2-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/metaflow-checkpoint-0.2.10-py313hd43f75c_1.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/metaflow-torchrun-0.2.1-py313hd43f75c_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/metaflow-torchrun-0.2.2-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/multidict-6.7.1-py313h27118de_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ncurses-6.5-h419075a_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/oauthlib-3.3.1-py313hd43f75c_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-2.19.34.1-py313hd43f75c_1.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-extensions-1.6.24-py313hd43f75c_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-stubs-6.0.12.37-py313hd43f75c_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-project-utils-0.2.34-py313hd43f75c_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-2.19.37.3-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-extensions-1.6.32-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-stubs-6.0.12.48-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-project-utils-0.2.40-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/openssl-3.5.7-h39c9139_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/outerbounds-0.12.37-py313hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/outerbounds-0.12.48-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/packaging-26.0-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/platformdirs-4.9.4-py313hd43f75c_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/propcache-0.4.1-py313h27118de_0.conda
@@ -262,16 +262,16 @@ environments:
       - conda: https://repo.anaconda.com/pkgs/main/noarch/mccabe-0.7.0-pyhd3eb1b0_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/mdurl-0.1.2-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/metaflow-checkpoint-0.2.10-py313hca03da5_1.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/metaflow-torchrun-0.2.1-py313hca03da5_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/metaflow-torchrun-0.2.2-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/multidict-6.7.1-py313haa24f5a_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ncurses-6.5-hee39554_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/oauthlib-3.3.1-py313hca03da5_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-2.19.34.1-py313hca03da5_1.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-extensions-1.6.24-py313hca03da5_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-stubs-6.0.12.37-py313hca03da5_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-project-utils-0.2.34-py313hca03da5_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-2.19.37.3-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-extensions-1.6.32-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-stubs-6.0.12.48-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-project-utils-0.2.40-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/openssl-3.5.7-ha0b305a_0.conda
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/outerbounds-0.12.37-py313hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/outerbounds-0.12.48-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/packaging-26.0-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/platformdirs-4.9.4-py313hca03da5_0.conda
       - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/propcache-0.4.1-py313haa24f5a_0.conda
@@ -2032,39 +2032,39 @@ packages:
   license_family: Proprietary
   size: 193723
   timestamp: 1778171843974
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/metaflow-torchrun-0.2.1-py313h06a4308_1.conda
-  sha256: e32c679b42b2b619587fdb5c39ffbaf1d8a419d039c642d7c9de6a7b3b7eb71a
-  md5: f9c58f44af85d03e8a1e619ce825c357
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/metaflow-torchrun-0.2.2-py313h06a4308_0.conda
+  sha256: a4b7bda55624fad4d60795d2122b12445a3a3ab19ffd467d636e0f117e953eb5
+  md5: 587a6b29247c656e8f0cd412948eee74
   depends:
   - ob-metaflow
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 32301
-  timestamp: 1778172646726
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/metaflow-torchrun-0.2.1-py313hd43f75c_1.conda
-  sha256: 8468164878bb844ffd97a78a3a68ba3e6a9545aa43fc1eb8d237da92e133b301
-  md5: 1d34fe069cf61f7f00c1bd01108d9155
+  size: 33912
+  timestamp: 1787730615124
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/metaflow-torchrun-0.2.2-py313hd43f75c_0.conda
+  sha256: c4af1cba70674cc2350a9261cbe2bf3cfe9a92617ee93419b98f1b7c43cc46cd
+  md5: 1815d635bb9c622f0d7e4f84d2a62541
   depends:
   - ob-metaflow
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 32335
-  timestamp: 1778172649814
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/metaflow-torchrun-0.2.1-py313hca03da5_1.conda
-  sha256: 04b9146f679ff9d29fab93842ca363e30bf43f14c8992cbb495781bfe87323da
-  md5: 25e340b89b62f8eb5fd38b6bfd6b5fdb
+  size: 33937
+  timestamp: 1787730611786
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/metaflow-torchrun-0.2.2-py313hca03da5_0.conda
+  sha256: f5be6009a745b773180638bc7a7707236830e4e9e04a5109bf25ac9c79668583
+  md5: b9ede7113e9190862352c9d053ca91a8
   depends:
   - ob-metaflow
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 32324
-  timestamp: 1778172671250
+  size: 34270
+  timestamp: 1787665471595
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/multidict-6.7.1-py313h47b2149_0.conda
   sha256: 5f0e8e791b1a7f4e2bf7ff93080fdde84baf97f8c13c69b13421de97e124d0c4
   md5: 1747983d5dd733c47808f4a9faa9c7d4
@@ -2170,9 +2170,9 @@ packages:
   license_family: BSD
   size: 270736
   timestamp: 1750775483164
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-2.19.34.1-py313h06a4308_1.conda
-  sha256: 7680db33603dfee78ca0a252c5ff3c27413e018cd8bb4901e04e187933b4f4a0
-  md5: 08297df5608cb68884a88a4081428f22
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-2.19.37.3-py313h06a4308_0.conda
+  sha256: c3a26750e975c9c6a73c373aad51efa5d73888654fb9ee5dd41956d54c648279
+  md5: df0f133b5cebf98ee818abab9c8ea440
   depends:
   - boto3
   - pylint
@@ -2181,14 +2181,14 @@ packages:
   - python_abi 3.13.* *_cp313
   - requests
   constrains:
-  - metaflow ==2.19.34.1=outerbounds*
+  - metaflow ==2.19.37.3=outerbounds*
   license: Apache-2.0
   license_family: Apache
-  size: 2600818
-  timestamp: 1784832458513
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-2.19.34.1-py313hd43f75c_1.conda
-  sha256: 757b60abeebfa93234d142c70b0ccf15df1fb4a10466f5b563a3bbe5cb330e3b
-  md5: 3fd55c9ed43bec6e52a33913f7c98eba
+  size: 2634319
+  timestamp: 1788872134033
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-2.19.37.3-py313hd43f75c_0.conda
+  sha256: 0790e4a08115899c14b42becdc4275a3c0da2c6e736c2386f90ba955ee04406f
+  md5: a2db6e4decd37e571d4e917390e6c0b5
   depends:
   - boto3
   - pylint
@@ -2197,14 +2197,14 @@ packages:
   - python_abi 3.13.* *_cp313
   - requests
   constrains:
-  - metaflow ==2.19.34.1=outerbounds*
+  - metaflow ==2.19.37.3=outerbounds*
   license: Apache-2.0
   license_family: Apache
-  size: 2603261
-  timestamp: 1784832507086
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-2.19.34.1-py313hca03da5_1.conda
-  sha256: cee0fafa33efe9548fa714f188e9a7f38b00efa472a6ad717f83426542ef174b
-  md5: 32fcbaf9b389a94ad2d1c4cad0375ecf
+  size: 2618705
+  timestamp: 1788872150120
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-2.19.37.3-py313hca03da5_0.conda
+  sha256: 517432bd2b120f768b4dac278498595f15b5ceddb73d9352476ab3190cac97fc
+  md5: 890b4de155ba57f55c001253fae0cbca
   depends:
   - boto3
   - pylint
@@ -2213,86 +2213,86 @@ packages:
   - python_abi 3.13.* *_cp313
   - requests
   constrains:
-  - metaflow ==2.19.34.1=outerbounds*
+  - metaflow ==2.19.37.3=outerbounds*
   license: Apache-2.0
   license_family: Apache
-  size: 2611015
-  timestamp: 1784832375077
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-extensions-1.6.24-py313h06a4308_0.conda
-  sha256: 87ae9e482cae3fa3ddcbc617dea741d258cb68fdbdf7e0af6326f814d17770cc
-  md5: 73d4a6f3c46278b883a37903729caf17
+  size: 2617799
+  timestamp: 1788872045584
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-extensions-1.6.32-py313h06a4308_0.conda
+  sha256: d5c4f301cc3801397729ac95657e4ddf27d02a05a16ea66a82d8a8142cf08b80
+  md5: f9887fbd3a597bef040e894065578b6b
   depends:
   - boto3
-  - ob-metaflow 2.19.34.1
+  - ob-metaflow 2.19.37.3
   - python >=3.13,<3.14.0a0
   - python-kubernetes !=36.0.0,!=36.0.1
   - python_abi 3.13.* *_cp313
   - requests
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 520250
-  timestamp: 1784201814617
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-extensions-1.6.24-py313hd43f75c_0.conda
-  sha256: 424a0c3e62ead59bb6362af61a248abe865bca8a31d651b899c3ab324932e410
-  md5: ad9d247b29ccf4a35e7ce882d4e88fc6
+  size: 557998
+  timestamp: 1788879058904
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-extensions-1.6.32-py313hd43f75c_0.conda
+  sha256: 07382d540068eb33a0f5851d689c9c0a513bcc0f3663698af0ea5b26cc799ebc
+  md5: abb24c2c6eca6a19feabc3be99493c3c
   depends:
   - boto3
-  - ob-metaflow 2.19.34.1
+  - ob-metaflow 2.19.37.3
   - python >=3.13,<3.14.0a0
   - python-kubernetes !=36.0.0,!=36.0.1
   - python_abi 3.13.* *_cp313
   - requests
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 518768
-  timestamp: 1784201818486
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-extensions-1.6.24-py313hca03da5_0.conda
-  sha256: 8402126baaaff89f4179324b09f4aa07a468ab1b51ced4a3827668ca9b49e9ad
-  md5: 31034e0975623385da035e4c1909bd26
+  size: 559318
+  timestamp: 1788879151014
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-extensions-1.6.32-py313hca03da5_0.conda
+  sha256: 83aaa7f128c01e3529400fa58cc1cbb8a79f59efd8fd69558df107d096fe1f6b
+  md5: 88508502c1f674baf1c55b3d7dec9ff6
   depends:
   - boto3
-  - ob-metaflow 2.19.34.1
+  - ob-metaflow 2.19.37.3
   - python >=3.13,<3.14.0a0
   - python-kubernetes !=36.0.0,!=36.0.1
   - python_abi 3.13.* *_cp313
   - requests
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 519825
-  timestamp: 1784201827312
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-stubs-6.0.12.37-py313h06a4308_0.conda
-  sha256: dc0ba5753ef50c1b9cbf7bd421ad708401e5a164d39dc16088b0b87adf0e3566
-  md5: ca37d14525aaaab3cbebcda1c9e610aa
+  size: 558928
+  timestamp: 1788879338822
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-metaflow-stubs-6.0.12.48-py313h06a4308_0.conda
+  sha256: 6616acbe0ed84e1d35c7dbad9331de76e3f3b34fbd73c659e83ffbde4c8e1cb2
+  md5: ae8152b5f3740f35b2168228000a2699
   depends:
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: Apache-2.0
   license_family: Apache
-  size: 172107
-  timestamp: 1784202385444
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-stubs-6.0.12.37-py313hd43f75c_0.conda
-  sha256: 650bf1990eefb8c6b70ea9d9dc606fcde5f68462b6fb9a2b371de49f49075081
-  md5: e79ab8e74896824ebc73fbc0d944c43b
+  size: 175749
+  timestamp: 1788950478448
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-metaflow-stubs-6.0.12.48-py313hd43f75c_0.conda
+  sha256: b7800c2b92e221adcff276917c3fc5ad5579a660d3b50a92f827913bb3b78e93
+  md5: 7fb5600543efd68218108cc0b4cd0ab2
   depends:
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: Apache-2.0
   license_family: Apache
-  size: 171788
-  timestamp: 1784202349357
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-stubs-6.0.12.37-py313hca03da5_0.conda
-  sha256: e08b1eda9f1b48c1a2770e29354b7aa1780a4abe1d2ce2a011c6412b87ab9ca6
-  md5: ddf523022e0e2fff18b129405d6629d7
+  size: 174675
+  timestamp: 1788950469285
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-metaflow-stubs-6.0.12.48-py313hca03da5_0.conda
+  sha256: bd6e771882e29c2677e1170e8d61199c9d8850d0a4ff457855441ca16c1c1109
+  md5: f239e08210841a61fba0bfb9202ea4d8
   depends:
   - python >=3.13,<3.14.0a0
   - python_abi 3.13.* *_cp313
   license: Apache-2.0
   license_family: Apache
-  size: 172959
-  timestamp: 1784202384604
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-project-utils-0.2.34-py313h06a4308_1.conda
-  sha256: 722ee7511aaeef12a987c49377a02f49567750cce650a6dc04c59b9be3fa0a1f
-  md5: 0d81faf562980f411f4514f43078e52c
+  size: 177147
+  timestamp: 1788950479858
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/ob-project-utils-0.2.40-py313h06a4308_0.conda
+  sha256: d1040079d03cf2d68efb04ca96858b5ac4d30d2f075e2714f7a32f8caef05a28
+  md5: 7659c2dff80bc253553f52324d728d7d
   depends:
   - ob-metaflow
   - python >=3.13,<3.14.0a0
@@ -2301,11 +2301,11 @@ packages:
   - requests
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 582076
-  timestamp: 1778171749328
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-project-utils-0.2.34-py313hd43f75c_1.conda
-  sha256: 79520882cc08b5b8b5284cd8397a88b4f9398865d2d250da6f3297c62d415f37
-  md5: 4f6156ae02156d7405134aa6a3ffd9a3
+  size: 591252
+  timestamp: 1787665706668
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ob-project-utils-0.2.40-py313hd43f75c_0.conda
+  sha256: 1089733bc6b6c04f99ee84b740ea881f41a5552ea5b7530305bad317c0dcd89b
+  md5: 6b48bd18a3dfc0aedb722351d2c55641
   depends:
   - ob-metaflow
   - python >=3.13,<3.14.0a0
@@ -2314,11 +2314,11 @@ packages:
   - requests
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 581046
-  timestamp: 1778171744649
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-project-utils-0.2.34-py313hca03da5_1.conda
-  sha256: 3c1b1543c23028d575d81e0fdc6e1cfa822fba2f74583eb056c3b685ce0fdf36
-  md5: 34a911b845c5590286d39e88b03221ba
+  size: 591386
+  timestamp: 1787733884285
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ob-project-utils-0.2.40-py313hca03da5_0.conda
+  sha256: 0f77b700701c248f98bf0dccc49ee4db95433ae4c9b2da625899ccdaff6293f6
+  md5: 99aa4bb6574918ed3efeaffc36d33f25
   depends:
   - ob-metaflow
   - python >=3.13,<3.14.0a0
@@ -2327,8 +2327,8 @@ packages:
   - requests
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 581642
-  timestamp: 1778171766917
+  size: 590710
+  timestamp: 1787665554632
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.7-h1b28b03_0.conda
   sha256: dc81e47be134c1449a1232ace2af3688f7b61666717bc90a25deadc152d6344c
   md5: ae75e695171e5244c01c5548e2d72595
@@ -2361,93 +2361,93 @@ packages:
   license_family: Apache
   size: 4975751
   timestamp: 1781035019998
-- conda: https://repo.anaconda.com/pkgs/main/linux-64/outerbounds-0.12.37-py313h06a4308_0.conda
-  sha256: 8d269135aeda7579ef67f1a4ca7663ff6548918274b452b4a221c01b64a58fd0
-  md5: 33378f96f5df2d7170df6de13616adf2
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/outerbounds-0.12.48-py313h06a4308_0.conda
+  sha256: 9e929c6ad567bdc4b865db6a93197e5885dff23b162d43aba6cbff1691a5ea2d
+  md5: b3339006f20dc37514a3deb31a8a5a46
   depends:
   - boto3
   - metaflow-checkpoint 0.2.10
-  - metaflow-torchrun >=0.2.1
-  - ob-metaflow 2.19.34.1
-  - ob-metaflow-extensions 1.6.24
-  - ob-metaflow-stubs 6.0.12.37
-  - ob-project-utils >=0.2.27
+  - metaflow-torchrun >=0.2.2
+  - ob-metaflow 2.19.37.3
+  - ob-metaflow-extensions 1.6.32
+  - ob-metaflow-stubs 6.0.12.48
+  - ob-project-utils >=0.2.40
   - python >=3.13,<3.14.0a0
   - python-kubernetes <36.0.0
   - python_abi 3.13.* *_cp313
   constrains:
+  - azure-identity >=1.15.0,<2.0.0
   - azure-keyvault-secrets >=4.7.0,<5.0.0
-  - opentelemetry-instrumentation-requests >=0.41b0
-  - google-cloud-storage >=2.14.0,<3.0.0
   - azure-storage-blob >=12.9.0,<13.0.0
   - google-api-core >=2.16.1,<3.0.0
   - google-auth >=2.27.0,<3.0.0
-  - opentelemetry-exporter-otlp-proto-http >=1.20.0
   - google-cloud-secret-manager >=2.20.0,<3.0.0
+  - google-cloud-storage >=2.14.0,<3.0.0
   - opentelemetry-distro >=0.41b0
-  - azure-identity >=1.15.0,<2.0.0
+  - opentelemetry-exporter-otlp-proto-http >=1.20.0
+  - opentelemetry-instrumentation-requests >=0.41b0
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 584085
-  timestamp: 1784625222072
-- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/outerbounds-0.12.37-py313hd43f75c_0.conda
-  sha256: 8c960cfb74e3fdf1cefad8e88b4b098f0b9d1e01b0b3afb7c1b32b2a670f9341
-  md5: bdf926e141a52c92d8c80b254d6b9bd8
+  size: 587213
+  timestamp: 1788956213762
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/outerbounds-0.12.48-py313hd43f75c_0.conda
+  sha256: d499f7e26649abc63b3699d3397bf87c7df38833ef82a868201c46f400fc76c3
+  md5: 548cfbb6c756b953bca2a61b9bd4d8bb
   depends:
   - boto3
   - metaflow-checkpoint 0.2.10
-  - metaflow-torchrun >=0.2.1
-  - ob-metaflow 2.19.34.1
-  - ob-metaflow-extensions 1.6.24
-  - ob-metaflow-stubs 6.0.12.37
-  - ob-project-utils >=0.2.27
+  - metaflow-torchrun >=0.2.2
+  - ob-metaflow 2.19.37.3
+  - ob-metaflow-extensions 1.6.32
+  - ob-metaflow-stubs 6.0.12.48
+  - ob-project-utils >=0.2.40
   - python >=3.13,<3.14.0a0
   - python-kubernetes <36.0.0
   - python_abi 3.13.* *_cp313
   constrains:
-  - azure-keyvault-secrets >=4.7.0,<5.0.0
-  - opentelemetry-instrumentation-requests >=0.41b0
-  - google-auth >=2.27.0,<3.0.0
   - azure-identity >=1.15.0,<2.0.0
+  - azure-keyvault-secrets >=4.7.0,<5.0.0
   - azure-storage-blob >=12.9.0,<13.0.0
-  - opentelemetry-distro >=0.41b0
+  - google-api-core >=2.16.1,<3.0.0
+  - google-auth >=2.27.0,<3.0.0
   - google-cloud-secret-manager >=2.20.0,<3.0.0
   - google-cloud-storage >=2.14.0,<3.0.0
+  - opentelemetry-distro >=0.41b0
   - opentelemetry-exporter-otlp-proto-http >=1.20.0
-  - google-api-core >=2.16.1,<3.0.0
+  - opentelemetry-instrumentation-requests >=0.41b0
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 581922
-  timestamp: 1784625185422
-- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/outerbounds-0.12.37-py313hca03da5_0.conda
-  sha256: c4903b5ca40a18db2d4e04e3d171d5b76854a2c9d834c842b464d12960c1a942
-  md5: bdd3a08c12c6aaa08aaa6cfb3b1a034b
+  size: 586943
+  timestamp: 1788956347385
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/outerbounds-0.12.48-py313hca03da5_0.conda
+  sha256: aff10068adb34fb6286a1954be67251a57148b624693100d76de0710a49649da
+  md5: bb091c162fc21bf3b142f7c7a87dc8e0
   depends:
   - boto3
   - metaflow-checkpoint 0.2.10
-  - metaflow-torchrun >=0.2.1
-  - ob-metaflow 2.19.34.1
-  - ob-metaflow-extensions 1.6.24
-  - ob-metaflow-stubs 6.0.12.37
-  - ob-project-utils >=0.2.27
+  - metaflow-torchrun >=0.2.2
+  - ob-metaflow 2.19.37.3
+  - ob-metaflow-extensions 1.6.32
+  - ob-metaflow-stubs 6.0.12.48
+  - ob-project-utils >=0.2.40
   - python >=3.13,<3.14.0a0
   - python-kubernetes <36.0.0
   - python_abi 3.13.* *_cp313
   constrains:
-  - opentelemetry-instrumentation-requests >=0.41b0
-  - opentelemetry-exporter-otlp-proto-http >=1.20.0
+  - azure-identity >=1.15.0,<2.0.0
   - azure-keyvault-secrets >=4.7.0,<5.0.0
+  - azure-storage-blob >=12.9.0,<13.0.0
   - google-api-core >=2.16.1,<3.0.0
   - google-auth >=2.27.0,<3.0.0
+  - google-cloud-secret-manager >=2.20.0,<3.0.0
   - google-cloud-storage >=2.14.0,<3.0.0
   - opentelemetry-distro >=0.41b0
-  - azure-identity >=1.15.0,<2.0.0
-  - google-cloud-secret-manager >=2.20.0,<3.0.0
-  - azure-storage-blob >=12.9.0,<13.0.0
+  - opentelemetry-exporter-otlp-proto-http >=1.20.0
+  - opentelemetry-instrumentation-requests >=0.41b0
   license: LicenseRef-Anaconda-Proprietary
   license_family: Proprietary
-  size: 582038
-  timestamp: 1784625133251
+  size: 587498
+  timestamp: 1788956236645
 - conda: https://repo.anaconda.com/pkgs/main/linux-64/packaging-26.0-py313h06a4308_0.conda
   sha256: 61b1ba92620a61f58dda80ce01252668b4400b29b5751fccbdab73ab30192ecc
   md5: 0f7d4f61c3851a0d436b96e9cb02c393
