@@ -133,9 +133,7 @@ pub fn auto_update_default(name: &str) -> bool {
 /// Returns the delegate executable for a tool (defaults to the tool name).
 #[cfg_attr(not(feature = "fleet"), allow(dead_code))]
 pub fn delegate_executable(name: &str) -> &str {
-    find_tool(name)
-        .and_then(|t| t.delegate)
-        .unwrap_or(name)
+    find_tool(name).and_then(|t| t.delegate).unwrap_or(name)
 }
 
 #[cfg(test)]
