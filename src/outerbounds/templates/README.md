@@ -38,9 +38,11 @@ to use Anaconda's main channel (`https://repo.anaconda.com/pkgs/main`) by defaul
 ```python
 from anaconda_metaflow_extensions.conda import anaconda_conda
 
+
 @anaconda_conda(packages={"numpy": "2.0.0"}, python="3.12")
 @step
 def my_step(self):
     import numpy as np
+
     ...
 ```
