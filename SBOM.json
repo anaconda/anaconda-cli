@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:d6acbbdf-c650-47b3-a1ab-a7124aaf17c9",
+  "serialNumber": "urn:uuid:1ac40cf7-61a9-4a06-bd37-ccf8f421964c",
   "metadata": {
-    "timestamp": "2026-09-10T16:18:08Z",
+    "timestamp": "2026-09-14T21:19:27Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -1420,15 +1420,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.7",
       "name": "clap",
-      "version": "4.6.6",
+      "version": "4.6.7",
       "description": "A simple to use, efficient, and full-featured Command Line Argument Parser",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "473c7e07f409a8d772161724aa8db6a765a2532a70f9667eeb7b49d3d02fbdca"
+          "content": "aa8876b300ab35ba921adea3dfd70157a46249b33f95c9084ae5709785478946"
         }
       ],
       "licenses": [
@@ -1436,7 +1436,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/clap@4.6.6",
+      "purl": "pkg:cargo/clap@4.6.7",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1446,15 +1446,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.6",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.7",
       "name": "clap_builder",
-      "version": "4.6.6",
+      "version": "4.6.7",
       "description": "A simple to use, efficient, and full-featured Command Line Argument Parser",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "7b48fea5a88e9ae728a2dcbedbfc0e730f7d60da42e1cb049a83c9fb8b789889"
+          "content": "ec0797fb7aeb1406c84efac526901f7ec3ead2124f946b494e72879d4b54704d"
         }
       ],
       "licenses": [
@@ -1462,7 +1462,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/clap_builder@4.6.6",
+      "purl": "pkg:cargo/clap_builder@4.6.7",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1472,15 +1472,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.4",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.7",
       "name": "clap_derive",
-      "version": "4.6.4",
+      "version": "4.6.7",
       "description": "Parse command line argument by defining a struct, derive crate.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "d012d2b9d65aca7f18f4d9878a045bc17899bba951561ba5ec3c2ba1eed9a061"
+          "content": "f9c751b79415d4e559e3d1fcf128e09e720eb673a06d26cf6f392d37d75b66e0"
         }
       ],
       "licenses": [
@@ -1488,7 +1488,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/clap_derive@4.6.4",
+      "purl": "pkg:cargo/clap_derive@4.6.7",
       "externalReferences": [
         {
           "type": "vcs",
@@ -14386,7 +14386,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
-        "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
+        "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.7",
         "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#console@0.16.4",
         "registry+https://github.com/rust-lang/crates.io-index#dirs@6.0.0",
@@ -14758,14 +14758,14 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.7",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.6",
-        "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.4"
+        "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.7",
+        "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.7"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.6",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.7",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anstream@1.0.0",
         "registry+https://github.com/rust-lang/crates.io-index#anstyle@1.0.14",
@@ -14774,7 +14774,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.4",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.7",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#heck@0.5.0",
         "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.107",
@@ -17962,6 +17962,20 @@
       "affects": [
         {
           "ref": "registry+https://github.com/rust-lang/crates.io-index#h2@0.4.15"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0285",
+      "description": "Rustls accepted TLS 1.3 handshake messages sent at the wrong encryption level\nwhen they followed a key-changing message in the same record. For example,\na plaintext `EncryptedExtensions` message packed into the same record as the\n`ServerHello` was accepted.\n\nRFC 8446 section 5.1 requires that handshake messages do not span key changes,\nand that implementations terminate the connection with an \"unexpected_message\"\nalert if they do.\n\nThe handshake transcript is still authenticated, so a network-position attacker\ncannot use this to alter or complete a handshake; the practical effect is that\na peer could send handshake messages that should be encrypted in plaintext\nwithout rustls rejecting the connection.\n\nThis is functionally the same bug as Go's\n[GO-2026-4340](https://pkg.go.dev/vuln/GO-2026-4340) (CVE-2025-61730).",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0285.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
         }
       ]
     }
