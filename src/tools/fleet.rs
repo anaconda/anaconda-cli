@@ -103,16 +103,22 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         migrate_legacy_install(&prefix, name)?;
     }
 
-    eprintln!("Installing {} into {}", name, prefix.display());
-
-    // Force a reinstall when an existing healthy runtime was installed from a
-    // different lockfile. Fleet::install reuses ready installations otherwise.
-    // Interrupted installs have no usable metadata, so `get` returns None and
-    // install recovers them without force.
+    // Skip healthy installations that are already current. Force a reinstall
+    // when a healthy runtime was installed from a different lockfile, since
+    // Fleet::install reuses ready installations otherwise. Interrupted
+    // installs have no usable metadata, so `get` returns None and install
+    // recovers them without force.
     let desired_hash = spec.lock_sha256();
-    let force = fleet
-        .get(name)?
-        .is_some_and(|runtime| runtime.lock_sha256.as_deref() != Some(desired_hash.as_str()));
+    let existing = fleet.get(name)?;
+    if let Some(runtime) = &existing
+        && runtime.lock_sha256.as_deref() == Some(desired_hash.as_str())
+    {
+        eprintln!("{} is already up to date.", name);
+        return Ok(());
+    }
+    let force = existing.is_some();
+
+    eprintln!("Installing {} into {}", name, prefix.display());
 
     let installed = fleet
         .install(

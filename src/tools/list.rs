@@ -98,6 +98,11 @@ pub fn list_tools() -> Vec<ToolInfo> {
 /// List all available tools with their installation status (fleet version).
 #[cfg(feature = "fleet")]
 pub fn list_tools() -> Vec<ToolInfo> {
+    #[cfg(unix)]
+    if let Err(err) = super::common::cleanup_broken_symlinks(&paths::bin_dir()) {
+        crate::ui::status::warn(&format!("failed to clean up broken symlinks: {err}"));
+    }
+
     let installed_runtimes = super::fleet::list_installed().unwrap_or_default();
 
     specs::all_tools()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import platform
 import shutil
 import subprocess
@@ -305,12 +306,18 @@ class TestToolUpdate:
         install_result = run_ana("tool", "install", "pixi")
         assert install_result.returncode == 0
 
-        # Verify hash file was created
+        # Corrupt the stored lockfile hash to simulate a lockfile change.
+        # The rattler backend stores it in .lockfile-hash; the fleet backend
+        # records it as lock_sha256 in the Fleet metadata file.
         hash_file = fake_home / ".ana" / "tools" / "pixi" / ".lockfile-hash"
-        assert hash_file.exists(), "Lockfile hash should be stored after install"
-
-        # Corrupt the hash to simulate a lockfile change
-        hash_file.write_text("fakehash")
+        fleet_metadata = fake_home / ".ana" / "tools" / "pixi" / ".pixi.json"
+        if hash_file.exists():
+            hash_file.write_text("fakehash")
+        else:
+            assert fleet_metadata.exists(), "install should record a lockfile hash"
+            metadata = json.loads(fleet_metadata.read_text())
+            metadata["lock_sha256"] = "fakehash"
+            fleet_metadata.write_text(json.dumps(metadata))
 
         # Run tool update - should detect mismatch and update
         # Note: pixi has auto_update=false by default, so we must enable it via env
