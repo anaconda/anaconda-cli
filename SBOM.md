@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-10T16:18:08Z<br>
+Generated: 2026-09-14T21:19:40Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 463 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 1 across 1 package**
+<br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
 ## Packages
 
@@ -305,7 +305,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
 | [rustc\_version\_runtime](https://crates.io/crates/rustc_version_runtime) | 0.3.0 | MIT |  |  |
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
-| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  |  |
+| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 1 |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.15.0 | MIT OR Apache-2.0 |  |  |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.13 | ISC |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
@@ -366,9 +366,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [terminal\_size](https://crates.io/crates/terminal_size) | 0.4.4 | MIT OR Apache-2.0 |  |  |
 | [textwrap](https://crates.io/crates/textwrap) | 0.16.2 | MIT |  |  |
 | [thiserror](https://crates.io/crates/thiserror) | 1.0.69 | MIT OR Apache-2.0 |  |  |
-| [thiserror](https://crates.io/crates/thiserror) | 2.0.19 | MIT OR Apache-2.0 |  |  |
+| [thiserror](https://crates.io/crates/thiserror) | 2.0.20 | MIT OR Apache-2.0 |  |  |
 | [thiserror-impl](https://crates.io/crates/thiserror-impl) | 1.0.69 | MIT OR Apache-2.0 |  |  |
-| [thiserror-impl](https://crates.io/crates/thiserror-impl) | 2.0.19 | MIT OR Apache-2.0 |  |  |
+| [thiserror-impl](https://crates.io/crates/thiserror-impl) | 2.0.20 | MIT OR Apache-2.0 |  |  |
 | [thread\_local](https://crates.io/crates/thread_local) | 1.1.10 | MIT OR Apache-2.0 |  |  |
 | [time](https://crates.io/crates/time) | 0.3.54 | MIT OR Apache-2.0 |  |  |
 | [time-core](https://crates.io/crates/time-core) | 0.1.9 | MIT OR Apache-2.0 |  |  |
@@ -479,6 +479,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
 
 ## License Summary
 
