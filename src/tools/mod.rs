@@ -29,6 +29,16 @@ pub fn installed_tools() -> Vec<&'static str> {
     install::installed_tools()
 }
 
+/// Returns the names of all currently installed tools (fleet version).
+#[cfg(all(tool_install, feature = "fleet"))]
+pub fn installed_tools() -> Vec<String> {
+    fleet::list_installed()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| r.id)
+        .collect()
+}
+
 /// Install a tool by name.
 #[cfg(all(tool_install, not(feature = "fleet")))]
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
@@ -63,11 +73,8 @@ pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<
 
 /// Update all installed tools (fleet version).
 #[cfg(all(tool_install, feature = "fleet"))]
-pub async fn update_installed_tools(_ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
-    // TODO: Implement update for fleet
-    Err(miette::miette!(
-        "Tool update is not yet supported with the fleet feature"
-    ))
+pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
+    fleet::update_installed_tools(ctx).await
 }
 
 /// Ensure a tool is installed, installing it if necessary.
@@ -78,9 +85,19 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
 }
 
 /// Ensure a tool is installed, installing it if necessary (fleet version).
+///
+/// A healthy installation is reused only when its recorded lockfile hash
+/// matches the embedded lockfile. Missing or interrupted installations (no
+/// Fleet metadata) and stale ones (hash mismatch) are (re)installed.
 #[cfg(all(tool_install, feature = "fleet"))]
 pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
-    if !crate::paths::tool_prefix(name).exists() {
+    let lock_content =
+        specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
+    let desired_hash = fleet::lock_hash(&lock_content);
+    let needs_install = fleet::tool_status(name)?.is_none_or(|runtime| {
+        runtime.lock_sha256.as_deref() != Some(desired_hash.as_str())
+    });
+    if needs_install {
         crate::ui::status::info(&format!("Installing {}...", name));
         fleet::install_tool(ctx, name).await?;
         crate::ui::status::blank_line();

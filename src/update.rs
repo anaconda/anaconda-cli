@@ -432,7 +432,7 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
 #[cfg(not(tool_install))]
 fn update_installed_tools() {}
 
-#[cfg(all(tool_install, not(feature = "fleet")))]
+#[cfg(tool_install)]
 fn update_installed_tools() {
     use crate::tools::installed_tools;
     use crate::ui::status;
@@ -466,12 +466,6 @@ fn update_installed_tools() {
             status::error(&format!("Failed to update tools: {}", e));
         }
     }
-}
-
-#[cfg(all(tool_install, feature = "fleet"))]
-fn update_installed_tools() {
-    // TODO: Implement tool update for fleet
-    // For now, skip automatic tool updates when using fleet
 }
 
 fn print_up_to_date(current_version: &str) {

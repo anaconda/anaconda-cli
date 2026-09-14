@@ -85,8 +85,23 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
+    // Force a reinstall when an existing healthy runtime was installed from a
+    // different lockfile. Fleet::install reuses ready installations otherwise.
+    // Interrupted installs have no usable metadata, so `get` returns None and
+    // install recovers them without force.
+    let desired_hash = spec.lock_sha256();
+    let force = fleet
+        .get(name)?
+        .is_some_and(|runtime| runtime.lock_sha256.as_deref() != Some(desired_hash.as_str()));
+
     let installed = fleet
-        .install(spec, InstallOptions::default())
+        .install(
+            spec,
+            InstallOptions {
+                force,
+                ..InstallOptions::default()
+            },
+        )
         .await
         .with_context(|| format!("failed to install tool: {}", name))?;
 
@@ -193,11 +208,52 @@ pub fn list_installed() -> miette::Result<Vec<InstalledRuntime>> {
     fleet.list()
 }
 
+/// Hex-encoded SHA-256 of lockfile content, matching Fleet's `lock_sha256`.
+pub fn lock_hash(lock_content: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(lock_content.as_bytes());
+    digest.iter().map(|b| format!("{b:02x}")).collect()
+}
+
 /// Get status of a specific tool.
-#[allow(dead_code)]
+///
+/// Returns `None` when the tool is not installed or its installation was
+/// interrupted (no valid Fleet metadata).
 pub fn tool_status(name: &str) -> miette::Result<Option<InstalledRuntime>> {
     let fleet = Fleet::new(paths::ana_home().join("tools"));
     fleet.get(name)
+}
+
+/// Update all installed Fleet-managed tools whose lockfiles have changed.
+///
+/// Only updates tools where auto-update is enabled. The global config setting
+/// `auto_update_tools` overrides individual tool defaults when set.
+///
+/// Returns the names of tools that were updated.
+pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
+    let mut updated = Vec::new();
+    for runtime in list_installed()? {
+        let name = runtime.id.as_str();
+        let auto_update = ctx
+            .config
+            .auto_update_tools
+            .unwrap_or_else(|| specs::auto_update_default(name));
+        if !auto_update {
+            continue;
+        }
+        // Skip tools that are no longer in the catalog
+        let Some(lock_content) = specs::content(name) else {
+            continue;
+        };
+        let desired_hash = lock_hash(&lock_content);
+        if runtime.lock_sha256.as_deref() == Some(desired_hash.as_str()) {
+            continue;
+        }
+        crate::ui::status::info(&format!("Updating {}...", name));
+        install_tool(ctx, name).await?;
+        updated.push(name.to_string());
+    }
+    Ok(updated)
 }
 
 /// Extract version from lockfile for a tool.
