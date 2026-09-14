@@ -17,6 +17,11 @@ struct Tool {
     /// Whether this tool should be auto-updated when `ana` is updated.
     #[cfg_attr(feature = "fleet", allow(dead_code))]
     auto_update: bool,
+    /// The executable inside the prefix that Fleet validates after install.
+    /// None means it matches the tool name. Distinct from `binaries`, which
+    /// lists what ana exposes on PATH.
+    #[cfg_attr(not(feature = "fleet"), allow(dead_code))]
+    delegate: Option<&'static str>,
 }
 
 /// Embedded tool configurations.
@@ -30,6 +35,8 @@ const TOOLS: &[Tool] = &[
         experimental: None,
         uses_wrapper: false,
         auto_update: true,
+        // The anaconda-cli package provides `bin/anaconda`
+        delegate: Some("anaconda"),
     },
     #[cfg(unix)]
     Tool {
@@ -39,6 +46,7 @@ const TOOLS: &[Tool] = &[
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
         uses_wrapper: false,
         auto_update: true,
+        delegate: None,
     },
     Tool {
         name: "conda",
@@ -52,6 +60,7 @@ const TOOLS: &[Tool] = &[
         experimental: Some("conda"),
         uses_wrapper: true,
         auto_update: true,
+        delegate: None,
     },
     Tool {
         name: "pixi",
@@ -60,6 +69,7 @@ const TOOLS: &[Tool] = &[
         experimental: None,
         uses_wrapper: false,
         auto_update: false,
+        delegate: None,
     },
 ];
 
@@ -120,6 +130,14 @@ pub fn auto_update_default(name: &str) -> bool {
     find_tool(name).is_some_and(|t| t.auto_update)
 }
 
+/// Returns the delegate executable for a tool (defaults to the tool name).
+#[cfg_attr(not(feature = "fleet"), allow(dead_code))]
+pub fn delegate_executable(name: &str) -> &str {
+    find_tool(name)
+        .and_then(|t| t.delegate)
+        .unwrap_or(name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,5 +174,17 @@ mod tests {
     #[test]
     fn test_auto_update_default_unknown_tool() {
         assert!(!auto_update_default("unknown-tool"));
+    }
+
+    #[test]
+    fn test_delegate_executable_anaconda_cli() {
+        assert_eq!(delegate_executable("anaconda-cli"), "anaconda");
+    }
+
+    #[test]
+    fn test_delegate_executable_defaults_to_name() {
+        assert_eq!(delegate_executable("pixi"), "pixi");
+        assert_eq!(delegate_executable("conda"), "conda");
+        assert_eq!(delegate_executable("unknown-tool"), "unknown-tool");
     }
 }

@@ -56,10 +56,12 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 
     let binaries = specs::binaries(name).unwrap_or_default();
-    let binary_names = specs::binary_names(name).unwrap_or_default();
 
-    let delegate = binary_names.first().copied().unwrap_or(name);
-    let requested_specs: Vec<String> = binary_names.iter().map(|s| s.to_string()).collect();
+    // The delegate executable and requested package are independent of the
+    // binaries ana exposes on PATH (e.g. anaconda-cli exposes nothing but
+    // provides `bin/anaconda`).
+    let delegate = specs::delegate_executable(name);
+    let requested_specs: Vec<String> = vec![name.to_string()];
 
     let spec = RuntimeSpec {
         id: name.to_string(),
