@@ -29,8 +29,25 @@ fn is_legacy_rattler_install(prefix: &Path, name: &str) -> bool {
 
 /// Migrate a legacy rattler-based installation to Fleet.
 ///
-/// This removes the old prefix so Fleet can do a fresh install.
+/// This removes the old prefix so Fleet can do a fresh install, but refuses
+/// when the prefix contains user-created named environments (envs/), which a
+/// recursive removal would destroy. (Fleet's force option cannot adopt a
+/// legacy prefix, so it is not a substitute for this migration.)
 fn migrate_legacy_install(prefix: &Path, name: &str) -> miette::Result<()> {
+    match std::fs::read_dir(prefix.join("envs")) {
+        Ok(mut entries) => {
+            if entries.next().transpose().into_diagnostic()?.is_some() {
+                return Err(miette::miette!(
+                    "Cannot migrate {name}: its envs directory is not empty. \
+                     Keep using the existing installation until these environments \
+                     have been migrated."
+                ));
+            }
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error).into_diagnostic(),
+    }
+
     crate::ui::status::info(&format!(
         "Migrating {} from legacy installation to Fleet...",
         name
@@ -350,5 +367,42 @@ environments:
         let lock_content = "version: 6\n";
         let version = tool_version_from_lock(lock_content, "unknown").unwrap();
         assert_eq!(version, "latest");
+    }
+
+    #[test]
+    fn test_migrate_legacy_install_refuses_nonempty_envs() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let prefix = temp.path().join("conda");
+        std::fs::create_dir_all(prefix.join("envs").join("myenv")).unwrap();
+
+        let result = migrate_legacy_install(&prefix, "conda");
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("envs directory is not empty"),
+            "unexpected error: {err}"
+        );
+        assert!(prefix.exists(), "prefix should be preserved");
+    }
+
+    #[test]
+    fn test_migrate_legacy_install_removes_prefix_with_empty_envs() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let prefix = temp.path().join("conda");
+        std::fs::create_dir_all(prefix.join("envs")).unwrap();
+        std::fs::write(prefix.join(".lockfile-hash"), "abc").unwrap();
+
+        migrate_legacy_install(&prefix, "conda").unwrap();
+        assert!(!prefix.exists(), "prefix should be removed");
+    }
+
+    #[test]
+    fn test_migrate_legacy_install_removes_prefix_without_envs() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let prefix = temp.path().join("pixi");
+        std::fs::create_dir_all(&prefix).unwrap();
+        std::fs::write(prefix.join(".lockfile-hash"), "abc").unwrap();
+
+        migrate_legacy_install(&prefix, "pixi").unwrap();
+        assert!(!prefix.exists(), "prefix should be removed");
     }
 }
