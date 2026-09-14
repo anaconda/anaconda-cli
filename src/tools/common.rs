@@ -213,6 +213,10 @@ fn update_shims_cfg(shim_name: &str, target_path: &str) -> miette::Result<()> {
 }
 
 /// Write .condarc configuration for the conda environment.
+///
+/// Only used by the rattler backend; the fleet backend passes the condarc
+/// text to Fleet via RuntimeSpec instead.
+#[cfg(not(feature = "fleet"))]
 pub fn write_conda_config(prefix: &Path) -> miette::Result<()> {
     let condarc_path = prefix.join(".condarc");
     let contents = include_str!("../../tool-specs/conda/.condarc");
@@ -227,6 +231,10 @@ pub fn write_conda_config(prefix: &Path) -> miette::Result<()> {
 }
 
 /// Write a frozen marker file to protect the conda environment (CEP 22).
+///
+/// Only used by the rattler backend; the fleet backend sets
+/// `freeze_base: true` on the RuntimeSpec instead.
+#[cfg(not(feature = "fleet"))]
 pub fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
     let conda_meta = prefix.join("conda-meta");
     std::fs::create_dir_all(&conda_meta)

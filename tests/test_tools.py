@@ -599,9 +599,10 @@ class TestCondaWrapper:
         frozen_path = conda_home / ".ana" / "tools" / "conda" / "conda-meta" / "frozen"
         assert frozen_path.exists(), "Frozen marker file should exist"
 
-        # Verify it contains the expected message
+        # Verify it contains the expected message (wording depends on backend:
+        # rattler writes ana's message, Fleet writes its own)
         frozen_content = frozen_path.read_text()
-        assert "managed by ana" in frozen_content
+        assert "managed by ana" in frozen_content or "managed by Fleet" in frozen_content
 
         # Test that conda install to base is blocked
         proc = subprocess.run(

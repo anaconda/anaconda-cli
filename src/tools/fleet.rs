@@ -69,9 +69,12 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         delegate_executable: delegate.to_string(),
         lock_content,
         requested_specs,
-        // .condarc and the frozen marker are written post-install below
-        condarc: None,
-        freeze_base: false,
+        // Fleet writes .condarc and the frozen marker before marking the
+        // prefix ready, so a failure cannot leave a ready but
+        // unconfigured/unprotected installation.
+        condarc: (name == "conda")
+            .then(|| include_str!("../../tool-specs/conda/.condarc").to_owned()),
+        freeze_base: name == "conda",
         installer: None,
     };
 
@@ -115,12 +118,6 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     // TODO: Consider passing uses_wrapper into Fleet APIs directly
     let uses_wrapper = specs::uses_wrapper(name);
     common::create_bin_symlinks(&installed.prefix, &binaries, uses_wrapper)?;
-
-    // For conda, write config and frozen marker
-    if name == "conda" {
-        common::write_conda_config(&installed.prefix)?;
-        common::write_frozen_marker(&installed.prefix)?;
-    }
 
     if name == "pixi" {
         pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
