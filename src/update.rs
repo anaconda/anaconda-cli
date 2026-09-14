@@ -1,3 +1,10 @@
+//! Self-update functionality for ana.
+//!
+//! This module is compiled out when built without the `self-update` feature
+//! (e.g., when installed via conda where updates are managed externally).
+
+#![cfg_attr(not(self_update), allow(dead_code, unused_imports))]
+
 use std::collections::HashMap;
 
 use serde::Deserialize;
@@ -219,7 +226,9 @@ async fn fetch_static_releases(
     Ok(releases)
 }
 
-async fn fetch_available_releases(ctx: &CommandContext) -> Result<Vec<Release>, UpdateError> {
+pub(crate) async fn fetch_available_releases(
+    ctx: &CommandContext,
+) -> Result<Vec<Release>, UpdateError> {
     let mut releases: Vec<_> = match &ctx.config.self_update_url {
         Some(base_url) => {
             // Static hosting - releases are already filtered by channel
@@ -253,6 +262,21 @@ pub enum UpdateCheck {
     Available(Release),
     AlreadyUpToDate,
     NoReleases,
+}
+
+/// Fetch the latest version tag from available releases.
+/// Returns the tag name (e.g., "v0.0.10") or an error.
+pub async fn fetch_latest_version(ctx: &CommandContext) -> Result<String, UpdateError> {
+    let releases = fetch_available_releases(ctx).await?;
+    releases
+        .into_iter()
+        .max_by(|a, b| {
+            let va = parse_version(&a.tag_name).unwrap_or_else(|_| semver::Version::new(0, 0, 0));
+            let vb = parse_version(&b.tag_name).unwrap_or_else(|_| semver::Version::new(0, 0, 0));
+            va.cmp(&vb)
+        })
+        .map(|r| r.tag_name)
+        .ok_or_else(|| UpdateError::Http("No releases available".to_string()))
 }
 
 fn find_update(releases: Vec<Release>, current_version: &str) -> Result<UpdateCheck, UpdateError> {
@@ -405,7 +429,10 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
 ///
 /// After self-replace, the current process still has old lockfiles embedded.
 /// We spawn the new binary to update tools using the new lockfiles.
-#[cfg(not(feature = "fleet"))]
+#[cfg(not(tool_install))]
+fn update_installed_tools() {}
+
+#[cfg(all(tool_install, not(feature = "fleet")))]
 fn update_installed_tools() {
     use crate::tools::installed_tools;
     use crate::ui::status;
@@ -441,7 +468,7 @@ fn update_installed_tools() {
     }
 }
 
-#[cfg(feature = "fleet")]
+#[cfg(all(tool_install, feature = "fleet"))]
 fn update_installed_tools() {
     // TODO: Implement tool update for fleet
     // For now, skip automatic tool updates when using fleet

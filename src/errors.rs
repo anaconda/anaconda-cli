@@ -169,6 +169,41 @@ pub enum ToolError {
 )]
 pub struct OuterboundsNotConfiguredError;
 
+/// Error when tool management is unavailable (conda-package build).
+#[cfg(not(tool_install))]
+#[derive(Error, Debug, Diagnostic)]
+#[error("Tool management is not available in the conda package.")]
+#[diagnostic(
+    code(ana::tool::conda_package),
+    help(
+        "When installed as a conda package, tools are managed by conda.\n\
+         To use `ana tool install/uninstall`, install ana standalone:\n\
+         \n\
+         curl -fsSL https://anaconda.sh | bash"
+    )
+)]
+pub struct ToolManagementUnavailableError;
+
+/// Error when anaconda-mcp is not installed (conda-package build).
+#[cfg(not(tool_install))]
+#[derive(Error, Debug, Diagnostic)]
+#[error("The mcp subcommand requires anaconda-mcp to be installed.")]
+#[diagnostic(
+    code(ana::mcp::not_installed),
+    help("Install it with:\n\n    conda install anaconda-mcp")
+)]
+pub struct AnacondaMcpNotInstalledError;
+
+/// Error when self-update is unavailable.
+#[cfg(not(self_update))]
+#[derive(Error, Debug, Diagnostic)]
+#[error("Self-update is not available in this build.")]
+#[diagnostic(
+    code(ana::self_update::unavailable),
+    help("If installed via conda, update with:\n\n    conda update ana-cli")
+)]
+pub struct SelfUpdateUnavailableError;
+
 /// Authentication errors (re-exported from auth module for convenience).
 pub use crate::auth::errors::AuthError;
 

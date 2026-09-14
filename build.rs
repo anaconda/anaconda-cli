@@ -1,4 +1,12 @@
 fn main() {
+    // Set up cfg aliases for feature combinations
+    cfg_aliases::cfg_aliases! {
+        // self_update: enabled by default, disabled by conda-package
+        self_update: { all(feature = "self-update", not(feature = "conda-package")) },
+        // tool_install: enabled by default, disabled by conda-package
+        tool_install: { all(feature = "tool-install", not(feature = "conda-package")) },
+    }
+
     // Re-run build.rs if these env vars change
     println!("cargo:rerun-if-env-changed=PKG_VERSION");
     println!("cargo:rerun-if-env-changed=SENTRY_DSN");

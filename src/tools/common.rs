@@ -24,6 +24,9 @@ pub fn create_bin_symlinks(
         .into_diagnostic()
         .context("failed to create bin directory")?;
 
+    #[cfg(unix)]
+    cleanup_broken_symlinks(&bin_dir)?;
+
     for binary in binaries {
         if uses_wrapper {
             install_wrapper_binary(&bin_dir, binary)?;
@@ -66,6 +69,37 @@ fn install_wrapper_binary(bin_dir: &Path, binary: &Path) -> miette::Result<()> {
     }
 
     eprintln!("   Installed wrapper {}", wrapper_path.display());
+
+    Ok(())
+}
+
+#[cfg(unix)]
+/// Remove broken symlinks left behind in ~/.ana/bin/, e.g. when a tool's
+/// install directory was deleted manually instead of via `ana tool uninstall`.
+pub fn cleanup_broken_symlinks(bin_dir: &Path) -> miette::Result<()> {
+    if !bin_dir.exists() {
+        return Ok(());
+    }
+
+    for entry in std::fs::read_dir(bin_dir)
+        .into_diagnostic()
+        .context("failed to read bin directory")?
+    {
+        let path = entry.into_diagnostic()?.path();
+        // Only treat a missing target as broken; leave symlinks alone if the
+        // target merely couldn't be stat'd (e.g. a permission error), since
+        // `Path::exists()` can't distinguish the two cases.
+        let target_missing = matches!(
+            std::fs::metadata(&path),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound
+        );
+        if path.is_symlink() && target_missing {
+            std::fs::remove_file(&path)
+                .into_diagnostic()
+                .with_context(|| format!("failed to remove broken symlink: {}", path.display()))?;
+            eprintln!("   Removed broken symlink: {}", path.display());
+        }
+    }
 
     Ok(())
 }
@@ -223,12 +257,82 @@ pub fn write_frozen_marker(prefix: &Path) -> miette::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(windows)]
-    mod windows_tests {
+    #[cfg(unix)]
+    mod unix_tests {
         use super::super::*;
         use tempfile::TempDir;
 
         #[test]
+        fn test_cleanup_broken_symlinks_removes_broken_only() {
+            let temp = TempDir::new().unwrap();
+            let bin_dir = temp.path().join("bin");
+            std::fs::create_dir_all(&bin_dir).unwrap();
+
+            // A valid symlink pointing to a file that exists
+            let target = temp.path().join("target");
+            std::fs::write(&target, "binary").unwrap();
+            let valid_link = bin_dir.join("valid");
+            std::os::unix::fs::symlink(&target, &valid_link).unwrap();
+
+            // A broken symlink pointing to a file that doesn't exist
+            let broken_link = bin_dir.join("broken");
+            std::os::unix::fs::symlink(temp.path().join("missing"), &broken_link).unwrap();
+
+            cleanup_broken_symlinks(&bin_dir).unwrap();
+
+            assert!(valid_link.exists(), "valid symlink should remain");
+            assert!(
+                !broken_link.is_symlink(),
+                "broken symlink should be removed"
+            );
+        }
+
+        #[test]
+        fn test_cleanup_broken_symlinks_missing_bin_dir_is_ok() {
+            let temp = TempDir::new().unwrap();
+            let bin_dir = temp.path().join("does-not-exist");
+            assert!(cleanup_broken_symlinks(&bin_dir).is_ok());
+        }
+
+        #[test]
+        fn test_cleanup_broken_symlinks_keeps_unreadable_target() {
+            use std::os::unix::fs::PermissionsExt;
+
+            let temp = TempDir::new().unwrap();
+            let bin_dir = temp.path().join("bin");
+            std::fs::create_dir_all(&bin_dir).unwrap();
+
+            // A symlink whose target exists but sits behind a directory with
+            // no execute permission, so stat()-ing it fails with
+            // PermissionDenied rather than NotFound. This must NOT be
+            // treated as broken.
+            let locked_dir = temp.path().join("locked");
+            std::fs::create_dir_all(&locked_dir).unwrap();
+            let target = locked_dir.join("target");
+            std::fs::write(&target, "binary").unwrap();
+            let link = bin_dir.join("tool");
+            std::os::unix::fs::symlink(&target, &link).unwrap();
+
+            std::fs::set_permissions(&locked_dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+            let result = cleanup_broken_symlinks(&bin_dir);
+            std::fs::set_permissions(&locked_dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+            result.unwrap();
+            assert!(
+                link.is_symlink(),
+                "symlink with unreadable (not missing) target should be kept"
+            );
+        }
+    }
+
+    #[cfg(windows)]
+    mod windows_tests {
+        use super::super::*;
+        use serial_test::serial;
+        use tempfile::TempDir;
+
+        #[test]
+        #[serial(env)]
         fn test_create_bin_shim_creates_exe_and_config() {
             let temp = TempDir::new().unwrap();
             let bin_dir = temp.path().join("bin");
@@ -260,6 +364,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_create_bin_shim_skips_missing_binary() {
             let temp = TempDir::new().unwrap();
             let bin_dir = temp.path().join("bin");
@@ -278,6 +383,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_creates_new_file() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -294,6 +400,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_adds_entry() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -313,6 +420,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_updates_existing_entry() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");

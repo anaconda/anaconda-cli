@@ -1,16 +1,18 @@
+#[cfg(any(tool_install, feature = "fleet"))]
 mod common;
-#[cfg(feature = "fleet")]
+#[cfg(all(tool_install, feature = "fleet"))]
 mod fleet;
-#[cfg(not(feature = "fleet"))]
-mod install;
+#[cfg(all(tool_install, not(feature = "fleet")))]
+pub mod install;
 pub mod list;
 #[cfg(feature = "unstable")]
 pub mod pip;
+#[cfg(any(tool_install, feature = "fleet"))]
 mod pixi_config;
 mod run;
 pub mod specs;
-#[cfg(not(feature = "fleet"))]
-mod uninstall;
+#[cfg(all(tool_install, not(feature = "fleet")))]
+pub mod uninstall;
 #[cfg(feature = "unstable")]
 pub mod utils;
 #[cfg(feature = "unstable")]
@@ -18,32 +20,35 @@ pub mod uv;
 
 pub use run::run_tool_binary;
 
+#[cfg(tool_install)]
 use crate::context::CommandContext;
 
 /// Returns the names of all currently installed tools.
-#[cfg(not(feature = "fleet"))]
+#[cfg(all(tool_install, not(feature = "fleet")))]
 pub fn installed_tools() -> Vec<&'static str> {
     install::installed_tools()
 }
 
 /// Install a tool by name.
-#[cfg(not(feature = "fleet"))]
+#[cfg(all(tool_install, not(feature = "fleet")))]
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     install::install_tool(ctx, name).await
 }
 
-#[cfg(feature = "fleet")]
+/// Install a tool by name (fleet version).
+#[cfg(all(tool_install, feature = "fleet"))]
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     fleet::install_tool(ctx, name).await
 }
 
 /// Uninstall a tool by name.
-#[cfg(not(feature = "fleet"))]
+#[cfg(all(tool_install, not(feature = "fleet")))]
 pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miette::Result<()> {
     uninstall::uninstall_tool(ctx, name, force)
 }
 
-#[cfg(feature = "fleet")]
+/// Uninstall a tool by name (fleet version).
+#[cfg(all(tool_install, feature = "fleet"))]
 pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miette::Result<()> {
     fleet::uninstall_tool(ctx, name, force)
 }
@@ -51,12 +56,13 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
 /// Update all installed tools.
 ///
 /// Returns the names of tools that were updated.
-#[cfg(not(feature = "fleet"))]
+#[cfg(all(tool_install, not(feature = "fleet")))]
 pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
     install::update_installed_tools(ctx).await
 }
 
-#[cfg(feature = "fleet")]
+/// Update all installed tools (fleet version).
+#[cfg(all(tool_install, feature = "fleet"))]
 pub async fn update_installed_tools(_ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
     // TODO: Implement update for fleet
     Err(miette::miette!(
@@ -65,13 +71,14 @@ pub async fn update_installed_tools(_ctx: &mut CommandContext) -> miette::Result
 }
 
 /// Ensure a tool is installed, installing it if necessary.
-#[cfg(not(feature = "fleet"))]
+#[cfg(all(tool_install, not(feature = "fleet")))]
 pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     install::ensure_tool(ctx, name).await?;
     Ok(())
 }
 
-#[cfg(feature = "fleet")]
+/// Ensure a tool is installed, installing it if necessary (fleet version).
+#[cfg(all(tool_install, feature = "fleet"))]
 pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     if !crate::paths::tool_prefix(name).exists() {
         crate::ui::status::info(&format!("Installing {}...", name));

@@ -114,8 +114,5 @@ pub fn finish_running(msg: &str) {
 ///
 /// Use this for section headers like "ACCOUNT", "SUBSCRIPTIONS".
 pub fn section(name: &str) -> String {
-    UiColor::Green
-        .bold()
-        .apply_to(name.to_uppercase())
-        .to_string()
+    UiColor::Green.apply_bold(name.to_uppercase())
 }
