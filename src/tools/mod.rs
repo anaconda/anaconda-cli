@@ -94,9 +94,8 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
     let lock_content =
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
     let desired_hash = fleet::lock_hash(&lock_content);
-    let needs_install = fleet::tool_status(name)?.is_none_or(|runtime| {
-        runtime.lock_sha256.as_deref() != Some(desired_hash.as_str())
-    });
+    let needs_install = fleet::tool_status(name)?
+        .is_none_or(|runtime| runtime.lock_sha256.as_deref() != Some(desired_hash.as_str()));
     if needs_install {
         crate::ui::status::info(&format!("Installing {}...", name));
         fleet::install_tool(ctx, name).await?;
