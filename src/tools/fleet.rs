@@ -18,11 +18,11 @@ use crate::paths;
 /// Old installations have:
 /// - A `conda-meta/` directory (bootstrapped conda prefix)
 /// - A `.lockfile-hash` file (ana's old staleness marker)
-/// - No `.{name}.json` Fleet metadata file
+/// - No `.{name}.json` Fleet metadata file (Fleet writes it at the prefix root)
 fn is_legacy_rattler_install(prefix: &Path, name: &str) -> bool {
     let conda_meta = prefix.join("conda-meta");
     let lockfile_hash = prefix.join(".lockfile-hash");
-    let fleet_metadata = conda_meta.join(format!(".{}.json", name));
+    let fleet_metadata = prefix.join(format!(".{name}.json"));
 
     conda_meta.is_dir() && lockfile_hash.exists() && !fleet_metadata.exists()
 }
