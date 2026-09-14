@@ -67,6 +67,10 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         delegate_executable: delegate.to_string(),
         lock_content,
         requested_specs,
+        // .condarc and the frozen marker are written post-install below
+        condarc: None,
+        freeze_base: false,
+        installer: None,
     };
 
     let fleet = Fleet::new(paths::ana_home().join("tools"));
@@ -119,7 +123,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
     let fleet = Fleet::new(paths::ana_home().join("tools"));
     let bin_dir = paths::bin_dir();
 
-    let status = fleet.status(name)?;
+    let status = fleet.get(name)?;
     if status.is_none() {
         eprintln!("{} is not installed", name);
         return Ok(());
@@ -191,7 +195,7 @@ pub fn list_installed() -> miette::Result<Vec<InstalledRuntime>> {
 #[allow(dead_code)]
 pub fn tool_status(name: &str) -> miette::Result<Option<InstalledRuntime>> {
     let fleet = Fleet::new(paths::ana_home().join("tools"));
-    fleet.status(name)
+    fleet.get(name)
 }
 
 /// Extract version from lockfile for a tool.
