@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:d6acbbdf-c650-47b3-a1ab-a7124aaf17c9",
+  "serialNumber": "urn:uuid:e1bf3cbf-e754-4d26-abee-6f558bba0498",
   "metadata": {
-    "timestamp": "2026-09-10T16:18:08Z",
+    "timestamp": "2026-09-14T21:19:17Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -637,16 +637,16 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
       "author": "David Tolnay <dtolnay@gmail.com>",
       "name": "async-trait",
-      "version": "0.1.91",
+      "version": "0.1.92",
       "description": "Type erasure for async trait methods",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ae36dc4177970ef04fde5178d3e2429882def40e57a451f919c098f72baa6cec"
+          "content": "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
         }
       ],
       "licenses": [
@@ -654,7 +654,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/async-trait@0.1.91",
+      "purl": "pkg:cargo/async-trait@0.1.92",
       "externalReferences": [
         {
           "type": "documentation",
@@ -14382,7 +14382,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0",
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.1",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
@@ -14542,7 +14542,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-reqwest-middleware@0.5.1",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.104",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
@@ -14613,7 +14613,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.107",
         "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.47",
@@ -15861,7 +15861,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#opentelemetry-http@0.31.0",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#bytes@1.12.1",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#opentelemetry@0.31.0",
@@ -16378,7 +16378,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.104",
         "registry+https://github.com/rust-lang/crates.io-index#astral-reqwest-middleware@0.5.1",
         "registry+https://github.com/rust-lang/crates.io-index#async-once-cell@0.5.4",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#fs-err@3.3.1",
         "registry+https://github.com/rust-lang/crates.io-index#futures@0.3.33",
@@ -16542,7 +16542,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#reqwest-middleware@0.5.2",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.104",
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
@@ -17274,7 +17274,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#tonic@0.14.6",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.91",
+        "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
         "registry+https://github.com/rust-lang/crates.io-index#bytes@1.12.1",
         "registry+https://github.com/rust-lang/crates.io-index#http-body-util@0.1.4",
@@ -17962,6 +17962,20 @@
       "affects": [
         {
           "ref": "registry+https://github.com/rust-lang/crates.io-index#h2@0.4.15"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0285",
+      "description": "Rustls accepted TLS 1.3 handshake messages sent at the wrong encryption level\nwhen they followed a key-changing message in the same record. For example,\na plaintext `EncryptedExtensions` message packed into the same record as the\n`ServerHello` was accepted.\n\nRFC 8446 section 5.1 requires that handshake messages do not span key changes,\nand that implementations terminate the connection with an \"unexpected_message\"\nalert if they do.\n\nThe handshake transcript is still authenticated, so a network-position attacker\ncannot use this to alter or complete a handshake; the practical effect is that\na peer could send handshake messages that should be encrypted in plaintext\nwithout rustls rejecting the connection.\n\nThis is functionally the same bug as Go's\n[GO-2026-4340](https://pkg.go.dev/vuln/GO-2026-4340) (CVE-2025-61730).",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0285.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
         }
       ]
     }
