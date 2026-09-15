@@ -52,14 +52,19 @@ mod tests {
     #[serial(env)]
     fn test_new_install_flow() {
         let dir = tempfile::tempdir().unwrap();
-        temp_env::with_var("HOME", Some(dir.path().to_string_lossy().as_ref()), || {
-            assert!(is_new_install());
-            mark_installed();
-            assert!(!is_new_install());
-            // Marking twice keeps the original timestamp
-            let first = read()["first_install_at"].clone();
-            mark_installed();
-            assert_eq!(read()["first_install_at"], first);
-        });
+        let home = dir.path().to_string_lossy().to_string();
+        // home_dir() reads HOME on Unix, USERPROFILE on Windows
+        temp_env::with_vars(
+            [("HOME", Some(&*home)), ("USERPROFILE", Some(&*home))],
+            || {
+                assert!(is_new_install());
+                mark_installed();
+                assert!(!is_new_install());
+                // Marking twice keeps the original timestamp
+                let first = read()["first_install_at"].clone();
+                mark_installed();
+                assert_eq!(read()["first_install_at"], first);
+            },
+        );
     }
 }
