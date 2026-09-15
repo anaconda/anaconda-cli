@@ -184,15 +184,50 @@ pub struct OuterboundsNotConfiguredError;
 )]
 pub struct ToolManagementUnavailableError;
 
-/// Error when anaconda-mcp is not installed (conda-package build).
-#[cfg(not(tool_install))]
+/// Errors for MCP client configuration.
 #[derive(Error, Debug, Diagnostic)]
-#[error("The mcp subcommand requires anaconda-mcp to be installed.")]
-#[diagnostic(
-    code(ana::mcp::not_installed),
-    help("Install it with:\n\n    conda install anaconda-mcp")
-)]
-pub struct AnacondaMcpNotInstalledError;
+pub enum McpError {
+    /// An auth token is required to write remote MCP client configs.
+    #[error("An authentication token is required to configure MCP clients.")]
+    #[diagnostic(
+        code(ana::mcp::auth_required),
+        help("Run `ana login` to authenticate.")
+    )]
+    AuthRequired,
+
+    /// The client's config file does not exist.
+    #[error("Config file not found: {0}")]
+    #[diagnostic(code(ana::mcp::config_not_found))]
+    ConfigNotFound(std::path::PathBuf),
+
+    /// The named server entry is not present in the client's config.
+    #[error("Server '{server}' not found in {client} config.")]
+    #[diagnostic(code(ana::mcp::server_not_found))]
+    ServerNotFound { server: String, client: String },
+
+    /// The client name is not supported.
+    #[error("Unsupported client: '{0}'. Run `ana mcp clients` to see supported clients.")]
+    #[diagnostic(code(ana::mcp::unsupported_client))]
+    UnsupportedClient(String),
+
+    /// Terms of Service have not been accepted.
+    #[error("You must accept the Anaconda MCP Terms of Service.")]
+    #[diagnostic(
+        code(ana::mcp::terms_not_accepted),
+        help(
+            "Run `ana mcp terms accept`, or set ANACONDA_MCP_ACCEPTED_TERMS=true and\nANACONDA_MCP_ACCEPTED_TERMS_VERSION to the current version (see `ana mcp terms`)."
+        )
+    )]
+    TermsNotAccepted,
+
+    /// Terms of Service were declined at the prompt.
+    #[error("Terms of Service declined.")]
+    #[diagnostic(
+        code(ana::mcp::terms_declined),
+        help("Run `ana mcp terms accept` to accept later.")
+    )]
+    TermsDeclined,
+}
 
 /// Error when self-update is unavailable.
 #[cfg(not(self_update))]

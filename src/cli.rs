@@ -14,7 +14,7 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
-use crate::mcp::{self, McpAction, McpCommands};
+use crate::mcp::{self, McpCommands, McpTermsCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds::{self, ObAction, ObCommands};
 #[cfg(tool_install)]
@@ -174,8 +174,8 @@ pub enum Action {
     ObAutoConfigure {
         instance: String,
     },
-    McpRun {
-        args: Vec<String>,
+    Mcp {
+        command: McpCommands,
     },
     UserAgent {
         prefix: Option<String>,
@@ -242,7 +242,20 @@ impl Action {
             Action::ObProxy { .. } => "ob",
             #[cfg(all(unix, tool_install))]
             Action::ObAutoConfigure { .. } => "ob.configure.auto",
-            Action::McpRun { .. } => "mcp",
+            Action::Mcp { command } => match command {
+                McpCommands::Clients { .. } => "mcp.clients",
+                McpCommands::Setup { .. } => "mcp.setup",
+                McpCommands::Remove { .. } => "mcp.remove",
+                McpCommands::Terms { command: None, .. } => "mcp.terms",
+                McpCommands::Terms {
+                    command: Some(McpTermsCommands::Status { .. }),
+                    ..
+                } => "mcp.terms.status",
+                McpCommands::Terms {
+                    command: Some(McpTermsCommands::Accept { .. }),
+                    ..
+                } => "mcp.terms.accept",
+            },
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -328,7 +341,7 @@ impl Action {
             Action::OrgProxy { args } => Ok(
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
-            Action::McpRun { args } => mcp::run(ctx, &args).await,
+            Action::Mcp { command } => mcp::run(ctx, command),
             #[cfg(all(unix, tool_install))]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -689,10 +702,7 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::Org { args }) => Action::OrgProxy { args },
         Some(Commands::Mcp { command }) => match command {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
-            Some(cmd) => match cmd.into_action() {
-                McpAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                McpAction::Run(args) => Action::McpRun { args },
-            },
+            Some(cmd) => Action::Mcp { command: cmd },
         },
         #[cfg(all(unix, tool_install))]
         Some(Commands::Ob { command }) => {

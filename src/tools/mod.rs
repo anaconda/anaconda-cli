@@ -5,6 +5,7 @@ pub mod list;
 pub mod pip;
 #[cfg(tool_install)]
 mod pixi_config;
+#[cfg(tool_install)]
 mod run;
 pub mod specs;
 #[cfg(tool_install)]
@@ -14,4 +15,5 @@ pub mod utils;
 #[cfg(feature = "unstable")]
 pub mod uv;
 
+#[cfg(tool_install)]
 pub use run::run_tool_binary;
