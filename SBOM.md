@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-10T16:18:08Z<br>
+Generated: 2026-09-15T10:09:06Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 463 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 1 across 1 package**
+<br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
 ## Packages
 
@@ -305,7 +305,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
 | [rustc\_version\_runtime](https://crates.io/crates/rustc_version_runtime) | 0.3.0 | MIT |  |  |
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
-| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  |  |
+| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 1 |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.15.0 | MIT OR Apache-2.0 |  |  |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.13 | ISC |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
@@ -383,11 +383,11 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [tokio-stream](https://crates.io/crates/tokio-stream) | 0.1.19 | MIT |  |  |
 | [tokio-util](https://crates.io/crates/tokio-util) | 0.7.19 | MIT |  |  |
 | [toml](https://crates.io/crates/toml) | 0.9.12+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml](https://crates.io/crates/toml) | 1.1.3+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml](https://crates.io/crates/toml) | 1.1.6+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_datetime](https://crates.io/crates/toml_datetime) | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_edit](https://crates.io/crates/toml_edit) | 0.25.13+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
-| [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
+| [toml\_parser](https://crates.io/crates/toml_parser) | 1.1.3+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [toml\_writer](https://crates.io/crates/toml_writer) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |  |  |
 | [tonic](https://crates.io/crates/tonic) | 0.14.6 | MIT |  |  |
 | [tonic-prost](https://crates.io/crates/tonic-prost) | 0.14.6 | MIT |  |  |
@@ -479,6 +479,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
 
 ## License Summary
 
