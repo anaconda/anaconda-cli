@@ -72,8 +72,8 @@ def ana_binary() -> Path | None:
 
     Search order:
     1. ANA_BINARY_PATH environment variable
-    2. target/release/ana (release build)
-    3. target/debug/ana (debug build)
+    2. target/release/ana[.exe] (release build)
+    3. target/debug/ana[.exe] (debug build)
     """
     if env_path := os.getenv("ANA_BINARY_PATH"):
         path = Path(env_path)

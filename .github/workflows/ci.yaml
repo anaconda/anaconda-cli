@@ -169,6 +169,16 @@ jobs:
           WINDOWS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-windows.outputs.fingerprint }}
         run: pixi run test-integration
 
+      # Exercise the fleet backend's core flows (install/list/update/uninstall,
+      # conda wrapper) without duplicating the full integration suite.
+      - name: Run fleet backend tool tests
+        if: ${{ !inputs.skip-tests }}
+        env:
+          ANA_BINARY_PATH: ${{ github.workspace }}/target/debug/${{ runner.os == 'Windows' && 'ana.exe' || 'ana' }}
+        run: |
+          pixi run build-fleet
+          pixi run pytest tests/test_tools.py -v -k "TestToolInstallPixi or TestToolList or TestToolUpdate or TestToolUninstall or TestToolInstallConda or TestCondaWrapper"
+
       - name: Build conda package
         env:
           SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}

@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-10T16:18:08Z<br>
+Generated: 2026-09-14T17:15:29Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 463 (64 platform-specific)<br>
+Packages: 467 (68 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 1 across 1 package**
+<br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
 ## Packages
 
@@ -271,19 +271,19 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rand\_core](https://crates.io/crates/rand_core) | 0.10.1 | MIT OR Apache-2.0 |  |  |
 | [rand\_core](https://crates.io/crates/rand_core) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [rand\_xorshift](https://crates.io/crates/rand_xorshift) | 0.4.0 | MIT OR Apache-2.0 |  |  |
-| [rattler](https://crates.io/crates/rattler) | 0.47.1 | BSD-3-Clause |  |  |
-| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.10.3 | BSD-3-Clause |  |  |
-| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.48.1 | BSD-3-Clause |  |  |
+| [rattler](https://crates.io/crates/rattler) | 0.48.3 | BSD-3-Clause |  |  |
+| [rattler\_cache](https://crates.io/crates/rattler_cache) | 0.10.6 | BSD-3-Clause |  |  |
+| [rattler\_conda\_types](https://crates.io/crates/rattler_conda_types) | 0.50.0 | BSD-3-Clause |  |  |
 | [rattler\_digest](https://crates.io/crates/rattler_digest) | 1.3.2 | BSD-3-Clause |  |  |
-| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.31.5 | BSD-3-Clause |  |  |
+| [rattler\_lock](https://crates.io/crates/rattler_lock) | 0.32.2 | BSD-3-Clause |  |  |
 | [rattler\_macros](https://crates.io/crates/rattler_macros) | 1.1.2 | BSD-3-Clause |  |  |
-| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.70 | BSD-3-Clause |  |  |
-| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.30.2 | BSD-3-Clause |  |  |
-| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.26.8 | BSD-3-Clause |  |  |
-| [rattler\_pty](https://crates.io/crates/rattler_pty) | 0.2.15 | BSD-3-Clause |  |  |
+| [rattler\_menuinst](https://crates.io/crates/rattler_menuinst) | 0.2.74 | BSD-3-Clause |  |  |
+| [rattler\_networking](https://crates.io/crates/rattler_networking) | 0.30.5 | BSD-3-Clause |  |  |
+| [rattler\_package\_streaming](https://crates.io/crates/rattler_package_streaming) | 0.27.1 | BSD-3-Clause |  |  |
+| [rattler\_pty](https://crates.io/crates/rattler_pty) | 0.2.16 | BSD-3-Clause |  |  |
 | [rattler\_redaction](https://crates.io/crates/rattler_redaction) | 0.2.2 | BSD-3-Clause |  |  |
-| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.27.10 | BSD-3-Clause |  |  |
-| [rattler\_solve](https://crates.io/crates/rattler_solve) | 7.2.2 | BSD-3-Clause |  |  |
+| [rattler\_shell](https://crates.io/crates/rattler_shell) | 0.27.14 | BSD-3-Clause |  |  |
+| [rattler\_solve](https://crates.io/crates/rattler_solve) | 9.0.2 | BSD-3-Clause |  |  |
 | [rayon](https://crates.io/crates/rayon) | 1.12.0 | MIT OR Apache-2.0 |  |  |
 | [rayon-core](https://crates.io/crates/rayon-core) | 1.13.0 | MIT OR Apache-2.0 |  |  |
 | [ref-cast](https://crates.io/crates/ref-cast) | 1.0.26 | MIT OR Apache-2.0 |  |  |
@@ -305,7 +305,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
 | [rustc\_version\_runtime](https://crates.io/crates/rustc_version_runtime) | 0.3.0 | MIT |  |  |
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
-| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  |  |
+| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 1 |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.15.0 | MIT OR Apache-2.0 |  |  |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.13 | ISC |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
@@ -440,10 +440,14 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [windows-future](https://crates.io/crates/windows-future) | 0.3.2 | MIT OR Apache-2.0 | windows |  |
 | [windows-implement](https://crates.io/crates/windows-implement) | 0.60.2 | MIT OR Apache-2.0 | windows |  |
 | [windows-interface](https://crates.io/crates/windows-interface) | 0.59.3 | MIT OR Apache-2.0 | windows |  |
+| [windows-link](https://crates.io/crates/windows-link) | 0.1.3 | MIT OR Apache-2.0 | windows |  |
 | [windows-link](https://crates.io/crates/windows-link) | 0.2.1 | MIT OR Apache-2.0 | windows |  |
 | [windows-numerics](https://crates.io/crates/windows-numerics) | 0.3.1 | MIT OR Apache-2.0 | windows |  |
+| [windows-registry](https://crates.io/crates/windows-registry) | 0.5.3 | MIT OR Apache-2.0 | windows |  |
 | [windows-registry](https://crates.io/crates/windows-registry) | 0.6.1 | MIT OR Apache-2.0 | windows |  |
+| [windows-result](https://crates.io/crates/windows-result) | 0.3.4 | MIT OR Apache-2.0 | windows |  |
 | [windows-result](https://crates.io/crates/windows-result) | 0.4.1 | MIT OR Apache-2.0 | windows |  |
+| [windows-strings](https://crates.io/crates/windows-strings) | 0.4.2 | MIT OR Apache-2.0 | windows |  |
 | [windows-strings](https://crates.io/crates/windows-strings) | 0.5.1 | MIT OR Apache-2.0 | windows |  |
 | [windows-sys](https://crates.io/crates/windows-sys) | 0.52.0 | MIT OR Apache-2.0 | windows |  |
 | [windows-sys](https://crates.io/crates/windows-sys) | 0.59.0 | MIT OR Apache-2.0 | windows |  |
@@ -479,12 +483,13 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
 
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 250 |
+| MIT OR Apache-2.0 | 254 |
 | MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |

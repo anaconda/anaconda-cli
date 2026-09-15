@@ -12,6 +12,8 @@ use super::specs;
 pub struct ToolInfo {
     pub name: &'static str,
     pub installed: bool,
+    #[cfg(feature = "fleet")]
+    pub version: Option<String>,
     pub binaries: Vec<PathBuf>,
 }
 
@@ -46,7 +48,7 @@ const INSTALLERS: &[Installer] = &[
 ];
 
 /// Check if a tool is installed as a conda package in the current environment.
-#[cfg(not(tool_install))]
+#[cfg(all(not(tool_install), not(feature = "fleet")))]
 fn is_conda_package_installed(name: &str) -> bool {
     let Some(prefix) = paths::conda_prefix() else {
         return false;
@@ -69,9 +71,10 @@ fn is_conda_package_installed(name: &str) -> bool {
 ///
 /// When built with `conda-package` feature, installation status reflects the
 /// conda environment's conda-meta entries rather than `~/.ana/tools/`.
+#[cfg(not(feature = "fleet"))]
 pub fn list_tools() -> Vec<ToolInfo> {
     #[cfg(all(unix, tool_install))]
-    if let Err(err) = super::install::cleanup_broken_symlinks(&paths::bin_dir()) {
+    if let Err(err) = super::common::cleanup_broken_symlinks(&paths::bin_dir()) {
         crate::ui::status::warn(&format!("failed to clean up broken symlinks: {err}"));
     }
 
@@ -92,7 +95,44 @@ pub fn list_tools() -> Vec<ToolInfo> {
         .collect()
 }
 
+/// List all available tools with their installation status (fleet version).
+#[cfg(feature = "fleet")]
+pub fn list_tools() -> Vec<ToolInfo> {
+    #[cfg(unix)]
+    if let Err(err) = super::common::cleanup_broken_symlinks(&paths::bin_dir()) {
+        crate::ui::status::warn(&format!("failed to clean up broken symlinks: {err}"));
+    }
+
+    let installed_runtimes = super::fleet::list_installed().unwrap_or_default();
+
+    specs::all_tools()
+        .iter()
+        .map(|name| {
+            let binaries = specs::binaries(name).unwrap_or_default();
+
+            // Check if this tool is installed via fleet
+            let (installed, version) = installed_runtimes
+                .iter()
+                .find(|r| r.id == *name)
+                .map(|r| (true, Some(r.version.clone())))
+                .unwrap_or_else(|| {
+                    // Fallback to checking if prefix exists (for pre-fleet installs)
+                    let prefix = paths::tool_prefix(name);
+                    (prefix.exists(), None)
+                });
+
+            ToolInfo {
+                name,
+                installed,
+                version,
+                binaries,
+            }
+        })
+        .collect()
+}
+
 /// Print the tool list as a formatted table.
+#[cfg(not(feature = "fleet"))]
 pub fn print_tool_list(_ctx: &mut CommandContext) {
     let tools = list_tools();
 
@@ -111,6 +151,39 @@ pub fn print_tool_list(_ctx: &mut CommandContext) {
             .collect::<Vec<_>>()
             .join(", ");
         table.add_row([table::cell(tool.name), status_cell, table::cell(&binaries)]);
+    }
+
+    println!("{table}");
+
+    print_installer_list();
+}
+
+/// Print the tool list as a formatted table (fleet version with version column).
+#[cfg(feature = "fleet")]
+pub fn print_tool_list(_ctx: &mut CommandContext) {
+    let tools = list_tools();
+
+    let mut table = table::new(["Name", "Installed", "Version", "Binaries"]);
+
+    for tool in tools {
+        let status_cell = if tool.installed {
+            table::cell("✓").fg(Color::Green)
+        } else {
+            table::cell("✗").fg(Color::Red)
+        };
+        let version = tool.version.as_deref().unwrap_or("-");
+        let binaries = tool
+            .binaries
+            .iter()
+            .filter_map(|b| b.file_stem().and_then(|s| s.to_str()))
+            .collect::<Vec<_>>()
+            .join(", ");
+        table.add_row([
+            table::cell(tool.name),
+            status_cell,
+            table::cell(version),
+            table::cell(&binaries),
+        ]);
     }
 
     println!("{table}");

@@ -341,7 +341,7 @@ impl Action {
             }
             #[cfg(tool_install)]
             Action::ToolInstall { name } => {
-                tools::install::install_tool(ctx, &name).await?;
+                tools::install_tool(ctx, &name).await?;
                 Ok(())
             }
             #[cfg(not(tool_install))]
@@ -350,7 +350,7 @@ impl Action {
             }
             #[cfg(tool_install)]
             Action::ToolUninstall { name, force } => {
-                tools::uninstall::uninstall_tool(ctx, &name, force)?;
+                tools::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
             #[cfg(not(tool_install))]
@@ -367,7 +367,7 @@ impl Action {
             Action::ToolUpdate => Err(crate::errors::ToolManagementUnavailableError.into()),
             #[cfg(tool_install)]
             Action::ToolUpdate => {
-                let updated = tools::install::update_installed_tools(ctx).await?;
+                let updated = tools::update_installed_tools(ctx).await?;
                 if updated.is_empty() {
                     eprintln!("All tools are up to date.");
                 }

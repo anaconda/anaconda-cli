@@ -46,7 +46,7 @@ pub async fn run(_ctx: &mut CommandContext, args: &[String]) -> miette::Result<(
 /// Auto-installs or updates anaconda-cli as needed.
 #[cfg(tool_install)]
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
-    tools::install::ensure_tool(ctx, "anaconda-cli").await?;
+    tools::ensure_tool(ctx, "anaconda-cli").await?;
 
     let mut mcp_args = vec!["mcp".to_string()];
     mcp_args.extend(args.iter().cloned());
