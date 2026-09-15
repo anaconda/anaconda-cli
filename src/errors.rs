@@ -214,7 +214,9 @@ pub enum McpError {
     #[error("You must accept the Anaconda MCP Terms of Service.")]
     #[diagnostic(
         code(ana::mcp::terms_not_accepted),
-        help("Run `ana mcp terms accept`, or set ANACONDA_MCP_ACCEPTED_TERMS=true and\nANACONDA_MCP_ACCEPTED_TERMS_VERSION to the current version (see `ana mcp terms`).")
+        help(
+            "Run `ana mcp terms accept`, or set ANACONDA_MCP_ACCEPTED_TERMS=true and\nANACONDA_MCP_ACCEPTED_TERMS_VERSION to the current version (see `ana mcp terms`)."
+        )
     )]
     TermsNotAccepted,
 

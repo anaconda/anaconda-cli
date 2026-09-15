@@ -272,9 +272,7 @@ pub fn configure(
             let root = config
                 .as_object_mut()
                 .expect("load_json always returns an object");
-            let servers = root
-                .entry(spec.config_key)
-                .or_insert_with(|| json!({}));
+            let servers = root.entry(spec.config_key).or_insert_with(|| json!({}));
             if !servers.is_object() {
                 *servers = json!({});
             }
@@ -443,8 +441,11 @@ mod tests {
     fn test_json_configure_preserves_unrelated_keys() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("mcp.json");
-        std::fs::write(&path, r#"{"other": true, "mcpServers": {"existing": {"url": "x"}}}"#)
-            .unwrap();
+        std::fs::write(
+            &path,
+            r#"{"other": true, "mcpServers": {"existing": {"url": "x"}}}"#,
+        )
+        .unwrap();
 
         let mut config = load_json(&path);
         config["mcpServers"]["anaconda-mcp"] = build_json_entry("cursor", URL, TOKEN);
@@ -460,8 +461,11 @@ mod tests {
     #[test]
     fn test_json_remove_preserves_unrelated_keys() {
         let dir = tempfile::tempdir().unwrap();
-        configure_json_client(dir.path(), r#"{"other": 1, "mcpServers": {"keep": {"url": "y"}}}"#)
-            .unwrap();
+        configure_json_client(
+            dir.path(),
+            r#"{"other": 1, "mcpServers": {"keep": {"url": "y"}}}"#,
+        )
+        .unwrap();
         let path = dir.path().join("mcp.json");
 
         let mut config = load_json(&path);

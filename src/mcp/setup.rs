@@ -154,7 +154,12 @@ pub fn setup(
 }
 
 /// `ana mcp remove` — remove Anaconda MCP from client configurations.
-pub fn remove(selected: &[McpClient], name: &str, no_backup: bool, json: bool) -> miette::Result<()> {
+pub fn remove(
+    selected: &[McpClient],
+    name: &str,
+    no_backup: bool,
+    json: bool,
+) -> miette::Result<()> {
     if selected.is_empty() {
         if !std::io::stdin().is_terminal() {
             return Err(miette!(
@@ -270,9 +275,7 @@ fn setup_wizard(
     let adds: Vec<&clients::ClientSpec> = clients::SPECS
         .iter()
         .enumerate()
-        .filter(|(i, s)| {
-            is_selected(*i) && (!installed[*i] || clients::needs_update(s.name, name))
-        })
+        .filter(|(i, s)| is_selected(*i) && (!installed[*i] || clients::needs_update(s.name, name)))
         .map(|(_, s)| s)
         .collect();
     let removes: Vec<&clients::ClientSpec> = clients::SPECS
@@ -341,7 +344,8 @@ fn setup_wizard(
 
 /// Stamp the new-install telemetry attribute and persist install state.
 fn record_install(ctx: &mut CommandContext) {
-    ctx.telemetry.add("mcp_new_install", state::is_new_install());
+    ctx.telemetry
+        .add("mcp_new_install", state::is_new_install());
     state::mark_installed();
 }
 
@@ -381,10 +385,7 @@ mod tests {
         let value = configure_json(&result);
         assert_eq!(value["transport"], "http");
         assert_eq!(value["created"], true);
-        assert_eq!(
-            value["backup_path"],
-            "/tmp/mcp.20260915.backup.json"
-        );
+        assert_eq!(value["backup_path"], "/tmp/mcp.20260915.backup.json");
     }
 
     #[test]

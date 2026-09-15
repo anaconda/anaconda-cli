@@ -6,7 +6,9 @@ use std::path::PathBuf;
 use serde_json::{Value, json};
 
 fn state_path() -> PathBuf {
-    crate::paths::home_dir().join(".anaconda").join("mcp_state.json")
+    crate::paths::home_dir()
+        .join(".anaconda")
+        .join("mcp_state.json")
 }
 
 fn read() -> Value {

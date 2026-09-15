@@ -56,7 +56,9 @@ pub fn config_path() -> PathBuf {
     {
         return PathBuf::from(p);
     }
-    crate::paths::home_dir().join(".anaconda").join("config.toml")
+    crate::paths::home_dir()
+        .join(".anaconda")
+        .join("config.toml")
 }
 
 fn parse_env_bool(val: &str) -> Option<bool> {
@@ -322,10 +324,7 @@ mod tests {
             persist_acceptance(true).unwrap();
             let state = read_state();
             assert_eq!(state.accepted, Some(true));
-            assert_eq!(
-                state.accepted_version.as_deref(),
-                Some(CURRENT_TOS_VERSION)
-            );
+            assert_eq!(state.accepted_version.as_deref(), Some(CURRENT_TOS_VERSION));
             assert!(state.is_current());
 
             persist_acceptance(false).unwrap();
@@ -381,11 +380,15 @@ mod tests {
         let path = dir.path().join("config.toml");
         with_config(&path, || {
             persist_acceptance(true).unwrap();
-            temp_env::with_var("ANACONDA_MCP_ACCEPTED_TERMS_VERSION", Some("1999-01-01"), || {
-                let state = read_state();
-                assert_eq!(state.accepted, Some(true));
-                assert!(!state.is_current());
-            });
+            temp_env::with_var(
+                "ANACONDA_MCP_ACCEPTED_TERMS_VERSION",
+                Some("1999-01-01"),
+                || {
+                    let state = read_state();
+                    assert_eq!(state.accepted, Some(true));
+                    assert!(!state.is_current());
+                },
+            );
         });
     }
 }
