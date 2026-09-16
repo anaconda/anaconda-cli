@@ -209,24 +209,6 @@ pub enum McpError {
     #[error("Unsupported client: '{0}'. Run `ana mcp clients` to see supported clients.")]
     #[diagnostic(code(ana::mcp::unsupported_client))]
     UnsupportedClient(String),
-
-    /// Terms of Service have not been accepted.
-    #[error("You must accept the Anaconda MCP Terms of Service.")]
-    #[diagnostic(
-        code(ana::mcp::terms_not_accepted),
-        help(
-            "Run `ana mcp terms accept`, or set ANACONDA_MCP_ACCEPTED_TERMS=true and\nANACONDA_MCP_ACCEPTED_TERMS_VERSION to the current version (see `ana mcp terms`)."
-        )
-    )]
-    TermsNotAccepted,
-
-    /// Terms of Service were declined at the prompt.
-    #[error("Terms of Service declined.")]
-    #[diagnostic(
-        code(ana::mcp::terms_declined),
-        help("Run `ana mcp terms accept` to accept later.")
-    )]
-    TermsDeclined,
 }
 
 /// Error when self-update is unavailable.

@@ -460,12 +460,6 @@ class TestMcpSubcommands:
         assert result.returncode == 0
         assert "remove" in result.stdout.lower()
 
-    def test_mcp_terms_help(self, run_ana: AnaRunner) -> None:
-        """Test that 'ana mcp terms --help' works."""
-        result = run_ana("mcp", "terms", "--help")
-        assert result.returncode == 0
-        assert "terms" in result.stdout.lower()
-
     # -------------------------------------------------------------------------
     # Help option verification tests
     # These tests ensure all CLI options are properly configured and don't cause
@@ -495,24 +489,3 @@ class TestMcpSubcommands:
         assert "--name" in result.stdout, "Missing --name option"
         assert "--no-backup" in result.stdout, "Missing --no-backup option"
         assert "--json" in result.stdout, "Missing --json option"
-
-    def test_mcp_terms_help_shows_subcommands(self, run_ana: AnaRunner) -> None:
-        """Test that 'ana mcp terms --help' shows subcommands and options."""
-        result = run_ana("mcp", "terms", "--help")
-        assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "status" in result.stdout.lower(), "Missing 'status' subcommand"
-        assert "accept" in result.stdout.lower(), "Missing 'accept' subcommand"
-        assert "--json" in result.stdout, "Missing --json option"
-
-    def test_mcp_terms_status_help_shows_options(self, run_ana: AnaRunner) -> None:
-        """Test that 'ana mcp terms status --help' shows all expected options."""
-        result = run_ana("mcp", "terms", "status", "--help")
-        assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "--json" in result.stdout, "Missing --json option"
-
-    def test_mcp_terms_accept_help_shows_options(self, run_ana: AnaRunner) -> None:
-        """Test that 'ana mcp terms accept --help' shows all expected options."""
-        result = run_ana("mcp", "terms", "accept", "--help")
-        assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "--json" in result.stdout, "Missing --json option"
-        assert "--consent" in result.stdout, "Missing --consent option"

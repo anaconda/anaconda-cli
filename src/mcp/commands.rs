@@ -86,36 +86,4 @@ pub enum McpCommands {
         #[arg(long)]
         json: bool,
     },
-
-    /// Manage Terms of Service acceptance
-    #[command(subcommand_required = false, arg_required_else_help = false)]
-    Terms {
-        #[command(subcommand)]
-        command: Option<McpTermsCommands>,
-
-        /// Output in JSON format (when no subcommand is given)
-        #[arg(long)]
-        json: bool,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum McpTermsCommands {
-    /// Check whether the Terms of Service have been accepted
-    Status {
-        /// Output in JSON format
-        #[arg(long)]
-        json: bool,
-    },
-
-    /// Accept the Terms of Service
-    Accept {
-        /// Output in JSON format
-        #[arg(long)]
-        json: bool,
-
-        /// Consent to be contacted for feedback
-        #[arg(long)]
-        consent: bool,
-    },
 }

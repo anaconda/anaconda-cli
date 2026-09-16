@@ -14,7 +14,7 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
-use crate::mcp::{self, McpCommands, McpTermsCommands};
+use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds::{self, ObAction, ObCommands};
 #[cfg(tool_install)]
@@ -246,15 +246,6 @@ impl Action {
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
-                McpCommands::Terms { command: None, .. } => "mcp.terms",
-                McpCommands::Terms {
-                    command: Some(McpTermsCommands::Status { .. }),
-                    ..
-                } => "mcp.terms.status",
-                McpCommands::Terms {
-                    command: Some(McpTermsCommands::Accept { .. }),
-                    ..
-                } => "mcp.terms.accept",
             },
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
