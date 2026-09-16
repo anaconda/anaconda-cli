@@ -186,10 +186,12 @@ fn remove_wizard(name: &str, no_backup: bool, json: bool) -> miette::Result<()> 
     }
 
     let items: Vec<&str> = installed.iter().map(|s| s.name).collect();
-    let selections = dialoguer::MultiSelect::with_theme(&wizard_theme())
-        .with_prompt("Select agents to remove the Anaconda MCP service from")
-        .items(&items)
-        .interact()
+    let selections =
+        crate::input::multiselect(
+            "Select agents to remove the Anaconda MCP service from",
+            &items,
+            &[],
+        )
         .map_err(|e| miette!("Remove aborted: {e}"))?;
 
     if selections.is_empty() {
@@ -234,21 +236,6 @@ fn run_removals(names: &[&str], name: &str, no_backup: bool, json: bool) -> miet
     Ok(())
 }
 
-/// Theme for interactive prompts, using ana's color palette.
-///
-/// Multi-select items are indented two spaces; the active row is highlighted
-/// in cyan (dialoguer has no cursor-arrow prefix for multi-select).
-fn wizard_theme() -> dialoguer::theme::ColorfulTheme {
-    dialoguer::theme::ColorfulTheme {
-        prompt_style: console::Style::new().for_stderr().bold(),
-        checked_item_prefix: console::style("  [x]".to_string()).for_stderr().green(),
-        unchecked_item_prefix: console::style("  [ ]".to_string()).for_stderr().dim(),
-        active_item_style: console::Style::new().for_stderr().cyan(),
-        values_style: console::Style::new().for_stderr().green(),
-        ..Default::default()
-    }
-}
-
 /// Interactive setup: multiselect over all clients, pre-checked where installed.
 fn setup_wizard(
     ctx: &mut CommandContext,
@@ -264,12 +251,12 @@ fn setup_wizard(
         .collect();
     let items: Vec<&str> = clients::SPECS.iter().map(|s| s.name).collect();
 
-    let selections = dialoguer::MultiSelect::with_theme(&wizard_theme())
-        .with_prompt("Select agents to configure with the Anaconda MCP service")
-        .items(&items)
-        .defaults(&installed)
-        .interact()
-        .map_err(|e| miette!("Setup aborted: {e}"))?;
+    let selections = crate::input::multiselect(
+        "Select agents to configure with the Anaconda MCP service",
+        &items,
+        &installed,
+    )
+    .map_err(|e| miette!("Setup aborted: {e}"))?;
 
     let is_selected = |idx: usize| selections.contains(&idx);
     let adds: Vec<&clients::ClientSpec> = clients::SPECS
