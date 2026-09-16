@@ -10,14 +10,14 @@ pub enum McpClient {
     Codex,
     #[value(name = "cursor")]
     Cursor,
+    #[value(name = "devin", alias = "windsurf")]
+    Devin,
     #[value(name = "kilo")]
     Kilo,
     #[value(name = "opencode")]
     Opencode,
     #[value(name = "vscode")]
     Vscode,
-    #[value(name = "windsurf")]
-    Windsurf,
 }
 
 impl McpClient {
@@ -26,10 +26,10 @@ impl McpClient {
             McpClient::ClaudeCode => "claude-code",
             McpClient::Codex => "codex",
             McpClient::Cursor => "cursor",
+            McpClient::Devin => "devin",
             McpClient::Kilo => "kilo",
             McpClient::Opencode => "opencode",
             McpClient::Vscode => "vscode",
-            McpClient::Windsurf => "windsurf",
         }
     }
 }
