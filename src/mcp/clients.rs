@@ -226,7 +226,10 @@ fn remove_jsonc_entry(
     server_name: &str,
 ) -> miette::Result<Option<String>> {
     let root = parse_jsonc(path, text)?;
-    let Some(servers) = root.object_value().and_then(|obj| obj.object_value(config_key)) else {
+    let Some(servers) = root
+        .object_value()
+        .and_then(|obj| obj.object_value(config_key))
+    else {
         return Ok(None);
     };
     match servers.get(server_name) {
@@ -756,7 +759,10 @@ mod tests {
     fn with_home<T>(dir: &Path, f: impl FnOnce() -> T) -> T {
         let home = dir.to_string_lossy().to_string();
         temp_env::with_vars(
-            [("HOME", Some(home.as_str())), ("USERPROFILE", Some(home.as_str()))],
+            [
+                ("HOME", Some(home.as_str())),
+                ("USERPROFILE", Some(home.as_str())),
+            ],
             f,
         )
     }
@@ -795,11 +801,19 @@ mod tests {
             configure("kilo", "anaconda-mcp", URL, TOKEN, false).unwrap();
             assert!(!kilo_dir.join("kilo.json").exists());
             assert!(is_installed("kilo", "anaconda-mcp"));
-            assert!(std::fs::read_to_string(&jsonc).unwrap().contains("// keep me"));
+            assert!(
+                std::fs::read_to_string(&jsonc)
+                    .unwrap()
+                    .contains("// keep me")
+            );
 
             remove("kilo", "anaconda-mcp", false).unwrap();
             assert!(!is_installed("kilo", "anaconda-mcp"));
-            assert!(std::fs::read_to_string(&jsonc).unwrap().contains("// keep me"));
+            assert!(
+                std::fs::read_to_string(&jsonc)
+                    .unwrap()
+                    .contains("// keep me")
+            );
         });
     }
 
@@ -828,7 +842,11 @@ mod tests {
             assert_eq!(result.configs.len(), 1);
             assert_eq!(result.configs[0].config_path, json);
             assert!(!is_installed("kilo", "anaconda-mcp"));
-            assert!(std::fs::read_to_string(&jsonc).unwrap().contains("// keep me"));
+            assert!(
+                std::fs::read_to_string(&jsonc)
+                    .unwrap()
+                    .contains("// keep me")
+            );
             assert!(
                 !std::fs::read_to_string(&json)
                     .unwrap()
@@ -864,7 +882,11 @@ mod tests {
             assert_eq!(result.configs[0].config_path, jsonc);
             assert_eq!(result.configs[1].config_path, json);
             assert!(!is_installed("kilo", "anaconda-mcp"));
-            assert!(std::fs::read_to_string(&jsonc).unwrap().contains("// keep me"));
+            assert!(
+                std::fs::read_to_string(&jsonc)
+                    .unwrap()
+                    .contains("// keep me")
+            );
             assert!(
                 !std::fs::read_to_string(&jsonc)
                     .unwrap()
@@ -914,7 +936,10 @@ mod tests {
         assert_eq!(updated.matches("anaconda-mcp").count(), 1);
 
         std::fs::write(&path, &updated).unwrap();
-        assert_eq!(load_json(&path)["mcp"]["anaconda-mcp"]["url"], "https://new.example/api/mcp");
+        assert_eq!(
+            load_json(&path)["mcp"]["anaconda-mcp"]["url"],
+            "https://new.example/api/mcp"
+        );
 
         let removed = remove_jsonc_entry(&path, &updated, "mcp", "anaconda-mcp")
             .unwrap()
