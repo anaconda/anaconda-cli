@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-15T15:30:02Z<br>
+Generated: 2026-09-16T19:04:12Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 465 (64 platform-specific)<br>
+Packages: 463 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
@@ -90,7 +90,6 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [defmt-macros](https://crates.io/crates/defmt-macros) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [defmt-parser](https://crates.io/crates/defmt-parser) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [deranged](https://crates.io/crates/deranged) | 0.5.8 | MIT OR Apache-2.0 |  |  |
-| [dialoguer](https://crates.io/crates/dialoguer) | 0.12.0 | MIT |  |  |
 | [digest](https://crates.io/crates/digest) | 0.10.7 | MIT OR Apache-2.0 |  |  |
 | [digest](https://crates.io/crates/digest) | 0.11.3 | MIT OR Apache-2.0 |  |  |
 | [dirs](https://crates.io/crates/dirs) | 6.0.0 | MIT OR Apache-2.0 |  |  |
@@ -336,7 +335,6 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [sha2](https://crates.io/crates/sha2) | 0.10.9 | MIT OR Apache-2.0 |  |  |
 | [sha2](https://crates.io/crates/sha2) | 0.11.0 | MIT OR Apache-2.0 |  |  |
 | [sharded-slab](https://crates.io/crates/sharded-slab) | 0.1.7 | MIT |  |  |
-| [shell-words](https://crates.io/crates/shell-words) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [shlex](https://crates.io/crates/shlex) | 2.0.1 | MIT OR Apache-2.0 |  |  |
 | [signal-hook](https://crates.io/crates/signal-hook) | 0.4.4 | MIT OR Apache-2.0 | linux, macos |  |
 | [signal-hook-registry](https://crates.io/crates/signal-hook-registry) | 1.4.8 | MIT OR Apache-2.0 | linux, macos |  |
@@ -487,8 +485,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 251 |
-| MIT | 88 |
+| MIT OR Apache-2.0 | 250 |
+| MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
 | BSD-3-Clause | 19 |

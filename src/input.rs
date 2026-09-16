@@ -146,7 +146,9 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
 
     term.hide_cursor().map_err(|e| e.to_string())?;
     let outcome = loop {
-        if rendered > 0 && let Err(e) = term.clear_last_lines(rendered) {
+        if rendered > 0
+            && let Err(e) = term.clear_last_lines(rendered)
+        {
             break Err(e.to_string());
         }
 
@@ -202,9 +204,7 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
                     let _ = write!(
                         finished,
                         "{} ",
-                        console::style(selections.join(", "))
-                            .for_stderr()
-                            .green()
+                        console::style(selections.join(", ")).for_stderr().green()
                     );
                 }
                 let _ = term.write_line(finished.trim_end());
@@ -218,7 +218,7 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
             }
             Ok(Key::Escape) => break Err("cancelled by user".to_string()),
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {
-                break Err("cancelled by user".to_string())
+                break Err("cancelled by user".to_string());
             }
             Err(e) => break Err(e.to_string()),
             _ => {}

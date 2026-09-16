@@ -186,13 +186,12 @@ fn remove_wizard(name: &str, no_backup: bool, json: bool) -> miette::Result<()> 
     }
 
     let items: Vec<&str> = installed.iter().map(|s| s.name).collect();
-    let selections =
-        crate::input::multiselect(
-            "Select agents to remove the Anaconda MCP service from",
-            &items,
-            &[],
-        )
-        .map_err(|e| miette!("Remove aborted: {e}"))?;
+    let selections = crate::input::multiselect(
+        "Select agents to remove the Anaconda MCP service from",
+        &items,
+        &[],
+    )
+    .map_err(|e| miette!("Remove aborted: {e}"))?;
 
     if selections.is_empty() {
         status::info("No changes.");
