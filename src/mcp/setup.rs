@@ -28,15 +28,17 @@ fn print_configured(action: &str, client: &str, result: &clients::ConfigureResul
     print_backup(&result.backup_path);
 }
 
-/// Success line for a removed client entry.
+/// Success lines for a removed client entry.
 fn print_removed(client: &str, result: &clients::RemoveResult) {
-    status::success(&format!(
-        "Removed '{}' from {} config: {}",
-        result.server_name,
-        status::highlight(client),
-        status::dim(&result.config_path.display().to_string())
-    ));
-    print_backup(&result.backup_path);
+    for config in &result.configs {
+        status::success(&format!(
+            "Removed '{}' from {} config: {}",
+            result.server_name,
+            status::highlight(client),
+            status::dim(&config.config_path.display().to_string())
+        ));
+        print_backup(&config.backup_path);
+    }
 }
 
 fn print_backup(backup_path: &Option<std::path::PathBuf>) {
@@ -347,11 +349,20 @@ fn configure_json(result: &clients::ConfigureResult) -> Value {
 }
 
 fn remove_json(result: &clients::RemoveResult) -> Value {
+    let configs: Vec<Value> = result
+        .configs
+        .iter()
+        .map(|config| {
+            json!({
+                "config_path": config.config_path.display().to_string(),
+                "backup_path": config.backup_path.as_ref().map(|p| p.display().to_string()),
+            })
+        })
+        .collect();
     json!({
-        "config_path": result.config_path.display().to_string(),
-        "backup_path": result.backup_path.as_ref().map(|p| p.display().to_string()),
         "server_name": result.server_name,
         "removed": result.removed,
+        "configs": configs,
     })
 }
 
@@ -377,13 +388,26 @@ mod tests {
     #[test]
     fn test_remove_json_shape() {
         let result = clients::RemoveResult {
-            config_path: "/tmp/mcp.json".into(),
-            backup_path: None,
             server_name: "anaconda-mcp".into(),
             removed: true,
+            configs: vec![
+                clients::RemovedConfig {
+                    config_path: "/tmp/kilo.jsonc".into(),
+                    backup_path: Some("/tmp/kilo.20260915.backup.jsonc".into()),
+                },
+                clients::RemovedConfig {
+                    config_path: "/tmp/kilo.json".into(),
+                    backup_path: None,
+                },
+            ],
         };
         let value = remove_json(&result);
         assert_eq!(value["removed"], true);
-        assert!(value["backup_path"].is_null());
+        assert_eq!(value["configs"][0]["config_path"], "/tmp/kilo.jsonc");
+        assert_eq!(
+            value["configs"][0]["backup_path"],
+            "/tmp/kilo.20260915.backup.jsonc"
+        );
+        assert!(value["configs"][1]["backup_path"].is_null());
     }
 }

@@ -63,6 +63,7 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 opentelemetry = "0.31.0"
 owo-colors = { version = "4", features = ["supports-colors"] }
 url = "2.5.8"
+jsonc-parser = { version = "0.33.2", features = ["cst", "serde", "serde_json"] }
 
 [dev-dependencies]
 serial_test = "3"
