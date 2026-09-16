@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:b71864ac-76a5-4bea-858b-9e870a5ae45b",
+  "serialNumber": "urn:uuid:3fd04213-6855-459e-9c9f-191a8f6989e0",
   "metadata": {
-    "timestamp": "2026-09-16T19:04:12Z",
+    "timestamp": "2026-09-16T19:41:00Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -5137,6 +5137,33 @@
         {
           "type": "vcs",
           "url": "https://github.com/rust-lang/jobserver-rs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#jsonc-parser@0.33.2",
+      "author": "David Sherret <dsherret@gmail.com>",
+      "name": "jsonc-parser",
+      "version": "0.33.2",
+      "description": "JSONC parser.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9ff5a48f48971be8e762a6ff955725a0802b6e46c441057992da5a673db9fd3a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/jsonc-parser@0.33.2",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/dprint/jsonc-parser"
         }
       ]
     },
@@ -14394,6 +14421,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#futures-util@0.3.33",
         "registry+https://github.com/rust-lang/crates.io-index#http@1.4.2",
         "registry+https://github.com/rust-lang/crates.io-index#indicatif@0.18.6",
+        "registry+https://github.com/rust-lang/crates.io-index#jsonc-parser@0.33.2",
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
         "registry+https://github.com/rust-lang/crates.io-index#log@0.4.33",
         "registry+https://github.com/rust-lang/crates.io-index#miette@7.6.0",
@@ -15611,6 +15639,13 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.3",
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+      ]
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#jsonc-parser@0.33.2",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
+        "registry+https://github.com/rust-lang/crates.io-index#serde_json@1.0.151"
       ]
     },
     {
