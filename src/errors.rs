@@ -169,6 +169,58 @@ pub enum ToolError {
 )]
 pub struct OuterboundsNotConfiguredError;
 
+/// Error when tool management is unavailable (conda-package build).
+#[cfg(not(tool_install))]
+#[derive(Error, Debug, Diagnostic)]
+#[error("Tool management is not available in the conda package.")]
+#[diagnostic(
+    code(ana::tool::conda_package),
+    help(
+        "When installed as a conda package, tools are managed by conda.\n\
+         To use `ana tool install/uninstall`, install ana standalone:\n\
+         \n\
+         curl -fsSL https://anaconda.sh | bash"
+    )
+)]
+pub struct ToolManagementUnavailableError;
+
+/// Errors for MCP client configuration.
+#[derive(Error, Debug, Diagnostic)]
+pub enum McpError {
+    /// An auth token is required to write remote MCP client configs.
+    #[error("An authentication token is required to configure MCP clients.")]
+    #[diagnostic(
+        code(ana::mcp::auth_required),
+        help("Run `ana login` to authenticate.")
+    )]
+    AuthRequired,
+
+    /// The client's config file does not exist.
+    #[error("Config file not found: {0}")]
+    #[diagnostic(code(ana::mcp::config_not_found))]
+    ConfigNotFound(std::path::PathBuf),
+
+    /// The named server entry is not present in the client's config.
+    #[error("Server '{server}' not found in {client} config.")]
+    #[diagnostic(code(ana::mcp::server_not_found))]
+    ServerNotFound { server: String, client: String },
+
+    /// The client name is not supported.
+    #[error("Unsupported client: '{0}'. Run `ana mcp clients` to see supported clients.")]
+    #[diagnostic(code(ana::mcp::unsupported_client))]
+    UnsupportedClient(String),
+}
+
+/// Error when self-update is unavailable.
+#[cfg(not(self_update))]
+#[derive(Error, Debug, Diagnostic)]
+#[error("Self-update is not available in this build.")]
+#[diagnostic(
+    code(ana::self_update::unavailable),
+    help("If installed via conda, update with:\n\n    conda update ana-cli")
+)]
+pub struct SelfUpdateUnavailableError;
+
 /// Authentication errors (re-exported from auth module for convenience).
 pub use crate::auth::errors::AuthError;
 

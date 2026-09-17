@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-09T05:04:54Z<br>
+Generated: 2026-09-16T19:41:00Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 457 (59 platform-specific)<br>
+Packages: 464 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**Security advisories: 0 found at this time**
+<br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
 ## Packages
 
@@ -53,8 +53,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cargo-lock](https://crates.io/crates/cargo-lock) | 11.0.1 | Apache-2.0 OR MIT |  |  |
 | [cc](https://crates.io/crates/cc) | 1.3.0 | MIT OR Apache-2.0 |  |  |
 | [cfg-if](https://crates.io/crates/cfg-if) | 1.0.4 | MIT OR Apache-2.0 |  |  |
-| [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.2 | MIT | linux, macos |  |
-| [chacha20](https://crates.io/crates/chacha20) | 0.10.1 | MIT OR Apache-2.0 |  |  |
+| [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.2 | MIT |  |  |
+| [chacha20](https://crates.io/crates/chacha20) | 0.10.2 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  |  |
 | [clap](https://crates.io/crates/clap) | 4.6.6 | MIT OR Apache-2.0 |  |  |
 | [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.6 | MIT OR Apache-2.0 |  |  |
@@ -94,6 +94,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [digest](https://crates.io/crates/digest) | 0.11.3 | MIT OR Apache-2.0 |  |  |
 | [dirs](https://crates.io/crates/dirs) | 6.0.0 | MIT OR Apache-2.0 |  |  |
 | [dirs-sys](https://crates.io/crates/dirs-sys) | 0.5.0 | MIT OR Apache-2.0 |  |  |
+| [dispatch2](https://crates.io/crates/dispatch2) | 0.3.1 | Zlib OR Apache-2.0 OR MIT | macos |  |
 | [displaydoc](https://crates.io/crates/displaydoc) | 0.2.6 | MIT OR Apache-2.0 |  |  |
 | [document-features](https://crates.io/crates/document-features) | 0.2.12 | MIT OR Apache-2.0 |  |  |
 | [dyn-clone](https://crates.io/crates/dyn-clone) | 1.0.20 | MIT OR Apache-2.0 |  |  |
@@ -135,7 +136,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [getrandom](https://crates.io/crates/getrandom) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [gimli](https://crates.io/crates/gimli) | 0.32.3 | MIT OR Apache-2.0 | linux, macos |  |
 | [glob](https://crates.io/crates/glob) | 0.3.4 | MIT OR Apache-2.0 |  |  |
-| [h2](https://crates.io/crates/h2) | 0.4.15 | MIT |  |  |
+| [h2](https://crates.io/crates/h2) | 0.4.15 | MIT |  | 1 |
 | [halfbrown](https://crates.io/crates/halfbrown) | 0.4.0 | Apache-2.0 OR MIT |  |  |
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.12.3 | MIT OR Apache-2.0 |  |  |
 | [hashbrown](https://crates.io/crates/hashbrown) | 0.14.5 | MIT OR Apache-2.0 |  |  |
@@ -183,6 +184,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [jiff](https://crates.io/crates/jiff) | 0.2.34 | Unlicense OR MIT |  |  |
 | [jiff-core](https://crates.io/crates/jiff-core) | 0.1.0 | Unlicense OR MIT |  |  |
 | [jobserver](https://crates.io/crates/jobserver) | 0.1.35 | MIT OR Apache-2.0 |  |  |
+| [jsonc-parser](https://crates.io/crates/jsonc-parser) | 0.33.2 | MIT |  |  |
 | [known-folders](https://crates.io/crates/known-folders) | 1.4.2 | Apache-2.0 OR MIT | windows |  |
 | [lazy-regex](https://crates.io/crates/lazy-regex) | 3.6.0 | MIT |  |  |
 | [lazy-regex-proc\_macros](https://crates.io/crates/lazy-regex-proc_macros) | 3.6.0 | MIT |  |  |
@@ -216,6 +218,11 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [num-conv](https://crates.io/crates/num-conv) | 0.2.2 | MIT OR Apache-2.0 |  |  |
 | [num-traits](https://crates.io/crates/num-traits) | 0.2.19 | MIT OR Apache-2.0 |  |  |
 | [num\_cpus](https://crates.io/crates/num_cpus) | 1.17.0 | MIT OR Apache-2.0 |  |  |
+| [objc2](https://crates.io/crates/objc2) | 0.6.4 | MIT | macos |  |
+| [objc2-app-kit](https://crates.io/crates/objc2-app-kit) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macos |  |
+| [objc2-core-foundation](https://crates.io/crates/objc2-core-foundation) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macos |  |
+| [objc2-encode](https://crates.io/crates/objc2-encode) | 4.1.0 | MIT | macos |  |
+| [objc2-foundation](https://crates.io/crates/objc2-foundation) | 0.3.2 | MIT | macos |  |
 | [object](https://crates.io/crates/object) | 0.37.3 | Apache-2.0 OR MIT | linux, macos |  |
 | [once\_cell](https://crates.io/crates/once_cell) | 1.21.4 | MIT OR Apache-2.0 |  |  |
 | [once\_cell\_polyfill](https://crates.io/crates/once_cell_polyfill) | 1.70.2 | MIT OR Apache-2.0 | windows |  |
@@ -299,7 +306,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
 | [rustc\_version\_runtime](https://crates.io/crates/rustc_version_runtime) | 0.3.0 | MIT |  |  |
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
-| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  |  |
+| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 1 |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.15.0 | MIT OR Apache-2.0 |  |  |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.13 | ISC |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
@@ -423,7 +430,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [version\_check](https://crates.io/crates/version_check) | 0.9.5 | MIT OR Apache-2.0 |  |  |
 | [wait-timeout](https://crates.io/crates/wait-timeout) | 0.2.1 | MIT OR Apache-2.0 |  |  |
 | [want](https://crates.io/crates/want) | 0.3.1 | MIT |  |  |
-| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.1 | MIT OR Apache-2.0 |  |  |
+| [webbrowser](https://crates.io/crates/webbrowser) | 1.2.2 | MIT OR Apache-2.0 |  |  |
 | [which](https://crates.io/crates/which) | 8.0.5 | MIT |  |  |
 | [winapi](https://crates.io/crates/winapi) | 0.3.9 | MIT OR Apache-2.0 | windows |  |
 | [windows](https://crates.io/crates/windows) | 0.52.0 | MIT OR Apache-2.0 | windows |  |
@@ -468,17 +475,25 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zstd-safe](https://crates.io/crates/zstd-safe) | 7.2.4 | MIT OR Apache-2.0 |  |  |
 | [zstd-sys](https://crates.io/crates/zstd-sys) | 2.0.16+zstd.1.5.7 | MIT OR Apache-2.0 |  |  |
 
+## Security Advisories
+
+| Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
+| --- | --- | --- | :---: | :---: | --- |
+| h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+
 ## License Summary
 
 | License | Count |
 | --- | ---: |
 | MIT OR Apache-2.0 | 250 |
-| MIT | 84 |
+| MIT | 88 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
 | BSD-3-Clause | 19 |
 | Unicode-3.0 | 18 |
 | Unlicense OR MIT | 4 |
+| Zlib OR Apache-2.0 OR MIT | 4 |
 | ISC | 3 |
 | Apache-2.0 OR BSD-2-Clause | 2 |
 | Apache-2.0 OR ISC OR MIT | 2 |
@@ -496,5 +511,4 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | MIT OR Apache-2.0 OR Zlib | 1 |
 | MIT OR LGPL-3.0-or-later | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
-| Zlib OR Apache-2.0 OR MIT | 1 |
 | bzip2-1.0.6 | 1 |

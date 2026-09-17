@@ -6,7 +6,7 @@ set -euo pipefail
 export ANA_ENABLE_TELEMETRY=false
 export RUST_LOG=off
 
-BINFILE=$(dirname "$RECIPE_DIR")/target/release/ana
+BINFILE=$(dirname "$RECIPE_DIR")/target/conda-package/release/ana
 echo "Binary path: $BINFILE"
 if [ ! -x "$BINFILE" ]; then
   echo "FAIL: Release binary not found"

@@ -11,13 +11,30 @@ import pytest
 from helpers import AnaRunner
 from mock_auth_server import MockAuthServer
 
-MAIN_CHANNEL = "https://repo.anaconda.cloud/repo/main"
+# Free tier URLs (mock auth server doesn't return premium subscription)
+# main-x is always from .cloud/repo, others are from .com/pkgs for free users
 MAIN_X_CHANNEL = "https://repo.anaconda.cloud/repo/main-x"
-MSYS2_CHANNEL = "https://repo.anaconda.cloud/repo/msys2"
-R_CHANNEL = "https://repo.anaconda.cloud/repo/r"
+MAIN_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/main"
+MSYS2_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/msys2"
+R_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/r"
 
-# All required default_channels when main-x is enabled
-REQUIRED_DEFAULT_CHANNELS = [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]
+# Premium tier URLs (all from .cloud/repo)
+MAIN_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/main"
+MSYS2_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/msys2"
+R_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/r"
+
+# Aliases for pixi tests that use real API keys (which have premium subscriptions)
+MAIN_CHANNEL = MAIN_CHANNEL_PREMIUM
+MSYS2_CHANNEL = MSYS2_CHANNEL_PREMIUM
+R_CHANNEL = R_CHANNEL_PREMIUM
+
+# All required default_channels when main-x is enabled (free tier, for mock auth tests)
+REQUIRED_DEFAULT_CHANNELS = [
+    MAIN_X_CHANNEL,
+    MAIN_CHANNEL_FREE,
+    MSYS2_CHANNEL_FREE,
+    R_CHANNEL_FREE,
+]
 
 
 def is_conda_available() -> bool:
@@ -169,6 +186,59 @@ def pixi_feature_env(
         "ANA_KEYRING_PATH": str(keyring_path),
         "ANA_OPEN_BROWSER": "false",
     }
+
+
+@pytest.fixture
+def conda_and_pixi_feature_env(
+    conda_isolated_env: dict[str, str],
+    pixi_isolated_env: dict[str, str],
+    mock_auth_server: MockAuthServer,
+    keyring_path: Path,
+) -> dict[str, str]:
+    """Environment for cross-tool main-x tests: isolated conda AND pixi
+    together, so checks against one tool's config never see the other
+    tool's real, ambient (non-test) configuration on the machine running
+    the tests.
+    """
+    return {
+        **conda_isolated_env,
+        **pixi_isolated_env,
+        "ANA_DOMAIN": mock_auth_server.domain,
+        "ANA_KEYRING_PATH": str(keyring_path),
+        "ANA_OPEN_BROWSER": "false",
+        "ANA_USE_HTTPS": "false",
+    }
+
+
+@pytest.fixture
+def run_ana_conda_and_pixi_feature(
+    ana_binary: Path | None,
+    conda_and_pixi_feature_env: dict[str, str],
+) -> AnaRunner:
+    """Provide a function to run ana with isolated conda AND pixi configs."""
+    if ana_binary is None:
+        pytest.skip(
+            "ana binary not found. Build with 'pixi run build-release' or set ANA_BINARY_PATH"
+        )
+
+    def _run(
+        *args: str,
+        env: dict[str, str] | None = None,
+        input: str | None = None,
+        cwd: Path | str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        merged_env = {**conda_and_pixi_feature_env, **(env or {})}
+        return subprocess.run(
+            [str(ana_binary), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=merged_env,
+            input=input,
+            cwd=cwd,
+        )
+
+    return _run
 
 
 @pytest.fixture
@@ -614,7 +684,7 @@ class TestMainXEnable:
         run_ana_feature: AnaRunner,
         feature_env: dict[str, str],
     ) -> None:
-        """Enabling main-x when already enabled should succeed with 'already enabled' message."""
+        """Enabling main-x when already enabled should succeed and ensure correct config."""
         # Pre-configure all required default_channels
         condarc_path = Path(feature_env["CONDARC"])
         default_channels_yaml = "\n".join(
@@ -628,10 +698,157 @@ class TestMainXEnable:
         login_result = run_ana_feature("login")
         assert login_result.returncode == 0
 
-        # Try to enable main-x again
+        # Try to enable main-x again - should succeed and reconfigure channels
         result = run_ana_feature("feature", "enable", "main-x", "-f")
         assert result.returncode == 0
-        assert "already enabled" in result.stderr.lower()
+
+        # Verify channels are still correctly configured
+        final_channels = get_default_channels(feature_env)
+        for ch in REQUIRED_DEFAULT_CHANNELS:
+            assert ch in final_channels, f"Expected {ch} in final channels"
+
+    def test_enable_main_x_correct_order(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x should configure channels with main before main-x."""
+        # Login first via mock server
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_correct_order_with_main_preconfigured(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when main is already configured should keep main before main-x."""
+        # Pre-configure only main channel
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_CHANNEL_FREE}\n"
+        )
+
+        # Login first
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_correct_order_with_main_x_preconfigured(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when only main-x is configured should add main before it."""
+        # Pre-configure only main-x channel (wrong - missing main)
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
+
+        # Login first
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_correct_order_with_extra_channels(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x with other channels configured should preserve order."""
+        # Pre-configure with conda-forge and some existing channels
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            "channels:\n  - conda-forge\n  - defaults\n"
+            "default_channels:\n  - https://conda.anaconda.org/conda-forge\n"
+        )
+
+        # Login first
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_default_channels(feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL_FREE:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
 
     def test_enable_main_x_requires_login(
         self,
@@ -821,6 +1038,136 @@ class TestMainXEndToEnd:
         assert MAIN_X_CHANNEL not in channels_after_disable
 
 
+@requires_conda
+@requires_api_key
+class TestMainXCondaPackageInstall:
+    """E2E tests for installing packages from main-x via conda.
+
+    These tests require ANA_TEST_API_KEY to be set because they download
+    actual packages from repo.anaconda.cloud which requires authentication.
+    """
+
+    def test_can_install_package_from_main_x(
+        self,
+        ana_binary: Path | None,
+        conda_isolated_env: dict[str, str],
+        tmp_path: Path,
+    ) -> None:
+        """Verify that after enabling main-x, we can actually install packages from it."""
+        if ana_binary is None:
+            pytest.skip("ana binary not found")
+
+        # Set up isolated environment with API key auth
+        # Don't override ANA_KEYRING_PATH - use the default ~/.anaconda/keyring
+        # so both ana and anaconda-auth plugin use the same keyring file
+        api_key = get_test_api_key()
+        assert api_key is not None  # guaranteed by @requires_api_key
+
+        env = {
+            **conda_isolated_env,
+            "ANA_OPEN_BROWSER": "false",
+            "ANACONDA_AUTH_USE_UNIFIED_REPO_API_KEY": "1",
+        }
+
+        # Login with API key
+        login_result = subprocess.run(
+            [str(ana_binary), "login", api_key, "-f"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=30,
+        )
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        enable_result = subprocess.run(
+            [str(ana_binary), "feature", "enable", "main-x", "-f"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=30,
+        )
+        assert enable_result.returncode == 0, f"Enable failed: {enable_result.stderr}"
+
+        # Create a temporary conda environment and install a package from main-x
+        # The channels are configured in .condarc by enable main-x, so conda will use
+        # the anaconda-auth plugin to authenticate downloads from those channels
+        conda_env_path = tmp_path / "test_env"
+
+        # Create env and install abn package using the configured default channels
+        install_result = subprocess.run(
+            [
+                "conda",
+                "create",
+                "-p",
+                str(conda_env_path),
+                "abn",
+                "-y",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=120,
+        )
+
+        # Install should succeed when authenticated
+        assert install_result.returncode == 0, (
+            f"Install failed: {install_result.stderr}\nstdout: {install_result.stdout}"
+        )
+
+        # Cleanup: disable main-x
+        subprocess.run(
+            [str(ana_binary), "feature", "disable", "main-x", "-f"],
+            capture_output=True,
+            env=env,
+            timeout=30,
+        )
+
+    def test_cannot_install_from_main_x_without_auth(
+        self,
+        conda_isolated_env: dict[str, str],
+        tmp_path: Path,
+    ) -> None:
+        """Verify that installing from main-x without authentication fails with 403."""
+        # Create a temporary conda environment without auth
+        conda_env_path = tmp_path / "test_env"
+
+        # Try to create env and install from main-x without auth
+        install_result = subprocess.run(
+            [
+                "conda",
+                "create",
+                "-p",
+                str(conda_env_path),
+                "-c",
+                MAIN_X_CHANNEL,
+                "-c",
+                MAIN_CHANNEL_PREMIUM,
+                "abn",
+                "-y",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=conda_isolated_env,
+            timeout=120,
+        )
+
+        # Should fail - either 403 Forbidden or token not found error
+        assert install_result.returncode != 0, "Install should fail without auth"
+        assert (
+            "403" in install_result.stderr
+            or "Forbidden" in install_result.stderr
+            or "unauthorized" in install_result.stderr.lower()
+            or "Token not found" in install_result.stderr
+            or "403" in install_result.stdout
+            or "Forbidden" in install_result.stdout
+        ), f"Expected auth error, got: {install_result.stderr}"
+
+
 # =============================================================================
 # Pixi Main-X Tests
 # =============================================================================
@@ -864,8 +1211,110 @@ class TestMainXPixiEnable:
         pixi_feature_env: dict[str, str],
     ) -> None:
         """Enabling main-x with --pixi when already enabled should succeed."""
-        # Pre-configure both main and main-x channels via pixi config
-        # (both are required for "already enabled" since the feature adds both)
+        # Pre-configure all 4 required channels via pixi config
+        # (all are required for "already enabled")
+        for channel in [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]:
+            subprocess.run(
+                ["pixi", "config", "prepend", "--global", "default-channels", channel],
+                env=pixi_feature_env,
+                check=True,
+            )
+
+        # Verify all channels are configured
+        initial_channels = get_pixi_channels(pixi_feature_env)
+        assert MAIN_X_CHANNEL in initial_channels
+        assert MAIN_CHANNEL in initial_channels
+        assert MSYS2_CHANNEL in initial_channels
+        assert R_CHANNEL in initial_channels
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Try to enable main-x again
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0
+        assert "already enabled" in result.stderr.lower()
+
+    def test_enable_main_x_pixi_correct_order(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x with --pixi should configure channels with main before main-x."""
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_pixi_correct_order_with_main_preconfigured(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when main is already configured should insert main-x after main."""
+        # Pre-configure main channel only
+        subprocess.run(
+            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_pixi_correct_order_with_main_x_preconfigured(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x when only main-x is configured should add main before it."""
+        # Pre-configure only main-x (wrong - missing main)
         subprocess.run(
             [
                 "pixi",
@@ -878,26 +1327,78 @@ class TestMainXPixiEnable:
             env=pixi_feature_env,
             check=True,
         )
-        subprocess.run(
-            ["pixi", "config", "prepend", "--global", "default-channels", MAIN_CHANNEL],
-            env=pixi_feature_env,
-            check=True,
-        )
-
-        # Verify both channels are configured
-        initial_channels = get_pixi_channels(pixi_feature_env)
-        assert MAIN_X_CHANNEL in initial_channels
-        assert MAIN_CHANNEL in initial_channels
 
         # Login with API key
         api_key = get_test_api_key()
         login_result = run_ana_pixi_feature("login", api_key, "-f")
         assert login_result.returncode == 0
 
-        # Try to enable main-x again
+        # Enable main-x
         result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
-        assert result.returncode == 0
-        assert "already enabled" in result.stderr.lower()
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
+
+    def test_enable_main_x_pixi_correct_order_with_extra_channels(
+        self,
+        run_ana_pixi_feature: AnaRunner,
+        pixi_feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x with other channels configured should preserve main before main-x."""
+        # Pre-configure conda-forge
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                "https://conda.anaconda.org/conda-forge",
+            ],
+            env=pixi_feature_env,
+            check=True,
+        )
+
+        # Login with API key
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
+
+        # Enable main-x
+        result = run_ana_pixi_feature("feature", "enable", "main-x", "--pixi", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        # Verify channel order: main should come before main-x
+        final_channels = get_pixi_channels(pixi_feature_env)
+        main_pos = None
+        main_x_pos = None
+        for i, ch in enumerate(final_channels):
+            if ch == MAIN_CHANNEL:
+                main_pos = i
+            elif ch == MAIN_X_CHANNEL:
+                main_x_pos = i
+
+        assert main_pos is not None, f"main channel not found in {final_channels}"
+        assert main_x_pos is not None, f"main-x channel not found in {final_channels}"
+        assert main_pos < main_x_pos, (
+            f"main (pos {main_pos}) should come before main-x (pos {main_x_pos}) "
+            f"in {final_channels}"
+        )
 
     def test_enable_main_x_pixi_requires_login(
         self,
@@ -1078,6 +1579,115 @@ class TestMainXPixiDisable:
         assert MAIN_X_CHANNEL not in final_channels, "main-x should be removed"
         assert MAIN_CHANNEL in final_channels, "main channel should be preserved"
         assert "conda-forge" in final_channels, "conda-forge should be preserved"
+
+
+@requires_conda
+@requires_pixi
+class TestMainXDisableCrossToolWarning:
+    """Regression tests for CLI-621: disabling main-x for one tool (conda or
+    pixi) must warn if the other tool still has it enabled, instead of
+    reporting "not enabled" in a way that reads as fully disabled.
+    """
+
+    def test_disable_conda_warns_when_pixi_still_enabled(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+        conda_and_pixi_feature_env: dict[str, str],
+    ) -> None:
+        # Enable main-x for pixi only (conda's default_channels stays clean).
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
+            env=conda_and_pixi_feature_env,
+            check=True,
+        )
+        assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
+        assert MAIN_X_CHANNEL not in get_default_channels(conda_and_pixi_feature_env)
+
+        # Disable via the conda-default path (no --pixi flag).
+        result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
+        assert result.returncode == 0
+
+        assert "not enabled for conda" in result.stderr.lower()
+        assert "still enabled for pixi" in result.stderr.lower()
+        assert "--pixi" in result.stderr
+
+        # pixi's config must be untouched by the conda-only disable.
+        assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
+
+    def test_disable_pixi_warns_when_conda_still_enabled(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+        conda_and_pixi_feature_env: dict[str, str],
+    ) -> None:
+        # Enable main-x for conda only (pixi's config stays clean).
+        condarc_path = Path(conda_and_pixi_feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
+        assert MAIN_X_CHANNEL in get_default_channels(conda_and_pixi_feature_env)
+        assert MAIN_X_CHANNEL not in get_pixi_channels(conda_and_pixi_feature_env)
+
+        result = run_ana_conda_and_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f"
+        )
+        assert result.returncode == 0
+
+        assert "not enabled for pixi" in result.stderr.lower()
+        assert "still enabled for conda" in result.stderr.lower()
+        assert "--conda" in result.stderr
+
+        # conda's config must be untouched by the pixi-only disable.
+        assert MAIN_X_CHANNEL in get_default_channels(conda_and_pixi_feature_env)
+
+    def test_disable_conda_no_warning_when_pixi_also_disabled(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+    ) -> None:
+        """No false-positive warning when neither tool has main-x enabled."""
+        result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
+        assert result.returncode == 0
+        assert "not enabled for conda" in result.stderr.lower()
+        assert "still enabled for pixi" not in result.stderr.lower()
+
+    def test_disable_conda_still_warns_after_actually_removing_channel(
+        self,
+        run_ana_conda_and_pixi_feature: AnaRunner,
+        conda_and_pixi_feature_env: dict[str, str],
+    ) -> None:
+        """The warning fires on the "successfully disabled" path too, not
+        just the "already not enabled" early-return path."""
+        condarc_path = Path(conda_and_pixi_feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
+        )
+        subprocess.run(
+            [
+                "pixi",
+                "config",
+                "prepend",
+                "--global",
+                "default-channels",
+                MAIN_X_CHANNEL,
+            ],
+            env=conda_and_pixi_feature_env,
+            check=True,
+        )
+
+        result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
+        assert result.returncode == 0
+
+        # conda's channel was actually removed...
+        assert MAIN_X_CHANNEL not in get_default_channels(conda_and_pixi_feature_env)
+        # ...but pixi's was left alone, so the warning should still show.
+        assert "still enabled for pixi" in result.stderr.lower()
+        assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
 
 
 @requires_pixi

@@ -212,8 +212,8 @@ def merge_audit(sbom: dict, audit: dict) -> None:
     vulnerabilities = sbom.setdefault("vulnerabilities", [])
 
     for entry in vuln_list:
-        advisory = entry.get("advisory", {})
-        package = entry.get("package", {})
+        advisory = entry.get("advisory") or {}
+        package = entry.get("package") or {}
 
         vuln_id = advisory.get("id", "")
         aliases = advisory.get("aliases", [])
@@ -265,8 +265,8 @@ def merge_audit(sbom: dict, audit: dict) -> None:
 
     for warn_type, warn_list in warnings.items():
         for warn_entry in warn_list:
-            advisory = warn_entry.get("advisory", {})
-            package = warn_entry.get("package", {})
+            advisory = warn_entry.get("advisory") or {}
+            package = warn_entry.get("package") or {}
             vuln_id = advisory.get("id", "")
 
             affects = []

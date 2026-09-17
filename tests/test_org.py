@@ -36,7 +36,7 @@ class TestOrg:
         assert result.returncode == 1
         assert "anaconda" in result.stderr.lower()
         assert "not found" in result.stderr.lower()
-        assert "ana tool install anaconda-cli" in result.stderr
+        assert "ana bootstrap" in result.stderr
 
     def test_org_no_args_fails_when_anaconda_cli_not_installed(
         self, run_ana: AnaRunner

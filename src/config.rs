@@ -52,6 +52,7 @@ pub fn telemetry_enabled() -> bool {
 }
 
 /// Check if background update checks are enabled.
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn update_check_enabled() -> bool {
     std::env::var("ANA_UPDATE_CHECK")
         .map(|v| parse_bool(&v))
@@ -59,6 +60,7 @@ pub fn update_check_enabled() -> bool {
 }
 
 /// Get the interval between update checks.
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn update_check_interval() -> std::time::Duration {
     const DEFAULT_HOURS: u64 = 24;
     let hours = std::env::var("ANA_UPDATE_CHECK_INTERVAL_HOURS")
@@ -69,6 +71,7 @@ pub fn update_check_interval() -> std::time::Duration {
 }
 
 /// Get the interval between showing update notifications.
+#[cfg_attr(not(self_update), allow(dead_code))]
 pub fn update_notify_interval() -> std::time::Duration {
     const DEFAULT_HOURS: u64 = 24;
     let hours = std::env::var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS")
@@ -432,6 +435,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     // Helper to create a config with specific values for testing
     fn test_config(domain: &str, ssl_verify: bool, open_browser: bool) -> Config {
@@ -517,6 +521,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_returns_valid_config() {
         let config = Config::load();
 
@@ -525,6 +530,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_is_load() {
         temp_env::with_vars_unset(vec!["ANA_AUTH_CLIENT_ID", "ANA_DOMAIN"], || {
             let default_config = Config::default();
@@ -535,6 +541,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_domain_from_env() {
         temp_env::with_var("ANA_DOMAIN", Some("custom.example.com"), || {
             let config = Config::load();
@@ -543,6 +550,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_client_id_from_env() {
         temp_env::with_var("ANA_AUTH_CLIENT_ID", Some("my-custom-client-id"), || {
             let config = Config::load();
@@ -551,6 +559,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_ssl_verify_false_from_env() {
         temp_env::with_var("ANA_SSL_VERIFY", Some("false"), || {
             let config = Config::load();
@@ -559,6 +568,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_open_browser_false_from_env() {
         temp_env::with_var("ANA_OPEN_BROWSER", Some("0"), || {
             let config = Config::load();
@@ -567,6 +577,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_keyring_path_from_env() {
         temp_env::with_var("ANA_KEYRING_PATH", Some("/custom/path/keyring"), || {
             let config = Config::load();
@@ -575,12 +586,14 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_keyring_path() {
         let config = Config::load();
         assert!(config.keyring_path.ends_with(".anaconda/keyring"));
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_use_https_false_from_env() {
         temp_env::with_var("ANA_USE_HTTPS", Some("false"), || {
             let config = Config::load();
@@ -589,6 +602,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_use_https_is_true() {
         temp_env::with_var("ANA_USE_HTTPS", None::<&str>, || {
             let config = Config::load();
@@ -610,6 +624,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_include_prereleases_false_from_env() {
         temp_env::with_var("ANA_PRERELEASES", Some("false"), || {
             let config = Config::load();
@@ -618,6 +633,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_include_prereleases_is_false() {
         temp_env::with_var("ANA_PRERELEASES", None::<&str>, || {
             let config = Config::load();
@@ -626,6 +642,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_include_prereleases_true_from_env() {
         temp_env::with_var("ANA_PRERELEASES", Some("true"), || {
             let config = Config::load();
@@ -634,6 +651,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_pip_index_url() {
         temp_env::with_var("ANA_PIP_INDEX_URL", None::<&str>, || {
             let config = Config::load();
@@ -645,6 +663,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_self_update_url() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", None::<&str>, || {
             let config = Config::load();
@@ -656,6 +675,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_pip_index_url_from_env() {
         temp_env::with_var(
             "ANA_PIP_INDEX_URL",
@@ -668,6 +688,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_self_update_url_custom() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", Some("https://example.com"), || {
             let config = Config::load();
@@ -679,6 +700,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_self_update_url_github_magic_value() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", Some("github"), || {
             let config = Config::load();
@@ -687,6 +709,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_self_update_url_github_case_insensitive() {
         temp_env::with_var("ANA_SELF_UPDATE_URL", Some("GitHub"), || {
             let config = Config::load();
@@ -736,6 +759,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_domain_strips_path() {
         temp_env::with_var("ANA_DOMAIN", Some("stage.anaconda.com/app"), || {
             let config = Config::load();
@@ -744,6 +768,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_domain_strips_scheme() {
         temp_env::with_var("ANA_DOMAIN", Some("https://stage.anaconda.com"), || {
             let config = Config::load();
@@ -752,6 +777,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_default_auto_update_tools_is_none() {
         temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", None::<&str>, || {
             let config = Config::load();
@@ -760,6 +786,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_auto_update_tools_true() {
         temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", Some("true"), || {
             let config = Config::load();
@@ -768,6 +795,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_auto_update_tools_false() {
         temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", Some("false"), || {
             let config = Config::load();
@@ -776,6 +804,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_config_load_auto_update_tools_empty_is_none() {
         temp_env::with_var("ANA_AUTO_UPDATE_TOOLS", Some(""), || {
             let config = Config::load();

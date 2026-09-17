@@ -506,9 +506,11 @@ mod tests {
     #[cfg(windows)]
     mod windows_tests {
         use super::*;
+        use serial_test::serial;
         use tempfile::TempDir;
 
         #[test]
+        #[serial(env)]
         fn test_create_bin_shim_creates_exe_and_config() {
             let temp = TempDir::new().unwrap();
             let bin_dir = temp.path().join("bin");
@@ -544,6 +546,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_create_bin_shim_skips_missing_binary() {
             let temp = TempDir::new().unwrap();
             let bin_dir = temp.path().join("bin");
@@ -563,6 +566,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_creates_new_file() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -579,6 +583,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_adds_entry() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -598,6 +603,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_updates_existing_entry() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");

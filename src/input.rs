@@ -3,6 +3,8 @@
 //! Provides reusable components for interactive terminal input:
 //! - `KeyListener`: Background key detection with Ctrl+C handling
 //! - `prompt_yes_no`: Line-based yes/no confirmation prompt
+//! - `prompt_input`: Line-based text input
+//! - `multiselect`: Interactive checkbox list with key hints
 
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
@@ -114,10 +116,125 @@ fn parse_yes_no(input: &str, default: bool) -> bool {
     }
 }
 
+/// Interactive multi-select checkbox list.
+///
+/// Renders a bold prompt, a checkbox list, and a key-hint line below the
+/// list. Arrow keys move the cursor, space toggles the active item, and
+/// enter confirms the selection. Escape or Ctrl+C aborts, returning an
+/// error. Styling matches the dialoguer `ColorfulTheme` look used
+/// previously: `[x]` prefixes in green, the active row in cyan.
+///
+/// All output goes to stderr so stdout stays clean for machine-readable
+/// output. The caller is expected to have verified stdin is a terminal.
+#[cfg_attr(not(tool_install), allow(dead_code))]
+pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Vec<usize>, String> {
+    use std::fmt::Write as _;
+
+    if items.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let term = Term::stderr();
+    let mut cursor = 0usize;
+    let mut checked: Vec<bool> = items
+        .iter()
+        .enumerate()
+        .map(|(i, _)| defaults.get(i).copied().unwrap_or(false))
+        .collect();
+    // Number of lines drawn in the previous frame (prompt + items + hint).
+    let mut rendered = 0usize;
+
+    term.hide_cursor().map_err(|e| e.to_string())?;
+    let outcome = loop {
+        if rendered > 0
+            && let Err(e) = term.clear_last_lines(rendered)
+        {
+            break Err(e.to_string());
+        }
+
+        let mut frame = format!(
+            "{} {} \n",
+            console::style("?").for_stderr().yellow(),
+            console::style(prompt).for_stderr().bold()
+        );
+        for (i, item) in items.iter().enumerate() {
+            let prefix = if checked[i] {
+                console::style("  [x]").for_stderr().green()
+            } else {
+                console::style("  [ ]").for_stderr().dim()
+            };
+            let label = if i == cursor {
+                console::style(*item).for_stderr().cyan()
+            } else {
+                console::style(*item).for_stderr()
+            };
+            let _ = writeln!(frame, "{prefix} {label}");
+        }
+        let _ = writeln!(
+            frame,
+            "  {}",
+            console::style("↑/↓ arrows to navigate · space to select · enter to complete")
+                .for_stderr()
+                .dim()
+        );
+        rendered = items.len() + 2;
+
+        if let Err(e) = term.write_str(&frame).and_then(|_| term.flush()) {
+            break Err(e.to_string());
+        }
+
+        match term.read_key() {
+            Ok(Key::ArrowUp) => cursor = (cursor + items.len() - 1) % items.len(),
+            Ok(Key::ArrowDown) => cursor = (cursor + 1) % items.len(),
+            Ok(Key::Char(' ')) => checked[cursor] = !checked[cursor],
+            Ok(Key::Enter) => {
+                let _ = term.clear_last_lines(rendered);
+                let selections: Vec<&str> = items
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| checked[*i])
+                    .map(|(_, item)| *item)
+                    .collect();
+                let mut finished = format!(
+                    "{} {} ",
+                    console::style("✔").for_stderr().green(),
+                    console::style(prompt).for_stderr().bold()
+                );
+                if !selections.is_empty() {
+                    let _ = write!(
+                        finished,
+                        "{} ",
+                        console::style(selections.join(", ")).for_stderr().green()
+                    );
+                }
+                let _ = term.write_line(finished.trim_end());
+                let _ = term.flush();
+                break Ok(checked
+                    .iter()
+                    .enumerate()
+                    .filter(|&(_, &is_checked)| is_checked)
+                    .map(|(i, _)| i)
+                    .collect());
+            }
+            Ok(Key::Escape) => break Err("cancelled by user".to_string()),
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {
+                break Err("cancelled by user".to_string());
+            }
+            Err(e) => break Err(e.to_string()),
+            _ => {}
+        }
+    };
+
+    let _ = term.show_cursor();
+    let _ = term.flush();
+    outcome
+}
+
 /// Prompt the user for text input.
 ///
 /// Displays `message` followed by `: ` and waits for input.
 /// Returns the trimmed input string, or an error if reading fails.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn prompt_input(message: &str) -> Result<String, String> {
     use std::io::Write;
     print!("{}: ", message);
