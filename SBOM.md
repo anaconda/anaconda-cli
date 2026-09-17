@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-14T17:15:29Z<br>
+Generated: 2026-09-17T16:13:52Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 467 (68 platform-specific)<br>
+Packages: 464 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
@@ -344,6 +344,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.1 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
+| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.5 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -440,14 +441,10 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [windows-future](https://crates.io/crates/windows-future) | 0.3.2 | MIT OR Apache-2.0 | windows |  |
 | [windows-implement](https://crates.io/crates/windows-implement) | 0.60.2 | MIT OR Apache-2.0 | windows |  |
 | [windows-interface](https://crates.io/crates/windows-interface) | 0.59.3 | MIT OR Apache-2.0 | windows |  |
-| [windows-link](https://crates.io/crates/windows-link) | 0.1.3 | MIT OR Apache-2.0 | windows |  |
 | [windows-link](https://crates.io/crates/windows-link) | 0.2.1 | MIT OR Apache-2.0 | windows |  |
 | [windows-numerics](https://crates.io/crates/windows-numerics) | 0.3.1 | MIT OR Apache-2.0 | windows |  |
-| [windows-registry](https://crates.io/crates/windows-registry) | 0.5.3 | MIT OR Apache-2.0 | windows |  |
 | [windows-registry](https://crates.io/crates/windows-registry) | 0.6.1 | MIT OR Apache-2.0 | windows |  |
-| [windows-result](https://crates.io/crates/windows-result) | 0.3.4 | MIT OR Apache-2.0 | windows |  |
 | [windows-result](https://crates.io/crates/windows-result) | 0.4.1 | MIT OR Apache-2.0 | windows |  |
-| [windows-strings](https://crates.io/crates/windows-strings) | 0.4.2 | MIT OR Apache-2.0 | windows |  |
 | [windows-strings](https://crates.io/crates/windows-strings) | 0.5.1 | MIT OR Apache-2.0 | windows |  |
 | [windows-sys](https://crates.io/crates/windows-sys) | 0.52.0 | MIT OR Apache-2.0 | windows |  |
 | [windows-sys](https://crates.io/crates/windows-sys) | 0.59.0 | MIT OR Apache-2.0 | windows |  |
@@ -489,7 +486,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 254 |
+| MIT OR Apache-2.0 | 251 |
 | MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |

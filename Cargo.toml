@@ -44,7 +44,7 @@ rattler = { version = "0.48", default-features = false, features = ["indicatif"]
 rattler_cache = { version = "0.10", default-features = false, optional = true }
 rattler_conda_types = { version = "0.50", default-features = false, optional = true }
 rattler_lock = { version = "0.32", default-features = false, optional = true }
-conda-ship = { git = "https://github.com/jezdez/conda-ship", tag = "0.9.1", default-features = false, features = ["fleet", "native-tls"], optional = true }
+conda-ship = { git = "https://github.com/conda-incubator/conda-ship", tag = "0.9.2", default-features = false, features = ["fleet", "native-tls"], optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart", "native-tls"] }
 reqwest-middleware = { version = "0.5", features = ["json", "form", "query"] }
 rpassword = "7"

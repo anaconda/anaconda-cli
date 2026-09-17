@@ -12,7 +12,7 @@ use super::specs;
 pub struct ToolInfo {
     pub name: &'static str,
     pub installed: bool,
-    #[cfg(feature = "fleet")]
+    #[cfg(all(tool_install, feature = "fleet"))]
     pub version: Option<String>,
     pub binaries: Vec<PathBuf>,
 }
@@ -48,7 +48,7 @@ const INSTALLERS: &[Installer] = &[
 ];
 
 /// Check if a tool is installed as a conda package in the current environment.
-#[cfg(all(not(tool_install), not(feature = "fleet")))]
+#[cfg(not(tool_install))]
 fn is_conda_package_installed(name: &str) -> bool {
     let Some(prefix) = paths::conda_prefix() else {
         return false;
@@ -71,7 +71,7 @@ fn is_conda_package_installed(name: &str) -> bool {
 ///
 /// When built with `conda-package` feature, installation status reflects the
 /// conda environment's conda-meta entries rather than `~/.ana/tools/`.
-#[cfg(not(feature = "fleet"))]
+#[cfg(not(all(tool_install, feature = "fleet")))]
 pub fn list_tools() -> Vec<ToolInfo> {
     #[cfg(all(unix, tool_install))]
     if let Err(err) = super::common::cleanup_broken_symlinks(&paths::bin_dir()) {
@@ -96,7 +96,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
 }
 
 /// List all available tools with their installation status (fleet version).
-#[cfg(feature = "fleet")]
+#[cfg(all(tool_install, feature = "fleet"))]
 pub fn list_tools() -> Vec<ToolInfo> {
     #[cfg(unix)]
     if let Err(err) = super::common::cleanup_broken_symlinks(&paths::bin_dir()) {
@@ -132,7 +132,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
 }
 
 /// Print the tool list as a formatted table.
-#[cfg(not(feature = "fleet"))]
+#[cfg(not(all(tool_install, feature = "fleet")))]
 pub fn print_tool_list(_ctx: &mut CommandContext) {
     let tools = list_tools();
 
@@ -159,7 +159,7 @@ pub fn print_tool_list(_ctx: &mut CommandContext) {
 }
 
 /// Print the tool list as a formatted table (fleet version with version column).
-#[cfg(feature = "fleet")]
+#[cfg(all(tool_install, feature = "fleet"))]
 pub fn print_tool_list(_ctx: &mut CommandContext) {
     let tools = list_tools();
 

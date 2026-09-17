@@ -74,11 +74,30 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     let binaries = specs::binaries(name).unwrap_or_default();
 
-    // The delegate executable and requested package are independent of the
-    // binaries ana exposes on PATH (e.g. anaconda-cli exposes nothing but
-    // provides `bin/anaconda`).
+    // The delegate and requested packages are independent of exposed binaries.
     let delegate = specs::delegate_executable(name);
-    let requested_specs: Vec<String> = vec![name.to_string()];
+    let manifest = match name {
+        "anaconda-cli" => include_str!("../../tool-specs/anaconda-cli/pixi.toml"),
+        "conda" => include_str!("../../tool-specs/conda/pixi.toml"),
+        "pixi" => include_str!("../../tool-specs/pixi/pixi.toml"),
+        "outerbounds" => include_str!("../../tool-specs/outerbounds/pixi.toml"),
+        _ => return Err(miette::miette!("unknown tool: {name}")),
+    };
+    let manifest: toml::Value = toml::from_str(manifest)
+        .into_diagnostic()
+        .context("failed to parse tool manifest")?;
+    let requested_specs = manifest
+        .get("dependencies")
+        .and_then(toml::Value::as_table)
+        .ok_or_else(|| miette::miette!("tool manifest has no dependencies"))?
+        .iter()
+        .map(|(package, version)| {
+            let version = version.as_str().ok_or_else(|| {
+                miette::miette!("expected a version string for dependency {package}")
+            })?;
+            Ok(format!("{package} {version}"))
+        })
+        .collect::<miette::Result<Vec<_>>>()?;
 
     let spec = RuntimeSpec {
         id: name.to_string(),
@@ -103,40 +122,38 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         migrate_legacy_install(&prefix, name)?;
     }
 
-    // Skip healthy installations that are already current. Force a reinstall
-    // when a healthy runtime was installed from a different lockfile, since
-    // Fleet::install reuses ready installations otherwise. Interrupted
-    // installs have no usable metadata, so `get` returns None and install
-    // recovers them without force.
+    // Reuse current prefixes while still refreshing ana's launchers below.
     let desired_hash = spec.lock_sha256();
     let existing = fleet.get(name)?;
-    if let Some(runtime) = &existing
-        && runtime.lock_sha256.as_deref() == Some(desired_hash.as_str())
-    {
-        eprintln!("{} is already up to date.", name);
-        return Ok(());
-    }
     let force = existing.is_some();
+    let installed = match existing {
+        Some(runtime) if runtime.lock_sha256.as_deref() == Some(desired_hash.as_str()) => {
+            eprintln!("{} is already up to date.", name);
+            runtime
+        }
+        _ => {
+            eprintln!("Installing {} into {}", name, prefix.display());
 
-    eprintln!("Installing {} into {}", name, prefix.display());
+            let installed = fleet
+                .install(
+                    spec,
+                    InstallOptions {
+                        force,
+                        ..InstallOptions::default()
+                    },
+                )
+                .await
+                .with_context(|| format!("failed to install tool: {}", name))?;
 
-    let installed = fleet
-        .install(
-            spec,
-            InstallOptions {
-                force,
-                ..InstallOptions::default()
-            },
-        )
-        .await
-        .with_context(|| format!("failed to install tool: {}", name))?;
-
-    eprintln!(
-        "   Installed {} v{} to {}",
-        installed.id,
-        installed.version,
-        installed.prefix.display()
-    );
+            eprintln!(
+                "   Installed {} v{} to {}",
+                installed.id,
+                installed.version,
+                installed.prefix.display()
+            );
+            installed
+        }
+    };
 
     // TODO: Consider passing uses_wrapper into Fleet APIs directly
     let uses_wrapper = specs::uses_wrapper(name);
@@ -276,25 +293,35 @@ pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<
     Ok(updated)
 }
 
-/// Extract version from lockfile for a tool.
+/// Extract the tool package version from the lockfile for this platform.
 fn tool_version_from_lock(lock_content: &str, tool_name: &str) -> miette::Result<String> {
-    // Parse the lockfile to find the tool's version
-    // Look for a package that matches the tool name
-    for line in lock_content.lines() {
-        let line = line.trim();
-        if line.starts_with("- conda:") && line.contains(&format!("/{tool_name}-")) {
-            // Extract version from URL like: .../pixi-0.70.2-hef7b95b_0.conda
-            if let Some(filename) = line.rsplit('/').next() {
-                let parts: Vec<&str> = filename.split('-').collect();
-                if parts.len() >= 2 {
-                    return Ok(parts[1].to_string());
-                }
-            }
-        }
-    }
+    let package_name = match tool_name {
+        "anaconda-cli" => "anaconda-cli-base",
+        name => name,
+    };
+    let lock_file = rattler_lock::LockFile::from_str_with_base_directory(lock_content, None)
+        .into_diagnostic()
+        .context("failed to parse lockfile")?;
+    let environment = lock_file
+        .default_environment()
+        .ok_or_else(|| miette::miette!("lockfile has no default environment"))?;
+    let platform = rattler_conda_types::Platform::current();
+    let records = environment
+        .conda_repodata_records_by_platform()
+        .into_diagnostic()
+        .context("failed to extract records from lockfile")?
+        .into_iter()
+        .find(|(p, _)| p.subdir() == platform)
+        .map(|(_, records)| records)
+        .ok_or_else(|| miette::miette!("lockfile has no records for platform {platform}"))?;
 
-    // Fallback to "latest" if we can't extract a version
-    Ok("latest".to_string())
+    records
+        .into_iter()
+        .find(|record| record.package_record.name.as_normalized() == package_name)
+        .map(|record| record.package_record.version.to_string())
+        .ok_or_else(|| {
+            miette::miette!("lockfile has no {package_name} package for platform {platform}")
+        })
 }
 
 #[cfg(windows)]
@@ -356,23 +383,34 @@ mod tests {
 
     #[test]
     fn test_tool_version_from_lock() {
-        let lock_content = r#"
-version: 6
-environments:
-  default:
-    packages:
-      osx-arm64:
-      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/pixi-0.70.2-h46fb4a7_0.conda
-"#;
-        let version = tool_version_from_lock(lock_content, "pixi").unwrap();
-        assert_eq!(version, "0.70.2");
+        for (name, lock_content, expected) in [
+            (
+                "pixi",
+                include_str!("../../tool-specs/pixi/pixi.lock"),
+                "0.70.2",
+            ),
+            (
+                "anaconda-cli",
+                include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
+                "0.9.1",
+            ),
+        ] {
+            assert_eq!(
+                tool_version_from_lock(lock_content, name).unwrap(),
+                expected
+            );
+        }
     }
 
     #[test]
-    fn test_tool_version_from_lock_fallback() {
-        let lock_content = "version: 6\n";
-        let version = tool_version_from_lock(lock_content, "unknown").unwrap();
-        assert_eq!(version, "latest");
+    fn test_tool_version_from_lock_missing_package() {
+        let lock_content = include_str!("../../tool-specs/pixi/pixi.lock");
+        assert!(tool_version_from_lock(lock_content, "unknown").is_err());
+    }
+
+    #[test]
+    fn test_tool_version_from_lock_invalid() {
+        assert!(tool_version_from_lock("version: 6\n", "pixi").is_err());
     }
 
     #[test]

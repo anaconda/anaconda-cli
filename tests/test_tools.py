@@ -427,6 +427,13 @@ class TestToolInstallConda:
         assert not bin_path.is_symlink(), "Wrapper should be a binary, not a symlink"
         assert bin_path.stat().st_size > 0, "Wrapper binary should not be empty"
 
+        bin_path.unlink()
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode == 0, result.stderr
+        assert bin_path.exists(), "Reinstall should restore the missing wrapper"
+        assert not bin_path.is_symlink()
+        assert bin_path.stat().st_size > 0
+
 
 class TestCondaWrapper:
     """Tests for conda wrapper functionality."""

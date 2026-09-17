@@ -177,6 +177,7 @@ jobs:
           ANA_BINARY_PATH: ${{ github.workspace }}/target/debug/${{ runner.os == 'Windows' && 'ana.exe' || 'ana' }}
         run: |
           pixi run build-fleet
+          pixi run python scripts/with_version.py cargo test --locked --features fleet
           pixi run pytest tests/test_tools.py -v -k "TestToolInstallPixi or TestToolList or TestToolUpdate or TestToolUninstall or TestToolInstallConda or TestCondaWrapper"
 
       - name: Build conda package
