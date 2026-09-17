@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-17T16:13:52Z<br>
+Generated: 2026-09-17T18:11:20Z<br>
 Format: CycloneDX 1.4<br>
-Packages: 464 (64 platform-specific)<br>
+Packages: 465 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 2 across 2 packages**
 
@@ -184,6 +184,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [jiff](https://crates.io/crates/jiff) | 0.2.34 | Unlicense OR MIT |  |  |
 | [jiff-core](https://crates.io/crates/jiff-core) | 0.1.0 | Unlicense OR MIT |  |  |
 | [jobserver](https://crates.io/crates/jobserver) | 0.1.35 | MIT OR Apache-2.0 |  |  |
+| [jsonc-parser](https://crates.io/crates/jsonc-parser) | 0.33.2 | MIT |  |  |
 | [known-folders](https://crates.io/crates/known-folders) | 1.4.2 | Apache-2.0 OR MIT | windows |  |
 | [lazy-regex](https://crates.io/crates/lazy-regex) | 3.6.0 | MIT |  |  |
 | [lazy-regex-proc\_macros](https://crates.io/crates/lazy-regex-proc_macros) | 3.6.0 | MIT |  |  |
@@ -487,7 +488,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | License | Count |
 | --- | ---: |
 | MIT OR Apache-2.0 | 251 |
-| MIT | 87 |
+| MIT | 88 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
 | BSD-3-Clause | 19 |

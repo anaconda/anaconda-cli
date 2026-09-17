@@ -9,6 +9,7 @@ pub mod list;
 pub mod pip;
 #[cfg(any(tool_install, feature = "fleet"))]
 mod pixi_config;
+#[cfg(tool_install)]
 mod run;
 pub mod specs;
 #[cfg(all(tool_install, not(feature = "fleet")))]
@@ -18,6 +19,7 @@ pub mod utils;
 #[cfg(feature = "unstable")]
 pub mod uv;
 
+#[cfg(tool_install)]
 pub use run::run_tool_binary;
 
 #[cfg(tool_install)]
