@@ -1,24 +1,9 @@
 """Integration tests for the 'ana channel' command.
 
-ana channel builds an argument vector (see src/packages/commands.rs) and
-forwards it to the anaconda-cli package's `anaconda channel` subcommand via
-src/tools/run.rs::run_tool_binary, auto-installing anaconda-cli first if
-needed (src/packages/run.rs).
-
 The unit tests in src/packages/commands.rs already cover the arg vector for
 every subcommand/flag combination, so the cases here cover what those cannot:
 the help text clap renders before any dispatch, and the handoff to the
 anaconda binary.
-
-TestChannelPassthrough stops at ana's boundary. anaconda-client has its own
-test suite, so rather than assert on its behaviour (which also drags in auth,
-the network, and version-dependent message wording) these tests substitute a
-stub `anaconda` binary in the isolated HOME that records the argv it was
-handed and exits with a code of the test's choosing. That verifies everything
-ana owns: flag normalization, argument order, and exit-code handling.
-
-Note on streams: output from the anaconda child process goes to ana's stdout,
-while ana's own status and error lines go to stderr.
 """
 
 from __future__ import annotations
