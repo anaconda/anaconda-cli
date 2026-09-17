@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:3fd04213-6855-459e-9c9f-191a8f6989e0",
+  "serialNumber": "urn:uuid:a1e5349f-1261-42d2-93a5-89d58cb1e76c",
   "metadata": {
-    "timestamp": "2026-09-16T19:41:00Z",
+    "timestamp": "2026-09-17T15:31:28Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -10901,15 +10901,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.6+spec-1.1.0",
       "name": "toml",
-      "version": "1.1.3+spec-1.1.0",
+      "version": "1.1.6+spec-1.1.0",
       "description": "A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures. ",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "53c96ecdfa941c8fc4fcaed14f99ada8ebed502eef533015095a07e3301d4c3c"
+          "content": "920602543f0911ab71da12c50d59701da54c196d1a2bf5cb4b75667f137a406a"
         }
       ],
       "licenses": [
@@ -10917,7 +10917,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml@1.1.3+spec-1.1.0",
+      "purl": "pkg:cargo/toml@1.1.6+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -11005,15 +11005,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.3+spec-1.1.0",
       "name": "toml_parser",
-      "version": "1.1.2+spec-1.1.0",
+      "version": "1.1.3+spec-1.1.0",
       "description": "Yet another format-preserving TOML parser.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
+          "content": "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
         }
       ],
       "licenses": [
@@ -11021,7 +11021,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml_parser@1.1.2+spec-1.1.0",
+      "purl": "pkg:cargo/toml_parser@1.1.3+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -14443,7 +14443,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#sha2@0.11.0",
         "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.19",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.1",
-        "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.6+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.13+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
@@ -17249,19 +17249,19 @@
         "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.229",
         "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
         "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.7.5+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.3+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#winnow@0.7.15"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.6+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.229",
         "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
         "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.3+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.4"
       ]
@@ -17283,13 +17283,13 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.3+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.4"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.3+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.4"
       ]
