@@ -16,8 +16,8 @@ rlimit = "0.11"
 # conda-package: Build for distribution as a conda package. Implicitly disables
 #   self-update and tool-install (both managed by conda), and resolves binaries
 #   from $CONDA_PREFIX/bin/.
-# fleet: Use conda-ship's fleet API for tool installation (experimental POC).
-default = ["self-update", "tool-install"]
+# fleet: Use conda-ship's fleet API for tool installation. Included by default.
+default = ["self-update", "tool-install", "fleet"]
 diagnostics = ["dep:sentry"]
 unstable = []
 self-update = []

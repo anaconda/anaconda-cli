@@ -6,7 +6,6 @@ mod main_x;
 #[cfg(feature = "unstable")]
 mod wheels;
 
-#[cfg(all(unix, tool_install))]
 pub use experimental::is_feature_enabled;
 pub use experimental::{disable_feature, enable_feature, is_valid_feature};
 pub use main_x::{
