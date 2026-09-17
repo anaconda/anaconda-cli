@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-16T19:41:00Z<br>
+Generated: 2026-09-17T14:26:08Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 464 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -56,9 +56,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.2 | MIT |  |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.2 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  |  |
-| [clap](https://crates.io/crates/clap) | 4.6.6 | MIT OR Apache-2.0 |  |  |
-| [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.6 | MIT OR Apache-2.0 |  |  |
-| [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.4 | MIT OR Apache-2.0 |  |  |
+| [clap](https://crates.io/crates/clap) | 4.6.7 | MIT OR Apache-2.0 |  |  |
+| [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.7 | MIT OR Apache-2.0 |  |  |
+| [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.7 | MIT OR Apache-2.0 |  |  |
 | [clap\_lex](https://crates.io/crates/clap_lex) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [cmov](https://crates.io/crates/cmov) | 0.5.4 | Apache-2.0 OR MIT |  |  |
 | [colorchoice](https://crates.io/crates/colorchoice) | 1.0.5 | MIT OR Apache-2.0 |  |  |
