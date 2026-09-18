@@ -103,31 +103,29 @@ class TestChannelArgumentErrors:
 
 
 @pytest.fixture
-def stub_anaconda(fake_home: Path) -> Path:
+def stub_anaconda(run_ana: AnaRunner, fake_home: Path) -> Path:
     """Install a stub anaconda binary and return the file it records argv to.
 
     The stub stands in for anaconda-cli so the handoff can be inspected
-    without an install, credentials or a network call. It exits with
-    STUB_EXIT_CODE (default 0) so exit-code handling can be driven too.
+    without credentials or a network call. It exits with STUB_EXIT_CODE
+    (default 0) so exit-code handling can be driven too.
 
-    A sentinel at ~/.ana/bin/anaconda is also needed, because that is the path
-    src/packages/run.rs checks before deciding to auto-install.
+    anaconda-cli is first installed for real so that ensure_tool finds a valid
+    .lockfile-hash and skips reinstalling. The real anaconda binary is then
+    replaced with the stub.
     """
+    result = run_ana("tool", "install", "anaconda-cli")
+    assert result.returncode == 0, f"anaconda-cli install failed: {result.stderr}"
+
     argv_log = fake_home / "anaconda-argv.txt"
 
-    tool_bin = fake_home / ".ana" / "tools" / "anaconda-cli" / "bin"
-    tool_bin.mkdir(parents=True)
-    stub = tool_bin / "anaconda"
+    stub = fake_home / ".ana" / "tools" / "anaconda-cli" / "bin" / "anaconda"
     stub.write_text(
         "#!/bin/sh\n"
         f'printf "%s\\n" "$@" > "{argv_log}"\n'
         'exit "${STUB_EXIT_CODE:-0}"\n'
     )
     stub.chmod(0o755)
-
-    bin_dir = fake_home / ".ana" / "bin"
-    bin_dir.mkdir(parents=True)
-    (bin_dir / "anaconda").touch()
 
     return argv_log
 
