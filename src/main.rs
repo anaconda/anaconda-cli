@@ -16,6 +16,7 @@ mod installer;
 mod mcp;
 #[cfg(all(unix, tool_install))]
 mod outerbounds;
+mod packages;
 mod paths;
 mod qr;
 mod table;
