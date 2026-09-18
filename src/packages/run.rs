@@ -3,6 +3,9 @@ use crate::context::CommandContext;
 #[cfg(tool_install)]
 use crate::tools;
 
+#[cfg(not(tool_install))]
+use crate::ui::status;
+
 /// Run the `anaconda channel` command with the given arguments.
 /// Auto-installs anaconda-cli if not present (which includes anaconda-client).
 #[cfg(tool_install)]
