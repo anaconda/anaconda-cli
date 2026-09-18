@@ -74,7 +74,6 @@ class TestChannelHelp:
             "Upload a package to a channel",
             "Usage: ana channel upload",
             "-c, --channel",
-            "--no-progress",
         )
 
     def test_root_help_lists_channel_under_packages(self, run_ana: AnaRunner) -> None:
@@ -181,7 +180,6 @@ class TestChannelPassthrough:
             "upload",
             "-c",
             "org/channel",
-            "--no-progress",
             "one.conda",
             "two.conda",
         )
@@ -191,7 +189,6 @@ class TestChannelPassthrough:
             "upload",
             "--channel",
             "org/channel",
-            "--no-progress",
             "one.conda",
             "two.conda",
         ]

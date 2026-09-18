@@ -47,10 +47,6 @@ pub enum ChannelSubcommands {
         #[arg(short, long)]
         channel: Option<String>,
 
-        /// Don't show upload progress
-        #[arg(long)]
-        no_progress: bool,
-
         /// Files to upload
         files: Vec<String>,
     },
@@ -89,18 +85,11 @@ impl ChannelSubcommands {
                 cmd_args.push(channel);
                 ChannelAction::Run(cmd_args)
             }
-            ChannelSubcommands::Upload {
-                channel,
-                no_progress,
-                files,
-            } => {
+            ChannelSubcommands::Upload { channel, files } => {
                 let mut cmd_args = vec!["upload".to_string()];
                 if let Some(c) = channel {
                     cmd_args.push("--channel".to_string());
                     cmd_args.push(c);
-                }
-                if no_progress {
-                    cmd_args.push("--no-progress".to_string());
                 }
                 cmd_args.extend(files);
                 ChannelAction::Run(cmd_args)
@@ -183,7 +172,6 @@ mod tests {
     fn test_upload_with_channel_builds_args() {
         let cmd = ChannelSubcommands::Upload {
             channel: Some("org/channel".to_string()),
-            no_progress: false,
             files: vec!["package.tar.gz".to_string()],
         };
         match cmd.into_action() {
@@ -198,34 +186,9 @@ mod tests {
     }
 
     #[test]
-    fn test_upload_with_no_progress_builds_args() {
-        let cmd = ChannelSubcommands::Upload {
-            channel: Some("org/channel".to_string()),
-            no_progress: true,
-            files: vec!["package.tar.gz".to_string()],
-        };
-        match cmd.into_action() {
-            ChannelAction::Run(args) => {
-                assert_eq!(
-                    args,
-                    vec![
-                        "upload",
-                        "--channel",
-                        "org/channel",
-                        "--no-progress",
-                        "package.tar.gz"
-                    ]
-                );
-            }
-            _ => panic!("Expected Run action"),
-        }
-    }
-
-    #[test]
     fn test_upload_without_channel_builds_args() {
         let cmd = ChannelSubcommands::Upload {
             channel: None,
-            no_progress: false,
             files: vec!["package.tar.gz".to_string()],
         };
         match cmd.into_action() {
