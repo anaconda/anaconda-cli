@@ -100,7 +100,9 @@ class TestLoginRequired:
         """Gated commands fail without prompting when stdin is not a TTY."""
         result = run_ana("tool", "list", env=auth_env)
         assert result.returncode != 0
-        assert "login" in result.stderr.lower() or "not logged in" in result.stderr.lower()
+        assert (
+            "login" in result.stderr.lower() or "not logged in" in result.stderr.lower()
+        )
 
 
 class TestApiKey:
