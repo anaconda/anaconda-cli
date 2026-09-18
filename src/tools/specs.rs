@@ -11,8 +11,17 @@ struct Tool {
     binaries: &'static [&'static [&'static str]],
     #[cfg_attr(not(tool_install), allow(dead_code))]
     experimental: Option<&'static str>,
+    /// If true, a standalone wrapper binary is installed to ~/.ana/bin/
+    /// instead of a symlink to the tool binary.
+    uses_wrapper: bool,
     /// Whether this tool should be auto-updated when `ana` is updated.
+    #[cfg_attr(feature = "fleet", allow(dead_code))]
     auto_update: bool,
+    /// The executable inside the prefix that Fleet validates after install.
+    /// None means it matches the tool name. Distinct from `binaries`, which
+    /// lists what ana exposes on PATH.
+    #[cfg_attr(not(feature = "fleet"), allow(dead_code))]
+    delegate: Option<&'static str>,
 }
 
 /// Embedded tool configurations.
@@ -24,7 +33,10 @@ const TOOLS: &[Tool] = &[
         // to avoid shadowing users' existing anaconda command from anaconda-auth
         binaries: &[],
         experimental: None,
+        uses_wrapper: false,
         auto_update: true,
+        // The anaconda-cli package provides `bin/anaconda`
+        delegate: Some("anaconda"),
     },
     #[cfg(unix)]
     Tool {
@@ -32,14 +44,32 @@ const TOOLS: &[Tool] = &[
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
         experimental: Some("Outerbounds integration is an experimental alpha feature."),
+        uses_wrapper: false,
         auto_update: true,
+        delegate: None,
+    },
+    Tool {
+        name: "conda",
+        lockfile: include_str!("../../tool-specs/conda/pixi.lock"),
+        // binaries is still needed with uses_wrapper to determine wrapper filename
+        binaries: if cfg![unix] {
+            &[&["bin", "conda"]]
+        } else {
+            &[&["Scripts", "conda"]]
+        },
+        experimental: Some("conda"),
+        uses_wrapper: true,
+        auto_update: true,
+        delegate: None,
     },
     Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],
         experimental: None,
+        uses_wrapper: false,
         auto_update: false,
+        delegate: None,
     },
 ];
 
@@ -88,10 +118,22 @@ pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
 }
 
+/// Returns whether a tool uses a custom wrapper binary.
+#[cfg_attr(all(not(tool_install), not(feature = "fleet")), allow(dead_code))]
+pub fn uses_wrapper(name: &str) -> bool {
+    find_tool(name).map(|t| t.uses_wrapper).unwrap_or(false)
+}
+
 /// Returns whether auto-update is enabled for a tool by default.
-#[cfg_attr(not(tool_install), allow(dead_code))]
+#[cfg_attr(any(not(tool_install), feature = "fleet"), allow(dead_code))]
 pub fn auto_update_default(name: &str) -> bool {
     find_tool(name).is_some_and(|t| t.auto_update)
+}
+
+/// Returns the delegate executable for a tool (defaults to the tool name).
+#[cfg_attr(not(feature = "fleet"), allow(dead_code))]
+pub fn delegate_executable(name: &str) -> &str {
+    find_tool(name).and_then(|t| t.delegate).unwrap_or(name)
 }
 
 #[cfg(test)]
@@ -130,5 +172,17 @@ mod tests {
     #[test]
     fn test_auto_update_default_unknown_tool() {
         assert!(!auto_update_default("unknown-tool"));
+    }
+
+    #[test]
+    fn test_delegate_executable_anaconda_cli() {
+        assert_eq!(delegate_executable("anaconda-cli"), "anaconda");
+    }
+
+    #[test]
+    fn test_delegate_executable_defaults_to_name() {
+        assert_eq!(delegate_executable("pixi"), "pixi");
+        assert_eq!(delegate_executable("conda"), "conda");
+        assert_eq!(delegate_executable("unknown-tool"), "unknown-tool");
     }
 }

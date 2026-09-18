@@ -208,11 +208,7 @@ fn run_ob_configure(magic_string: &str) -> miette::Result<()> {
 /// Auto-configure Outerbounds using Anaconda SSO.
 pub async fn auto_configure(ctx: &mut CommandContext, ob_domain: &str) -> miette::Result<()> {
     // Ensure outerbounds tool is installed
-    if !crate::paths::bin_path("outerbounds").exists() {
-        status::info("Installing outerbounds tool...");
-        tools::install::install_tool(ctx, "outerbounds").await?;
-        status::blank_line();
-    }
+    tools::ensure_tool(ctx, "outerbounds").await?;
 
     status::info("Configuring Outerbounds via Anaconda SSO");
     status::blank_line();

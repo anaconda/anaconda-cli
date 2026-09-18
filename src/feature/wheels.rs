@@ -4,7 +4,6 @@
 
 use miette::IntoDiagnostic;
 
-use crate::auth;
 use crate::config::Config;
 use crate::context::CommandContext;
 use crate::input::prompt_yes_no;
@@ -191,10 +190,7 @@ pub async fn enable_wheels(
         status::blank_line();
     }
 
-    // Step 2: Check login status and prompt if needed
-    auth::ensure_logged_in(ctx).await?;
-
-    // Step 3: Show planned changes
+    // Step 1: Show planned changes
     status::blank_line();
     status::info("The following changes will be made:");
     for action in &actions {
@@ -204,13 +200,13 @@ pub async fn enable_wheels(
     }
     status::blank_line();
 
-    // Step 4: Prompt for confirmation unless --force
+    // Step 2: Prompt for confirmation unless --force
     if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
 
-    // Step 5: Execute the changes
+    // Step 3: Execute the changes
     status::blank_line();
     for action in &actions {
         status::running(&format!("Configuring {}...", action.tool_name()));
@@ -233,7 +229,7 @@ pub async fn enable_wheels(
         status::finish_running(&format!("Configured {}", action.tool_name()));
     }
 
-    // Step 6: Show success message and undo instructions
+    // Step 4: Show success message and undo instructions
     status::blank_line();
     let tools: Vec<_> = actions.iter().map(|a| a.tool_name()).collect();
     status::celebrate(&format!(

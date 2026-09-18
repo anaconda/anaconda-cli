@@ -491,14 +491,11 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
     ));
     status::blank_line();
 
-    // Step 1: Check login status and prompt if needed
-    auth::ensure_logged_in(ctx).await?;
-
-    // Step 2: Check subscription status to determine repo URL
+    // Step 1: Check subscription status to determine repo URL
     let is_premium = auth::has_premium_subscription(ctx).await?;
     let urls = ChannelUrls::new(is_premium);
 
-    // Step 3: Determine what changes need to be made
+    // Step 2: Determine what changes need to be made
     let conda_bin = find_conda()?;
     let channels = get_channels_conda(&conda_bin)?;
     let default_channels = get_default_channels_conda(&conda_bin)?;
@@ -509,7 +506,7 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
         return Ok(());
     }
 
-    // Step 4: Show planned changes
+    // Step 3: Show planned changes
     status::blank_line();
     status::info("The following commands will be run:");
     for action in &actions {
@@ -517,19 +514,19 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
     }
     status::blank_line();
 
-    // Step 5: Prompt for confirmation unless --force
+    // Step 4: Prompt for confirmation unless --force
     if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
 
-    // Step 6: Execute the changes
+    // Step 5: Execute the changes
     status::blank_line();
     for action in &actions {
         action.execute_with_status(&conda_bin)?;
     }
 
-    // Step 7: Show success message and undo instructions
+    // Step 6: Show success message and undo instructions
     status::blank_line();
     status::celebrate(&format!(
         "You can now install packages from the {} channel!",
@@ -559,14 +556,11 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     ));
     status::blank_line();
 
-    // Step 1: Check login status and prompt if needed
-    auth::ensure_logged_in(ctx).await?;
-
-    // Step 2: Check subscription status to determine repo URL
+    // Step 1: Check subscription status to determine repo URL
     let is_premium = auth::has_premium_subscription(ctx).await?;
     let urls = ChannelUrls::new(is_premium);
 
-    // Step 3: Determine what changes need to be made
+    // Step 2: Determine what changes need to be made
     let pixi_bin = find_pixi()?;
     let current_channels = get_configured_channels_pixi(&pixi_bin)?;
     let actions = plan_pixi_enable_actions(&current_channels, &urls, is_premium);
@@ -576,7 +570,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
         return Ok(());
     }
 
-    // Step 4: Show planned changes
+    // Step 3: Show planned changes
     status::blank_line();
     status::info("The following commands will be run:");
     eprintln!(
@@ -588,13 +582,13 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     }
     status::blank_line();
 
-    // Step 5: Prompt for confirmation unless --force
+    // Step 4: Prompt for confirmation unless --force
     if !force && !prompt_yes_no("Proceed?", true) {
         eprintln!("Aborted.");
         return Ok(());
     }
 
-    // Step 6: Execute the changes
+    // Step 5: Execute the changes
     status::blank_line();
 
     // Get the API key for auth
@@ -610,7 +604,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
         action.execute_with_status(&pixi_bin)?;
     }
 
-    // Step 7: Show success message and undo instructions
+    // Step 6: Show success message and undo instructions
     status::blank_line();
     status::celebrate(&format!(
         "You can now install packages from the {} channel with pixi!",

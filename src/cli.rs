@@ -274,6 +274,22 @@ impl Action {
         }
     }
 
+    /// Commands that must work before the user has credentials.
+    fn requires_login(&self) -> bool {
+        !matches!(
+            self,
+            Action::ShowHelp
+                | Action::ShowSubcommandHelp(_)
+                | Action::ShowVersion
+                | Action::ShowConfig
+                | Action::Login { .. }
+                | Action::Logout
+                | Action::TelemetrySubmit
+                | Action::TelemetryKill
+                | Action::TelemetryStatus
+        )
+    }
+
     /// Execute the action with telemetry middleware
     pub async fn execute(self) -> miette::Result<()> {
         let name = self.match_action_name();
@@ -284,7 +300,13 @@ impl Action {
         ctx.telemetry.record_counter("cli_command_invoked", 1);
 
         let start = Instant::now();
-        let result = self.run(&mut ctx).await;
+        let result = async {
+            if self.requires_login() {
+                auth::ensure_logged_in(&ctx).await?;
+            }
+            self.run(&mut ctx).await
+        }
+        .await;
         let duration_ms = start.elapsed().as_millis() as f64;
 
         match &result {
@@ -345,7 +367,7 @@ impl Action {
             }
             #[cfg(tool_install)]
             Action::ToolInstall { name } => {
-                tools::install::install_tool(ctx, &name).await?;
+                tools::install_tool(ctx, &name).await?;
                 Ok(())
             }
             #[cfg(not(tool_install))]
@@ -354,7 +376,7 @@ impl Action {
             }
             #[cfg(tool_install)]
             Action::ToolUninstall { name, force } => {
-                tools::uninstall::uninstall_tool(ctx, &name, force)?;
+                tools::uninstall_tool(ctx, &name, force)?;
                 Ok(())
             }
             #[cfg(not(tool_install))]
@@ -371,7 +393,7 @@ impl Action {
             Action::ToolUpdate => Err(crate::errors::ToolManagementUnavailableError.into()),
             #[cfg(tool_install)]
             Action::ToolUpdate => {
-                let updated = tools::install::update_installed_tools(ctx).await?;
+                let updated = tools::update_installed_tools(ctx).await?;
                 if updated.is_empty() {
                     eprintln!("All tools are up to date.");
                 }
@@ -1248,6 +1270,29 @@ mod tests {
     fn test_cli_parses() {
         // Verify clap setup is valid
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn test_requires_login_exemptions() {
+        assert!(!Action::ShowHelp.requires_login());
+        assert!(!Action::ShowSubcommandHelp("auth".into()).requires_login());
+        assert!(!Action::ShowVersion.requires_login());
+        assert!(!Action::ShowConfig.requires_login());
+        assert!(!Action::Logout.requires_login());
+        assert!(!Action::TelemetrySubmit.requires_login());
+        assert!(
+            !Action::Login {
+                api_key: None,
+                prompt_api_key: false,
+                force: false,
+            }
+            .requires_login()
+        );
+        assert!(Action::ToolList.requires_login());
+        assert!(Action::Whoami { json: false }.requires_login());
+        assert!(Action::Bootstrap.requires_login());
+        assert!(Action::ShowApiKey.requires_login());
+        assert!(Action::FeatureList.requires_login());
     }
 
     #[test]

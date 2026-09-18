@@ -1,5 +1,6 @@
 //! Authentication actions (login, logout, whoami).
 
+use std::io::IsTerminal;
 use std::time::Duration;
 
 use tokio::time::sleep;
@@ -476,7 +477,7 @@ pub async fn ensure_logged_in(ctx: &CommandContext) -> Result<(), AuthError> {
 
     status::warn("Login required");
 
-    if !crate::input::prompt_yes_no("Login now?", true) {
+    if !std::io::stdin().is_terminal() || !crate::input::prompt_yes_no("Login now?", true) {
         return Err(AuthError::NotLoggedIn);
     }
 

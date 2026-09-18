@@ -434,7 +434,7 @@ fn update_installed_tools() {}
 
 #[cfg(tool_install)]
 fn update_installed_tools() {
-    use crate::tools::install::installed_tools;
+    use crate::tools::installed_tools;
     use crate::ui::status;
 
     let tools = installed_tools();
