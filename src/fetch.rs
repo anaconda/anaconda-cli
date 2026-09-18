@@ -1,6 +1,5 @@
 use miette::{Context, IntoDiagnostic, miette};
 
-use crate::auth;
 use crate::context::CommandContext;
 
 pub async fn api_fetch(
@@ -17,8 +16,6 @@ pub async fn api_fetch(
             url
         ));
     }
-
-    auth::ensure_logged_in(ctx).await?;
 
     let method_upper = method.to_uppercase();
     let mut request = match method_upper.as_str() {
@@ -66,6 +63,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
+    use crate::auth;
     use crate::config::Config;
     use crate::http::Client;
 

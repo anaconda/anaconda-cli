@@ -89,6 +89,20 @@ class TestLogout:
         assert "Not logged in" in result.stderr
 
 
+class TestLoginRequired:
+    """Tests for the root-level login gate."""
+
+    def test_tool_list_requires_login(
+        self,
+        run_ana: AnaRunner,
+        auth_env: dict[str, str],
+    ) -> None:
+        """Gated commands fail without prompting when stdin is not a TTY."""
+        result = run_ana("tool", "list", env=auth_env)
+        assert result.returncode != 0
+        assert "login" in result.stderr.lower() or "not logged in" in result.stderr.lower()
+
+
 class TestApiKey:
     """Tests for 'ana auth api-key' command."""
 
@@ -111,11 +125,11 @@ class TestApiKey:
         auth_env: dict[str, str],
         mock_auth_server: MockAuthServer,
     ) -> None:
-        """Api-key should show helpful message when not logged in."""
+        """Api-key should fail when not logged in."""
         result = run_ana("auth", "api-key", env=auth_env)
 
-        assert result.returncode == 0
-        assert "not logged in" in result.stderr
+        assert result.returncode != 0
+        assert "not logged in" in result.stderr.lower()
         assert "ana login" in result.stderr
 
     def test_api_key_output_is_clean(
@@ -189,12 +203,12 @@ class TestWhoami:
         run_ana: AnaRunner,
         auth_env: dict[str, str],
     ) -> None:
-        """Whoami should show helpful message when not logged in."""
+        """Whoami should fail when not logged in."""
         result = run_ana("whoami", env=auth_env)
 
-        assert result.returncode == 0
+        assert result.returncode != 0
         assert_output_contains(
-            result.stderr,
+            result.stderr.lower(),
             "not logged in",
             "ana login",
         )

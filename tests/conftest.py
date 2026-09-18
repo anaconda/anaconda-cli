@@ -6,6 +6,7 @@ import http.server
 import os
 import socketserver
 import subprocess
+import tempfile
 import threading
 from collections.abc import Generator
 from functools import partial
@@ -17,6 +18,7 @@ from helpers import IS_LINUX
 from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
 from helpers import AnaRunner
+from helpers import write_dummy_keyring
 from mock_auth_server import MockAuthServer
 
 if TYPE_CHECKING:
@@ -63,6 +65,7 @@ def env_isolated(fake_home: Path) -> dict[str, str]:
         env["RATTLER_CACHE_DIR"] = str(fake_home / "cache" / "rattler")
     else:
         env["HOME"] = str(fake_home)
+    write_dummy_keyring(fake_home)
     return env
 
 
@@ -99,13 +102,21 @@ def _binary_supports_wheels(binary_path: Path | None) -> bool:
     if binary_path is None:
         return False
 
-    result = subprocess.run(
-        [str(binary_path), "feature", "enable", "wheels"],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        timeout=10,
-    )
+    with tempfile.TemporaryDirectory() as tmp:
+        home = Path(tmp)
+        write_dummy_keyring(home)
+        env = os.environ.copy()
+        env["HOME"] = str(home)
+        if IS_WINDOWS:
+            env["USERPROFILE"] = str(home)
+        result = subprocess.run(
+            [str(binary_path), "feature", "enable", "wheels"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=10,
+            env=env,
+        )
     return "Unknown feature: wheels" not in result.stderr
 
 
@@ -190,6 +201,7 @@ def ana_install_env_isolated(fake_home: Path) -> dict[str, str]:
         env["XDG_CONFIG_HOME"] = str(fake_home / ".config")
     env["ANA_INSTALL_DIR"] = str(fake_home / "local" / "bin")
     env["ANA_NO_PATH_UPDATE"] = "1"  # Extra safety
+    write_dummy_keyring(fake_home)
     return env
 
 
