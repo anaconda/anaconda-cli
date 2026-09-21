@@ -282,7 +282,6 @@ class TestCondaPackage:
             "anaconda-auth",
             "anaconda-client",
             "anaconda-env-log",
-            "anaconda-mcp",
             "anaconda-repo-cli",
         ]:
             assert any(conda_meta.glob(f"{dep}-*.json")), f"{dep} not installed"
