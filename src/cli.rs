@@ -303,7 +303,39 @@ impl Action {
         result
     }
 
+    /// Whether this action requires the user to be logged in.
+    ///
+    /// Auth commands (login/logout/whoami/api-key), help/version output,
+    /// self-update, telemetry, and feedback are excluded since they must
+    /// work without credentials.
+    fn requires_login(&self) -> bool {
+        !matches!(
+            self,
+            Action::ShowHelp
+                | Action::ShowSubcommandHelp(_)
+                | Action::ShowVersion
+                | Action::ShowConfig
+                | Action::Login { .. }
+                | Action::Logout
+                | Action::ShowApiKey
+                | Action::Whoami { .. }
+                | Action::Update { .. }
+                | Action::CheckForUpdate
+                | Action::ShowAvailableVersions
+                | Action::UserAgent { .. }
+                | Action::OpenFeedback
+                | Action::ToolDownload { .. }
+                | Action::TelemetrySubmit
+                | Action::TelemetryKill
+                | Action::TelemetryStatus
+        )
+    }
+
     async fn run(self, ctx: &mut CommandContext) -> miette::Result<()> {
+        if self.requires_login() {
+            auth::ensure_logged_in(ctx).await?;
+        }
+
         match self {
             Action::ShowHelp => {
                 let subcommands = get_subcommand_descriptions();

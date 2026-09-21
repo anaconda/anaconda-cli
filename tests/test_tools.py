@@ -110,9 +110,11 @@ class TestToolDownloadCommand:
 class TestToolInstallPixi:
     """Tests for 'ana tool install pixi' subcommand."""
 
-    def test_tool_install_pixi(self, run_ana: AnaRunner, fake_home: Path) -> None:
+    def test_tool_install_pixi(
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
+    ) -> None:
         """Test that tool install pixi installs pixi to ~/.ana/tools."""
-        result = run_ana("tool", "install", "pixi")
+        result = run_ana_logged_in("tool", "install", "pixi")
         assert result.returncode == 0
         assert "pixi" in result.stderr
 
@@ -122,10 +124,10 @@ class TestToolInstallPixi:
         assert tool_dir.is_dir()
 
     def test_tool_install_pixi_creates_symlink(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that tool install creates a symlinked pixi binary in ~/.ana/bin."""
-        result = run_ana("tool", "install", "pixi")
+        result = run_ana_logged_in("tool", "install", "pixi")
         assert result.returncode == 0
 
         bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
@@ -140,26 +142,26 @@ class TestToolInstallPixi:
             assert bin_path.samefile(src_file)
 
     def test_tool_install_pixi_already_installed(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that running tool install twice shows already up to date."""
         # First run installs
-        first_result = run_ana("tool", "install", "pixi")
+        first_result = run_ana_logged_in("tool", "install", "pixi")
         assert first_result.returncode == 0
 
         bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
         assert bin_path.exists()
 
         # Second run should indicate already up to date
-        second_result = run_ana("tool", "install", "pixi")
+        second_result = run_ana_logged_in("tool", "install", "pixi")
         assert second_result.returncode == 0
         assert "up to date" in second_result.stderr.lower()
 
     def test_tool_install_pixi_binary_runs(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that the installed pixi binary runs."""
-        result = run_ana("tool", "install", "pixi")
+        result = run_ana_logged_in("tool", "install", "pixi")
         assert result.returncode == 0
 
         bin_path = fake_home / ".ana" / "bin" / PIXI_BIN
@@ -173,20 +175,20 @@ class TestToolInstallPixi:
         assert proc.returncode == 0
         assert "pixi" in proc.stdout.lower()
 
-    def test_tool_install_unknown_tool(self, run_ana: AnaRunner) -> None:
+    def test_tool_install_unknown_tool(self, run_ana_logged_in: AnaRunner) -> None:
         """Test that installing an unknown tool fails with error."""
-        result = run_ana("tool", "install", "nonexistent-tool")
+        result = run_ana_logged_in("tool", "install", "nonexistent-tool")
         assert result.returncode != 0
         assert "unknown tool" in result.stderr.lower()
 
     @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
     def test_tool_install_cleans_up_broken_symlink(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Manually deleting the tool dir leaves a broken symlink behind;
         re-running install should clean it up before recreating it. See
         CLI-526."""
-        result = run_ana("tool", "install", "pixi")
+        result = run_ana_logged_in("tool", "install", "pixi")
         assert result.returncode == 0
 
         tool_dir = fake_home / ".ana" / "tools" / "pixi"
@@ -195,7 +197,7 @@ class TestToolInstallPixi:
         assert bin_path.is_symlink()
         assert not bin_path.exists(), "symlink should now be broken"
 
-        result = run_ana("tool", "install", "pixi")
+        result = run_ana_logged_in("tool", "install", "pixi")
         assert result.returncode == 0
         assert bin_path.is_symlink()
         assert bin_path.exists(), "symlink should be recreated and valid"
@@ -204,14 +206,14 @@ class TestToolInstallPixi:
 class TestToolList:
     """Tests for 'ana tool list' subcommand."""
 
-    def test_tool_list_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("tool", "list", "--help")
+    def test_tool_list_help(self, run_ana_logged_in: AnaRunner) -> None:
+        result = run_ana_logged_in("tool", "list", "--help")
         assert result.returncode == 0
         assert "List available tools" in result.stdout
 
-    def test_tool_list_shows_tools(self, run_ana: AnaRunner) -> None:
+    def test_tool_list_shows_tools(self, run_ana_logged_in: AnaRunner) -> None:
         """Test that tool list shows available tools."""
-        result = run_ana("tool", "list")
+        result = run_ana_logged_in("tool", "list")
         assert result.returncode == 0
         assert "Name" in result.stdout
         assert "Installed" in result.stdout
@@ -220,21 +222,21 @@ class TestToolList:
         assert "anaconda-cli" in result.stdout
 
     def test_tool_list_shows_externally_managed_installers(
-        self, run_ana: AnaRunner
+        self, run_ana_logged_in: AnaRunner
     ) -> None:
         """Test that tool list shows the externally managed installers table."""
-        result = run_ana("tool", "list")
+        result = run_ana_logged_in("tool", "list")
         assert result.returncode == 0
         assert "Externally Managed Installers" in result.stdout
         assert "miniconda" in result.stdout
         assert "ana tool download miniconda" in result.stdout
 
     def test_tool_list_shows_installed_status(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that tool list correctly shows installation status."""
         # Before install, should show ✗
-        result_before = run_ana("tool", "list")
+        result_before = run_ana_logged_in("tool", "list")
         assert result_before.returncode == 0
         # pixi should show as not installed (find line with pixi but not anaconda)
         lines_before = result_before.stdout.split("\n")
@@ -246,11 +248,11 @@ class TestToolList:
         assert "✗" in pixi_line_before
 
         # Install pixi
-        install_result = run_ana("tool", "install", "pixi")
+        install_result = run_ana_logged_in("tool", "install", "pixi")
         assert install_result.returncode == 0
 
         # After install, should show ✓
-        result_after = run_ana("tool", "list")
+        result_after = run_ana_logged_in("tool", "list")
         assert result_after.returncode == 0
         lines_after = result_after.stdout.split("\n")
         pixi_line_after = [
@@ -262,12 +264,12 @@ class TestToolList:
 
     @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
     def test_tool_list_cleans_up_broken_symlink(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Manually deleting the tool dir leaves a broken symlink behind;
         `tool list` should clean it up rather than leaving it dangling. See
         CLI-526."""
-        install_result = run_ana("tool", "install", "pixi")
+        install_result = run_ana_logged_in("tool", "install", "pixi")
         assert install_result.returncode == 0
 
         tool_dir = fake_home / ".ana" / "tools" / "pixi"
@@ -276,7 +278,7 @@ class TestToolList:
         assert bin_path.is_symlink()
         assert not bin_path.exists(), "symlink should now be broken"
 
-        result = run_ana("tool", "list")
+        result = run_ana_logged_in("tool", "list")
         assert result.returncode == 0
         assert not bin_path.is_symlink(), "broken symlink should be removed"
 
@@ -284,25 +286,25 @@ class TestToolList:
 class TestToolUpdate:
     """Tests for 'ana tool update' subcommand."""
 
-    def test_tool_update_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("tool", "update", "--help")
+    def test_tool_update_help(self, run_ana_logged_in: AnaRunner) -> None:
+        result = run_ana_logged_in("tool", "update", "--help")
         assert result.returncode == 0
         assert "Update all installed tools" in result.stdout
 
     def test_tool_update_no_tools_installed(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that tool update with no tools installed shows up to date."""
-        result = run_ana("tool", "update")
+        result = run_ana_logged_in("tool", "update")
         assert result.returncode == 0
         assert "up to date" in result.stderr.lower()
 
     def test_tool_update_updates_installed_tool(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that tool update updates an installed tool when lockfile hash changes."""
         # First install pixi
-        install_result = run_ana("tool", "install", "pixi")
+        install_result = run_ana_logged_in("tool", "install", "pixi")
         assert install_result.returncode == 0
 
         # Verify hash file was created
@@ -314,20 +316,22 @@ class TestToolUpdate:
 
         # Run tool update - should detect mismatch and update
         # Note: pixi has auto_update=false by default, so we must enable it via env
-        update_result = run_ana("tool", "update", env={"ANA_AUTO_UPDATE_TOOLS": "true"})
+        update_result = run_ana_logged_in(
+            "tool", "update", env={"ANA_AUTO_UPDATE_TOOLS": "true"}
+        )
         assert update_result.returncode == 0
         assert "pixi" in update_result.stderr.lower()
 
     def test_tool_update_skips_up_to_date_tools(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that tool update skips tools that are already up to date."""
         # First install pixi
-        install_result = run_ana("tool", "install", "pixi")
+        install_result = run_ana_logged_in("tool", "install", "pixi")
         assert install_result.returncode == 0
 
         # Run tool update - should show up to date
-        update_result = run_ana("tool", "update")
+        update_result = run_ana_logged_in("tool", "update")
         assert update_result.returncode == 0
         assert "up to date" in update_result.stderr.lower()
 
@@ -335,29 +339,31 @@ class TestToolUpdate:
 class TestToolUninstall:
     """Tests for 'ana tool uninstall' subcommand."""
 
-    def test_tool_uninstall_help(self, run_ana: AnaRunner) -> None:
-        result = run_ana("tool", "uninstall", "--help")
+    def test_tool_uninstall_help(self, run_ana_logged_in: AnaRunner) -> None:
+        result = run_ana_logged_in("tool", "uninstall", "--help")
         assert result.returncode == 0
         assert "Uninstall a tool" in result.stdout
 
-    def test_tool_uninstall_unknown_tool(self, run_ana: AnaRunner) -> None:
+    def test_tool_uninstall_unknown_tool(self, run_ana_logged_in: AnaRunner) -> None:
         """Test that uninstalling an unknown tool fails with error."""
-        result = run_ana("tool", "uninstall", "nonexistent-tool")
+        result = run_ana_logged_in("tool", "uninstall", "nonexistent-tool")
         assert result.returncode != 0
         assert "unknown tool" in result.stderr.lower()
 
     def test_tool_uninstall_not_installed(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that uninstalling a tool that isn't installed is a no-op."""
-        result = run_ana("tool", "uninstall", "pixi", "--yes")
+        result = run_ana_logged_in("tool", "uninstall", "pixi", "--yes")
         assert result.returncode == 0
         assert "not installed" in result.stderr.lower()
 
-    def test_tool_uninstall_pixi(self, run_ana: AnaRunner, fake_home: Path) -> None:
+    def test_tool_uninstall_pixi(
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
+    ) -> None:
         """Test that tool uninstall removes the tool and cleans up."""
         # First install
-        install_result = run_ana("tool", "install", "pixi")
+        install_result = run_ana_logged_in("tool", "install", "pixi")
         assert install_result.returncode == 0
 
         tool_dir = fake_home / ".ana" / "tools" / "pixi"
@@ -366,7 +372,7 @@ class TestToolUninstall:
         assert bin_path.exists()
 
         # Then uninstall (with --yes to skip prompt)
-        uninstall_result = run_ana("tool", "uninstall", "pixi", "--yes")
+        uninstall_result = run_ana_logged_in("tool", "uninstall", "pixi", "--yes")
         assert uninstall_result.returncode == 0
         assert "Successfully uninstalled" in uninstall_result.stderr
 
@@ -375,15 +381,15 @@ class TestToolUninstall:
         assert not bin_path.exists(), "Symlink should be removed"
 
     def test_tool_uninstall_shows_what_will_be_removed(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that uninstall shows what will be deleted before prompting."""
         # First install
-        install_result = run_ana("tool", "install", "pixi")
+        install_result = run_ana_logged_in("tool", "install", "pixi")
         assert install_result.returncode == 0
 
         # Run uninstall with --yes and check output
-        uninstall_result = run_ana("tool", "uninstall", "pixi", "--yes")
+        uninstall_result = run_ana_logged_in("tool", "uninstall", "pixi", "--yes")
         assert uninstall_result.returncode == 0
         assert "The following will be removed:" in uninstall_result.stderr
         assert str(Path(".ana/bin/pixi")) in uninstall_result.stderr

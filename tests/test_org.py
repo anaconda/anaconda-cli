@@ -30,29 +30,29 @@ class TestOrg:
         assert "Interact with anaconda.org" in result.stdout
 
     def test_org_fails_when_anaconda_cli_not_installed(
-        self, run_ana: AnaRunner
+        self, run_ana_logged_in: AnaRunner
     ) -> None:
-        result = run_ana("org", "whoami")
+        result = run_ana_logged_in("org", "whoami")
         assert result.returncode == 1
         assert "anaconda" in result.stderr.lower()
         assert "not found" in result.stderr.lower()
         assert "ana bootstrap" in result.stderr
 
     def test_org_no_args_fails_when_anaconda_cli_not_installed(
-        self, run_ana: AnaRunner
+        self, run_ana_logged_in: AnaRunner
     ) -> None:
         """With no args, ana org still tries to invoke the proxied binary
         (there's no bare-command help to fall back to)."""
-        result = run_ana("org")
+        result = run_ana_logged_in("org")
         assert result.returncode == 1
         assert "not found" in result.stderr.lower()
 
     def test_org_forwards_hyphenated_args_without_local_parsing(
-        self, run_ana: AnaRunner
+        self, run_ana_logged_in: AnaRunner
     ) -> None:
         """Hyphenated args (allow_hyphen_values) reach the same "not
         installed" error rather than being misinterpreted as ana's own
         flags."""
-        result = run_ana("org", "--token", "fake-token", "-c", "conda-forge")
+        result = run_ana_logged_in("org", "--token", "fake-token", "-c", "conda-forge")
         assert result.returncode == 1
         assert "not found" in result.stderr.lower()
