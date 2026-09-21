@@ -167,11 +167,11 @@ pub enum Action {
         args: Vec<String>,
     },
     #[cfg(all(unix, tool_install))]
-    ObProxy {
+    PlatformProxy {
         args: Vec<String>,
     },
     #[cfg(all(unix, tool_install))]
-    ObAutoConfigure {
+    PlatformAutoConfigure {
         instance: String,
     },
     Mcp {
@@ -239,9 +239,9 @@ impl Action {
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
             #[cfg(all(unix, tool_install))]
-            Action::ObProxy { .. } => "ob",
+            Action::PlatformProxy { .. } => "platform",
             #[cfg(all(unix, tool_install))]
-            Action::ObAutoConfigure { .. } => "ob.configure.auto",
+            Action::PlatformAutoConfigure { .. } => "platform.configure.auto",
             Action::Mcp { command } => match command {
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
@@ -334,9 +334,9 @@ impl Action {
                 .map_err(|e| miette!("{}", e))?),
             Action::Mcp { command } => mcp::run(ctx, command),
             #[cfg(all(unix, tool_install))]
-            Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
+            Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
-            Action::ObAutoConfigure { instance } => {
+            Action::PlatformAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
             #[cfg(not(tool_install))]
@@ -700,30 +700,14 @@ pub fn parse() -> (Action, LogLevel) {
             Some(cmd) => Action::Mcp { command: cmd },
         },
         #[cfg(all(unix, tool_install))]
-        Some(Commands::Ob { command }) => {
-            if !feature::is_feature_enabled("outerbounds") {
-                use crate::ui::status::{blank_line, highlight, tip, warn};
-                warn(&format!(
-                    "The {} command requires the experimental {} feature.",
-                    highlight("ob"),
-                    highlight("outerbounds")
-                ));
-                tip(&format!(
-                    "Enable it with {}",
-                    highlight("ana feature enable outerbounds")
-                ));
-                blank_line();
-                std::process::exit(1);
-            }
-            match command {
-                None => Action::ShowSubcommandHelp("ob".to_string()),
-                Some(cmd) => match cmd.into_action() {
-                    ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                    ObAction::Proxy(args) => Action::ObProxy { args },
-                    ObAction::AutoConfigure { instance } => Action::ObAutoConfigure { instance },
-                },
-            }
-        }
+        Some(Commands::Platform { command }) => match command {
+            None => Action::ShowSubcommandHelp("platform".to_string()),
+            Some(cmd) => match cmd.into_action() {
+                ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                ObAction::Proxy(args) => Action::PlatformProxy { args },
+                ObAction::AutoConfigure { instance } => Action::PlatformAutoConfigure { instance },
+            },
+        },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -813,9 +797,9 @@ fn get_subcommand_path_from_matches(matches: &clap::ArgMatches) -> Option<String
 
 /// Forward `--help` to a wrapped tool when one of its proxy subcommands is used.
 ///
-/// `ana org` and `ana ob` are thin wrappers around other CLIs, so their help
-/// belongs to the wrapped tool. Returning `None` falls back to ana's own
-/// wrapper help (e.g. for `ana auth --help` or when the ob feature is off).
+/// `ana org` and `ana platform` are thin wrappers around other CLIs, so their
+/// help belongs to the wrapped tool. Returning `None` falls back to ana's own
+/// wrapper help (e.g. for `ana auth --help`).
 fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
     match command? {
         Commands::Org { mut args } => {
@@ -823,10 +807,7 @@ fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
             Some(Action::OrgProxy { args })
         }
         #[cfg(all(unix, tool_install))]
-        Commands::Ob { command } => {
-            if !feature::is_feature_enabled("outerbounds") {
-                return None;
-            }
+        Commands::Platform { command } => {
             let mut args = match command {
                 None => Vec::new(),
                 Some(cmd) => match cmd.into_action() {
@@ -835,7 +816,7 @@ fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
                 },
             };
             args.push("--help".to_string());
-            Some(Action::ObProxy { args })
+            Some(Action::PlatformProxy { args })
         }
         _ => None,
     }
@@ -896,16 +877,9 @@ fn print_clap_error(e: &clap::Error) {
 }
 
 /// Get subcommand names and descriptions from clap for help introspection.
-/// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
-    #[cfg(all(unix, tool_install))]
-    let show_ob = feature::is_feature_enabled("outerbounds");
-    #[cfg(not(all(unix, tool_install)))]
-    let show_ob = false;
-
     Cli::command()
         .get_subcommands()
-        .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
             (
                 s.get_name().to_string(),
@@ -1033,15 +1007,14 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Outerbounds platform CLI (experimental)
+    /// Outerbounds platform CLI
     #[cfg(all(unix, tool_install))]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
-        override_usage = "ana ob <command> [options]",
-        after_help = "Note: Outerbounds integration is an experimental alpha feature."
+        override_usage = "ana platform <command> [options]"
     )]
-    Ob {
+    Platform {
         #[command(subcommand)]
         command: Option<ObCommands>,
     },
@@ -1287,12 +1260,10 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
-        // "ob" is conditionally hidden based on experimental feature state
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
             "config",
-            "ob",
             "bootstrap",
             "telemetry-submit",
             "telemetry-kill",

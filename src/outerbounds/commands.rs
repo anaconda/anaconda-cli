@@ -2,7 +2,7 @@ use clap::Subcommand;
 
 /// Result of resolving an outerbounds command.
 pub enum ObAction {
-    /// Show help for a subcommand path (e.g., "ob", "ob app", "ob flowproject")
+    /// Show help for a subcommand path (e.g., "platform", "platform app", "platform flowproject")
     ShowHelp(String),
     /// Proxy args to the outerbounds CLI
     Proxy(Vec<String>),
@@ -248,7 +248,7 @@ impl ObCommands {
                 ObAction::Proxy(args)
             }
             ObCommands::App { command } => match command {
-                None => ObAction::ShowHelp("ob app".to_string()),
+                None => ObAction::ShowHelp("platform app".to_string()),
                 Some(app_cmd) => app_cmd.into_action(),
             },
             ObCommands::Check { args: check_args } => {
@@ -294,7 +294,7 @@ impl ObCommands {
                 ObAction::Proxy(args)
             }
             ObCommands::Flowproject { command } => match command {
-                None => ObAction::ShowHelp("ob flowproject".to_string()),
+                None => ObAction::ShowHelp("platform flowproject".to_string()),
                 Some(fp_cmd) => fp_cmd.into_action(),
             },
         }
