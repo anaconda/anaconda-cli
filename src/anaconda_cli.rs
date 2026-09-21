@@ -57,7 +57,10 @@ fn resolve_anaconda_bin() -> Result<PathBuf, String> {
 
 #[cfg(tool_install)]
 fn resolve_anaconda_bin() -> Result<PathBuf, String> {
-    let anaconda_bin = paths::bin_path("anaconda");
+    let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+    let anaconda_bin = paths::tool_prefix("anaconda-cli")
+        .join(bin_subdir)
+        .join(paths::binary_name("anaconda"));
 
     if !anaconda_bin.exists() {
         return Err(format!(
