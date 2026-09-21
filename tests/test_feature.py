@@ -1534,6 +1534,7 @@ class TestMainXPixiDisable:
         pixi_feature_env: dict[str, str],
         mock_auth_server: MockAuthServer,
     ) -> None:
+        """Disabling main-x --pixi should preserve the main channel (not wipe all channels)."""
         gated_env = {
             **pixi_feature_env,
             "ANA_DOMAIN": mock_auth_server.domain,
@@ -1542,7 +1543,6 @@ class TestMainXPixiDisable:
         # Login first (commands are gated behind login)
         login_result = run_ana_pixi_feature("login", env=gated_env)
         assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
-        """Disabling main-x --pixi should preserve the main channel (not wipe all channels)."""
         # Pre-configure both main and main-x channels (as enable would do)
         subprocess.run(
             [
@@ -1568,7 +1568,9 @@ class TestMainXPixiDisable:
         assert MAIN_X_CHANNEL in initial_channels
 
         # Disable main-x
-        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f", env=gated_env
+        )
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
 
         # Verify main-x was removed but main is preserved
@@ -1751,6 +1753,10 @@ class TestMainXDisableCrossToolWarning:
             env=conda_and_pixi_feature_env,
             check=True,
         )
+
+        # Login first (commands are gated behind login)
+        login_result = run_ana_conda_and_pixi_feature("login")
+        assert login_result.returncode == 0
 
         result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0
