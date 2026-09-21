@@ -18,7 +18,6 @@ requirements:
     - anaconda-auth
     - anaconda-client
     - anaconda-env-log
-    - anaconda-mcp
     - anaconda-repo-cli
 
 about:

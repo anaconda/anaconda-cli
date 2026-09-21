@@ -184,15 +184,32 @@ pub struct OuterboundsNotConfiguredError;
 )]
 pub struct ToolManagementUnavailableError;
 
-/// Error when anaconda-mcp is not installed (conda-package build).
-#[cfg(not(tool_install))]
+/// Errors for MCP client configuration.
 #[derive(Error, Debug, Diagnostic)]
-#[error("The mcp subcommand requires anaconda-mcp to be installed.")]
-#[diagnostic(
-    code(ana::mcp::not_installed),
-    help("Install it with:\n\n    conda install anaconda-mcp")
-)]
-pub struct AnacondaMcpNotInstalledError;
+pub enum McpError {
+    /// An auth token is required to write remote MCP client configs.
+    #[error("An authentication token is required to configure MCP clients.")]
+    #[diagnostic(
+        code(ana::mcp::auth_required),
+        help("Run `ana login` to authenticate.")
+    )]
+    AuthRequired,
+
+    /// The client's config file does not exist.
+    #[error("Config file not found: {0}")]
+    #[diagnostic(code(ana::mcp::config_not_found))]
+    ConfigNotFound(std::path::PathBuf),
+
+    /// The named server entry is not present in the client's config.
+    #[error("Server '{server}' not found in {client} config.")]
+    #[diagnostic(code(ana::mcp::server_not_found))]
+    ServerNotFound { server: String, client: String },
+
+    /// The client name is not supported.
+    #[error("Unsupported client: '{0}'. Run `ana mcp clients` to see supported clients.")]
+    #[diagnostic(code(ana::mcp::unsupported_client))]
+    UnsupportedClient(String),
+}
 
 /// Error when self-update is unavailable.
 #[cfg(not(self_update))]
