@@ -18,6 +18,8 @@ use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds::{self, ObAction, ObCommands};
 #[cfg(tool_install)]
+use crate::packages::{self, ChannelAction, ChannelSubcommands};
+#[cfg(tool_install)]
 use crate::tools;
 #[cfg(not(tool_install))]
 use crate::tools::list as tools_list;
@@ -177,6 +179,10 @@ pub enum Action {
     Mcp {
         command: McpCommands,
     },
+    #[cfg(tool_install)]
+    ChannelRun {
+        args: Vec<String>,
+    },
     UserAgent {
         prefix: Option<String>,
     },
@@ -247,6 +253,8 @@ impl Action {
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
             },
+            #[cfg(tool_install)]
+            Action::ChannelRun { .. } => "channel",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -333,6 +341,8 @@ impl Action {
                 .await
                 .map_err(|e| miette!("{}", e))?),
             Action::Mcp { command } => mcp::run(ctx, command),
+            #[cfg(tool_install)]
+            Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -699,6 +709,14 @@ pub fn parse() -> (Action, LogLevel) {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
         },
+        #[cfg(tool_install)]
+        Some(Commands::Channel { command }) => match command {
+            None => Action::ShowSubcommandHelp("channel".to_string()),
+            Some(cmd) => match cmd.into_action() {
+                ChannelAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                ChannelAction::Run(args) => Action::ChannelRun { args },
+            },
+        },
         #[cfg(all(unix, tool_install))]
         Some(Commands::Platform { command }) => match command {
             None => Action::ShowSubcommandHelp("platform".to_string()),
@@ -1063,6 +1081,18 @@ enum Commands {
     /// Check status of background telemetry processes (internal use only)
     #[command(hide = true)]
     TelemetryStatus,
+
+    /// Manage channels and packages
+    #[cfg(tool_install)]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana channel <command> [options]"
+    )]
+    Channel {
+        #[command(subcommand)]
+        command: Option<ChannelSubcommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1549,6 +1579,26 @@ mod tests {
         let cli = Cli::try_parse_from(["ana", "--help"]).unwrap();
         assert!(cli.help);
         assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn test_channel_invalid_subcommand_fails() {
+        let result = Cli::try_parse_from(["ana", "channel", "invalid_command"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_channel_create_invalid_flag_fails() {
+        let result =
+            Cli::try_parse_from(["ana", "channel", "create", "--invalid-flag", "org/channel"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_channel_upload_invalid_flag_fails() {
+        let result =
+            Cli::try_parse_from(["ana", "channel", "upload", "--invalid-flag", "file.tar.gz"]);
+        assert!(result.is_err());
     }
 
     #[test]
