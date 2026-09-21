@@ -17,6 +17,7 @@ use crate::installer;
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds::{self, ObAction, ObCommands};
+#[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
 #[cfg(tool_install)]
 use crate::tools;
@@ -178,6 +179,7 @@ pub enum Action {
     Mcp {
         command: McpCommands,
     },
+    #[cfg(tool_install)]
     ChannelRun {
         args: Vec<String>,
     },
@@ -251,6 +253,7 @@ impl Action {
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
             },
+            #[cfg(tool_install)]
             Action::ChannelRun { .. } => "channel",
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
@@ -338,6 +341,7 @@ impl Action {
                 anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
             ),
             Action::Mcp { command } => mcp::run(ctx, command),
+            #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
             Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
@@ -701,6 +705,7 @@ pub fn parse() -> (Action, LogLevel) {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
         },
+        #[cfg(tool_install)]
         Some(Commands::Channel { command }) => match command {
             None => Action::ShowSubcommandHelp("channel".to_string()),
             Some(cmd) => match cmd.into_action() {
@@ -1071,6 +1076,7 @@ enum Commands {
     TelemetryStatus,
 
     /// Manage channels and packages
+    #[cfg(tool_install)]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,

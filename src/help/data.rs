@@ -14,6 +14,7 @@ pub(super) struct HelpExample {
 /// TODO(mattkram): It would be more ergonomic to define sections alongside each
 ///                 subcommand but the implementation of that is complicated. For
 ///                 now, assuming YAGNI and asserting inclusing via unit tests.
+#[cfg(tool_install)]
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
@@ -30,6 +31,26 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "PACKAGES",
         commands: &["channel"],
+    },
+    HelpSection {
+        name: "ACCOUNT",
+        commands: &["login", "logout", "whoami", "auth"],
+    },
+];
+
+#[cfg(not(tool_install))]
+pub(super) const HELP_SECTIONS: &[HelpSection] = &[
+    HelpSection {
+        name: "TOOLCHAIN",
+        commands: &[
+            "tool",
+            // Hiding bootstrap, as it's synonymous to `ana tool install anaconda-cli`
+            // "bootstrap",
+            "feature", "api", "mcp", "ob",
+            // TODO(mattkram): Hiding config from help until we fully implement CRUD
+            // "config",
+            "self",
+        ],
     },
     HelpSection {
         name: "ACCOUNT",

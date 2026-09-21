@@ -18,11 +18,11 @@ pub enum ChannelSubcommands {
         channel: String,
 
         /// Create a private channel
-        #[arg(long)]
+        #[arg(long, conflicts_with = "public")]
         private: bool,
 
         /// Create a public channel
-        #[arg(long)]
+        #[arg(long, conflicts_with = "private")]
         public: bool,
 
         /// Namespace for the channel
