@@ -301,7 +301,7 @@ pub fn init_project(opts: InitOptions) -> miette::Result<()> {
     println!();
     println!("Next steps:");
     println!("  1. cd {}", project_path.display());
-    println!("  2. ana ob deploy");
+    println!("  2. ana platform deploy");
 
     Ok(())
 }

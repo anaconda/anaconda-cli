@@ -3,7 +3,7 @@
 //! Stores feature flags in a `[ana.features]` section:
 //! ```toml
 //! [ana.features]
-//! outerbounds = true
+//! wheels = true
 //! ```
 
 use std::collections::HashMap;
@@ -15,16 +15,10 @@ use serde::{Deserialize, Serialize};
 use crate::paths::ana_home;
 
 /// Valid experimental feature names.
-#[cfg(all(unix, feature = "unstable"))]
-const VALID_FEATURES: &[&str] = &["outerbounds", "wheels"];
-
-#[cfg(all(unix, not(feature = "unstable")))]
-const VALID_FEATURES: &[&str] = &["outerbounds"];
-
-#[cfg(all(windows, feature = "unstable"))]
+#[cfg(feature = "unstable")]
 const VALID_FEATURES: &[&str] = &["wheels"];
 
-#[cfg(all(windows, not(feature = "unstable")))]
+#[cfg(not(feature = "unstable"))]
 const VALID_FEATURES: &[&str] = &[];
 
 /// Root config structure for ~/.ana/config.toml
@@ -74,7 +68,7 @@ fn save_config(config: &AnaConfig) -> miette::Result<()> {
 }
 
 /// Check if an experimental feature is enabled.
-#[cfg_attr(not(all(unix, tool_install)), allow(dead_code))]
+#[cfg_attr(not(feature = "unstable"), allow(dead_code))]
 pub fn is_feature_enabled(name: &str) -> bool {
     let config = load_config();
     config
@@ -128,47 +122,37 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    #[cfg(unix)]
     fn test_is_valid_feature() {
-        assert!(is_valid_feature("outerbounds"));
-        assert!(!is_valid_feature("unknown"));
-        assert!(!is_valid_feature(""));
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn test_is_valid_feature_windows() {
-        // On Windows, no experimental features are available
         assert!(!is_valid_feature("outerbounds"));
         assert!(!is_valid_feature("unknown"));
+        assert!(!is_valid_feature(""));
+        #[cfg(feature = "unstable")]
+        assert!(is_valid_feature("wheels"));
+        #[cfg(not(feature = "unstable"))]
+        assert!(!is_valid_feature("wheels"));
     }
 
     #[test]
-    #[cfg(unix)]
+    #[cfg(feature = "unstable")]
     #[serial(env)]
     fn test_enable_disable_feature() {
         let tmp = TempDir::new().unwrap();
 
         temp_env::with_var("ANA_HOME", Some(tmp.path().to_str().unwrap()), || {
-            // Initially disabled
-            assert!(!is_feature_enabled("outerbounds"));
+            assert!(!is_feature_enabled("wheels"));
 
-            // Enable it
-            enable_feature("outerbounds").unwrap();
-            assert!(is_feature_enabled("outerbounds"));
+            enable_feature("wheels").unwrap();
+            assert!(is_feature_enabled("wheels"));
 
-            // Verify config file exists and has correct content
             let config_content = fs::read_to_string(tmp.path().join("config.toml")).unwrap();
             assert!(config_content.contains("[ana.features]"));
-            assert!(config_content.contains("outerbounds = true"));
+            assert!(config_content.contains("wheels = true"));
 
-            // Disable it
-            disable_feature("outerbounds").unwrap();
-            assert!(!is_feature_enabled("outerbounds"));
+            disable_feature("wheels").unwrap();
+            assert!(!is_feature_enabled("wheels"));
 
-            // Verify config updated
             let config_content = fs::read_to_string(tmp.path().join("config.toml")).unwrap();
-            assert!(config_content.contains("outerbounds = false"));
+            assert!(config_content.contains("wheels = false"));
         });
     }
 
@@ -179,20 +163,6 @@ mod tests {
 
         temp_env::with_var("ANA_HOME", Some(tmp.path().to_str().unwrap()), || {
             let result = enable_feature("invalid_feature");
-            assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Unknown"));
-        });
-    }
-
-    #[test]
-    #[cfg(windows)]
-    #[serial(env)]
-    fn test_enable_outerbounds_invalid_on_windows() {
-        let tmp = TempDir::new().unwrap();
-
-        temp_env::with_var("ANA_HOME", Some(tmp.path().to_str().unwrap()), || {
-            // On Windows, outerbounds is not a valid feature
-            let result = enable_feature("outerbounds");
             assert!(result.is_err());
             assert!(result.unwrap_err().to_string().contains("Unknown"));
         });
@@ -211,30 +181,18 @@ mod tests {
     }
 
     #[test]
-    #[cfg(unix)]
     #[serial(env)]
-    fn test_load_config_preserves_other_content() {
+    fn test_load_config_reads_features() {
         let tmp = TempDir::new().unwrap();
 
         temp_env::with_var("ANA_HOME", Some(tmp.path().to_str().unwrap()), || {
-            // Write initial config with other content
             let initial = r#"
 [ana.features]
-outerbounds = true
-
-[ana.other]
-key = "value"
+wheels = true
 "#;
             fs::write(tmp.path().join("config.toml"), initial).unwrap();
 
-            // Enable feature (should preserve structure)
-            let _config = load_config();
-            assert!(is_feature_enabled("outerbounds"));
-
-            // Disable and re-enable
-            disable_feature("outerbounds").unwrap();
-            enable_feature("outerbounds").unwrap();
-            assert!(is_feature_enabled("outerbounds"));
+            assert!(is_feature_enabled("wheels"));
         });
     }
 }

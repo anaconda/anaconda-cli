@@ -6,7 +6,7 @@ An Outerbounds project with Anaconda channel support.
 
 1. Deploy the project:
    ```bash
-   ana ob deploy
+   ana platform deploy
    ```
 
 ## Project Structure
