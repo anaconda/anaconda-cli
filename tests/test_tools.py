@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 from helpers import IS_WINDOWS
 from helpers import AnaRunner
+from helpers import write_dummy_keyring
 
 PIXI_BIN = "pixi.exe" if IS_WINDOWS else "pixi"
 
@@ -402,7 +403,7 @@ class TestToolInstallConda:
 
     def test_tool_install_conda(self, run_ana: AnaRunner, fake_home: Path) -> None:
         """Test that tool install conda installs conda to ~/.ana/tools."""
-        result = run_ana("tool", "install", "conda")
+        result = run_ana("tool", "install", "conda", "-y")
         assert result.returncode == 0
         assert "conda" in result.stderr
 
@@ -411,11 +412,23 @@ class TestToolInstallConda:
         assert tool_dir.exists(), f"Tool directory not found: {tool_dir}"
         assert tool_dir.is_dir()
 
+    def test_tool_install_conda_requires_acknowledgment(
+        self, run_ana: AnaRunner, fake_home: Path
+    ) -> None:
+        """Experimental tools must be acknowledged before installing."""
+        result = run_ana("tool", "install", "conda")
+        assert result.returncode != 0
+        assert "experimental" in result.stderr.lower()
+        assert "--yes" in result.stderr
+
+        # Nothing should have been installed
+        assert not (fake_home / ".ana" / "tools" / "conda").exists()
+
     def test_tool_install_conda_creates_wrapper_binary(
         self, run_ana: AnaRunner, fake_home: Path, ana_binary: Path
     ) -> None:
         """Test that tool install creates a standalone wrapper binary."""
-        result = run_ana("tool", "install", "conda")
+        result = run_ana("tool", "install", "conda", "-y")
         assert result.returncode == 0
         assert "Installed wrapper" in result.stderr
 
@@ -428,7 +441,7 @@ class TestToolInstallConda:
         assert bin_path.stat().st_size > 0, "Wrapper binary should not be empty"
 
         bin_path.unlink()
-        result = run_ana("tool", "install", "conda")
+        result = run_ana("tool", "install", "conda", "-y")
         assert result.returncode == 0, result.stderr
         assert bin_path.exists(), "Reinstall should restore the missing wrapper"
         assert not bin_path.is_symlink()
@@ -479,6 +492,7 @@ class TestCondaWrapper:
         else:
             env["HOME"] = str(conda_home)
         env["CONDA_PLUGINS_AUTO_ACCEPT_TOS"] = "yes"
+        write_dummy_keyring(conda_home)
         return env
 
     @pytest.fixture(scope="class")
@@ -493,7 +507,7 @@ class TestCondaWrapper:
             )
 
         result = subprocess.run(
-            [str(ana_binary), "tool", "install", "conda"],
+            [str(ana_binary), "tool", "install", "conda", "-y"],
             capture_output=True,
             text=True,
             env=conda_env,
@@ -520,6 +534,10 @@ class TestCondaWrapper:
         assert proc.returncode == 1
         # Should show conda's native error message
         assert "conda" in proc.stderr.lower()
+        # ...plus ana's experimental/feedback reminder
+        assert "experimental" in proc.stderr.lower()
+        assert "anaconda-cli" in proc.stderr
+        assert "issues" in proc.stderr
 
     def test_conda_wrapper_deactivate_passes_through(
         self, conda_wrapper: Path, conda_env: dict[str, str]

@@ -64,11 +64,6 @@ fn migrate_legacy_install(prefix: &Path, name: &str) -> miette::Result<()> {
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
-    if let Some(msg) = specs::experimental_message(name) {
-        crate::ui::status::warn(msg);
-        eprintln!();
-    }
-
     let lock_content =
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
 

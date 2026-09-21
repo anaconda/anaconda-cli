@@ -3,8 +3,9 @@
 //! This binary is compiled separately and embedded into ana, then written to
 //! ~/.ana/bin/conda when `ana tool install conda` is run.
 //!
-//! The wrapper passes through all commands to the real conda binary and shows
-//! a feedback hint on errors directing users to report issues via ana.
+//! The wrapper passes through all commands to the real conda binary and, when
+//! conda exits with an error, reminds users that this is an experimental
+//! managed installation and directs feedback to the anaconda-cli project.
 
 use std::env;
 use std::path::PathBuf;
@@ -68,10 +69,14 @@ fn blue(s: &str) -> String {
 
 fn print_error_feedback_hint() {
     eprintln!();
+    eprintln!("note: conda is provided by ana as an experimental managed tool.");
+    eprintln!("  If this error relates to ana's conda integration, report it to the");
+    eprintln!("  anaconda-cli project (not conda) at:");
     eprintln!(
-        "If this error is related to ana's conda integration, please report it with {}.",
-        blue("ana self feedback")
+        "    {}",
+        blue("https://github.com/anaconda/anaconda-cli/issues")
     );
+    eprintln!("  You can also run {}.", blue("ana self feedback"));
 }
 
 // === Command handling ===

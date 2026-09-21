@@ -183,6 +183,7 @@ pub enum Action {
     OpenFeedback,
     ToolInstall {
         name: String,
+        yes: bool,
     },
     ToolUninstall {
         name: String,
@@ -362,11 +363,12 @@ impl Action {
                 outerbounds::auto_configure(ctx, &instance).await
             }
             #[cfg(not(tool_install))]
-            Action::ToolInstall { name: _ } => {
+            Action::ToolInstall { name: _, yes: _ } => {
                 Err(crate::errors::ToolManagementUnavailableError.into())
             }
             #[cfg(tool_install)]
-            Action::ToolInstall { name } => {
+            Action::ToolInstall { name, yes } => {
+                tools::confirm_experimental_install(&name, yes)?;
                 tools::install_tool(ctx, &name).await?;
                 Ok(())
             }
@@ -744,7 +746,7 @@ pub fn parse() -> (Action, LogLevel) {
         }
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
-            Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+            Some(ToolCommands::Install { name, yes }) => Action::ToolInstall { name, yes },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
             Some(ToolCommands::Update) => Action::ToolUpdate,
@@ -1149,6 +1151,10 @@ enum ToolCommands {
         /// Name of the tool to install
         #[arg(required_unless_present = "help", default_value = "")]
         name: String,
+
+        /// Acknowledge experimental tools (e.g. conda) without prompting
+        #[arg(short = 'y', long = "yes")]
+        yes: bool,
     },
 
     /// List available tools
