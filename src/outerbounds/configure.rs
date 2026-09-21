@@ -188,7 +188,7 @@ async fn get_magic_string(
 
 /// Run `outerbounds configure <magic_string>`.
 fn run_ob_configure(magic_string: &str) -> miette::Result<()> {
-    let ob_path = crate::paths::bin_path("outerbounds");
+    let ob_path = crate::tools::resolve_tool_binary("outerbounds", "outerbounds")?;
 
     status::info("Running outerbounds configure...");
 

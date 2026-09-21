@@ -76,6 +76,15 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
         return Ok(false);
     }
 
+    // Accept an existing external installation instead of installing a
+    // managed copy when nothing is managed locally.
+    if !prefix.exists()
+        && let Some(external) = super::external::detect(name)
+    {
+        super::external::report(name, &external);
+        return Ok(false);
+    }
+
     install_tool(ctx, name).await?;
     Ok(true)
 }

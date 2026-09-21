@@ -96,7 +96,7 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
 
     let spec = RuntimeSpec {
         id: name.to_string(),
-        version: tool_version_from_lock(&lock_content, name)?,
+        version: specs::locked_version_from_str(&lock_content, name)?,
         delegate_executable: delegate.to_string(),
         lock_content,
         requested_specs,
@@ -288,37 +288,6 @@ pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<
     Ok(updated)
 }
 
-/// Extract the tool package version from the lockfile for this platform.
-fn tool_version_from_lock(lock_content: &str, tool_name: &str) -> miette::Result<String> {
-    let package_name = match tool_name {
-        "anaconda-cli" => "anaconda-cli-base",
-        name => name,
-    };
-    let lock_file = rattler_lock::LockFile::from_str_with_base_directory(lock_content, None)
-        .into_diagnostic()
-        .context("failed to parse lockfile")?;
-    let environment = lock_file
-        .default_environment()
-        .ok_or_else(|| miette::miette!("lockfile has no default environment"))?;
-    let platform = rattler_conda_types::Platform::current();
-    let records = environment
-        .conda_repodata_records_by_platform()
-        .into_diagnostic()
-        .context("failed to extract records from lockfile")?
-        .into_iter()
-        .find(|(p, _)| p.subdir() == platform)
-        .map(|(_, records)| records)
-        .ok_or_else(|| miette::miette!("lockfile has no records for platform {platform}"))?;
-
-    records
-        .into_iter()
-        .find(|record| record.package_record.name.as_normalized() == package_name)
-        .map(|record| record.package_record.version.to_string())
-        .ok_or_else(|| {
-            miette::miette!("lockfile has no {package_name} package for platform {platform}")
-        })
-}
-
 #[cfg(windows)]
 fn remove_shims_cfg_entries(binaries: &[&str]) -> miette::Result<()> {
     let config_path = paths::ana_home().join("tools").join("shims.cfg");
@@ -375,38 +344,6 @@ fn cleanup_empty_dir(path: &Path) -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_tool_version_from_lock() {
-        for (name, lock_content, expected) in [
-            (
-                "pixi",
-                include_str!("../../tool-specs/pixi/pixi.lock"),
-                "0.70.2",
-            ),
-            (
-                "anaconda-cli",
-                include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
-                "0.9.1",
-            ),
-        ] {
-            assert_eq!(
-                tool_version_from_lock(lock_content, name).unwrap(),
-                expected
-            );
-        }
-    }
-
-    #[test]
-    fn test_tool_version_from_lock_missing_package() {
-        let lock_content = include_str!("../../tool-specs/pixi/pixi.lock");
-        assert!(tool_version_from_lock(lock_content, "unknown").is_err());
-    }
-
-    #[test]
-    fn test_tool_version_from_lock_invalid() {
-        assert!(tool_version_from_lock("version: 6\n", "pixi").is_err());
-    }
 
     #[test]
     fn test_migrate_legacy_install_refuses_nonempty_envs() {

@@ -4,8 +4,6 @@ use std::process::Command;
 use miette::miette;
 use serde::Deserialize;
 
-use crate::paths;
-
 #[derive(Deserialize)]
 struct AppInfo {
     status: AppStatus,
@@ -85,7 +83,7 @@ fn detect_app_name() -> miette::Result<String> {
 }
 
 fn get_app_url(name: &str) -> miette::Result<String> {
-    let ob_bin = paths::bin_path("outerbounds");
+    let ob_bin = crate::tools::resolve_tool_binary("outerbounds", "outerbounds")?;
 
     let output = Command::new(&ob_bin)
         .args(["app", "list", "--format", "json", "--name", name])

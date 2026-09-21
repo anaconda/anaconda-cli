@@ -124,6 +124,42 @@ pub fn uses_wrapper(name: &str) -> bool {
     find_tool(name).map(|t| t.uses_wrapper).unwrap_or(false)
 }
 
+/// Extract the tool package version from lockfile content for this platform.
+#[cfg(tool_install)]
+pub fn locked_version_from_str(lock_content: &str, tool_name: &str) -> miette::Result<String> {
+    let package_name = match tool_name {
+        "anaconda-cli" => "anaconda-cli-base",
+        name => name,
+    };
+    let lock_file = rattler_lock::LockFile::from_str_with_base_directory(lock_content, None)
+        .map_err(|e| miette::miette!("failed to parse lockfile: {e}"))?;
+    let environment = lock_file
+        .default_environment()
+        .ok_or_else(|| miette::miette!("lockfile has no default environment"))?;
+    let platform = rattler_conda_types::Platform::current();
+    let records = environment
+        .conda_repodata_records_by_platform()
+        .map_err(|e| miette::miette!("failed to extract records from lockfile: {e}"))?
+        .into_iter()
+        .find(|(p, _)| p.subdir() == platform)
+        .map(|(_, records)| records)
+        .ok_or_else(|| miette::miette!("lockfile has no records for platform {platform}"))?;
+
+    records
+        .into_iter()
+        .find(|record| record.package_record.name.as_normalized() == package_name)
+        .map(|record| record.package_record.version.to_string())
+        .ok_or_else(|| {
+            miette::miette!("lockfile has no {package_name} package for platform {platform}")
+        })
+}
+
+/// Version of the tool recorded in its embedded lockfile, if resolvable.
+#[cfg(tool_install)]
+pub fn locked_version(name: &str) -> Option<String> {
+    content(name).and_then(|lock| locked_version_from_str(&lock, name).ok())
+}
+
 /// Returns whether auto-update is enabled for a tool by default.
 #[cfg_attr(any(not(tool_install), feature = "fleet"), allow(dead_code))]
 pub fn auto_update_default(name: &str) -> bool {
@@ -184,5 +220,36 @@ mod tests {
         assert_eq!(delegate_executable("pixi"), "pixi");
         assert_eq!(delegate_executable("conda"), "conda");
         assert_eq!(delegate_executable("unknown-tool"), "unknown-tool");
+    }
+
+    #[cfg(tool_install)]
+    #[test]
+    fn test_locked_version_from_str() {
+        assert_eq!(
+            locked_version_from_str(include_str!("../../tool-specs/pixi/pixi.lock"), "pixi")
+                .unwrap(),
+            "0.70.2"
+        );
+        assert_eq!(
+            locked_version_from_str(
+                include_str!("../../tool-specs/anaconda-cli/pixi.lock"),
+                "anaconda-cli"
+            )
+            .unwrap(),
+            "0.9.1"
+        );
+    }
+
+    #[cfg(tool_install)]
+    #[test]
+    fn test_locked_version_from_str_missing_package() {
+        let lock = include_str!("../../tool-specs/pixi/pixi.lock");
+        assert!(locked_version_from_str(lock, "unknown").is_err());
+    }
+
+    #[cfg(tool_install)]
+    #[test]
+    fn test_locked_version_from_str_invalid() {
+        assert!(locked_version_from_str("version: 6\n", "pixi").is_err());
     }
 }

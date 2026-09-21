@@ -1,5 +1,7 @@
 #[cfg(any(tool_install, feature = "fleet"))]
 mod common;
+#[cfg(tool_install)]
+mod external;
 #[cfg(all(tool_install, feature = "fleet"))]
 mod fleet;
 #[cfg(all(tool_install, not(feature = "fleet")))]
@@ -20,7 +22,7 @@ pub mod utils;
 pub mod uv;
 
 #[cfg(tool_install)]
-pub use run::run_tool_binary;
+pub use run::{resolve_tool_binary, run_tool_binary};
 
 #[cfg(tool_install)]
 use crate::context::CommandContext;
@@ -139,19 +141,34 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
 ///
 /// A healthy installation is reused only when its recorded lockfile hash
 /// matches the embedded lockfile. Missing or interrupted installations (no
-/// Fleet metadata) and stale ones (hash mismatch) are (re)installed.
+/// Fleet metadata) and stale ones (hash mismatch) are (re)installed. When ana
+/// has no managed installation but the tool already exists on `PATH`, that
+/// external installation is accepted and reported instead of installing.
 #[cfg(all(tool_install, feature = "fleet"))]
 pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     let lock_content =
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
     let desired_hash = fleet::lock_hash(&lock_content);
-    let needs_install = fleet::tool_status(name)?
-        .is_none_or(|runtime| runtime.lock_sha256.as_deref() != Some(desired_hash.as_str()));
-    if needs_install {
-        crate::ui::status::info(&format!("Installing {}...", name));
-        fleet::install_tool(ctx, name).await?;
-        crate::ui::status::blank_line();
+    let existing = fleet::tool_status(name)?;
+    let up_to_date = existing
+        .as_ref()
+        .is_some_and(|runtime| runtime.lock_sha256.as_deref() == Some(desired_hash.as_str()));
+    if up_to_date {
+        return Ok(());
     }
+
+    // Nothing managed (and no partial/legacy prefix to recover): accept an
+    // existing external installation rather than installing a second copy.
+    if !crate::paths::tool_prefix(name).exists()
+        && let Some(external) = external::detect(name)
+    {
+        external::report(name, &external);
+        return Ok(());
+    }
+
+    crate::ui::status::info(&format!("Installing {}...", name));
+    fleet::install_tool(ctx, name).await?;
+    crate::ui::status::blank_line();
     Ok(())
 }
 
@@ -168,5 +185,38 @@ mod tests {
     #[test]
     fn test_confirm_experimental_accepts_with_yes() {
         assert!(confirm_experimental_install("conda", true).is_ok());
+    }
+
+    /// With no managed install but a tool on PATH, ensure_tool should accept
+    /// the external installation and not install a managed copy.
+    #[cfg(all(unix, tool_install, feature = "fleet"))]
+    #[test]
+    #[serial_test::serial(env)]
+    fn test_ensure_tool_accepts_external_install() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let home = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("outerbounds");
+        std::fs::write(&bin, "#!/bin/sh\necho 'outerbounds 9.9.9'\n").unwrap();
+        std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        temp_env::with_vars(
+            [
+                ("ANA_HOME", Some(home.path().to_str().unwrap())),
+                ("PATH", Some(dir.path().to_str().unwrap())),
+            ],
+            || {
+                tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap()
+                    .block_on(async {
+                        let mut ctx = crate::context::CommandContext::new();
+                        ensure_tool(&mut ctx, "outerbounds").await.unwrap();
+                    });
+                assert!(!crate::paths::tool_prefix("outerbounds").exists());
+            },
+        );
     }
 }
