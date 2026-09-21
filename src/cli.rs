@@ -167,11 +167,11 @@ pub enum Action {
         args: Vec<String>,
     },
     #[cfg(all(unix, tool_install))]
-    ObProxy {
+    PlatformProxy {
         args: Vec<String>,
     },
     #[cfg(all(unix, tool_install))]
-    ObAutoConfigure {
+    PlatformAutoConfigure {
         instance: String,
     },
     Mcp {
@@ -239,9 +239,9 @@ impl Action {
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
             #[cfg(all(unix, tool_install))]
-            Action::ObProxy { .. } => "ob",
+            Action::PlatformProxy { .. } => "platform",
             #[cfg(all(unix, tool_install))]
-            Action::ObAutoConfigure { .. } => "ob.configure.auto",
+            Action::PlatformAutoConfigure { .. } => "platform.configure.auto",
             Action::Mcp { command } => match command {
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
@@ -361,14 +361,14 @@ impl Action {
             Action::Bootstrap => Ok(anaconda_cli::run_bootstrap(ctx)
                 .await
                 .map_err(|e| miette!("{}", e))?),
-            Action::OrgProxy { args } => Ok(
-                anaconda_cli::run_subcommand(ctx, "org", &args).map_err(|e| miette!("{}", e))?
-            ),
+            Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)
+                .await
+                .map_err(|e| miette!("{}", e))?),
             Action::Mcp { command } => mcp::run(ctx, command),
             #[cfg(all(unix, tool_install))]
-            Action::ObProxy { args } => outerbounds::run(ctx, &args).await,
+            Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
-            Action::ObAutoConfigure { instance } => {
+            Action::PlatformAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
             #[cfg(not(tool_install))]
@@ -657,15 +657,19 @@ pub fn parse() -> (Action, LogLevel) {
         Err(e) => return handle_parse_error(e),
     };
 
-    let cli = match Cli::from_arg_matches(&matches) {
+    let mut cli = match Cli::from_arg_matches(&matches) {
         Ok(c) => c,
         Err(e) => return handle_parse_error(e),
     };
 
     let level: LogLevel = cli.verbose.into();
 
-    // Handle --help flag (global, so it works at any level)
+    // Handle --help flag (global, so it works at any level). Wrapped-tool
+    // proxies own their own help, so the flag is forwarded to them instead.
     if cli.help {
+        if let Some(action) = forward_help_to_wrapped_tool(cli.command.take()) {
+            return (action, level);
+        }
         let action = match get_subcommand_path_from_matches(&matches) {
             None => Action::ShowHelp,
             Some(path) => Action::ShowSubcommandHelp(path),
@@ -673,7 +677,7 @@ pub fn parse() -> (Action, LogLevel) {
         return (action, level);
     }
 
-    let action = match cli.command {
+    let action = match cli.command.take() {
         None => Action::ShowHelp,
         Some(Commands::Bootstrap) => Action::Bootstrap,
         Some(Commands::Config) => Action::ShowConfig,
@@ -728,30 +732,14 @@ pub fn parse() -> (Action, LogLevel) {
             Some(cmd) => Action::Mcp { command: cmd },
         },
         #[cfg(all(unix, tool_install))]
-        Some(Commands::Ob { command }) => {
-            if !feature::is_feature_enabled("outerbounds") {
-                use crate::ui::status::{blank_line, highlight, tip, warn};
-                warn(&format!(
-                    "The {} command requires the experimental {} feature.",
-                    highlight("ob"),
-                    highlight("outerbounds")
-                ));
-                tip(&format!(
-                    "Enable it with {}",
-                    highlight("ana feature enable outerbounds")
-                ));
-                blank_line();
-                std::process::exit(1);
-            }
-            match command {
-                None => Action::ShowSubcommandHelp("ob".to_string()),
-                Some(cmd) => match cmd.into_action() {
-                    ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                    ObAction::Proxy(args) => Action::ObProxy { args },
-                    ObAction::AutoConfigure { instance } => Action::ObAutoConfigure { instance },
-                },
-            }
-        }
+        Some(Commands::Platform { command }) => match command {
+            None => Action::ShowSubcommandHelp("platform".to_string()),
+            Some(cmd) => match cmd.into_action() {
+                ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+                ObAction::Proxy(args) => Action::PlatformProxy { args },
+                ObAction::AutoConfigure { instance } => Action::PlatformAutoConfigure { instance },
+            },
+        },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -839,6 +827,33 @@ fn get_subcommand_path_from_matches(matches: &clap::ArgMatches) -> Option<String
     }
 }
 
+/// Forward `--help` to a wrapped tool when one of its proxy subcommands is used.
+///
+/// `ana org` and `ana platform` are thin wrappers around other CLIs, so their
+/// help belongs to the wrapped tool. Returning `None` falls back to ana's own
+/// wrapper help (e.g. for `ana auth --help`).
+fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
+    match command? {
+        Commands::Org { mut args } => {
+            args.push("--help".to_string());
+            Some(Action::OrgProxy { args })
+        }
+        #[cfg(all(unix, tool_install))]
+        Commands::Platform { command } => {
+            let mut args = match command {
+                None => Vec::new(),
+                Some(cmd) => match cmd.into_action() {
+                    ObAction::Proxy(args) => args,
+                    ObAction::AutoConfigure { .. } | ObAction::ShowHelp(_) => return None,
+                },
+            };
+            args.push("--help".to_string());
+            Some(Action::PlatformProxy { args })
+        }
+        _ => None,
+    }
+}
+
 fn handle_parse_error(e: clap::Error) -> (Action, LogLevel) {
     if e.kind() == clap::error::ErrorKind::DisplayVersion {
         return (Action::ShowVersion, LogLevel::Off);
@@ -894,16 +909,9 @@ fn print_clap_error(e: &clap::Error) {
 }
 
 /// Get subcommand names and descriptions from clap for help introspection.
-/// Filters out experimental commands when their features are not enabled.
 fn get_subcommand_descriptions() -> HashMap<String, String> {
-    #[cfg(all(unix, tool_install))]
-    let show_ob = feature::is_feature_enabled("outerbounds");
-    #[cfg(not(all(unix, tool_install)))]
-    let show_ob = false;
-
     Cli::command()
         .get_subcommands()
-        .filter(|s| show_ob || s.get_name() != "ob")
         .map(|s| {
             (
                 s.get_name().to_string(),
@@ -1031,15 +1039,14 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Outerbounds platform CLI (experimental)
+    /// Outerbounds platform CLI
     #[cfg(all(unix, tool_install))]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,
-        override_usage = "ana ob <command> [options]",
-        after_help = "Note: Outerbounds integration is an experimental alpha feature."
+        override_usage = "ana platform <command> [options]"
     )]
-    Ob {
+    Platform {
         #[command(subcommand)]
         command: Option<ObCommands>,
     },
@@ -1285,12 +1292,10 @@ mod tests {
     #[test]
     fn test_all_subcommands_in_help_sections() {
         // Commands intentionally hidden from help output
-        // "ob" is conditionally hidden based on experimental feature state
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
             "org",
             "config",
-            "ob",
             "bootstrap",
             "telemetry-submit",
             "telemetry-kill",
@@ -1594,5 +1599,40 @@ mod tests {
             Ok(_) => panic!("should fail to parse"),
             Err(e) => assert_eq!(e.kind(), clap::error::ErrorKind::InvalidSubcommand),
         }
+    }
+
+    #[test]
+    fn test_org_leading_help_is_captured_by_global_flag() {
+        // clap matches the global --help before the trailing args, so the flag
+        // never reaches org's args - that is why it must be forwarded manually.
+        let cli = Cli::try_parse_from(["ana", "org", "--help"]).unwrap();
+        assert!(cli.help);
+        assert!(matches!(cli.command, Some(Commands::Org { args }) if args.is_empty()));
+    }
+
+    #[test]
+    fn test_org_trailing_help_reaches_args() {
+        // Once a positional is seen, trailing_var_arg captures --help for org.
+        let cli = Cli::try_parse_from(["ana", "org", "whoami", "--help"]).unwrap();
+        assert!(!cli.help);
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Org { args }) if args == vec!["whoami", "--help"]
+        ));
+    }
+
+    #[test]
+    fn test_forward_help_to_wrapped_tool_org() {
+        let action = forward_help_to_wrapped_tool(Some(Commands::Org { args: vec![] }));
+        match action {
+            Some(Action::OrgProxy { args }) => assert_eq!(args, vec!["--help"]),
+            _ => panic!("expected OrgProxy with forwarded --help"),
+        }
+    }
+
+    #[test]
+    fn test_forward_help_to_wrapped_tool_ignores_other_commands() {
+        assert!(forward_help_to_wrapped_tool(Some(Commands::Bootstrap)).is_none());
+        assert!(forward_help_to_wrapped_tool(None).is_none());
     }
 }

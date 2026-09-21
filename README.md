@@ -102,15 +102,14 @@ ana mcp discover
 
 See `ana mcp --help` for the full list of subcommands.
 
-### Deploying ML workflows to Outerbounds (experimental)
+### Deploying ML workflows to Outerbounds
 
-An experimental integration with the Outerbounds platform is available for production ML workflows. See the [Outerbounds integration guide](docs/outerbounds.md) for setup and usage.
+Integration with the Outerbounds platform is available for production ML workflows.
 
 ```bash
-ana feature enable outerbounds
-ana ob configure --instance your-org.outerbounds.com
-ana ob init my-pipeline --name recommendation-engine
-ana ob deploy
+ana platform configure --instance your-org.outerbounds.com
+ana platform init my-pipeline --name recommendation-engine
+ana platform deploy
 ```
 
 ## Configuration
@@ -129,15 +128,6 @@ View current settings with `ana config`.
 | `ANA_KEYRING_PATH` | `~/.anaconda/keyring` | API key storage location |
 
 Boolean values accept `true`/`false`, `1`/`0`, or empty string (treated as false).
-
-### Feature flags
-
-Experimental features are stored in `~/.ana/config.toml`:
-
-```toml
-[ana.features]
-outerbounds = true
-```
 
 ## Command reference
 
