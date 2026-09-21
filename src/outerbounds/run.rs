@@ -1,10 +1,12 @@
+use crate::context::CommandContext;
 use crate::tools;
 use crate::ui::status;
 
 use super::{InitOptions, ensure_configured, init_project, open_app, view_app};
 
 /// Run the outerbounds CLI wrapper with the given arguments.
-pub fn run(args: &[String]) -> miette::Result<()> {
+pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
+    tools::install::ensure_tool(ctx, "outerbounds").await?;
     // Handle `platform app open <name>`
     if args.len() >= 3 && args[0] == "app" && args[1] == "open" {
         return open_app(&args[2]);

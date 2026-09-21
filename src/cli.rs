@@ -334,7 +334,7 @@ impl Action {
             ),
             Action::Mcp { command } => mcp::run(ctx, command),
             #[cfg(all(unix, tool_install))]
-            Action::PlatformProxy { args } => outerbounds::run(&args),
+            Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
             Action::PlatformAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await

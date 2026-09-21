@@ -107,7 +107,6 @@ See `ana mcp --help` for the full list of subcommands.
 Integration with the Outerbounds platform is available for production ML workflows.
 
 ```bash
-ana tool install outerbounds
 ana platform configure --instance your-org.outerbounds.com
 ana platform init my-pipeline --name recommendation-engine
 ana platform deploy
