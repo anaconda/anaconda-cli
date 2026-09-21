@@ -31,6 +31,15 @@ AnaRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 def write_dummy_keyring(home: Path, domain: str = "anaconda.com") -> Path:
     """Write a dummy API key so gated commands can run in isolated tests."""
+    return write_dummy_keyring_at(home / ".anaconda" / "keyring", domain)
+
+
+def write_dummy_keyring_at(keyring_path: Path, domain: str = "anaconda.com") -> Path:
+    """Write a dummy API key to an explicit keyring path.
+
+    Used by tests that point `ANA_KEYRING_PATH` at their own file rather than
+    the default `~/.anaconda/keyring`, so gated commands see a logged-in user.
+    """
     credential = {
         "domain": domain,
         "api_key": "test-api-key",
@@ -40,7 +49,6 @@ def write_dummy_keyring(home: Path, domain: str = "anaconda.com") -> Path:
         "username": "testuser",
     }
     encoded = base64.b64encode(json.dumps(credential).encode()).decode()
-    keyring_path = home / ".anaconda" / "keyring"
     keyring_path.parent.mkdir(parents=True, exist_ok=True)
     keyring_path.write_text(json.dumps({"Anaconda Cloud": {domain: encoded}}))
     return keyring_path

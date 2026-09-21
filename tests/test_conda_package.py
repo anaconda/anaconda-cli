@@ -26,6 +26,7 @@ from pathlib import Path
 import pytest
 from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
+from helpers import write_dummy_keyring
 
 PACKAGE_NAME = "anaconda-cli"
 
@@ -165,6 +166,8 @@ def run_packaged_ana(
         env["USERPROFILE"] = str(home)
     else:
         env["HOME"] = str(home)
+    # Gated commands require a logged-in user; seed a dummy credential.
+    write_dummy_keyring(home)
     env_base = env
 
     def _run(

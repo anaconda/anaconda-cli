@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from helpers import AnaRunner
+from helpers import write_dummy_keyring_at
 from mock_auth_server import MockAuthServer
 
 # Free tier URLs (mock auth server doesn't return premium subscription)
@@ -162,6 +163,9 @@ def feature_env(
     keyring_path: Path,
 ) -> dict[str, str]:
     """Environment for feature tests: isolated conda + mock auth server."""
+    # Gated commands require a logged-in user; seed a dummy credential for the
+    # configured (mock) domain so tests don't need to run the full login flow.
+    write_dummy_keyring_at(keyring_path, mock_auth_server.domain)
     return {
         **conda_isolated_env,
         "ANA_DOMAIN": mock_auth_server.domain,
@@ -181,6 +185,9 @@ def pixi_feature_env(
     Unlike conda tests which use a mock auth server, pixi tests need real
     credentials because pixi auth login actually validates against repo.anaconda.cloud.
     """
+    # Gated commands require a logged-in user; seed a dummy credential so
+    # logged-out-only commands (e.g. disable) work without real credentials.
+    write_dummy_keyring_at(keyring_path)
     return {
         **pixi_isolated_env,
         "ANA_KEYRING_PATH": str(keyring_path),
@@ -200,6 +207,7 @@ def conda_and_pixi_feature_env(
     tool's real, ambient (non-test) configuration on the machine running
     the tests.
     """
+    write_dummy_keyring_at(keyring_path, mock_auth_server.domain)
     return {
         **conda_isolated_env,
         **pixi_isolated_env,
@@ -311,6 +319,7 @@ def pip_feature_env(
     keyring_path: Path,
 ) -> dict[str, str]:
     """Environment for pip feature tests: isolated pip + real auth."""
+    write_dummy_keyring_at(keyring_path)
     return {
         **pip_isolated_env,
         "ANA_KEYRING_PATH": str(keyring_path),
@@ -324,6 +333,7 @@ def uv_feature_env(
     keyring_path: Path,
 ) -> dict[str, str]:
     """Environment for uv feature tests: isolated uv + real auth."""
+    write_dummy_keyring_at(keyring_path)
     return {
         **uv_isolated_env,
         "ANA_KEYRING_PATH": str(keyring_path),
@@ -1162,6 +1172,8 @@ class TestMainXCondaPackageInstall:
             "403" in install_result.stderr
             or "Forbidden" in install_result.stderr
             or "unauthorized" in install_result.stderr.lower()
+            or "401" in install_result.stderr
+            or "AnacondaAuthError" in install_result.stderr
             or "Token not found" in install_result.stderr
             or "403" in install_result.stdout
             or "Forbidden" in install_result.stdout
