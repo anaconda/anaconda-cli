@@ -20,19 +20,11 @@ pub enum FeatureCategory {
 
 /// List all available features.
 pub fn list_features() -> Vec<FeatureInfo> {
-    vec![
-        FeatureInfo {
-            name: "main-x",
-            description: "Configure conda/pixi to use Anaconda's main-x channel",
-            category: FeatureCategory::Beta,
-        },
-        #[cfg(unix)]
-        FeatureInfo {
-            name: "outerbounds",
-            description: "Enable Outerbounds CLI integration (alias: ob)",
-            category: FeatureCategory::Experimental,
-        },
-    ]
+    vec![FeatureInfo {
+        name: "main-x",
+        description: "Configure conda/pixi to use Anaconda's main-x channel",
+        category: FeatureCategory::Beta,
+    }]
 }
 
 /// Print a key-value pair with consistent formatting.
