@@ -31,7 +31,7 @@ const TOOLS: &[Tool] = &[
         name: "outerbounds",
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
-        experimental: Some("Outerbounds integration is an experimental alpha feature."),
+        experimental: None,
         auto_update: true,
     },
     Tool {
