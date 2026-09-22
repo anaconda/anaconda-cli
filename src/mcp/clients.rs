@@ -392,6 +392,8 @@ pub struct ConfigureResult {
     pub server_name: String,
     pub created: bool,
     pub updated: bool,
+    /// Path of the Anaconda Package Intelligence skill written for this client.
+    pub skill_path: Option<PathBuf>,
 }
 
 /// Add or update the Anaconda MCP server entry in a client's config file.
@@ -405,7 +407,7 @@ pub fn configure(
     let spec = spec(client).ok_or_else(|| McpError::UnsupportedClient(client.to_string()))?;
     let path = config_path(client)?;
 
-    let result = ConfigureResult {
+    let mut result = ConfigureResult {
         created: !path.exists(),
         updated: is_installed(client, server_name),
         config_path: path.clone(),
@@ -415,6 +417,7 @@ pub fn configure(
             None
         },
         server_name: server_name.to_string(),
+        skill_path: None,
     };
 
     match spec.format {
@@ -454,6 +457,9 @@ pub fn configure(
             save_toml(&path, &doc)?;
         }
     }
+
+    // A configured agent also gets the Anaconda Package Intelligence skill.
+    result.skill_path = Some(super::skill::install(client)?);
 
     Ok(result)
 }
@@ -798,7 +804,12 @@ mod tests {
         std::fs::write(&jsonc, "{\n  // keep me\n  \"permission\": {}\n}\n").unwrap();
 
         with_home(dir.path(), || {
-            configure("kilo", "anaconda-mcp", URL, TOKEN, false).unwrap();
+            let result = configure("kilo", "anaconda-mcp", URL, TOKEN, false).unwrap();
+            assert_eq!(
+                result.skill_path,
+                Some(kilo_dir.join("skills").join("anaconda-intelligence").join("SKILL.md"))
+            );
+            assert!(kilo_dir.join("skills/anaconda-intelligence/SKILL.md").exists());
             assert!(!kilo_dir.join("kilo.json").exists());
             assert!(is_installed("kilo", "anaconda-mcp"));
             assert!(
