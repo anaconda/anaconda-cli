@@ -807,9 +807,18 @@ mod tests {
             let result = configure("kilo", "anaconda-mcp", URL, TOKEN, false).unwrap();
             assert_eq!(
                 result.skill_path,
-                Some(kilo_dir.join("skills").join("anaconda-intelligence").join("SKILL.md"))
+                Some(
+                    kilo_dir
+                        .join("skills")
+                        .join("anaconda-intelligence")
+                        .join("SKILL.md")
+                )
             );
-            assert!(kilo_dir.join("skills/anaconda-intelligence/SKILL.md").exists());
+            assert!(
+                kilo_dir
+                    .join("skills/anaconda-intelligence/SKILL.md")
+                    .exists()
+            );
             assert!(!kilo_dir.join("kilo.json").exists());
             assert!(is_installed("kilo", "anaconda-mcp"));
             assert!(

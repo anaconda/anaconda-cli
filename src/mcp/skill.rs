@@ -280,10 +280,7 @@ pub fn skill_path(client: &str) -> Result<PathBuf, McpError> {
             .join("skills"),
         "cursor" => home.join(".cursor").join("skills"),
         // Devin Desktop (rebranded Windsurf) reads global skills from here.
-        "devin" => home
-            .join(".codeium")
-            .join("windsurf")
-            .join("skills"),
+        "devin" => home.join(".codeium").join("windsurf").join("skills"),
         "kilo" => home.join(".config").join("kilo").join("skills"),
         "opencode" => home.join(".config").join("opencode").join("skills"),
         "vscode" => home.join(".copilot").join("skills"),
@@ -328,16 +325,16 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         with_home(dir.path(), || {
             let cases = [
-                ("claude-code", ".claude/skills/anaconda-intelligence/SKILL.md"),
+                (
+                    "claude-code",
+                    ".claude/skills/anaconda-intelligence/SKILL.md",
+                ),
                 ("cursor", ".cursor/skills/anaconda-intelligence/SKILL.md"),
                 (
                     "devin",
                     ".codeium/windsurf/skills/anaconda-intelligence/SKILL.md",
                 ),
-                (
-                    "kilo",
-                    ".config/kilo/skills/anaconda-intelligence/SKILL.md",
-                ),
+                ("kilo", ".config/kilo/skills/anaconda-intelligence/SKILL.md"),
                 (
                     "opencode",
                     ".config/opencode/skills/anaconda-intelligence/SKILL.md",
@@ -382,7 +379,8 @@ mod tests {
             let path = install("claude-code").unwrap();
             assert_eq!(
                 path,
-                dir.path().join(".claude/skills/anaconda-intelligence/SKILL.md")
+                dir.path()
+                    .join(".claude/skills/anaconda-intelligence/SKILL.md")
             );
             let content = std::fs::read_to_string(&path).unwrap();
             assert!(content.starts_with("---\nname: anaconda-intelligence\n"));
