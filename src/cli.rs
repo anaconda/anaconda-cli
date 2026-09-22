@@ -620,9 +620,10 @@ impl Action {
                 // installers we don't support yet (e.g. "anaconda").
                 ctx.telemetry.add("installer_name", name.clone());
                 match name.as_str() {
-                    "miniconda" => installer::run(ctx, None).await,
+                    "miniconda" => installer::run_miniconda(ctx, None).await,
+                    "kilo-cli" => installer::run_kilo(ctx).await,
                     other => Err(miette!(
-                        "only miniconda is currently supported (got '{}')",
+                        "only miniconda and kilo-cli are currently supported (got '{}')",
                         other
                     )),
                 }
@@ -1215,9 +1216,9 @@ enum ToolCommands {
     /// Update all installed tools
     Update,
 
-    /// Download an installer (currently miniconda only)
+    /// Download an installer (currently miniconda or kilo-cli)
     Download {
-        /// Installer to download [possible values: miniconda]
+        /// Installer to download [possible values: miniconda, kilo-cli]
         name: Option<String>,
     },
 }

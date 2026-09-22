@@ -20,6 +20,7 @@ fn to_hex(bytes: impl AsRef<[u8]>) -> String {
 }
 
 const MINICONDA_BASE_URL: &str = "https://repo.anaconda.com/miniconda/";
+const KILO_BASE_URL: &str = "https://github.com/Kilo-Org/kilo/releases/latest/download/";
 
 struct Target {
     filename: String,
@@ -56,6 +57,28 @@ fn detect_target(base_url: &str, os: &str, arch: &str) -> miette::Result<Target>
     };
 
     let filename = format!("Miniconda3-latest-{}-{}.{}", platform, file_arch, ext);
+    let url = format!("{}{}", base_url, filename);
+    Ok(Target { filename, url })
+}
+
+/// Map a `(os, arch)` pair to the canonical Kilo CLI release archive for that
+/// platform. Mirrors the platform table in Kilo's official install script
+/// (https://github.com/Kilo-Org/kilo `install`): darwin/windows ship `.zip`,
+/// linux ships `.tar.gz`, and archives contain the `kilo` binary at the root.
+/// The `-baseline` and `-musl` variants are not offered here.
+fn detect_kilo_target(base_url: &str, os: &str, arch: &str) -> miette::Result<Target> {
+    let (os_name, file_arch, ext) = match (os, arch) {
+        ("macos", "aarch64") => ("darwin", "arm64", "zip"),
+        ("macos", "x86_64") => ("darwin", "x64", "zip"),
+        ("linux", "x86_64") => ("linux", "x64", "tar.gz"),
+        ("linux", "aarch64") => ("linux", "arm64", "tar.gz"),
+        ("windows", "x86_64") => ("windows", "x64", "zip"),
+        _ => {
+            return Err(miette!("no Kilo CLI release available for {}/{}", os, arch));
+        }
+    };
+
+    let filename = format!("kilo-{os_name}-{file_arch}.{ext}");
     let url = format!("{}{}", base_url, filename);
     Ok(Target { filename, url })
 }
@@ -106,12 +129,16 @@ fn expected_for<'a>(
     }
 }
 
+/// Stream-download `url` to `dest` via a temp file, atomic-renaming into place
+/// on success and deleting the temp file on failure. When `expected_sha` is
+/// `Some`, the downloaded bytes are SHA256-verified first and a mismatch
+/// deletes the temp file and errors. Returns the number of bytes written.
 async fn download_and_verify(
     client: &ClientWithMiddleware,
     url: &str,
-    expected_sha: &str,
+    expected_sha: Option<&str>,
     dest: &Path,
-) -> miette::Result<()> {
+) -> miette::Result<u64> {
     let resp = client
         .get(url)
         .send()
@@ -130,16 +157,20 @@ async fn download_and_verify(
         .await
         .map_err(|e| miette!("failed to create temp file: {}", e))?;
 
-    let mut hasher = Sha256::new();
+    let mut hasher = expected_sha.map(|_| Sha256::new());
+    let mut written: u64 = 0;
     let mut stream = resp.bytes_stream();
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| miette!("download error: {}", e))?;
-        hasher.update(&chunk);
+        if let Some(hasher) = hasher.as_mut() {
+            hasher.update(&chunk);
+        }
         file.write_all(&chunk)
             .await
             .map_err(|e| miette!("write error: {}", e))?;
         pb.inc(chunk.len() as u64);
+        written += chunk.len() as u64;
     }
 
     pb.finish_and_clear();
@@ -152,8 +183,22 @@ async fn download_and_verify(
         .map_err(|e| miette!("failed to flush temp file: {}", e))?;
     drop(file);
 
-    let actual_sha = to_hex(hasher.finalize());
-    finalize_verified_download(&temp_path, &actual_sha, expected_sha, dest).await
+    let actual_sha = hasher.map(|h| to_hex(h.finalize()));
+
+    match (actual_sha.as_deref(), expected_sha) {
+        (Some(actual), Some(expected)) => {
+            finalize_verified_download(&temp_path, actual, expected, dest).await?;
+        }
+        // No checksum source for this tool (e.g. Kilo's GitHub releases publish
+        // none) — fall back to the atomic temp→rename without verification.
+        _ => {
+            tokio::fs::rename(&temp_path, dest)
+                .await
+                .map_err(|e| miette!("failed to move file to destination: {}", e))?;
+        }
+    }
+
+    Ok(written)
 }
 
 /// Given a fully-written temp file and its computed checksum, verify it against
@@ -195,7 +240,20 @@ fn run_command(filename: &str) -> String {
     }
 }
 
-pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
+/// The command that extracts the downloaded Kilo archive into `~/.kilo/bin` —
+/// the same install dir Kilo's official install script uses. On Windows the
+/// command is PowerShell syntax (`Expand-Archive`); on macOS/Linux it's POSIX.
+fn kilo_run_command(filename: &str) -> String {
+    if cfg!(windows) {
+        format!(r#"Expand-Archive -Path ".\{filename}" -DestinationPath "$HOME\.kilo\bin""#)
+    } else if filename.ends_with(".tar.gz") {
+        format!("mkdir -p ~/.kilo/bin && tar -xzf ./{filename} -C ~/.kilo/bin")
+    } else {
+        format!("mkdir -p ~/.kilo/bin && unzip ./{filename} -d ~/.kilo/bin")
+    }
+}
+
+pub async fn run_miniconda(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
     let base_url = base_url.unwrap_or(MINICONDA_BASE_URL);
     let target = detect_target(base_url, std::env::consts::OS, std::env::consts::ARCH)?;
 
@@ -225,7 +283,7 @@ pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result
     };
     eprintln!("Downloading {}{}", target.filename, size_part);
 
-    download_and_verify(client, &target.url, expected_sha, &dest).await?;
+    download_and_verify(client, &target.url, Some(expected_sha), &dest).await?;
 
     let dest_display = if cfg!(windows) {
         format!(".\\{}", target.filename)
@@ -239,6 +297,48 @@ pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result
     println!();
     println!("To install, run:");
     println!("    {}", run_command(&target.filename));
+
+    Ok(())
+}
+
+pub async fn run_kilo(ctx: &CommandContext) -> miette::Result<()> {
+    let target = detect_kilo_target(KILO_BASE_URL, std::env::consts::OS, std::env::consts::ARCH)?;
+
+    let dest = std::env::current_dir()
+        .map_err(|e| miette!("failed to get current directory: {}", e))?
+        .join(&target.filename);
+
+    if dest.exists() {
+        return Err(miette!(
+            "./{} already exists. Remove it if you want to continue.",
+            target.filename
+        ));
+    }
+
+    let client = ctx.download_client();
+
+    eprintln!("Downloading {}", target.filename);
+
+    // Kilo's GitHub releases publish no checksums, so there's nothing to
+    // verify against — download to the same atomic temp file + rename path,
+    // and report the size we actually received.
+    let written = download_and_verify(client, &target.url, None, &dest).await?;
+
+    let dest_display = if cfg!(windows) {
+        format!(".\\{}", target.filename)
+    } else {
+        format!("./{}", target.filename)
+    };
+
+    println!(
+        "Downloaded {} ({}) to:",
+        target.filename,
+        format_size(written)
+    );
+    println!("    {}", dest_display);
+    println!();
+    println!("To install, run:");
+    println!("    {}", kilo_run_command(&target.filename));
 
     Ok(())
 }
@@ -277,6 +377,62 @@ mod tests {
     fn test_detect_target_unsupported_combo() {
         let result = detect_target("https://example.com/", "linux", "mips");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_detect_kilo_target_supported_combos() {
+        let cases = [
+            ("macos", "aarch64", "kilo-darwin-arm64.zip"),
+            ("macos", "x86_64", "kilo-darwin-x64.zip"),
+            ("linux", "x86_64", "kilo-linux-x64.tar.gz"),
+            ("linux", "aarch64", "kilo-linux-arm64.tar.gz"),
+            ("windows", "x86_64", "kilo-windows-x64.zip"),
+        ];
+
+        for (os, arch, expected_filename) in cases {
+            let result = detect_kilo_target("https://example.com/kilo/", os, arch);
+            assert!(result.is_ok(), "expected Ok for {}/{}", os, arch);
+            assert_eq!(result.unwrap().filename, expected_filename);
+        }
+    }
+
+    #[test]
+    fn test_detect_kilo_target_url() {
+        let target = detect_kilo_target("https://example.com/kilo/", "linux", "x86_64").unwrap();
+        assert_eq!(target.url, "https://example.com/kilo/kilo-linux-x64.tar.gz");
+    }
+
+    #[test]
+    fn test_detect_kilo_target_unsupported_combo() {
+        let result = detect_kilo_target("https://example.com/", "linux", "mips");
+        assert!(result.err().unwrap().to_string().contains("no Kilo CLI"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_kilo_run_command_tar_gz() {
+        assert_eq!(
+            kilo_run_command("kilo-linux-arm64.tar.gz"),
+            "mkdir -p ~/.kilo/bin && tar -xzf ./kilo-linux-arm64.tar.gz -C ~/.kilo/bin"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_kilo_run_command_zip() {
+        assert_eq!(
+            kilo_run_command("kilo-darwin-arm64.zip"),
+            "mkdir -p ~/.kilo/bin && unzip ./kilo-darwin-arm64.zip -d ~/.kilo/bin"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_kilo_run_command_zip() {
+        assert_eq!(
+            kilo_run_command("kilo-darwin-arm64.zip"),
+            r#"Expand-Archive -Path ".\kilo-darwin-arm64.zip" -DestinationPath "$HOME\.kilo\bin""#
+        );
     }
 
     #[test]

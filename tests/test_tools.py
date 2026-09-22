@@ -38,6 +38,28 @@ def _expected_miniconda_filename() -> str:
     return filename
 
 
+_KILO_FILENAMES = {
+    ("darwin", "arm64"): "kilo-darwin-arm64.zip",
+    ("darwin", "x86_64"): "kilo-darwin-x64.zip",
+    ("linux", "x86_64"): "kilo-linux-x64.tar.gz",
+    ("linux", "aarch64"): "kilo-linux-arm64.tar.gz",
+    ("win32", "x86_64"): "kilo-windows-x64.zip",
+    ("win32", "amd64"): "kilo-windows-x64.zip",
+}
+
+
+def _expected_kilo_filename() -> str:
+    """The kilo-cli archive filename ana would pick for the current platform."""
+    key = (sys.platform, platform.machine().lower())
+    filename = _KILO_FILENAMES.get(key)
+    if filename is None:
+        raise RuntimeError(
+            f"no known kilo-cli filename for platform {key}; "
+            "update _KILO_FILENAMES to match src/installer/mod.rs"
+        )
+    return filename
+
+
 class TestToolHelp:
     """Tests for tool command help."""
 
@@ -68,11 +90,13 @@ class TestToolHelp:
         result = run_ana("tool", "download", "--help")
         assert result.returncode == 0
         assert "miniconda" in result.stdout.lower()
+        assert "kilo-cli" in result.stdout.lower()
 
     def test_tool_download_no_args_shows_help(self, run_ana: AnaRunner) -> None:
         result = run_ana("tool", "download")
         assert result.returncode == 0
         assert "miniconda" in result.stdout.lower()
+        assert "kilo-cli" in result.stdout.lower()
 
 
 class TestToolDownloadCommand:
@@ -89,7 +113,7 @@ class TestToolDownloadCommand:
     def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
         result = run_ana("tool", "download", "nonexistent-installer")
         assert result.returncode != 0
-        assert "only miniconda is currently supported" in result.stderr.lower()
+        assert "only miniconda and kilo-cli are currently supported" in result.stderr.lower()
         assert "nonexistent-installer" in result.stderr
 
     def test_download_fails_when_destination_already_exists(
@@ -102,6 +126,18 @@ class TestToolDownloadCommand:
         existing.write_bytes(sentinel)
 
         result = run_ana("tool", "download", "miniconda", cwd=tmp_path)
+        assert result.returncode != 0
+        assert "already exists" in result.stderr.lower()
+        assert existing.read_bytes() == sentinel
+
+    def test_download_kilo_cli_fails_when_destination_already_exists(
+        self, run_ana: AnaRunner, tmp_path: Path
+    ) -> None:
+        existing = tmp_path / _expected_kilo_filename()
+        sentinel = b"do-not-overwrite"
+        existing.write_bytes(sentinel)
+
+        result = run_ana("tool", "download", "kilo-cli", cwd=tmp_path)
         assert result.returncode != 0
         assert "already exists" in result.stderr.lower()
         assert existing.read_bytes() == sentinel
@@ -230,6 +266,8 @@ class TestToolList:
         assert "Externally Managed Installers" in result.stdout
         assert "miniconda" in result.stdout
         assert "ana tool download miniconda" in result.stdout
+        assert "kilo-cli" in result.stdout
+        assert "ana tool download kilo-cli" in result.stdout
 
     def test_tool_list_shows_installed_status(
         self, run_ana_logged_in: AnaRunner, fake_home: Path

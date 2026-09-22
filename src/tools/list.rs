@@ -38,6 +38,12 @@ const INSTALLERS: &[Installer] = &[
         status: "available",
     },
     Installer {
+        name: "kilo-cli",
+        version: Some("latest"),
+        command: Some("ana tool download kilo-cli"),
+        status: "available",
+    },
+    Installer {
         name: "anaconda",
         version: None,
         command: None,
