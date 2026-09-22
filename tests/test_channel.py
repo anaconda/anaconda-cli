@@ -103,7 +103,7 @@ class TestChannelArgumentErrors:
 
 
 @pytest.fixture
-def stub_anaconda(run_ana: AnaRunner, fake_home: Path) -> Path:
+def stub_anaconda(run_ana_logged_in: AnaRunner, fake_home: Path) -> Path:
     """Install a stub anaconda binary and return the file it records argv to.
 
     The stub stands in for anaconda-cli so the handoff can be inspected
@@ -114,7 +114,7 @@ def stub_anaconda(run_ana: AnaRunner, fake_home: Path) -> Path:
     .lockfile-hash and skips reinstalling. The real anaconda binary is then
     replaced with the stub.
     """
-    result = run_ana("tool", "install", "anaconda-cli")
+    result = run_ana_logged_in("tool", "install", "anaconda-cli")
     assert result.returncode == 0, f"anaconda-cli install failed: {result.stderr}"
 
     argv_log = fake_home / "anaconda-argv.txt"
@@ -139,10 +139,10 @@ class TestChannelPassthrough:
     """
 
     def test_create_hands_off_argv(
-        self, run_ana: AnaRunner, stub_anaconda: Path
+        self, run_ana_logged_in: AnaRunner, stub_anaconda: Path
     ) -> None:
         """Flags precede the channel positional (src/packages/commands.rs)."""
-        result = run_ana(
+        result = run_ana_logged_in(
             "channel", "create", "--private", "--namespace", "my-ns", "org/channel"
         )
         assert result.returncode == 0, f"create failed: {result.stderr}"
@@ -156,9 +156,11 @@ class TestChannelPassthrough:
         ]
 
     def test_remove_hands_off_argv(
-        self, run_ana: AnaRunner, stub_anaconda: Path
+        self, run_ana_logged_in: AnaRunner, stub_anaconda: Path
     ) -> None:
-        result = run_ana("channel", "remove", "--namespace", "my-ns", "org/channel")
+        result = run_ana_logged_in(
+            "channel", "remove", "--namespace", "my-ns", "org/channel"
+        )
         assert result.returncode == 0, f"remove failed: {result.stderr}"
         assert stub_anaconda.read_text().splitlines() == [
             "channel",
@@ -169,11 +171,11 @@ class TestChannelPassthrough:
         ]
 
     def test_upload_hands_off_argv(
-        self, run_ana: AnaRunner, stub_anaconda: Path
+        self, run_ana_logged_in: AnaRunner, stub_anaconda: Path
     ) -> None:
         """The -c short flag is normalized to --channel, and every file is
         forwarded after the flags."""
-        result = run_ana(
+        result = run_ana_logged_in(
             "channel",
             "upload",
             "-c",
@@ -192,11 +194,11 @@ class TestChannelPassthrough:
         ]
 
     def test_upload_without_channel_hands_off_argv(
-        self, run_ana: AnaRunner, stub_anaconda: Path
+        self, run_ana_logged_in: AnaRunner, stub_anaconda: Path
     ) -> None:
         """Without -c, ana must not invent a --channel flag; anaconda-client
         owns the "no channel specified" error."""
-        result = run_ana("channel", "upload", "one.conda")
+        result = run_ana_logged_in("channel", "upload", "one.conda")
         assert result.returncode == 0, f"upload failed: {result.stderr}"
         assert stub_anaconda.read_text().splitlines() == [
             "channel",
@@ -205,11 +207,11 @@ class TestChannelPassthrough:
         ]
 
     def test_child_failure_is_reported(
-        self, run_ana: AnaRunner, stub_anaconda: Path
+        self, run_ana_logged_in: AnaRunner, stub_anaconda: Path
     ) -> None:
         """A non-zero exit from the child is reported with its real code, but
         ana itself always exits 1 (src/tools/run.rs)."""
-        result = run_ana(
+        result = run_ana_logged_in(
             "channel", "remove", "org/channel", env={"STUB_EXIT_CODE": "3"}
         )
         assert result.returncode == 1

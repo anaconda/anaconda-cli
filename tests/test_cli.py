@@ -249,10 +249,10 @@ class TestBootstrap:
     """Tests for 'ana bootstrap' subcommand."""
 
     def test_bootstrap_installs_anaconda_cli(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that bootstrap installs anaconda-cli to ~/.ana/tools."""
-        result = run_ana("bootstrap")
+        result = run_ana_logged_in("bootstrap")
         assert result.returncode == 0
         assert "anaconda-cli" in result.stderr
 
@@ -262,14 +262,14 @@ class TestBootstrap:
         assert tool_dir.is_dir()
 
     def test_bootstrap_does_not_create_symlink(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that bootstrap does NOT create an anaconda symlink in ~/.ana/bin.
 
         anaconda-cli is only accessible via ana subcommands to avoid shadowing
         the user's existing anaconda command from anaconda-auth.
         """
-        result = run_ana("bootstrap")
+        result = run_ana_logged_in("bootstrap")
         assert result.returncode == 0
 
         # Verify NO symlink is created
@@ -277,11 +277,11 @@ class TestBootstrap:
         assert not bin_path.exists(), f"Symlink should not be created: {bin_path}"
 
     def test_bootstrap_already_installed(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that running bootstrap twice shows already installed message."""
         # First run installs
-        first_result = run_ana("bootstrap")
+        first_result = run_ana_logged_in("bootstrap")
         assert first_result.returncode == 0
 
         # Verify tool prefix exists
@@ -289,15 +289,15 @@ class TestBootstrap:
         assert tool_dir.exists()
 
         # Second run should indicate already installed
-        second_result = run_ana("bootstrap")
+        second_result = run_ana_logged_in("bootstrap")
         assert second_result.returncode == 0
         assert "already installed" in second_result.stderr
 
     def test_bootstrap_anaconda_binary_runs(
-        self, run_ana: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
     ) -> None:
         """Test that the installed anaconda binary runs from the tool prefix."""
-        result = run_ana("bootstrap")
+        result = run_ana_logged_in("bootstrap")
         assert result.returncode == 0
 
         # Run the anaconda binary directly from the tool prefix
