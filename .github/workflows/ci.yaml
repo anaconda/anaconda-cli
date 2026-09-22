@@ -50,16 +50,25 @@ jobs:
           persist-credentials: false
 
       # Real-time malware scanning dominates MSVC builds and the many
-      # short-lived test processes on Windows runners.
+      # short-lived test processes on Windows runners. The temp-dir
+      # exclusions matter for the integration tests: bootstrap/installer
+      # tests write and execute binaries under %TEMP% (pytest tmp_path),
+      # which would otherwise be scanned on every write and launch.
       - name: Configure Defender exclusions (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
           Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
           Add-MpPreference -ExclusionPath "$(Get-Location)"
+          Add-MpPreference -ExclusionPath "$env:TEMP"
+          Add-MpPreference -ExclusionPath "$env:TMP"
+          Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA"
           Add-MpPreference -ExclusionPath "$env:USERPROFILE\.cargo"
           Add-MpPreference -ExclusionProcess "cargo.exe"
           Add-MpPreference -ExclusionProcess "rustc.exe"
           Add-MpPreference -ExclusionProcess "link.exe"
+          Add-MpPreference -ExclusionProcess "python.exe"
+          Add-MpPreference -ExclusionProcess "conda.exe"
+          Add-MpPreference -ExclusionProcess "pwsh.exe"
 
       - name: Fetch CI secrets from Vault
         id: vault
