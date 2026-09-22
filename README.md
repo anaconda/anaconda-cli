@@ -1,6 +1,6 @@
 # Anaconda CLI
 
-The command-line interface for the Anaconda platform.
+The command-line interface for the Anaconda platform.sadf
 
 ## Table of contents
 
