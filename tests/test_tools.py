@@ -113,7 +113,10 @@ class TestToolDownloadCommand:
     def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
         result = run_ana("tool", "download", "nonexistent-installer")
         assert result.returncode != 0
-        assert "only miniconda and kilo-cli are currently supported" in result.stderr.lower()
+        assert (
+            "only miniconda and kilo-cli are currently supported"
+            in result.stderr.lower()
+        )
         assert "nonexistent-installer" in result.stderr
 
     def test_download_fails_when_destination_already_exists(
