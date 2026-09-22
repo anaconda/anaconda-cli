@@ -116,6 +116,17 @@ fn parse_yes_no(input: &str, default: bool) -> bool {
     }
 }
 
+/// Truncate plain text to a display width, appending an ellipsis when cut.
+///
+/// Lines are truncated before styling so a wrapped prompt can never occupy
+/// more terminal rows than the redraw logic accounts for.
+fn fit(text: &str, width: usize) -> String {
+    if width == 0 {
+        return String::new();
+    }
+    console::truncate_str(text, width, "…").to_string()
+}
+
 /// Interactive multi-select checkbox list.
 ///
 /// Renders a bold prompt, a checkbox list, and a key-hint line below the
@@ -123,6 +134,10 @@ fn parse_yes_no(input: &str, default: bool) -> bool {
 /// enter confirms the selection. Escape or Ctrl+C aborts, returning an
 /// error. Styling matches the dialoguer `ColorfulTheme` look used
 /// previously: `[x]` prefixes in green, the active row in cyan.
+///
+/// Every line is truncated to the terminal width so no line soft-wraps;
+/// otherwise `clear_last_lines` would under-clear and redraws would leave
+/// duplicated prompt text behind.
 ///
 /// All output goes to stderr so stdout stays clean for machine-readable
 /// output. The caller is expected to have verified stdin is a terminal.
@@ -135,6 +150,7 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
     }
 
     let term = Term::stderr();
+    let width = usize::from(term.size().1);
     let mut cursor = 0usize;
     let mut checked: Vec<bool> = items
         .iter()
@@ -155,7 +171,9 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
         let mut frame = format!(
             "{} {} \n",
             console::style("?").for_stderr().yellow(),
-            console::style(prompt).for_stderr().bold()
+            console::style(fit(prompt, width.saturating_sub(2)))
+                .for_stderr()
+                .bold()
         );
         for (i, item) in items.iter().enumerate() {
             let prefix = if checked[i] {
@@ -164,18 +182,23 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
                 console::style("  [ ]").for_stderr().dim()
             };
             let label = if i == cursor {
-                console::style(*item).for_stderr().cyan()
+                console::style(fit(item, width.saturating_sub(6)))
+                    .for_stderr()
+                    .cyan()
             } else {
-                console::style(*item).for_stderr()
+                console::style(fit(item, width.saturating_sub(6))).for_stderr()
             };
             let _ = writeln!(frame, "{prefix} {label}");
         }
         let _ = writeln!(
             frame,
             "  {}",
-            console::style("↑/↓ arrows to navigate · space to select · enter to complete")
-                .for_stderr()
-                .dim()
+            console::style(fit(
+                "↑/↓ arrows to navigate · space to select · enter to complete",
+                width.saturating_sub(2)
+            ))
+            .for_stderr()
+            .dim()
         );
         rendered = items.len() + 2;
 
@@ -303,6 +326,48 @@ impl TerminalGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod fit {
+        use super::*;
+
+        #[test]
+        fn short_text_is_unchanged() {
+            assert_eq!(fit("hello", 10), "hello");
+            assert_eq!(fit("hello", 5), "hello");
+        }
+
+        #[test]
+        fn long_text_is_truncated_with_ellipsis() {
+            let fitted = fit("a very long prompt", 10);
+            assert_eq!(console::measure_text_width(&fitted), 10);
+            assert!(fitted.ends_with('…'));
+            assert!(fitted.starts_with("a very"));
+        }
+
+        #[test]
+        fn truncation_always_fits_the_width() {
+            let text = "Select agents to configure with the Anaconda MCP service";
+            for width in 1..=40 {
+                assert!(
+                    console::measure_text_width(&fit(text, width)) <= width,
+                    "width {width}"
+                );
+            }
+        }
+
+        #[test]
+        fn zero_width_returns_empty() {
+            assert_eq!(fit("hello", 0), "");
+        }
+
+        #[test]
+        fn wide_characters_never_exceed_display_width() {
+            // "日本語" is 3 chars but 6 display columns.
+            let fitted = fit("日本語テスト", 8);
+            assert!(console::measure_text_width(&fitted) <= 8);
+            assert!(fitted.ends_with('…'));
+        }
+    }
 
     mod parse_yes_no {
         use super::*;
