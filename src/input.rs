@@ -116,6 +116,51 @@ fn parse_yes_no(input: &str, default: bool) -> bool {
     }
 }
 
+/// Truncate plain text to a display width, appending an ellipsis when cut.
+///
+/// Lines are truncated before styling so a wrapped prompt can never occupy
+/// more terminal rows than the redraw logic accounts for.
+fn fit(text: &str, width: usize) -> String {
+    if width == 0 {
+        return String::new();
+    }
+    console::truncate_str(text, width, "…").to_string()
+}
+
+/// Best-effort terminal width in columns.
+///
+/// `Term::stderr()` size detection fails when stderr is not a tty (e.g. piped
+/// through a task runner) even though the user is interacting through a tty
+/// on stdin, so fall back to stdout and then stdin before giving up.
+fn terminal_width(term: &Term) -> usize {
+    term.size_checked()
+        .or_else(|| Term::stdout().size_checked())
+        .map(|(_, cols)| usize::from(cols))
+        .or_else(stdin_width)
+        .unwrap_or(80)
+}
+
+#[cfg(unix)]
+fn stdin_width() -> Option<usize> {
+    unsafe {
+        let mut winsize: libc::winsize = std::mem::zeroed();
+        // FIXME: ".into()" works around a libc bug (mirrors the console crate)
+        #[allow(clippy::useless_conversion)]
+        if libc::ioctl(libc::STDIN_FILENO, libc::TIOCGWINSZ.into(), &mut winsize) == 0
+            && winsize.ws_col > 0
+        {
+            Some(usize::from(winsize.ws_col))
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn stdin_width() -> Option<usize> {
+    None
+}
+
 /// Interactive multi-select checkbox list.
 ///
 /// Renders a bold prompt, a checkbox list, and a key-hint line below the
@@ -123,6 +168,10 @@ fn parse_yes_no(input: &str, default: bool) -> bool {
 /// enter confirms the selection. Escape or Ctrl+C aborts, returning an
 /// error. Styling matches the dialoguer `ColorfulTheme` look used
 /// previously: `[x]` prefixes in green, the active row in cyan.
+///
+/// Every line is truncated to the terminal width so no line soft-wraps;
+/// otherwise `clear_last_lines` would under-clear and redraws would leave
+/// duplicated prompt text behind.
 ///
 /// All output goes to stderr so stdout stays clean for machine-readable
 /// output. The caller is expected to have verified stdin is a terminal.
@@ -135,6 +184,7 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
     }
 
     let term = Term::stderr();
+    let width = terminal_width(&term);
     let mut cursor = 0usize;
     let mut checked: Vec<bool> = items
         .iter()
@@ -153,9 +203,11 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
         }
 
         let mut frame = format!(
-            "{} {} \n",
+            "{} {}\n",
             console::style("?").for_stderr().yellow(),
-            console::style(prompt).for_stderr().bold()
+            console::style(fit(prompt, width.saturating_sub(2)))
+                .for_stderr()
+                .bold()
         );
         for (i, item) in items.iter().enumerate() {
             let prefix = if checked[i] {
@@ -163,19 +215,23 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
             } else {
                 console::style("  [ ]").for_stderr().dim()
             };
+            let fitted = fit(item, width.saturating_sub(6));
             let label = if i == cursor {
-                console::style(*item).for_stderr().cyan()
+                console::style(fitted).for_stderr().cyan()
             } else {
-                console::style(*item).for_stderr()
+                console::style(fitted).for_stderr()
             };
             let _ = writeln!(frame, "{prefix} {label}");
         }
         let _ = writeln!(
             frame,
             "  {}",
-            console::style("↑/↓ arrows to navigate · space to select · enter to complete")
-                .for_stderr()
-                .dim()
+            console::style(fit(
+                "↑/↓ arrows to navigate · space to select · enter to complete",
+                width.saturating_sub(2)
+            ))
+            .for_stderr()
+            .dim()
         );
         rendered = items.len() + 2;
 
@@ -195,19 +251,21 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
                     .filter(|(i, _)| checked[*i])
                     .map(|(_, item)| *item)
                     .collect();
+                let fitted_prompt = fit(prompt, width.saturating_sub(2));
                 let mut finished = format!(
-                    "{} {} ",
+                    "{} {}",
                     console::style("✔").for_stderr().green(),
-                    console::style(prompt).for_stderr().bold()
+                    console::style(&fitted_prompt).for_stderr().bold()
                 );
                 if !selections.is_empty() {
-                    let _ = write!(
-                        finished,
-                        "{} ",
-                        console::style(selections.join(", ")).for_stderr().green()
-                    );
+                    let used = 2 + console::measure_text_width(&fitted_prompt) + 1;
+                    let fitted = fit(&selections.join(", "), width.saturating_sub(used));
+                    if !fitted.is_empty() {
+                        let _ =
+                            write!(finished, " {}", console::style(fitted).for_stderr().green());
+                    }
                 }
-                let _ = term.write_line(finished.trim_end());
+                let _ = term.write_line(&finished);
                 let _ = term.flush();
                 break Ok(checked
                     .iter()
@@ -303,6 +361,42 @@ impl TerminalGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod fit {
+        use super::*;
+
+        #[test]
+        fn short_text_is_unchanged() {
+            assert_eq!(fit("hello", 10), "hello");
+            assert_eq!(fit("hello", 5), "hello");
+        }
+
+        #[test]
+        fn truncation_never_exceeds_the_width() {
+            let text = "Select agents to configure with the Anaconda MCP service";
+            for width in 1..=40 {
+                let fitted = fit(text, width);
+                assert!(
+                    console::measure_text_width(&fitted) <= width,
+                    "width {width}"
+                );
+                assert!(fitted.ends_with('…'));
+            }
+        }
+
+        #[test]
+        fn zero_width_returns_empty() {
+            assert_eq!(fit("hello", 0), "");
+        }
+
+        #[test]
+        fn wide_characters_never_exceed_display_width() {
+            // "日本語" is 3 chars but 6 display columns.
+            let fitted = fit("日本語テスト", 8);
+            assert!(console::measure_text_width(&fitted) <= 8);
+            assert!(fitted.ends_with('…'));
+        }
+    }
 
     mod parse_yes_no {
         use super::*;
