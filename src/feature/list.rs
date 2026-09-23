@@ -23,7 +23,7 @@ pub fn list_features() -> Vec<FeatureInfo> {
     vec![FeatureInfo {
         name: "main-x",
         description: "Configure conda/pixi to use Anaconda's main-x channel",
-        category: FeatureCategory::Beta,
+        category: FeatureCategory::Stable,
     }]
 }
 
