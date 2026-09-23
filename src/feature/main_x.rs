@@ -490,6 +490,7 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
         status::highlight("conda")
     ));
     status::blank_line();
+    status::tos_disclaimer();
 
     // Step 1: Check login status and prompt if needed
     auth::ensure_logged_in(ctx).await?;
@@ -558,6 +559,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
         status::highlight("pixi")
     ));
     status::blank_line();
+    status::tos_disclaimer();
 
     // Step 1: Check login status and prompt if needed
     auth::ensure_logged_in(ctx).await?;
