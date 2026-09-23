@@ -127,6 +127,107 @@ fn fit(text: &str, width: usize) -> String {
     console::truncate_str(text, width, "…").to_string()
 }
 
+/// Best-effort terminal width in columns.
+///
+/// `Term::stderr()` size detection fails when stderr is not a tty (e.g. piped
+/// through a task runner) even though the user is interacting through a tty
+/// on stdin, so fall back to stdout and then stdin before giving up.
+fn terminal_width(term: &Term) -> usize {
+    term.size_checked()
+        .or_else(|| Term::stdout().size_checked())
+        .map(|(_, cols)| usize::from(cols))
+        .or_else(stdin_width)
+        .unwrap_or(80)
+}
+
+#[cfg(unix)]
+fn stdin_width() -> Option<usize> {
+    unsafe {
+        let mut winsize: libc::winsize = std::mem::zeroed();
+        // FIXME: ".into()" works around a libc bug (mirrors the console crate)
+        #[allow(clippy::useless_conversion)]
+        if libc::ioctl(libc::STDIN_FILENO, libc::TIOCGWINSZ.into(), &mut winsize) == 0
+            && winsize.ws_col > 0
+        {
+            Some(usize::from(winsize.ws_col))
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn stdin_width() -> Option<usize> {
+    None
+}
+
+const HINT: &str = "↑/↓ arrows to navigate · space to select · enter to complete";
+
+/// Build one frame of the checkbox list.
+///
+/// Every line is truncated to `width` columns so no line soft-wraps;
+/// otherwise the redraw logic would under-clear and duplicated prompt text
+/// would accumulate above the list.
+fn build_frame(
+    prompt: &str,
+    items: &[&str],
+    checked: &[bool],
+    cursor: usize,
+    width: usize,
+) -> String {
+    use std::fmt::Write as _;
+
+    let mut frame = format!(
+        "{} {}\n",
+        console::style("?").for_stderr().yellow(),
+        console::style(fit(prompt, width.saturating_sub(2)))
+            .for_stderr()
+            .bold()
+    );
+    for (i, item) in items.iter().enumerate() {
+        let prefix = if checked[i] {
+            console::style("  [x]").for_stderr().green()
+        } else {
+            console::style("  [ ]").for_stderr().dim()
+        };
+        let fitted = fit(item, width.saturating_sub(6));
+        let label = if i == cursor {
+            console::style(fitted).for_stderr().cyan()
+        } else {
+            console::style(fitted).for_stderr()
+        };
+        let _ = writeln!(frame, "{prefix} {label}");
+    }
+    let _ = writeln!(
+        frame,
+        "  {}",
+        console::style(fit(HINT, width.saturating_sub(2)))
+            .for_stderr()
+            .dim()
+    );
+    frame
+}
+
+/// Build the single summary line shown after the user confirms.
+fn build_finished(prompt: &str, selections: &[&str], width: usize) -> String {
+    use std::fmt::Write as _;
+
+    let fitted_prompt = fit(prompt, width.saturating_sub(2));
+    let mut finished = format!(
+        "{} {}",
+        console::style("✔").for_stderr().green(),
+        console::style(&fitted_prompt).for_stderr().bold()
+    );
+    if !selections.is_empty() {
+        let used = 2 + console::measure_text_width(&fitted_prompt) + 1;
+        let fitted = fit(&selections.join(", "), width.saturating_sub(used));
+        if !fitted.is_empty() {
+            let _ = write!(finished, " {}", console::style(fitted).for_stderr().green());
+        }
+    }
+    finished
+}
+
 /// Interactive multi-select checkbox list.
 ///
 /// Renders a bold prompt, a checkbox list, and a key-hint line below the
@@ -135,22 +236,16 @@ fn fit(text: &str, width: usize) -> String {
 /// error. Styling matches the dialoguer `ColorfulTheme` look used
 /// previously: `[x]` prefixes in green, the active row in cyan.
 ///
-/// Every line is truncated to the terminal width so no line soft-wraps;
-/// otherwise `clear_last_lines` would under-clear and redraws would leave
-/// duplicated prompt text behind.
-///
 /// All output goes to stderr so stdout stays clean for machine-readable
 /// output. The caller is expected to have verified stdin is a terminal.
 #[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Vec<usize>, String> {
-    use std::fmt::Write as _;
-
     if items.is_empty() {
         return Ok(Vec::new());
     }
 
     let term = Term::stderr();
-    let width = usize::from(term.size().1);
+    let width = terminal_width(&term);
     let mut cursor = 0usize;
     let mut checked: Vec<bool> = items
         .iter()
@@ -168,38 +263,7 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
             break Err(e.to_string());
         }
 
-        let mut frame = format!(
-            "{} {} \n",
-            console::style("?").for_stderr().yellow(),
-            console::style(fit(prompt, width.saturating_sub(2)))
-                .for_stderr()
-                .bold()
-        );
-        for (i, item) in items.iter().enumerate() {
-            let prefix = if checked[i] {
-                console::style("  [x]").for_stderr().green()
-            } else {
-                console::style("  [ ]").for_stderr().dim()
-            };
-            let label = if i == cursor {
-                console::style(fit(item, width.saturating_sub(6)))
-                    .for_stderr()
-                    .cyan()
-            } else {
-                console::style(fit(item, width.saturating_sub(6))).for_stderr()
-            };
-            let _ = writeln!(frame, "{prefix} {label}");
-        }
-        let _ = writeln!(
-            frame,
-            "  {}",
-            console::style(fit(
-                "↑/↓ arrows to navigate · space to select · enter to complete",
-                width.saturating_sub(2)
-            ))
-            .for_stderr()
-            .dim()
-        );
+        let frame = build_frame(prompt, items, &checked, cursor, width);
         rendered = items.len() + 2;
 
         if let Err(e) = term.write_str(&frame).and_then(|_| term.flush()) {
@@ -218,19 +282,7 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
                     .filter(|(i, _)| checked[*i])
                     .map(|(_, item)| *item)
                     .collect();
-                let mut finished = format!(
-                    "{} {} ",
-                    console::style("✔").for_stderr().green(),
-                    console::style(prompt).for_stderr().bold()
-                );
-                if !selections.is_empty() {
-                    let _ = write!(
-                        finished,
-                        "{} ",
-                        console::style(selections.join(", ")).for_stderr().green()
-                    );
-                }
-                let _ = term.write_line(finished.trim_end());
+                let _ = term.write_line(&build_finished(prompt, &selections, width));
                 let _ = term.flush();
                 break Ok(checked
                     .iter()
@@ -326,6 +378,60 @@ impl TerminalGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod frames {
+        use super::*;
+
+        const PROMPT: &str = "Select agents to configure with the Anaconda MCP service";
+        const ITEMS: [&str; 7] = [
+            "claude-code",
+            "codex",
+            "cursor",
+            "devin",
+            "kilo",
+            "opencode",
+            "vscode",
+        ];
+
+        fn assert_lines_fit(frame: &str, width: usize) {
+            for line in frame.lines() {
+                let plain = console::strip_ansi_codes(line);
+                assert!(
+                    console::measure_text_width(&plain) <= width,
+                    "line exceeds width {width}: {plain:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn frame_lines_never_exceed_width() {
+            let checked = [true, false, true, false, true, false, true];
+            for width in [8, 20, 40, 57, 80, 200] {
+                let frame = build_frame(PROMPT, &ITEMS, &checked, 0, width);
+                assert_lines_fit(&frame, width);
+                assert_eq!(frame.lines().count(), ITEMS.len() + 2);
+            }
+        }
+
+        #[test]
+        fn frame_truncates_prompt_with_ellipsis() {
+            let checked = [false; 7];
+            let frame = build_frame(PROMPT, &ITEMS, &checked, 0, 40);
+            assert!(frame.lines().next().unwrap().contains('…'));
+        }
+
+        #[test]
+        fn finished_line_never_exceeds_width() {
+            for width in [8, 20, 40, 80] {
+                let line = build_finished(PROMPT, &ITEMS, width);
+                let plain = console::strip_ansi_codes(&line);
+                assert!(
+                    console::measure_text_width(&plain) <= width,
+                    "finished line exceeds width {width}: {plain:?}"
+                );
+            }
+        }
+    }
 
     mod fit {
         use super::*;
