@@ -178,7 +178,7 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/dev/data/ci slack_webhook_url | slack-webhook-url
+            anaconda-cli/common/data/ci slack_webhook_url | slack-webhook-url
 
       - name: Post to Slack
         env:
