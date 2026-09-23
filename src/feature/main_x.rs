@@ -483,7 +483,7 @@ fn plan_pixi_disable_actions(current_channels: &[String]) -> Vec<MainXPixiAction
 /// 3. Shows planned changes and prompts for confirmation
 /// 4. Adds the main-x channel to conda configuration
 /// 5. Provides instructions for reverting the changes
-pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::Result<()> {
+pub async fn enable_main_x_conda(ctx: &mut CommandContext, force: bool) -> miette::Result<()> {
     status::info(&format!(
         "Enabling {} feature via {}...",
         status::highlight("main-x"),
@@ -496,7 +496,7 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
     let urls = ChannelUrls::new(is_premium);
 
     // Step 2: Determine what changes need to be made
-    let conda_bin = find_conda()?;
+    let conda_bin = find_or_install_conda(ctx, force).await?;
     let channels = get_channels_conda(&conda_bin)?;
     let default_channels = get_default_channels_conda(&conda_bin)?;
     let actions = plan_conda_enable_actions(&channels, &default_channels, &urls, is_premium);
@@ -852,6 +852,41 @@ fn find_conda() -> miette::Result<std::path::PathBuf> {
             status::highlight(ANACONDA_DOWNLOAD_URL)
         )),
     }
+}
+
+/// Find the conda binary, offering to install a managed conda if none is found.
+///
+/// When conda is not installed (neither ana-managed nor on PATH), the user is
+/// asked for consent to install an ana-managed conda. If they agree, the
+/// managed conda is installed via `tools::ensure_tool` and its binary is
+/// returned. If they decline (or tool installation is unavailable), the
+/// original "install conda separately" error is returned.
+#[cfg(tool_install)]
+async fn find_or_install_conda(ctx: &mut CommandContext, force: bool) -> miette::Result<std::path::PathBuf> {
+    match find_conda() {
+        Ok(conda_bin) => Ok(conda_bin),
+        Err(e) => {
+            status::warn("conda is not installed.");
+            if !force
+                && !prompt_yes_no("Install a managed conda via ana?", true)
+            {
+                return Err(e);
+            }
+            crate::tools::confirm_experimental_install("conda", true)?;
+            crate::tools::ensure_tool(ctx, "conda").await?;
+            crate::tools::offer_add_bin_to_path(force);
+            find_conda()
+        }
+    }
+}
+
+/// Find the conda binary (builds without tool installation support).
+#[cfg(not(tool_install))]
+async fn find_or_install_conda(
+    _ctx: &mut CommandContext,
+    _force: bool,
+) -> miette::Result<std::path::PathBuf> {
+    find_conda()
 }
 
 /// Find the pixi binary.

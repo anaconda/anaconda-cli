@@ -95,13 +95,124 @@ pub fn installed_tools() -> Vec<String> {
 /// Install a tool by name.
 #[cfg(all(tool_install, not(feature = "fleet")))]
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
-    install::install_tool(ctx, name).await
+    install::install_tool(ctx, name).await?;
+    offer_add_bin_to_path(false);
+    Ok(())
 }
 
 /// Install a tool by name (fleet version).
 #[cfg(all(tool_install, feature = "fleet"))]
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
-    fleet::install_tool(ctx, name).await
+    fleet::install_tool(ctx, name).await?;
+    offer_add_bin_to_path(false);
+    Ok(())
+}
+
+/// Returns true if the ana bin directory (~/.ana/bin) is on PATH.
+#[cfg(tool_install)]
+fn ana_bin_on_path() -> bool {
+    let bin_dir = crate::paths::bin_dir();
+    std::env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).any(|p| p == bin_dir))
+        .unwrap_or(false)
+}
+
+/// Offer to add the ana bin directory to PATH if it is not already there.
+///
+/// On Unix, appends an export line to the user's shell profile. On Windows,
+/// prints manual instructions. The prompt is skipped when `skip_prompt` is
+/// true (e.g. for non-interactive callers using --force/--yes).
+#[cfg(tool_install)]
+pub fn offer_add_bin_to_path(skip_prompt: bool) {
+    use crate::input::prompt_yes_no;
+    use crate::ui::status;
+
+    if ana_bin_on_path() {
+        return;
+    }
+
+    let bin_dir = crate::paths::bin_dir();
+    status::info(&format!(
+        "The ana bin directory ({}) is not on your PATH.",
+        bin_dir.display()
+    ));
+
+    if skip_prompt
+        || !prompt_yes_no(
+            &format!(
+                "Add {} to your PATH?",
+                status::highlight(&bin_dir.display().to_string())
+            ),
+            true,
+        )
+    {
+        return;
+    }
+
+    #[cfg(unix)]
+    {
+        let profile = shell_profile();
+        let export_line = format!("export PATH=\"{}:$PATH\"", bin_dir.display());
+        match profile {
+            Some(profile) => {
+                let existing = std::fs::read_to_string(&profile).unwrap_or_default();
+                if existing.contains(&export_line) {
+                    status::info(&format!(
+                        "PATH entry already present in {}",
+                        profile.display()
+                    ));
+                    return;
+                }
+                let mut content = existing;
+                if !content.is_empty() && !content.ends_with('\n') {
+                    content.push('\n');
+                }
+                content.push_str("\n# Added by ana\n");
+                content.push_str(&export_line);
+                content.push('\n');
+                match std::fs::write(&profile, content) {
+                    Ok(()) => {
+                        status::success(&format!("Added to {}", profile.display()));
+                        status::info("Restart your shell or run:");
+                        eprintln!("  {}", status::highlight(&export_line));
+                    }
+                    Err(e) => {
+                        status::warn(&format!("Failed to update {}: {}", profile.display(), e));
+                        status::info("Add this line to your shell profile manually:");
+                        eprintln!("  {}", status::highlight(&export_line));
+                    }
+                }
+            }
+            None => {
+                status::info("Add this line to your shell profile:");
+                eprintln!("  {}", status::highlight(&export_line));
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        status::info(&format!(
+            "Add {} to your user PATH (System Properties > Environment Variables), then restart your terminal.",
+            bin_dir.display()
+        ));
+    }
+}
+
+/// Determine the user's shell profile file based on the SHELL environment variable.
+#[cfg(all(unix, tool_install))]
+fn shell_profile() -> Option<std::path::PathBuf> {
+    let shell = std::env::var("SHELL").unwrap_or_default();
+    let home = crate::paths::home_dir();
+    if shell.ends_with("zsh") {
+        Some(home.join(".zshrc"))
+    } else if shell.ends_with("bash") {
+        Some(home.join(".bashrc"))
+    } else if shell.ends_with("fish") {
+        Some(home.join(".config/fish/config.fish"))
+    } else {
+        None
+    }
 }
 
 /// Uninstall a tool by name.
