@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-21T19:42:40Z<br>
+Generated: 2026-09-25T17:27:49Z<br>
 Format: CycloneDX 1.4<br>
 Packages: 464 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
@@ -121,15 +121,15 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [fs-err](https://crates.io/crates/fs-err) | 3.3.1 | MIT OR Apache-2.0 |  |  |
 | [fs4](https://crates.io/crates/fs4) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [futures](https://crates.io/crates/futures) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-channel](https://crates.io/crates/futures-channel) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-core](https://crates.io/crates/futures-core) | 0.3.33 | MIT OR Apache-2.0 |  |  |
+| [futures-channel](https://crates.io/crates/futures-channel) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-core](https://crates.io/crates/futures-core) | 0.3.34 | MIT OR Apache-2.0 |  |  |
 | [futures-executor](https://crates.io/crates/futures-executor) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-io](https://crates.io/crates/futures-io) | 0.3.33 | MIT OR Apache-2.0 |  |  |
+| [futures-io](https://crates.io/crates/futures-io) | 0.3.34 | MIT OR Apache-2.0 |  |  |
 | [futures-lite](https://crates.io/crates/futures-lite) | 2.6.1 | Apache-2.0 OR MIT |  |  |
-| [futures-macro](https://crates.io/crates/futures-macro) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-sink](https://crates.io/crates/futures-sink) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-task](https://crates.io/crates/futures-task) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-util](https://crates.io/crates/futures-util) | 0.3.33 | MIT OR Apache-2.0 |  |  |
+| [futures-macro](https://crates.io/crates/futures-macro) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-sink](https://crates.io/crates/futures-sink) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-task](https://crates.io/crates/futures-task) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-util](https://crates.io/crates/futures-util) | 0.3.34 | MIT OR Apache-2.0 |  |  |
 | [generic-array](https://crates.io/crates/generic-array) | 0.14.7 | MIT |  |  |
 | [getrandom](https://crates.io/crates/getrandom) | 0.2.17 | MIT OR Apache-2.0 |  |  |
 | [getrandom](https://crates.io/crates/getrandom) | 0.3.4 | MIT OR Apache-2.0 |  |  |
