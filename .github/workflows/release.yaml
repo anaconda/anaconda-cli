@@ -95,6 +95,21 @@ jobs:
           mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
           mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
 
+      - name: Set up ana with pixi
+        uses: anaconda/actions/setup-anaconda-cli@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
+        with:
+          version: v0.1.6
+          tools: pixi
+
+      - name: Stage SBOMs
+        env:
+          # Stamp the release tag version into the attached SBOM (the
+          # committed SBOM keeps the 0.0.0 placeholder version)
+          SBOM_RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          pixi run sbom-force
+          cp SBOM.json SBOM.md release-assets/
+
       - name: Generate checksums
         run: |
           cd release-assets
@@ -113,7 +128,11 @@ jobs:
           gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.ps1"
 
           echo "Publishing release $VERSION"
-          gh release edit "$VERSION" --draft=false --latest
+          if gh release view "$VERSION" --json isPrerelease --jq .isPrerelease | grep -q true; then
+            gh release edit "$VERSION" --draft=false --latest=false
+          else
+            gh release edit "$VERSION" --draft=false --latest
+          fi
 
   deploy-to-anaconda-sh:
     name: Deploy to anaconda.sh
