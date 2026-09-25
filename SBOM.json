@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:f67e08a0-8224-47b0-8d50-22ed13b5ff76",
+  "serialNumber": "urn:uuid:531cab1e-bd84-44c9-86e5-4c5941f12295",
   "metadata": {
-    "timestamp": "2026-09-21T19:42:40Z",
+    "timestamp": "2026-09-25T17:29:06Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -1581,16 +1581,16 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@8.0.1",
       "author": "Arne Beer <contact@arne.beer>",
       "name": "comfy-table",
-      "version": "7.2.2",
+      "version": "8.0.1",
       "description": "An easy to use library for building beautiful tables with automatic content wrapping",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "958c5d6ecf1f214b4c2bbbbf6ab9523a864bd136dcf71a7e8904799acfe1ad47"
+          "content": "b96a46ad395a5e00676eddaca4a45ed78b29c08be5a878d35e4b071c625637dd"
         }
       ],
       "licenses": [
@@ -1598,7 +1598,7 @@
           "expression": "MIT"
         }
       ],
-      "purl": "pkg:cargo/comfy-table@7.2.2",
+      "purl": "pkg:cargo/comfy-table@8.0.1",
       "externalReferences": [
         {
           "type": "documentation",
@@ -14414,7 +14414,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
         "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.6",
-        "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
+        "registry+https://github.com/rust-lang/crates.io-index#comfy-table@8.0.1",
         "registry+https://github.com/rust-lang/crates.io-index#console@0.16.6",
         "registry+https://github.com/rust-lang/crates.io-index#dirs@6.0.0",
         "registry+https://github.com/rust-lang/crates.io-index#figment@0.10.19",
@@ -14823,7 +14823,7 @@
       "dependsOn": []
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@7.2.2",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#comfy-table@8.0.1",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#crossterm@0.29.0",
         "registry+https://github.com/rust-lang/crates.io-index#unicode-segmentation@1.13.3",
@@ -15012,7 +15012,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
         "registry+https://github.com/rust-lang/crates.io-index#option-ext@0.2.0",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
@@ -15586,7 +15586,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#is-terminal@0.4.17",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.52.0"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
@@ -15832,7 +15832,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#nu-ansi-term@0.50.3",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
@@ -17095,14 +17095,14 @@
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.3",
         "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4",
         "registry+https://github.com/rust-lang/crates.io-index#rustix@1.1.4",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.52.0"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#terminal_size@0.4.4",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#rustix@1.1.4",
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
@@ -17834,7 +17834,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#known-folders@1.4.2",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
+        "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
