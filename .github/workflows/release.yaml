@@ -69,7 +69,7 @@ jobs:
           verbose: 'true'
 
   create-github-release:
-    name: Upload Binaries to GitHub Release
+    name: Upload Assets to GitHub Release
     if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest
     needs: [ci]
@@ -94,6 +94,9 @@ jobs:
           mv binaries/binary-ubuntu-24.04-arm/ana release-assets/ana-linux-aarch64
           mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
           mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
+
+      - name: Stage SBOMs
+        run: cp SBOM.json SBOM.md release-assets/
 
       - name: Generate checksums
         run: |
