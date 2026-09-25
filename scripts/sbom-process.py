@@ -2,7 +2,7 @@
 """Process per-target cargo-cyclonedx and cargo-audit output into SBOM.json and SBOM.md.
 
 Usage:
-    sbom-process.py [--force] --audit <audit.json>
+    sbom-process.py [--force] [--release-version <version>] --audit <audit.json>
         --output-json <SBOM.json> --output-md <SBOM.md>
         <target-sbom-1.json> [<target-sbom-2.json> ...]
 
@@ -12,6 +12,7 @@ SBOM.json and human-readable SBOM.md.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -39,6 +40,8 @@ COMBINED_LABELS: dict[frozenset[str], str] = {
 
 _LOCAL_PATH_RE = re.compile(r"path\+file:///[^#\"]+(?=#)")
 
+_RELEASE_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$")
+
 
 def _sanitize_local_paths(sbom: dict) -> None:
     """Replace absolute local paths with a generic placeholder in-place.
@@ -52,6 +55,54 @@ def _sanitize_local_paths(sbom: dict) -> None:
     if sanitized != raw:
         sbom.clear()
         sbom.update(json.loads(sanitized))
+
+
+def stamp_release_version(sbom: dict, version: str) -> None:
+    """Stamp the release version onto the top-level component in-place.
+
+    cargo-cyclonedx reads the placeholder version from Cargo.toml (0.0.0);
+    the real version comes from git tags at build time. Replaces the version
+    in the top-level component and any bom-ref/purl strings that reference it.
+    """
+    component = sbom.get("metadata", {}).get("component", {})
+    old_version = component.get("version", "")
+    name = component.get("name", "")
+    if not old_version or not name or old_version == version:
+        return
+
+    raw = json.dumps(sbom)
+    stamped = raw.replace(f"{name}@{old_version}", f"{name}@{version}")
+    if stamped != raw:
+        sbom.clear()
+        sbom.update(json.loads(stamped))
+
+    def _update_version(node: dict) -> None:
+        if node.get("name") == name and node.get("version") == old_version:
+            node["version"] = version
+        for child in node.get("components", []):
+            _update_version(child)
+
+    _update_version(sbom.get("metadata", {}).get("component", {}))
+
+
+def add_source_hash(sbom: dict) -> None:
+    """Add a SHA-256 hash of the SBOM's material content to the top-level component.
+
+    The release binaries are multi-platform, so no single artifact hash
+    identifies the release. Instead, hash everything the SBOM says about the
+    software version (components, vulnerabilities, and the dependency graph)
+    so each release's SBOM carries a stable, verifiable fingerprint.
+    """
+    material = {
+        key: value for key, value in sbom.items() if key not in ("serialNumber",)
+    }
+    material.get("metadata", {}).pop("timestamp", None)
+    digest = hashlib.sha256(
+        json.dumps(material, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    component = sbom.get("metadata", {}).get("component")
+    if component is not None:
+        component["hashes"] = [{"alg": "SHA-256", "content": digest}]
 
 
 def md_escape(text: str) -> str:
@@ -564,6 +615,10 @@ def main() -> None:
         description="Merge per-target CycloneDX SBOMs with cargo-audit data"
     )
     parser.add_argument("--force", action="store_true", help="Force regeneration")
+    parser.add_argument(
+        "--release-version",
+        help="Release version to stamp onto the top-level component (e.g. 1.2.3)",
+    )
     parser.add_argument("--audit", required=True, help="cargo-audit JSON output")
     parser.add_argument("--output-json", required=True, help="Output SBOM.json path")
     parser.add_argument("--output-md", required=True, help="Output SBOM.md path")
@@ -571,6 +626,11 @@ def main() -> None:
         "target_sboms", nargs="+", help="Per-target CycloneDX SBOM JSON files"
     )
     args = parser.parse_args()
+
+    if args.release_version is not None and not _RELEASE_VERSION_RE.match(
+        args.release_version.lstrip("v")
+    ):
+        parser.error(f"invalid release version: {args.release_version!r}")
 
     # Merge per-target SBOMs
     sbom, platform_map = merge_target_sboms(args.target_sboms)
@@ -580,6 +640,10 @@ def main() -> None:
 
     # Merge audit findings into the SBOM
     merge_audit(sbom, audit)
+
+    if args.release_version:
+        stamp_release_version(sbom, args.release_version.lstrip("v"))
+    add_source_hash(sbom)
 
     comp_count = len(sbom.get("components", []))
     vuln_count = len(sbom.get("vulnerabilities", []))
