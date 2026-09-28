@@ -317,7 +317,7 @@ impl Action {
 
     /// Whether this action requires the user to be logged in.
     ///
-    /// Auth commands (login/logout/whoami/api-key), help/version output,
+    /// Auth commands (login/logout/api-key), help/version output,
     /// self-update, telemetry, and feedback are excluded since they must
     /// work without credentials.
     fn requires_login(&self) -> bool {
@@ -330,7 +330,6 @@ impl Action {
                 | Action::Login { .. }
                 | Action::Logout
                 | Action::ShowApiKey
-                | Action::Whoami { .. }
                 | Action::Update { .. }
                 | Action::CheckForUpdate
                 | Action::ShowAvailableVersions
