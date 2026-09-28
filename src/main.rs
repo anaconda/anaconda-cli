@@ -14,7 +14,7 @@ mod http;
 mod input;
 mod installer;
 mod mcp;
-#[cfg(all(unix, tool_install))]
+#[cfg(unix)]
 mod outerbounds;
 mod packages;
 mod paths;

@@ -15,7 +15,7 @@ use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpCommands};
-#[cfg(all(unix, tool_install))]
+#[cfg(unix)]
 use crate::outerbounds::{self, ObAction, ObCommands};
 #[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
@@ -168,11 +168,11 @@ pub enum Action {
     OrgProxy {
         args: Vec<String>,
     },
-    #[cfg(all(unix, tool_install))]
+    #[cfg(unix)]
     PlatformProxy {
         args: Vec<String>,
     },
-    #[cfg(all(unix, tool_install))]
+    #[cfg(unix)]
     PlatformAutoConfigure {
         instance: String,
     },
@@ -244,9 +244,9 @@ impl Action {
             Action::ShowAvailableVersions => "self.update.list",
             Action::Bootstrap => "bootstrap",
             Action::OrgProxy { .. } => "org",
-            #[cfg(all(unix, tool_install))]
+            #[cfg(unix)]
             Action::PlatformProxy { .. } => "platform",
-            #[cfg(all(unix, tool_install))]
+            #[cfg(unix)]
             Action::PlatformAutoConfigure { .. } => "platform.configure.auto",
             Action::Mcp { command } => match command {
                 McpCommands::Clients { .. } => "mcp.clients",
@@ -375,9 +375,9 @@ impl Action {
             Action::Mcp { command } => mcp::run(ctx, command),
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
-            #[cfg(all(unix, tool_install))]
+            #[cfg(unix)]
             Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
-            #[cfg(all(unix, tool_install))]
+            #[cfg(unix)]
             Action::PlatformAutoConfigure { instance } => {
                 outerbounds::auto_configure(ctx, &instance).await
             }
@@ -749,7 +749,7 @@ pub fn parse() -> (Action, LogLevel) {
                 ChannelAction::Run(args) => Action::ChannelRun { args },
             },
         },
-        #[cfg(all(unix, tool_install))]
+        #[cfg(unix)]
         Some(Commands::Platform { command }) => match command {
             None => Action::ShowSubcommandHelp("platform".to_string()),
             Some(cmd) => match cmd.into_action() {
@@ -856,7 +856,7 @@ fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
             args.push("--help".to_string());
             Some(Action::OrgProxy { args })
         }
-        #[cfg(all(unix, tool_install))]
+        #[cfg(unix)]
         Commands::Platform { command } => {
             let mut args = match command {
                 None => Vec::new(),
@@ -1058,7 +1058,7 @@ enum Commands {
     },
 
     /// Outerbounds platform CLI
-    #[cfg(all(unix, tool_install))]
+    #[cfg(unix)]
     #[command(
         subcommand_required = false,
         arg_required_else_help = false,

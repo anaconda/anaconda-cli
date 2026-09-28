@@ -15,8 +15,11 @@ use tokio::time::sleep;
 
 use crate::auth::responses::{DeviceAuthResponse, OpenIdConfig, TokenErrorResponse, TokenResponse};
 use crate::context::CommandContext;
+#[cfg(tool_install)]
 use crate::tools;
 use crate::ui::status;
+
+use super::run::resolve_ob_binary;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
@@ -188,7 +191,7 @@ async fn get_magic_string(
 
 /// Run `outerbounds configure <magic_string>`.
 fn run_ob_configure(magic_string: &str) -> miette::Result<()> {
-    let ob_path = crate::paths::bin_path("outerbounds");
+    let ob_path = resolve_ob_binary("outerbounds")?;
 
     status::info("Running outerbounds configure...");
 
@@ -207,12 +210,17 @@ fn run_ob_configure(magic_string: &str) -> miette::Result<()> {
 
 /// Auto-configure Outerbounds using Anaconda SSO.
 pub async fn auto_configure(ctx: &mut CommandContext, ob_domain: &str) -> miette::Result<()> {
-    // Ensure outerbounds tool is installed
+    // Ensure outerbounds tool is installed (only relevant for tool-install builds;
+    // in conda-package builds the binary is provided by the environment).
+    #[cfg(tool_install)]
     if !crate::paths::bin_path("outerbounds").exists() {
         status::info("Installing outerbounds tool...");
         tools::install::install_tool(ctx, "outerbounds").await?;
         status::blank_line();
     }
+
+    // Verify the binary is available regardless of build mode.
+    resolve_ob_binary("outerbounds")?;
 
     status::info("Configuring Outerbounds via Anaconda SSO");
     status::blank_line();

@@ -4,7 +4,7 @@ use std::process::Command;
 use miette::miette;
 use serde::Deserialize;
 
-use crate::paths;
+use super::run::resolve_ob_binary;
 
 #[derive(Deserialize)]
 struct AppInfo {
@@ -85,7 +85,7 @@ fn detect_app_name() -> miette::Result<String> {
 }
 
 fn get_app_url(name: &str) -> miette::Result<String> {
-    let ob_bin = paths::bin_path("outerbounds");
+    let ob_bin = resolve_ob_binary("outerbounds")?;
 
     let output = Command::new(&ob_bin)
         .args(["app", "list", "--format", "json", "--name", name])
