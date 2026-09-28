@@ -1272,11 +1272,11 @@ enum FeatureCommands {
         uv: bool,
 
         /// Configure conda (for main-x feature, default if neither --conda nor --pixi specified)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "pixi")]
         conda: bool,
 
         /// Configure pixi (for main-x feature)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "conda")]
         pixi: bool,
     },
 
@@ -1299,11 +1299,11 @@ enum FeatureCommands {
         uv: bool,
 
         /// Deconfigure conda (for main-x feature, default if neither --conda nor --pixi specified)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "pixi")]
         conda: bool,
 
         /// Deconfigure pixi (for main-x feature)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "conda")]
         pixi: bool,
     },
 }
