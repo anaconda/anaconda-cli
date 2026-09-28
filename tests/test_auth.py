@@ -184,20 +184,22 @@ class TestWhoami:
             str(keyring_path),
         )
 
+    @pytest.mark.parametrize("args", [["whoami"], ["auth", "whoami"]])
     def test_whoami_when_not_logged_in(
         self,
+        args: list[str],
         run_ana: AnaRunner,
         auth_env: dict[str, str],
     ) -> None:
-        """Whoami should show helpful message when not logged in."""
-        result = run_ana("whoami", env=auth_env)
+        """Whoami should show the login gate and exit non-zero when declined."""
+        result = run_ana(*args, env=auth_env, input="n\n")
 
-        assert result.returncode == 0
+        assert result.returncode != 0
         assert_output_contains(
             result.stderr,
-            "not logged in",
-            "ana login",
+            "Login required",
         )
+        assert "Login now?" in result.stdout
 
     def test_whoami_json_flag(
         self,
