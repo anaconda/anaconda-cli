@@ -110,19 +110,16 @@ fn normalize_url(url: &str) -> String {
 
             let after_drive = &normalized[2..]; // skip "C:" portion
             for prefix in &msys_prefixes {
-                if let Some(rest) = after_drive
-                    .strip_prefix(&**prefix)
-                    .or_else(|| {
-                        // Case-insensitive match for the prefix
-                        let lower = after_drive.to_lowercase();
-                        let lower_prefix = prefix.to_lowercase();
-                        if lower.starts_with(&lower_prefix) {
-                            Some(&after_drive[prefix.len()..])
-                        } else {
-                            None
-                        }
-                    })
-                {
+                if let Some(rest) = after_drive.strip_prefix(&**prefix).or_else(|| {
+                    // Case-insensitive match for the prefix
+                    let lower = after_drive.to_lowercase();
+                    let lower_prefix = prefix.to_lowercase();
+                    if lower.starts_with(&lower_prefix) {
+                        Some(&after_drive[prefix.len()..])
+                    } else {
+                        None
+                    }
+                }) {
                     return format!("/{}", rest);
                 }
             }
@@ -446,10 +443,7 @@ mod tests {
 
     #[test]
     fn test_normalize_url_msys2_msys32() {
-        assert_eq!(
-            normalize_url("D:/msys32/api/test"),
-            "/api/test"
-        );
+        assert_eq!(normalize_url("D:/msys32/api/test"), "/api/test");
     }
 
     #[test]
