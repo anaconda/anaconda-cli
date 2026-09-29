@@ -28,5 +28,6 @@ The `@anaconda_conda` decorator configures the step to use Anaconda's main chann
 @step
 def my_step(self):
     import numpy as np
+
     ...
 ```
