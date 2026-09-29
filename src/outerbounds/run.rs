@@ -106,9 +106,13 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
         return init_project(opts);
     }
 
-    // Handle `platform check` - verify configuration first to give a nicer error
+    // Handle `platform check` - verify configuration first to give a nicer error,
+    // but skip the check when --help is requested so help text is always shown.
     if !args.is_empty() && args[0] == "check" {
-        ensure_configured()?;
+        let is_help = args.iter().any(|a| a == "--help" || a == "-h");
+        if !is_help {
+            ensure_configured()?;
+        }
         return run_ob_binary("outerbounds", args);
     }
 
