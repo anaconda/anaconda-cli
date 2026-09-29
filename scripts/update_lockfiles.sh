@@ -63,7 +63,14 @@ cargo audit --json > audit.raw.json 2>audit.stderr.log || {
 }
 
 # Process into SBOM.json and SBOM.md (merge per-target SBOMs + audit)
+# The committed SBOM stays version-agnostic (0.0.0 placeholder); release
+# builds pass SBOM_RELEASE_VERSION to stamp the tag version in.
+RELEASE_ARGS=()
+if [ -n "${SBOM_RELEASE_VERSION:-}" ]; then
+    RELEASE_ARGS+=(--release-version "$SBOM_RELEASE_VERSION")
+fi
 python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
+    "${RELEASE_ARGS[@]}" \
     --audit audit.raw.json \
     --output-json SBOM.json \
     --output-md SBOM.md \
