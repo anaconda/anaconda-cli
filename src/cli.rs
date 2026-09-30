@@ -317,7 +317,7 @@ impl Action {
 
     /// Whether this action requires the user to be logged in.
     ///
-    /// Auth commands (login/logout/whoami/api-key), help/version output,
+    /// Auth commands (login/logout/api-key), help/version output,
     /// self-update, telemetry, and feedback are excluded since they must
     /// work without credentials.
     fn requires_login(&self) -> bool {
@@ -330,7 +330,6 @@ impl Action {
                 | Action::Login { .. }
                 | Action::Logout
                 | Action::ShowApiKey
-                | Action::Whoami { .. }
                 | Action::Update { .. }
                 | Action::CheckForUpdate
                 | Action::ShowAvailableVersions
@@ -736,7 +735,10 @@ pub fn parse() -> (Action, LogLevel) {
             }
             Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
         },
-        Some(Commands::Org { args }) => Action::OrgProxy { args },
+        Some(Commands::Org { args }) => match args.is_empty() {
+            true => Action::ShowSubcommandHelp("org".to_string()),
+            false => Action::OrgProxy { args },
+        },
         Some(Commands::Mcp { command }) => match command {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
@@ -1272,11 +1274,11 @@ enum FeatureCommands {
         uv: bool,
 
         /// Configure conda (for main-x feature, default if neither --conda nor --pixi specified)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "pixi")]
         conda: bool,
 
         /// Configure pixi (for main-x feature)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "conda")]
         pixi: bool,
     },
 
@@ -1299,11 +1301,11 @@ enum FeatureCommands {
         uv: bool,
 
         /// Deconfigure conda (for main-x feature, default if neither --conda nor --pixi specified)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "pixi")]
         conda: bool,
 
         /// Deconfigure pixi (for main-x feature)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "conda")]
         pixi: bool,
     },
 }

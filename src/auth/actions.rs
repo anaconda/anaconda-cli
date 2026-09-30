@@ -598,14 +598,10 @@ fn mask_api_key(key: &str) -> String {
 
 /// Display information about the logged-in user.
 pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
-    // Check if logged in by checking for API key
+    // Defensive check: the login gate runs before this command, so
+    // reaching here without a key means the user declined to log in.
     if get_api_key(&ctx.config)?.is_none() {
-        status::error("not logged in");
-        status::info(&format!(
-            "Run {} to authenticate.",
-            status::highlight("ana login")
-        ));
-        return Ok(());
+        return Err(AuthError::NotLoggedIn);
     }
 
     let response = ctx.client().get("/api/auth/sessions/whoami").send().await?;

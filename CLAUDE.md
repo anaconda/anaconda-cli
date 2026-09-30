@@ -36,7 +36,9 @@ All commands receive a `CommandContext` (`ctx`). Always access `config` and `cli
 - For specialized HTTP clients, use `ctx.github_client()`, `ctx.download_client()`, or `ctx.unauthenticated_client()`
 
 ### Commit and PR titles
-Use conventional commit format: `<type>: <description>`
+Use conventional commit format: `<type>: <Description>`
+
+The description must start with an uppercase letter (enforced by CI).
 
 PR titles must use a lowercase type and an uppercase first letter in the subject,
 for example: `docs: Add Mermaid architecture documentation`.
