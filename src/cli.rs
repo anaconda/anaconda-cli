@@ -735,7 +735,10 @@ pub fn parse() -> (Action, LogLevel) {
             }
             Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
         },
-        Some(Commands::Org { args }) => Action::OrgProxy { args },
+        Some(Commands::Org { args }) => match args.is_empty() {
+            true => Action::ShowSubcommandHelp("org".to_string()),
+            false => Action::OrgProxy { args },
+        },
         Some(Commands::Mcp { command }) => match command {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
