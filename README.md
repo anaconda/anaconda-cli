@@ -140,6 +140,7 @@ echo "$KEY" | ana login --api-key  # Login with API key from stdin
 ana whoami                         # View account info
 ana whoami --json                  # Account info as JSON
 ana logout                         # Log out
+```
 
 ### Tool management
 
@@ -234,6 +235,7 @@ RUST_LOG=ana=debug ana login      # Fine-grained control via RUST_LOG
 
 ## Documentation
 
+- [Architecture and diagrams](docs/architecture.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Contributing guide](CONTRIBUTING.md)
 
