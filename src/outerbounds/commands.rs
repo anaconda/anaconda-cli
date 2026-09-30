@@ -104,6 +104,10 @@ pub enum ObCommands {
         #[command(subcommand)]
         command: Option<ObFlowprojectCommands>,
     },
+
+    /// Any other outerbounds command, passed through verbatim
+    #[command(external_subcommand)]
+    Other(Vec<String>),
 }
 
 #[derive(Subcommand)]
@@ -297,6 +301,7 @@ impl ObCommands {
                 None => ObAction::ShowHelp("platform flowproject".to_string()),
                 Some(fp_cmd) => fp_cmd.into_action(),
             },
+            ObCommands::Other(args) => ObAction::Proxy(args),
         }
     }
 }
@@ -374,5 +379,121 @@ impl ObFlowprojectCommands {
                 ObAction::Proxy(args)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_proxy(action: ObAction, expected: &[&str]) {
+        match action {
+            ObAction::Proxy(args) => assert_eq!(args, expected),
+            _ => panic!("expected ObAction::Proxy"),
+        }
+    }
+
+    #[test]
+    fn test_unknown_subcommand_proxies_verbatim() {
+        let action =
+            ObCommands::Other(vec!["workstation".to_string(), "list".to_string()]).into_action();
+        assert_proxy(action, &["workstation", "list"]);
+    }
+
+    #[test]
+    fn test_unknown_subcommand_with_hyphen_args_proxies() {
+        let action = ObCommands::Other(vec![
+            "workstation".to_string(),
+            "restart".to_string(),
+            "--force".to_string(),
+        ])
+        .into_action();
+        assert_proxy(action, &["workstation", "restart", "--force"]);
+    }
+
+    #[test]
+    fn test_init_builds_proxy_args() {
+        let action = ObCommands::Init {
+            path: Some("myproj".to_string()),
+            name: Some("myname".to_string()),
+            title: Some("My Title".to_string()),
+            no_git_init: true,
+        }
+        .into_action();
+        assert_proxy(
+            action,
+            &[
+                "init",
+                "myproj",
+                "--name",
+                "myname",
+                "--title",
+                "My Title",
+                "--no-git-init",
+            ],
+        );
+    }
+
+    #[test]
+    fn test_configure_with_instance_auto_configures() {
+        let action = ObCommands::Configure {
+            instance: Some("some-instance.outerbounds.com".to_string()),
+            args: vec![],
+        }
+        .into_action();
+        match action {
+            ObAction::AutoConfigure { instance } => {
+                assert_eq!(instance, "some-instance.outerbounds.com");
+            }
+            _ => panic!("expected ObAction::AutoConfigure"),
+        }
+    }
+
+    #[test]
+    fn test_configure_without_instance_proxies() {
+        let action = ObCommands::Configure {
+            instance: None,
+            args: vec!["--verbose".to_string()],
+        }
+        .into_action();
+        assert_proxy(action, &["configure", "--verbose"]);
+    }
+
+    #[test]
+    fn test_bare_app_shows_help() {
+        let action = ObCommands::App { command: None }.into_action();
+        match action {
+            ObAction::ShowHelp(path) => assert_eq!(path, "platform app"),
+            _ => panic!("expected ObAction::ShowHelp"),
+        }
+    }
+
+    #[test]
+    fn test_bare_flowproject_shows_help() {
+        let action = ObCommands::Flowproject { command: None }.into_action();
+        match action {
+            ObAction::ShowHelp(path) => assert_eq!(path, "platform flowproject"),
+            _ => panic!("expected ObAction::ShowHelp"),
+        }
+    }
+
+    #[test]
+    fn test_app_view_proxies_with_web_flag() {
+        let action = ObCommands::App {
+            command: Some(ObAppCommands::View { web: true }),
+        }
+        .into_action();
+        assert_proxy(action, &["app", "view", "--web"]);
+    }
+
+    #[test]
+    fn test_app_open_proxies_name() {
+        let action = ObCommands::App {
+            command: Some(ObAppCommands::Open {
+                name: "myapp".to_string(),
+            }),
+        }
+        .into_action();
+        assert_proxy(action, &["app", "open", "myapp"]);
     }
 }

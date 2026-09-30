@@ -751,11 +751,7 @@ pub fn parse() -> (Action, LogLevel) {
         #[cfg(all(unix, tool_install))]
         Some(Commands::Platform { command }) => match command {
             None => Action::ShowSubcommandHelp("platform".to_string()),
-            Some(cmd) => match cmd.into_action() {
-                ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                ObAction::Proxy(args) => Action::PlatformProxy { args },
-                ObAction::AutoConfigure { instance } => Action::PlatformAutoConfigure { instance },
-            },
+            Some(cmd) => platform_command_action(cmd),
         },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
@@ -841,6 +837,16 @@ fn get_subcommand_path_from_matches(matches: &clap::ArgMatches) -> Option<String
         None
     } else {
         Some(path_parts.join(" "))
+    }
+}
+
+/// Convert a parsed platform subcommand into an action.
+#[cfg(all(unix, tool_install))]
+fn platform_command_action(cmd: ObCommands) -> Action {
+    match cmd.into_action() {
+        ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
+        ObAction::Proxy(args) => Action::PlatformProxy { args },
+        ObAction::AutoConfigure { instance } => Action::PlatformAutoConfigure { instance },
     }
 }
 
@@ -1683,5 +1689,80 @@ mod tests {
     fn test_forward_help_to_wrapped_tool_ignores_other_commands() {
         assert!(forward_help_to_wrapped_tool(Some(Commands::Bootstrap)).is_none());
         assert!(forward_help_to_wrapped_tool(None).is_none());
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_platform_unknown_subcommand_is_captured() {
+        let cli = Cli::try_parse_from(["ana", "platform", "workstation", "list"]).unwrap();
+        match cli.command {
+            Some(Commands::Platform {
+                command: Some(ObCommands::Other(args)),
+            }) => assert_eq!(args, vec!["workstation", "list"]),
+            _ => panic!("expected platform catch-all to capture args"),
+        }
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_platform_unknown_subcommand_captures_hyphen_args() {
+        let cli =
+            Cli::try_parse_from(["ana", "platform", "workstation", "restart", "--force"]).unwrap();
+        match cli.command {
+            Some(Commands::Platform {
+                command: Some(ObCommands::Other(args)),
+            }) => assert_eq!(args, vec!["workstation", "restart", "--force"]),
+            _ => panic!("expected platform catch-all to capture args"),
+        }
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_platform_known_subcommands_do_not_fall_through_to_catch_all() {
+        for sub in [
+            "init",
+            "deploy",
+            "app",
+            "check",
+            "configure",
+            "fast-bakery",
+            "integrations",
+            "kubernetes",
+            "perimeter",
+            "service-principal-configure",
+            "flowproject",
+        ] {
+            let cli = Cli::try_parse_from(["ana", "platform", sub]).unwrap();
+            if let Some(Commands::Platform {
+                command: Some(ObCommands::Other(args)),
+            }) = cli.command
+            {
+                panic!("'{sub}' was captured by the catch-all: {args:?}");
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_platform_catch_all_resolves_to_proxy_action() {
+        let action = platform_command_action(ObCommands::Other(vec!["workstation".to_string()]));
+        match action {
+            Action::PlatformProxy { args } => assert_eq!(args, vec!["workstation"]),
+            _ => panic!("expected PlatformProxy"),
+        }
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_forward_help_to_wrapped_tool_platform_catch_all() {
+        let action = forward_help_to_wrapped_tool(Some(Commands::Platform {
+            command: Some(ObCommands::Other(vec!["workstation".to_string()])),
+        }));
+        match action {
+            Some(Action::PlatformProxy { args }) => {
+                assert_eq!(args, vec!["workstation", "--help"])
+            }
+            _ => panic!("expected PlatformProxy with forwarded --help"),
+        }
     }
 }
