@@ -49,6 +49,27 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Real-time malware scanning dominates MSVC builds and the many
+      # short-lived test processes on Windows runners. The temp-dir
+      # exclusions matter for the integration tests: bootstrap/installer
+      # tests write and execute binaries under %TEMP% (pytest tmp_path),
+      # which would otherwise be scanned on every write and launch.
+      - name: Configure Defender exclusions (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+          Add-MpPreference -ExclusionPath "$(Get-Location)"
+          Add-MpPreference -ExclusionPath "$env:TEMP"
+          Add-MpPreference -ExclusionPath "$env:TMP"
+          Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA"
+          Add-MpPreference -ExclusionPath "$env:USERPROFILE\.cargo"
+          Add-MpPreference -ExclusionProcess "cargo.exe"
+          Add-MpPreference -ExclusionProcess "rustc.exe"
+          Add-MpPreference -ExclusionProcess "link.exe"
+          Add-MpPreference -ExclusionProcess "python.exe"
+          Add-MpPreference -ExclusionProcess "conda.exe"
+          Add-MpPreference -ExclusionProcess "pwsh.exe"
+
       - name: Fetch CI secrets from Vault
         id: vault
         uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
@@ -65,13 +86,9 @@ jobs:
             anaconda-cli/${{ inputs.environment || 'dev' }}/data/ci ana_test_api_key | ana-test-api-key ;
             anaconda-cli/${{ inputs.environment || 'dev' }}/data/ci sentry_dsn | sentry-dsn
 
-      - name: Hash SENTRY_DSN for cache key
-        id: dsn-hash
-        env:
-          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
-        run: echo "hash=$(echo -n "$SENTRY_DSN" | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
-        shell: bash
-
+      # No DSN hash needed in the key: build.rs declares
+      # rerun-if-env-changed=SENTRY_DSN, so a DSN change only rebuilds the
+      # crates depending on it instead of invalidating the whole cache.
       - name: Cache Cargo registry and build
         if: ${{ github.event_name != 'workflow_call' }}
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -80,9 +97,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          # Include a hash of SENTRY_DSN so cached artifacts are invalidated
-          # when the DSN changes (build.rs embeds it at compile time).
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-dsn-${{ steps.dsn-hash.outputs.hash }}
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Set up ana with pixi
         uses: anaconda/actions/setup-anaconda-cli@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
@@ -153,6 +168,15 @@ jobs:
           vault-role: ${{ secrets.VAULT_ROLE }}
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
+      # Build the conda package before the integration tests so that the
+      # conda_package session fixture reuses it from output/ instead of
+      # silently rebuilding it (binary + rattler-build + conda create) in the
+      # middle of the pytest run, where its cost is invisible in step timings.
+      - name: Build conda package
+        env:
+          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
+        run: pixi run build-conda
+
       - name: Run integration tests
         if: ${{ !inputs.skip-tests }}
         env:
@@ -168,11 +192,6 @@ jobs:
           SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
           WINDOWS_CERTIFICATE_FINGERPRINT: ${{ steps.sign-windows.outputs.fingerprint }}
         run: pixi run test-integration
-
-      - name: Build conda package
-        env:
-          SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
-        run: pixi run build-conda
 
       - name: Upload conda package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
