@@ -3,7 +3,6 @@
 //! Provides reusable components for interactive terminal input:
 //! - `KeyListener`: Background key detection with Ctrl+C handling
 //! - `prompt_yes_no`: Line-based yes/no confirmation prompt
-//! - `prompt_input`: Line-based text input
 //! - `multiselect`: Interactive checkbox list with key hints
 
 use std::sync::mpsc::{self, Receiver};
@@ -286,24 +285,6 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
     let _ = term.show_cursor();
     let _ = term.flush();
     outcome
-}
-
-/// Prompt the user for text input.
-///
-/// Displays `message` followed by `: ` and waits for input.
-/// Returns the trimmed input string, or an error if reading fails.
-#[cfg_attr(not(tool_install), allow(dead_code))]
-pub fn prompt_input(message: &str) -> Result<String, String> {
-    use std::io::Write;
-    print!("{}: ", message);
-    std::io::stdout().flush().map_err(|e| e.to_string())?;
-
-    let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .map_err(|e| e.to_string())?;
-
-    Ok(input.trim().to_string())
 }
 
 /// RAII guard for terminal state restoration.

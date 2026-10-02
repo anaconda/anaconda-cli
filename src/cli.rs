@@ -16,7 +16,7 @@ use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
-use crate::outerbounds::{self, ObAction, ObCommands};
+use crate::outerbounds;
 #[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
 #[cfg(tool_install)]
@@ -172,10 +172,6 @@ pub enum Action {
     PlatformProxy {
         args: Vec<String>,
     },
-    #[cfg(all(unix, tool_install))]
-    PlatformAutoConfigure {
-        instance: String,
-    },
     Mcp {
         command: McpCommands,
     },
@@ -246,8 +242,6 @@ impl Action {
             Action::OrgProxy { .. } => "org",
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { .. } => "platform",
-            #[cfg(all(unix, tool_install))]
-            Action::PlatformAutoConfigure { .. } => "platform.configure.auto",
             Action::Mcp { command } => match command {
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
@@ -376,10 +370,6 @@ impl Action {
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
-            #[cfg(all(unix, tool_install))]
-            Action::PlatformAutoConfigure { instance } => {
-                outerbounds::auto_configure(ctx, &instance).await
-            }
             #[cfg(not(tool_install))]
             Action::ToolInstall { name: _ } => {
                 Err(crate::errors::ToolManagementUnavailableError.into())
@@ -752,14 +742,7 @@ pub fn parse() -> (Action, LogLevel) {
             },
         },
         #[cfg(all(unix, tool_install))]
-        Some(Commands::Platform { command }) => match command {
-            None => Action::ShowSubcommandHelp("platform".to_string()),
-            Some(cmd) => match cmd.into_action() {
-                ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                ObAction::Proxy(args) => Action::PlatformProxy { args },
-                ObAction::AutoConfigure { instance } => Action::PlatformAutoConfigure { instance },
-            },
-        },
+        Some(Commands::Platform { args }) => Action::PlatformProxy { args },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -859,14 +842,7 @@ fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
             Some(Action::OrgProxy { args })
         }
         #[cfg(all(unix, tool_install))]
-        Commands::Platform { command } => {
-            let mut args = match command {
-                None => Vec::new(),
-                Some(cmd) => match cmd.into_action() {
-                    ObAction::Proxy(args) => args,
-                    ObAction::AutoConfigure { .. } | ObAction::ShowHelp(_) => return None,
-                },
-            };
+        Commands::Platform { mut args } => {
             args.push("--help".to_string());
             Some(Action::PlatformProxy { args })
         }
@@ -1059,16 +1035,16 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Anaconda platform CLI
+    /// Anaconda platform CLI (wraps the outerbounds CLI)
     #[cfg(all(unix, tool_install))]
     #[command(
-        subcommand_required = false,
-        arg_required_else_help = false,
+        trailing_var_arg = true,
         override_usage = "ana platform <command> [options]"
     )]
     Platform {
-        #[command(subcommand)]
-        command: Option<ObCommands>,
+        /// Arguments to pass to outerbounds
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 
     /// Manage tools
