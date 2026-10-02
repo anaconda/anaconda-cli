@@ -1059,7 +1059,7 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Outerbounds platform CLI
+    /// Anaconda platform CLI
     #[cfg(all(unix, tool_install))]
     #[command(
         subcommand_required = false,
