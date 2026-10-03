@@ -5,18 +5,10 @@ operations, local configuration, managed-tool installation, and subprocess
 wrappers. It is not itself the Python `anaconda` CLI, an MCP server, or the
 Outerbounds execution runtime.
 
-This document adapts the supplied September 26, 2026 screenshots of the
-[Miro architecture board](https://miro.com/app/board/uXjVHXMyb8o=/) into
-repository-maintained diagrams, incorporating the code-backed corrections in the
-source references below. It is not a fresh export of the live board; later Miro
-edits have not been verified.
-
-The implementation baseline is
-[`151cec2`](https://github.com/anaconda/anaconda-cli/tree/151cec2272a97df58e2bdbb173a474af04653b50).
-The planned `v1.0.0` GA includes both standalone and conda distributions, but the
-final candidate and Engineering/Security approval remain pending. Diagrams show
-implemented flows or declared infrastructure, not proof that controls are deployed
-or risks mitigated. GitHub renders the Mermaid blocks below.
+The standalone build provisions a catalog of tool environments from embedded
+lockfiles. The conda build delegates dependency and update management to conda.
+The sections below describe the implementation, its data flows, and the source
+files that define each part of the system.
 
 ## Runtime and Service Boundaries
 
@@ -62,10 +54,9 @@ flowchart LR
     SUBMIT --> METRICS
 ```
 
-Transport is HTTPS by default for native service requests. Configurable endpoints
-and the HTTP base-URL override mean this is not an unconditional enforcement
-claim. Service authorization and resource quotas are separate from the CLI's
-local login gate.
+Native service requests use HTTPS by default. Endpoint settings and
+`ANA_USE_HTTPS` control generated API URLs. Remote services own authorization
+and resource-quota policies, separately from the CLI's local login gate.
 
 ### Authentication and MCP
 
@@ -118,9 +109,9 @@ flowchart LR
 ```
 
 The default endpoints use HTTPS. Events can contain account, client and session
-identifiers. `ANA_ENABLE_TELEMETRY` gates metric spooling/export; it is not proof
-of a universal opt-out from every identifier or diagnostics path. HTTP user-agent
-identity and optional Sentry diagnostics have separate implementation paths.
+identifiers. `ANA_ENABLE_TELEMETRY` gates metric spooling/export. HTTP user-agent
+identity and optional Sentry diagnostics have separate implementation paths and
+configuration.
 
 Sources: [event attributes](../src/context.rs), [spool](../src/telemetry/spool.rs),
 [spawn](../src/telemetry/spawn.rs), [submission](../src/telemetry/submit.rs),
@@ -131,8 +122,9 @@ Sources: [event attributes](../src/context.rs), [spool](../src/telemetry/spool.r
 
 GitHub Actions builds Linux x86_64/ARM64, macOS ARM64 and Windows x86_64. Each
 platform job produces a standalone binary and a separately built conda package.
-Windows signing and production macOS notarization are configured for standalone
-artifacts; that does not establish signing of the separately compiled conda binary.
+The standalone Windows binary and shim pass through signing actions, and the
+macOS binary passes through signing and production notarization. The conda recipe
+compiles its own binary separately from those standalone artifacts.
 
 The diagram summarizes artifact and job dependencies, not the ordering of every
 step inside a platform job.
@@ -148,7 +140,7 @@ flowchart TB
     PROD -->|"all platform jobs succeed"| CONDAJOB["Anaconda.org publication job"]
     BIN --> GHJOB
     CONDA --> CONDAJOB
-    GHJOB --> GH["GitHub assets, checksums and installer scripts; set latest"]
+    GHJOB --> GH["GitHub binaries, SBOMs, checksums and installer scripts"]
     CONDAJOB --> CHANNEL["anaconda-cloud channel; main label"]
     GH -->|"job succeeds"| DISPATCH["Dispatch anaconda-dot-sh workflow"]
     DISPATCH --> SITE["Independent website deployment workflow"]
@@ -160,32 +152,34 @@ in `Cargo.toml`. Credentials from Vault support signing and testing; Windows
 signing uses AzureSignTool/Azure Key Vault integration, and macOS notarization
 uses Apple's service. Site dispatch uses a separate Vault-provided PAT.
 
-Important boundaries:
+Publication flow:
 
 - A tag push alone is not the configured release trigger.
 - GitHub and conda publication are independent jobs after CI. One can succeed
-  while the other fails; the inspected conda caller uses `private: true` and
-  `force: true`, so channel access/overwrite behavior needs release-owner review.
-- The inspected GitHub job does not clear a prerelease flag before setting latest.
-  That failure can prevent site dispatch after artifacts/packages were uploaded.
-- Successful site dispatch does not prove the independent deployment completed.
-- Live-main [PR #393](https://github.com/anaconda/anaconda-cli/pull/393), after the
-  inspected baseline, adds existing SBOM files/checksums to future releases. It is
-  not a complete release-specific SBOM generation/provenance guarantee.
+  while the other fails. The conda upload selects the `anaconda-cloud` channel,
+  `main` label, private visibility, and forced replacement of existing packages.
+- The GitHub job regenerates the SBOM with `pixi run sbom-force`, passing the
+  release tag as `SBOM_RELEASE_VERSION`, and uploads the resulting JSON and
+  Markdown alongside binaries, SHA-256 files, and installer scripts.
+- Stable releases are marked latest; prereleases retain their prerelease status
+  and are not marked latest.
+- The site deployment is dispatched after GitHub publication succeeds. Dispatch
+  and deployment run in separate workflows.
 
 Sources: [CI workflow](../.github/workflows/ci.yaml),
 [release workflow](../.github/workflows/release.yaml), [Pixi tasks](../pixi.toml),
 [version wrapper](../scripts/with_version.py), [conda recipe](../conda.recipe/recipe.yaml),
 [Windows signing](../.github/actions/sign-windows/action.yaml),
-[macOS signing](../.github/actions/sign-notarize-macos/action.yaml).
-Use the workflow sources above when verifying publication dependencies and
-recovery behavior for a specific release candidate.
+[macOS signing](../.github/actions/sign-notarize-macos/action.yaml),
+[SBOM generation](../scripts/update_lockfiles.sh),
+[SBOM metadata processing](../scripts/sbom-process.py).
 
 ## Website Deployment and Hosting
 
 The `anaconda.sh` site is implemented in the separate
-[anaconda-dot-sh repository](https://github.com/anaconda/anaconda-dot-sh/tree/e4f2deffa8046538dbc8cbfba917ceff6e4f0f97).
-This view is based on that pinned source revision, not a live infrastructure audit.
+[anaconda-dot-sh repository](https://github.com/anaconda/anaconda-dot-sh).
+Its deployment workflows build and publish static pages and release assets;
+Terraform defines the S3, Cloudflare and IAM resources shown below.
 
 ```mermaid
 flowchart TB
@@ -205,21 +199,19 @@ flowchart TB
     ACCESS --> DEVEDGE["Cloudflare proxy"]
     DEVEDGE -->|"HTTP origin; bucket IP restrictions"| DEVBUCKET
     PUBLICUSER["Public user"] -->|"HTTPS: anaconda.sh"| PRODEDGE["Cloudflare proxy / CDN"]
-    PRODEDGE -->|"HTTP origin; declared public reads"| PRODBUCKET
+    PRODEDGE -->|"HTTP origin; public reads"| PRODBUCKET
 ```
 
-The Cloudflare-to-S3 hop is intentionally HTTP for the S3 website endpoint in the
-declared configuration; the diagram must not imply end-to-end TLS. Development
-access combines edge access policy and bucket IP restrictions. Declared production
-read access is public. Deployed IAM, Cloudflare policies, manual SSL settings and
-DDoS protection effectiveness still require owner verification.
+Terraform configures HTTPS at the Cloudflare edge and HTTP between Cloudflare and
+the S3 website endpoint. Development access combines Cloudflare Access policy
+with bucket IP restrictions. The production bucket policy permits public reads.
 
-Sources at the inspected website revision:
-[deployment workflow](https://github.com/anaconda/anaconda-dot-sh/blob/e4f2deffa8046538dbc8cbfba917ceff6e4f0f97/.github/workflows/deploy.yaml),
-[deployment action](https://github.com/anaconda/anaconda-dot-sh/blob/e4f2deffa8046538dbc8cbfba917ceff6e4f0f97/.github/actions/deploy/action.yaml),
-[IAM](https://github.com/anaconda/anaconda-dot-sh/blob/e4f2deffa8046538dbc8cbfba917ceff6e4f0f97/infra/terraform/anaconda-dot-sh/iam.tf),
-[S3](https://github.com/anaconda/anaconda-dot-sh/blob/e4f2deffa8046538dbc8cbfba917ceff6e4f0f97/infra/terraform/anaconda-dot-sh/s3.tf),
-[Cloudflare](https://github.com/anaconda/anaconda-dot-sh/blob/e4f2deffa8046538dbc8cbfba917ceff6e4f0f97/infra/terraform/anaconda-dot-sh/cloudflare.tf).
+Sources:
+[deployment workflow](https://github.com/anaconda/anaconda-dot-sh/blob/main/.github/workflows/deploy.yaml),
+[deployment action](https://github.com/anaconda/anaconda-dot-sh/blob/main/.github/actions/deploy/action.yaml),
+[IAM](https://github.com/anaconda/anaconda-dot-sh/blob/main/infra/terraform/anaconda-dot-sh/iam.tf),
+[S3](https://github.com/anaconda/anaconda-dot-sh/blob/main/infra/terraform/anaconda-dot-sh/s3.tf),
+[Cloudflare](https://github.com/anaconda/anaconda-dot-sh/blob/main/infra/terraform/anaconda-dot-sh/cloudflare.tf).
 
 ## Installation and Update Paths
 
@@ -231,7 +223,7 @@ flowchart TB
     USER["User"] --> CHOICE{"Distribution"}
     CHOICE -->|"standalone"| SCRIPT["Download and execute installation script"]
     SCRIPT --> FETCH["Fetch platform binary and checksum"]
-    FETCH --> VERIFY["Installer verification policy: checks, bypasses and failure paths"]
+    FETCH --> VERIFY["Apply installer checksum checks when enabled"]
     VERIFY --> INSTALL["Install ana binary"]
     INSTALL --> PATH["Optionally update PATH"]
     PATH --> BOOT["Optionally attempt Python CLI bootstrap"]
@@ -246,11 +238,10 @@ flowchart TB
 ```
 
 The GitHub update source is explicitly selected, not an automatic fallback on
-static-site failure. Self-update in the inspected baseline does not verify a
-checksum/signature before executable replacement. Installer verification also has
-explicit bypass/fallback paths; downloading a checksum is not an unconditional
-authenticity guarantee. Bootstrap may require login and fail without undoing the
-binary installation.
+static-site failure. Self-update downloads the selected executable and replaces
+the running binary without a checksum/signature verification step. Installer
+scripts have their own checksum checks and bypass/fallback paths. Bootstrap goes
+through the login gate and can fail without undoing the binary installation.
 
 Managed tools use embedded Pixi lockfiles and rattler installation into CLI-owned
 prefixes. The `main` package source is `https://repo.anaconda.com/pkgs/main`, not
@@ -278,29 +269,24 @@ Sources: [shell installer](../scripts/install.sh), [PowerShell installer](../scr
 
 ## Shared GitHub Action Helpers
 
-These helpers are separate reusable actions, not additional CLI runtime services.
-The inspected CLI workflows pin
-[`anaconda/actions` at `a6f4889`](https://github.com/anaconda/actions/tree/a6f488910b4a1e4f3fe01736241ca1b92b4b355a).
+These helpers live in [anaconda/actions](https://github.com/anaconda/actions) and
+run inside GitHub Actions, not as additional CLI runtime services. The consuming
+workflow's `uses` entry selects the action revision; its inputs select the tool
+versions and publication settings.
 
 | Helper | Flow and caller boundary |
 | --- | --- |
-| [setup-anaconda-cli](https://github.com/anaconda/actions/blob/a6f488910b4a1e4f3fe01736241ca1b92b4b355a/setup-anaconda-cli/action.yml) | Runs the installer without PATH modification/bootstrap, adds paths via `GITHUB_PATH`, then optionally installs tools. The inspected CLI CI caller requests `ana v0.1.6` and pixi, not an unconstrained latest CLI. |
-| [upload-package](https://github.com/anaconda/actions/blob/a6f488910b4a1e4f3fe01736241ca1b92b4b355a/upload-package/action.yml) | Validates inputs and installs its CLI/tool dependencies when needed, using `ana v0.2.1` at the inspected action revision. It supports Anaconda.org and PSM targets; this repository's release caller selects Anaconda.org. |
+| `setup-anaconda-cli` | Runs the installer without PATH modification/bootstrap, adds paths via `GITHUB_PATH`, then optionally installs tools. The [CI](../.github/workflows/ci.yaml) and [release](../.github/workflows/release.yaml) callers select a CLI version and request pixi. |
+| `upload-package` | Validates inputs and installs its CLI/tool dependencies when needed. It supports Anaconda.org and PSM targets; this repository's [release workflow](../.github/workflows/release.yaml) selects Anaconda.org. |
 
-## Security Boundaries and Review Status
+## Trust Boundaries
 
-| Boundary | Control or assumption requiring explicit treatment |
+| Boundary | Implementation |
 | --- | --- |
-| User environment to CLI configuration | Environment variables can redirect paths/endpoints. `ANA_USE_HTTPS` permits HTTP for generated base URLs; `ANA_SSL_VERIFY` is parsed but not wired to native TLS verification. |
-| CLI credentials to remote destinations | Credential forwarding requires an explicit trusted-destination policy. Backend authentication and authorization remain separate controls. |
-| CLI storage to AI-client configuration | Encoded credentials and MCP copies need permission, rotation, deletion and revocation policies. New-file Unix modes do not establish safe existing-file or Windows ACL behavior. |
+| User environment to CLI configuration | Environment variables select paths/endpoints. `ANA_USE_HTTPS` controls the generated base URL's scheme; native clients use their default certificate validation, independently of the parsed `ANA_SSL_VERIFY` setting. |
+| CLI credentials to remote destinations | HTTP authentication middleware attaches credentials to selected destinations. Remote services handle authentication and authorization separately from the CLI's stored-key login gate. |
+| CLI storage to AI-client configuration | API keys reside in the file keyring and are copied into AI-client configuration during MCP setup. New Unix keyring files request owner-only permissions; Windows writes use inherited filesystem ACLs. |
 | Downloaded packages/executables to local execution | Installer, managed-tool, self-update and conda paths have different integrity controls. Managed installation enables package link scripts, and wrappers invoke external executables. |
-| CI identity to signing/publication | Source declares credential use and signing jobs; actual signatures, effective permissions, immutable artifacts and publication success require evidence. |
-| Cloudflare edge to S3 origin | HTTPS terminates at the edge; the declared origin hop is HTTP. Verify deployed access and transport policy with the hosting owner. |
-| Local telemetry to remote processing | Metrics, user-agent identity, optional diagnostics, retention and privacy controls are not interchangeable. |
-
-Security findings, mitigations and owner confirmations are tracked separately
-through the security-review process. Before using this document to close
-[NPI-4693](https://anaconda.atlassian.net/browse/NPI-4693) or
-[NPI-4697](https://anaconda.atlassian.net/browse/NPI-4697), reconcile it with the
-final candidate, verify external controls, and record Engineering/Security review.
+| CI identity to signing/publication | GitHub workload identity authenticates to Vault, which supplies credentials for signing, testing, publication and site dispatch to their respective jobs. |
+| Cloudflare edge to S3 origin | TLS terminates at Cloudflare; the configured S3 website origin uses HTTP. Edge access policies and bucket policies form separate access-control layers. |
+| Local telemetry to remote processing | Metrics are spooled on disk and exported by a separate process. HTTP user-agent identity and optional diagnostics follow separate code paths. |
