@@ -134,6 +134,41 @@ jobs:
             gh release edit "$VERSION" --draft=false --latest
           fi
 
+  upload-standalone-sboms:
+    name: Stage combined standalone SBOM
+    if: ${{ github.event_name == 'release' }}
+    needs: [create-github-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Download and verify existing release SBOM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern SBOM.json --pattern SBOM.json.sha256
+          sha256sum --check SBOM.json.sha256
+          jq -e '.bomFormat == "CycloneDX" and (.components | length > 0)' SBOM.json
+
+      - name: Configure staging writer credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::455864098378:role/github-actions-cra-sbom-staging-writer
+          aws-region: us-east-1
+
+      - name: Upload to CRA staging
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]
+          # Proposed combined-platform convention; keep the release SBOM unchanged.
+          filename="anaconda-cli_${RELEASE_TAG}_multi-multi_$(date +%s).sbom.cyclonedx.json"
+          uri="s3://anaconda-cra-sbom-staging/installers/${GITHUB_REPOSITORY#*/}/${RELEASE_TAG}/multi-multi/${filename}"
+          aws s3 cp SBOM.json "$uri" --content-type application/json
+          printf 'Staged combined SBOM: %s\n\nStaging is not production CRA evidence.\n' "$uri" >> "$GITHUB_STEP_SUMMARY"
+
   deploy-to-anaconda-sh:
     name: Deploy to anaconda.sh
     if: ${{ github.event_name == 'release' }}
