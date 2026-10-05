@@ -648,18 +648,22 @@ impl Action {
 /// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
 pub fn parse() -> (Action, LogLevel) {
+    match parse_from(std::env::args_os()) {
+        Ok(parsed) => parsed,
+        Err(e) => handle_parse_error(e),
+    }
+}
+
+fn parse_from<I, T>(itr: I) -> Result<(Action, LogLevel), clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
     // Two-step parsing: first get ArgMatches, then convert to typed struct.
     // This gives us access to both the raw matches (for subcommand path extraction)
     // and the typed Cli struct.
-    let matches = match Cli::command().try_get_matches() {
-        Ok(m) => m,
-        Err(e) => return handle_parse_error(e),
-    };
-
-    let mut cli = match Cli::from_arg_matches(&matches) {
-        Ok(c) => c,
-        Err(e) => return handle_parse_error(e),
-    };
+    let matches = Cli::command().try_get_matches_from(itr)?;
+    let mut cli = Cli::from_arg_matches(&matches)?;
 
     let level: LogLevel = cli.verbose.into();
 
@@ -667,13 +671,13 @@ pub fn parse() -> (Action, LogLevel) {
     // proxies own their own help, so the flag is forwarded to them instead.
     if cli.help {
         if let Some(action) = forward_help_to_wrapped_tool(cli.command.take()) {
-            return (action, level);
+            return Ok((action, level));
         }
         let action = match get_subcommand_path_from_matches(&matches) {
             None => Action::ShowHelp,
             Some(path) => Action::ShowSubcommandHelp(path),
         };
-        return (action, level);
+        return Ok((action, level));
     }
 
     let action = match cli.command.take() {
@@ -725,10 +729,12 @@ pub fn parse() -> (Action, LogLevel) {
             }
             Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
         },
-        Some(Commands::Org { args }) => match args.is_empty() {
-            true => Action::ShowSubcommandHelp("org".to_string()),
-            false => Action::OrgProxy { args },
-        },
+        Some(Commands::Org { mut args }) => {
+            if args.is_empty() {
+                args.push("--help".to_string());
+            }
+            Action::OrgProxy { args }
+        }
         Some(Commands::Mcp { command }) => match command {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
@@ -809,7 +815,7 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
     };
 
-    (action, level)
+    Ok((action, level))
 }
 
 /// Extract the subcommand path from ArgMatches by walking the subcommand chain.
@@ -1662,5 +1668,84 @@ mod tests {
     fn test_forward_help_to_wrapped_tool_ignores_other_commands() {
         assert!(forward_help_to_wrapped_tool(Some(Commands::Bootstrap)).is_none());
         assert!(forward_help_to_wrapped_tool(None).is_none());
+    }
+
+    fn org_args(argv: &[&str]) -> Vec<String> {
+        match parse_from(argv).unwrap().0 {
+            Action::OrgProxy { args } => args,
+            _ => panic!("expected OrgProxy for {:?}", argv),
+        }
+    }
+
+    #[test]
+    fn test_parse_bare_org_proxies_help() {
+        assert_eq!(org_args(&["ana", "org"]), vec!["--help"]);
+    }
+
+    #[test]
+    fn test_parse_org_help_flags_are_proxied() {
+        assert_eq!(org_args(&["ana", "org", "--help"]), vec!["--help"]);
+        assert_eq!(org_args(&["ana", "org", "-h"]), vec!["--help"]);
+        assert_eq!(
+            org_args(&["ana", "org", "whoami", "--help"]),
+            vec!["whoami", "--help"]
+        );
+    }
+
+    #[test]
+    fn test_parse_org_args_pass_through_verbatim() {
+        assert_eq!(
+            org_args(&["ana", "org", "upload", "--force", "-u", "me", "pkg.tar.bz2"]),
+            vec!["upload", "--force", "-u", "me", "pkg.tar.bz2"]
+        );
+    }
+
+    #[cfg(all(unix, tool_install))]
+    fn platform_args(argv: &[&str]) -> Vec<String> {
+        match parse_from(argv).unwrap().0 {
+            Action::PlatformProxy { args } => args,
+            _ => panic!("expected PlatformProxy for {:?}", argv),
+        }
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_bare_platform_proxies_to_outerbounds() {
+        assert!(platform_args(&["ana", "platform"]).is_empty());
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_platform_help_flags_are_proxied() {
+        assert_eq!(
+            platform_args(&["ana", "platform", "--help"]),
+            vec!["--help"]
+        );
+        assert_eq!(platform_args(&["ana", "platform", "-h"]), vec!["--help"]);
+        assert_eq!(
+            platform_args(&["ana", "platform", "app", "list", "--help"]),
+            vec!["app", "list", "--help"]
+        );
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_platform_args_pass_through_verbatim() {
+        assert_eq!(
+            platform_args(&["ana", "platform", "configure", "--force", "tok-123"]),
+            vec!["configure", "--force", "tok-123"]
+        );
+        assert_eq!(
+            platform_args(&["ana", "platform", "init", "my-proj", "--name", "x"]),
+            vec!["init", "my-proj", "--name", "x"]
+        );
+    }
+
+    #[test]
+    fn test_parse_non_proxy_help_shows_ana_help() {
+        assert!(matches!(
+            parse_from(["ana", "auth", "--help"]).unwrap().0,
+            Action::ShowSubcommandHelp(path) if path == "auth"
+        ));
     }
 }
