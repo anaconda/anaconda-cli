@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_hash_lockfile_deterministic() {
-        let content = "version: 6\npackages:\n  - name: foo";
+        let content = "version: 7\npackages:\n  - name: foo";
         let hash1 = hash_lockfile(content);
         let hash2 = hash_lockfile(content);
         assert_eq!(hash1, hash2);
@@ -415,8 +415,8 @@ mod tests {
 
     #[test]
     fn test_hash_lockfile_different_content() {
-        let content1 = "version: 6\npackages:\n  - name: foo";
-        let content2 = "version: 6\npackages:\n  - name: bar";
+        let content1 = "version: 7\npackages:\n  - name: foo";
+        let content2 = "version: 7\npackages:\n  - name: bar";
         assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
     }
 
