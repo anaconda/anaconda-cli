@@ -24,15 +24,27 @@ fn resolve_tool_binary(tool_name: &str, binary_name: &str) -> miette::Result<Pat
     Ok(tool_bin)
 }
 
-/// Run a binary from within a tool's installation directory.
-pub fn run_tool_binary(tool_name: &str, binary_name: &str, args: &[String]) -> miette::Result<()> {
+/// Run a binary from within a tool's installation directory, setting any
+/// extra environment variables in `envs` for the child process.
+pub fn run_tool_binary(
+    tool_name: &str,
+    binary_name: &str,
+    args: &[String],
+    envs: &[(&str, &str)],
+) -> miette::Result<()> {
     let tool_bin = resolve_tool_binary(tool_name, binary_name)?;
-    run_binary(&tool_bin, binary_name, args)
+    run_binary(&tool_bin, binary_name, args, envs)
 }
 
-fn run_binary(tool_bin: &PathBuf, binary_name: &str, args: &[String]) -> miette::Result<()> {
+fn run_binary(
+    tool_bin: &PathBuf,
+    binary_name: &str,
+    args: &[String],
+    envs: &[(&str, &str)],
+) -> miette::Result<()> {
     let status = Command::new(tool_bin)
         .args(args)
+        .envs(envs.iter().copied())
         .status()
         .map_err(|e| miette!("Failed to run {}: {}", binary_name, e))?;
 

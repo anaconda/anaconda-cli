@@ -157,18 +157,6 @@ pub enum ToolError {
     CommandFailed(String),
 }
 
-/// Error when Outerbounds is not configured.
-#[derive(Error, Debug, Diagnostic)]
-#[error("Outerbounds is not configured.")]
-#[diagnostic(
-    code(ana::outerbounds::not_configured),
-    help(
-        "To configure, visit your Outerbounds instance and follow the instructions for local setup.\n\
-         You will need to run: outerbounds configure <token>"
-    )
-)]
-pub struct OuterboundsNotConfiguredError;
-
 /// Error when tool management is unavailable (conda-package build).
 #[cfg(not(tool_install))]
 #[derive(Error, Debug, Diagnostic)]
