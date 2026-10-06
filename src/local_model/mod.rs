@@ -1,7 +1,9 @@
+mod catalog;
 mod commands;
 mod delete;
 mod gguf;
 mod kilo;
+mod list;
 mod pull;
 mod run;
 mod server;
@@ -14,7 +16,26 @@ use crate::context::CommandContext;
 /// Run an `ana lm` subcommand.
 pub async fn run(ctx: &mut CommandContext, command: LocalModelCommands) -> miette::Result<()> {
     match command {
-        LocalModelCommands::List { json } => list(ctx, json).await,
+        LocalModelCommands::List {
+            local,
+            name,
+            publisher,
+            purpose,
+            tags,
+            sizes,
+            file,
+            json,
+        } => {
+            let filter = catalog::CatalogFilter {
+                name,
+                publisher,
+                purpose,
+                tags,
+                sizes: sizes.iter().map(|s| s.name().to_string()).collect(),
+                file,
+            };
+            list::list(ctx, local, &filter, json).await
+        }
         LocalModelCommands::Pull {
             model,
             format,
@@ -58,10 +79,4 @@ pub async fn run(ctx: &mut CommandContext, command: LocalModelCommands) -> miett
             force,
         } => delete::delete(&model, quant.as_deref(), force),
     }
-}
-
-async fn list(_ctx: &mut CommandContext, json: bool) -> miette::Result<()> {
-    // TODO: Implement listing of local models
-    println!("ana lm list (json={json}): not yet implemented");
-    Ok(())
 }

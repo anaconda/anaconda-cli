@@ -25,10 +25,60 @@ impl fmt::Display for ModelFormat {
     }
 }
 
+/// Catalog size classes (published as `size-<class>` tags).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum ModelSize {
+    Tiny,
+    Small,
+    Medium,
+    Large,
+    Xlarge,
+}
+
+impl ModelSize {
+    pub fn name(&self) -> &'static str {
+        match self {
+            ModelSize::Tiny => "tiny",
+            ModelSize::Small => "small",
+            ModelSize::Medium => "medium",
+            ModelSize::Large => "large",
+            ModelSize::Xlarge => "xlarge",
+        }
+    }
+}
+
 #[derive(Subcommand)]
 pub enum LocalModelCommands {
-    /// List local models
+    /// List models in the catalog, or downloaded models with --local
     List {
+        /// Only show models downloaded to ~/.ana/models
+        #[arg(long)]
+        local: bool,
+
+        /// Filter by model name (substring, e.g., qwen)
+        #[arg(short = 'n', long, visible_alias = "search", conflicts_with = "local")]
+        name: Option<String>,
+
+        /// Filter by publisher (e.g., Qwen, google, nvidia)
+        #[arg(short = 'p', long, conflicts_with = "local")]
+        publisher: Option<String>,
+
+        /// Filter by purpose (e.g., text-generation, image-text-to-text, sentence-similarity)
+        #[arg(long, conflicts_with = "local")]
+        purpose: Option<String>,
+
+        /// Filter by tag; repeat to require several (e.g., chat, tool-calling, reasoning)
+        #[arg(short = 't', long = "tag", conflicts_with = "local")]
+        tags: Vec<String>,
+
+        /// Filter by size class; repeat to allow several [possible values: tiny, small, medium, large, xlarge]
+        #[arg(long = "size", value_enum, conflicts_with = "local")]
+        sizes: Vec<ModelSize>,
+
+        /// Filter by file format or quantization (e.g., gguf, safetensors, q4_k_m)
+        #[arg(short = 'f', long, conflicts_with = "local")]
+        file: Option<String>,
+
         /// Output as JSON
         #[arg(long)]
         json: bool,

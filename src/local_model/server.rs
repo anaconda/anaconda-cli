@@ -533,8 +533,9 @@ mod tests {
         let port = listener.local_addr().unwrap().port();
         let err = ensure_port_free("127.0.0.1", port).unwrap_err();
         assert!(err.to_string().contains("already in use"));
+        // Not asserting the port is free after dropping: tests run in
+        // parallel and another test may grab the released ephemeral port.
         drop(listener);
-        assert!(ensure_port_free("127.0.0.1", port).is_ok());
     }
 
     #[test]
