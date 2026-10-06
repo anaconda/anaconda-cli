@@ -108,6 +108,8 @@ jobs:
           SBOM_RELEASE_VERSION: ${{ github.event.release.tag_name }}
         run: |
           pixi run sbom-force
+          jq -e --arg version "${SBOM_RELEASE_VERSION#v}" \
+            '.metadata.component.version == $version' SBOM.json
           cp SBOM.json SBOM.md release-assets/
 
       - name: Generate checksums
