@@ -1,0 +1,8 @@
+[workspace]
+name = "llama.cpp"
+channels = ["https://repo.anaconda.com/pkgs/main"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[dependencies]
+# renovate: datasource=conda depName=main/llama.cpp
+"llama.cpp" = "==0.5.0"

@@ -1,0 +1,765 @@
+version: 7
+platforms:
+- name: linux-64
+  virtual-packages:
+  - __unix=0=0
+  - __linux=4.18
+  - __glibc=2.28
+  - __archspec=0=x86_64
+- name: linux-aarch64
+  virtual-packages:
+  - __unix=0=0
+  - __linux=4.18
+  - __glibc=2.28
+  - __archspec=0=aarch64
+- name: osx-arm64
+  virtual-packages:
+  - __unix=0=0
+  - __osx=13.0
+  - __archspec=0=m1
+- name: win-64
+  virtual-packages:
+  - __win=10.0
+  - __archspec=0=x86_64
+environments:
+  default:
+    channels:
+    - url: https://repo.anaconda.com/pkgs/main/
+    packages:
+      linux-64:
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/_openmp_mutex-5.1-52_gnu.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/blas-1.0-openblas.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2026.9.25-h06a4308_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libgcc-15.2.0-h69a1729_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libgfortran-15.2.0-h166f726_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libgfortran5-15.2.0-hc633d37_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libgomp-15.2.0-h4751f2c_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libllama-0.5.0-cpu_openblas_hfb32225_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libopenblas-0.3.31-hf7dbefb_6.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/libstdcxx-15.2.0-h39759b7_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/llama.cpp-0.5.0-cpu_openblas_hfb32225_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.9-h1b28b03_0.conda
+      linux-aarch64:
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_openmp_mutex-5.1-52_gnu.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/blas-1.0-openblas.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ca-certificates-2026.9.25-hd43f75c_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgcc-15.2.0-hc18542e_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgfortran-15.2.0-h51576c1_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgfortran5-15.2.0-hdc851ad_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgomp-15.2.0-hf47c802_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libllama-0.5.0-cpu_openblas_h70c1f77_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libopenblas-0.3.31-he1b2cac_6.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libstdcxx-15.2.0-h9538471_8.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/llama.cpp-0.5.0-cpu_openblas_h70c1f77_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/openssl-3.5.9-h39c9139_0.conda
+      osx-arm64:
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ca-certificates-2026.9.25-hca03da5_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/libcxx-22.1.2-hf894667_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/libllama-0.5.0-mps_h404e123_100.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/llama.cpp-0.5.0-mps_h404e123_100.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/llvm-openmp-22.1.2-h4714345_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/osx-arm64/openssl-3.5.9-ha0b305a_0.conda
+      win-64:
+      - conda: https://repo.anaconda.com/pkgs/main/noarch/tzdata-2026c-he532380_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/_openmp_mutex-4.5-52_intel.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/blas-1.0-mkl.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/bzip2-1.0.8-h2bbff1b_6.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/ca-certificates-2026.9.25-haa95532_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/intel-openmp-2025.0.0-haa95532_1165.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libexpat-2.8.5-hd7fb8db_1.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libffi-3.4.8-h42d73b9_3.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libhwloc-2.12.1-default_hfa10c62_1000.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libiconv-1.18-hc89ec93_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libllama-0.5.0-cpu_mkl_h3737487_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libmpdec-4.0.1-h1c6eee0_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libxml2-2.13.9-h6201b9f_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/libzlib-1.3.2-h1c6eee0_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/llama.cpp-0.5.0-cpu_mkl_h3737487_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/mkl-2025.0.0-h585ebfc_931.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/mkl-service-2.7.2-py313h1b35211_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/openssl-3.5.9-hbb43b14_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/python-3.13.16-h2e1fde4_102_cp313.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/python_abi-3.13-5_cp313.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/sqlite-3.53.4-hee5a0db_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/tbb-2022.3.0-h90c84d6_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/tbb-devel-2022.3.0-h90c84d6_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/tk-8.6.15-hf199647_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/ucrt-10.0.22621.0-haa95532_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/vc-14.3-h2df5915_12.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/vc14_runtime-14.44.35208-h4927774_12.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/vs2015_runtime-14.44.35208-ha6b5a95_12.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/xz-5.8.4-hb851c79_0.conda
+      - conda: https://repo.anaconda.com/pkgs/main/win-64/zlib-1.3.2-h1c6eee0_0.conda
+packages:
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/_openmp_mutex-5.1-52_gnu.conda
+  build_number: 52
+  sha256: 2f2c16a33f51ba032e8d4929b4d2e9173d81931d8d280a4a4a85a2412e8bdaf0
+  md5: 8c74a3d91bfc4b484c91ed7201f84fba
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 6672
+  timestamp: 1779131107752
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/blas-1.0-openblas.conda
+  build_number: 7
+  sha256: c85b5d0a336b5be0f415c71fd7fe2eca59e09f42221bfa684aafef5510ba5487
+  md5: 9ddfcaef10d79366c90128f5dc444be8
+  track_features:
+  - nomkl
+  size: 46671
+  timestamp: 1528224118045
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2026.9.25-h06a4308_0.conda
+  sha256: 217a2c1f5aa274af9946b2da607e1032b197cd5f2c4958e2de0c1fc814a16861
+  md5: 468fe035b94adab2c9246baf86d2deea
+  license: MPL-2.0
+  license_family: Other
+  size: 109625
+  timestamp: 1790865904770
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libgcc-15.2.0-h69a1729_8.conda
+  sha256: 10fbca6e0cc0da1018f82f3c92e3841e734e704dbfee5df88ae652a49d8b402f
+  md5: 44a53b93cf0953bde4b0f4e610cef1c3
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - _openmp_mutex * *_gnu
+  constrains:
+  - libgomp 15.2.0 h4751f2c_8
+  - libgcc-ng ==15.2.0=*_8
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 822224
+  timestamp: 1779212817826
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libgfortran-15.2.0-h166f726_8.conda
+  sha256: 60d13865d89d7b4eae2d039150da223747d03326ca431e6cd8ae53ba89925fc5
+  md5: 4b596657776ed9f3c94bf72d80440465
+  depends:
+  - libgfortran5 15.2.0 hc633d37_8
+  constrains:
+  - libgfortran-ng ==15.2.0=*_8
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 28410
+  timestamp: 1779212835603
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libgfortran5-15.2.0-hc633d37_8.conda
+  sha256: 9b36a522028ac3c6177b19c984c266472dd87d77fe48b4c03c8cf3cfe2e98038
+  md5: 63969260e02fbb12b891bfde0c562514
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc 15.2.0 h69a1729_8
+  constrains:
+  - libgfortran 15.2.0
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 1578031
+  timestamp: 1779212824275
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libgomp-15.2.0-h4751f2c_8.conda
+  sha256: 16d77d9066ea6b9ffb28e58823d47bb380e36bfd0d351272eca144ddf451e7f3
+  md5: 67c92d7c75a4401323201f9355f3656f
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 447012
+  timestamp: 1779212782309
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libllama-0.5.0-cpu_openblas_hfb32225_0.conda
+  sha256: 020d834ae3c09a8ae057970daccad2c0d4b818fcbf384bad47c8309509b48287
+  md5: a9e41bbef8d53809deae5d7613dd9930
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - _openmp_mutex * *_gnu
+  - blas * openblas
+  - libgcc >=14
+  - libgomp
+  - libopenblas >=0.3.31,<1.0a0
+  - libstdcxx >=14
+  - openssl >=3.5.8,<4.0a0
+  license: MIT
+  license_family: MIT
+  size: 5611980
+  timestamp: 1790641678687
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libopenblas-0.3.31-hf7dbefb_6.conda
+  sha256: a2ab6be55d5954727d208f682d94c4c8db0f389f5f45ce78a8a0b73d8e7dc873
+  md5: 8fcb66258912189bfa75273098495f4c
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc >=14
+  - libgfortran
+  - libgfortran5 >=14.3.0
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 5921004
+  timestamp: 1790689188422
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/libstdcxx-15.2.0-h39759b7_8.conda
+  sha256: 30b7a96c0f1f527d16ec9ec7f80404f34d4b916332cca0634111ed077d7fc870
+  md5: 157776d72d1eba48854127f461b729cc
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc 15.2.0 h69a1729_8
+  constrains:
+  - libstdcxx-ng ==15.2.0=*_8
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 3902423
+  timestamp: 1779212830666
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/llama.cpp-0.5.0-cpu_openblas_hfb32225_0.conda
+  sha256: 54bd44e2f25f31d7d9606079d8355f370caac7a78837ec52bc00c09e15002d39
+  md5: b58b849461d0aef463573c7007160e54
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - _openmp_mutex * *_gnu
+  - blas * openblas
+  - libgcc >=14
+  - libgomp
+  - libllama 0.5.0 cpu_openblas_hfb32225_0
+  - libopenblas >=0.3.31,<1.0a0
+  - libstdcxx >=14
+  - openssl >=3.5.8,<4.0a0
+  license: MIT
+  license_family: MIT
+  size: 5355176
+  timestamp: 1790641745994
+- conda: https://repo.anaconda.com/pkgs/main/linux-64/openssl-3.5.9-h1b28b03_0.conda
+  sha256: c4d0c888fd0ead06e36b940e8a784b03b827586995d5b18db9996c70f30a0705
+  md5: 32b8e1dff76a46d4ace2ca1fd6305c9e
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - ca-certificates
+  - libgcc >=14
+  license: Apache-2.0
+  license_family: Apache
+  size: 5972059
+  timestamp: 1790776262994
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/_openmp_mutex-5.1-52_gnu.conda
+  build_number: 52
+  sha256: a565f285cdcb14894ba4e8a081fcec0ce7a3b9636d3fe7be709c849438b08b79
+  md5: f367f6af1c675137019bcded877b4a59
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 6626
+  timestamp: 1779131108070
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/blas-1.0-openblas.conda
+  build_number: 1
+  sha256: 571b133975675755788d7f5589d94531fa2907fc3d2b030415f259625bd16216
+  md5: 9b39fee0a4df4510455d75f56cf59bef
+  track_features:
+  - nomkl
+  size: 8348
+  timestamp: 1615396909032
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/ca-certificates-2026.9.25-hd43f75c_0.conda
+  sha256: 6898101318ffeb2ccbc37b4fc83b0794186a65e3221e438e3d5a381b41f8d879
+  md5: de5c7ce484005c6e3b824eaec120c274
+  license: MPL-2.0
+  license_family: Other
+  size: 109638
+  timestamp: 1790865909299
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgcc-15.2.0-hc18542e_8.conda
+  sha256: 71fc8b5195cb0724371da87c77c45c0428ae6686f5735709315eb54e9948f64b
+  md5: d7b72fca6c8e51b78b9a278a48535717
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - _openmp_mutex * *_gnu
+  constrains:
+  - libgcc-ng ==15.2.0=*_8
+  - libgomp 15.2.0 hf47c802_8
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 511167
+  timestamp: 1779212371593
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgfortran-15.2.0-h51576c1_8.conda
+  sha256: 68321bfb6dd2a96c29dfa340c3b88f6a4e3863ff5d847775fdabaad2ef4e9ab4
+  md5: 0c9defec83daa1ad6be3f1b55ca6f587
+  depends:
+  - libgfortran5 15.2.0 hdc851ad_8
+  constrains:
+  - libgfortran-ng ==15.2.0=*_8
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 28432
+  timestamp: 1779212387667
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgfortran5-15.2.0-hdc851ad_8.conda
+  sha256: 5fb5f924ac902cd7db2b80625c7bd8a2246eabfaac870daaaf2eb78c204d756f
+  md5: 35d8d6c433b66ba1c9fdfc67d305b567
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc 15.2.0 hc18542e_8
+  constrains:
+  - libgfortran 15.2.0
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 1152554
+  timestamp: 1779212377426
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libgomp-15.2.0-hf47c802_8.conda
+  sha256: c1f3425ef9e507256238c87a0dd02d9c988c774796b4fb48d53100223f11728d
+  md5: ea9ec5eb4e76df50987cf345ce0dde8c
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 449371
+  timestamp: 1779212330691
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libllama-0.5.0-cpu_openblas_h70c1f77_0.conda
+  sha256: 96a278e98a88714f242594c277e78cfb3785bd7de812ca428cd5f8f9ff512f78
+  md5: 1ac6a1cee4265a6a657e3f8da1059fc9
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - _openmp_mutex * *_gnu
+  - blas * openblas
+  - libgcc >=14
+  - libgomp
+  - libopenblas >=0.3.31,<1.0a0
+  - libstdcxx >=14
+  - openssl >=3.5.8,<4.0a0
+  license: MIT
+  license_family: MIT
+  size: 4278705
+  timestamp: 1790641468021
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libopenblas-0.3.31-he1b2cac_6.conda
+  sha256: 106de3284c8ecafc0d7a873cfb27a1ac2547c2fe1e28500d32e4fde6ec91361d
+  md5: 7ec7591cde33e97e0914b535671e54ef
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc >=14
+  - libgfortran
+  - libgfortran5 >=14.3.0
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 5109145
+  timestamp: 1790689145210
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/libstdcxx-15.2.0-h9538471_8.conda
+  sha256: 95b8d1cb433ee7351351e613e3e255967d517eb0eeaedec340818aa6aa90c6e4
+  md5: ad52ae62540e04578c90125eebafa228
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - libgcc 15.2.0 hc18542e_8
+  constrains:
+  - libstdcxx-ng ==15.2.0=*_8
+  license: GPL-3.0-only WITH GCC-exception-3.1
+  size: 3830999
+  timestamp: 1779212383079
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/llama.cpp-0.5.0-cpu_openblas_h70c1f77_0.conda
+  sha256: 6ac306d2edd1f58ea26515b86461bdaecf9c47a197ea5f878bc76281571cc534
+  md5: 6f59e00a9febcb1afbe1ccb2c7e38594
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - _openmp_mutex * *_gnu
+  - blas * openblas
+  - libgcc >=14
+  - libgomp
+  - libllama 0.5.0 cpu_openblas_h70c1f77_0
+  - libopenblas >=0.3.31,<1.0a0
+  - libstdcxx >=14
+  - openssl >=3.5.8,<4.0a0
+  license: MIT
+  license_family: MIT
+  size: 5244982
+  timestamp: 1790641519161
+- conda: https://repo.anaconda.com/pkgs/main/linux-aarch64/openssl-3.5.9-h39c9139_0.conda
+  sha256: 72625e0ee3ac5f80ce22dc62825d710960aabbc5534c49402e26f06806ac10fe
+  md5: 2aa4038837dbc54e5faa49e0a4c14894
+  depends:
+  - __glibc >=2.28,<3.0.a0
+  - ca-certificates
+  - libgcc >=14
+  license: Apache-2.0
+  license_family: Apache
+  size: 6025624
+  timestamp: 1790776269081
+- conda: https://repo.anaconda.com/pkgs/main/noarch/tzdata-2026c-he532380_0.conda
+  sha256: 52adc4b0a9cce2ffb8ad319d54b7c940ae7961f7caf7ce6851eec4b3f542c368
+  md5: 448fc60cd3fb615bf69e242f8aa22914
+  license: CC-PDDC OR BSD-3-Clause
+  license_family: BSD
+  size: 119652
+  timestamp: 1783948460184
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/ca-certificates-2026.9.25-hca03da5_0.conda
+  sha256: b78956ac55e0529bf5788fb59b7e59475a7d1f2f27c1aea3857b288cfa15d644
+  md5: 3cf555c969d342167ed47575a6002522
+  license: MPL-2.0
+  license_family: Other
+  size: 109710
+  timestamp: 1790865926885
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/libcxx-22.1.2-hf894667_0.conda
+  sha256: 7c72e11f71def84a9737daddc3a8b5828a77db918dbbfdf087cd86cfc6ec2fc2
+  md5: 344e08f75d799c1e5b57441a2a4c357d
+  depends:
+  - __osx >=12.1
+  license: Apache-2.0 WITH LLVM-exception
+  license_family: Apache
+  size: 316282
+  timestamp: 1775479658335
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/libllama-0.5.0-mps_h404e123_100.conda
+  sha256: 8be09255cc810ebb37875f6c626fa292a1cde4a85ae79a5bb841d46c2be240cc
+  md5: ce347594fa7fdf3b6a646f83b95a693b
+  depends:
+  - __osx >=12.1
+  - libcxx >=20
+  - llvm-openmp >=20.1.8
+  - openssl >=3.5.8,<4.0a0
+  license: MIT
+  license_family: MIT
+  size: 3060356
+  timestamp: 1790641425705
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/llama.cpp-0.5.0-mps_h404e123_100.conda
+  sha256: 1c724344a8d007e0dc4df372ee64260bbd9735768a2bcd009bb9b6a3fa8e2c23
+  md5: f9070eef563b90fd851a8ad953774def
+  depends:
+  - __osx >=12.1
+  - libcxx >=20
+  - libllama 0.5.0 mps_h404e123_100
+  - llvm-openmp >=20.1.8
+  - openssl >=3.5.8,<4.0a0
+  license: MIT
+  license_family: MIT
+  size: 4734619
+  timestamp: 1790641461225
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/llvm-openmp-22.1.2-h4714345_1.conda
+  sha256: 8d474e9f232e4189c5912cc527a2f0587292f6e636033f6189c11b921d0e1ee3
+  md5: df4e7a6683f56970d08bbba16299f2c7
+  depends:
+  - __osx >=12.1
+  constrains:
+  - openmp 22.1.2|22.1.2.*
+  license: Apache-2.0 WITH LLVM-exception
+  license_family: Apache
+  size: 302088
+  timestamp: 1779209395121
+- conda: https://repo.anaconda.com/pkgs/main/osx-arm64/openssl-3.5.9-ha0b305a_0.conda
+  sha256: bb2ad0498d95e7136a11535cc3c964e71268d586604dbd76b7ed798846ab825c
+  md5: f889d607d7e4e7acb73a006d5879e858
+  depends:
+  - __osx >=12.1
+  - ca-certificates
+  license: Apache-2.0
+  license_family: Apache
+  size: 5095388
+  timestamp: 1790776099270
+- conda: https://repo.anaconda.com/pkgs/main/win-64/_openmp_mutex-4.5-52_intel.conda
+  build_number: 52
+  sha256: 10efab2e144ff8eeb31e35894240583ef13093fa68593b588159a5c870a0dd95
+  md5: 69596a627505597d1f83338f39fc0057
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 6560
+  timestamp: 1779131143865
+- conda: https://repo.anaconda.com/pkgs/main/win-64/blas-1.0-mkl.conda
+  build_number: 1
+  sha256: b289fbee56e55bedc51cc333bacd32b3632a116d9d60d1176740b035dbaf44a2
+  md5: 29c8be9152b7cbf29578794154d2408f
+  size: 6364
+  timestamp: 1528122357636
+- conda: https://repo.anaconda.com/pkgs/main/win-64/bzip2-1.0.8-h2bbff1b_6.conda
+  sha256: 4e30c9bfd4501555b0859c863e95ea044290babf3bf190b9d4fb38b06cf15c3c
+  md5: 33e784123d565c38e68945f07b461282
+  depends:
+  - vc >=14.1,<15.0a0
+  - vs2015_runtime >=14.16.27012,<15.0a0
+  license: bzip2-1.0.8
+  license_family: BSD
+  size: 91870
+  timestamp: 1714511182837
+- conda: https://repo.anaconda.com/pkgs/main/win-64/ca-certificates-2026.9.25-haa95532_0.conda
+  sha256: 89619f08409846ae563761b35d05b38b41a6a6f5ba8bdc161573ceb125aaa7d3
+  md5: 5896471ca78631bfa6d3a8354a0aafc4
+  license: MPL-2.0
+  license_family: Other
+  size: 109499
+  timestamp: 1790866389082
+- conda: https://repo.anaconda.com/pkgs/main/win-64/intel-openmp-2025.0.0-haa95532_1165.conda
+  sha256: 6c296adeb5ab577da6ada359a1c8f88e4a77f0e00ca38b743b38612805e5bc93
+  md5: 003f8cda90782973e5907bead8d6a1b4
+  license: LicenseRef-IntelSimplifiedSoftwareOct2022
+  license_family: Proprietary
+  size: 1911307
+  timestamp: 1779209405495
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libexpat-2.8.5-hd7fb8db_1.conda
+  sha256: 5856d80b2eedfdc526ccbebf7b5b7d0abd4b84e0231cab1b3c30016491831b0a
+  md5: d10141d34cb68b4fd74b076145e64618
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  constrains:
+  - expat 2.8.5.*
+  license: MIT
+  license_family: MIT
+  size: 130777
+  timestamp: 1790278911836
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libffi-3.4.8-h42d73b9_3.conda
+  sha256: 52fa61549a14619aa53c0ae875f6d969fd97c92edffce64bfd7277e2557a726e
+  md5: 8e18977967bec00d09d85778525d661b
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: MIT
+  license_family: MIT
+  size: 120818
+  timestamp: 1781629291409
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libhwloc-2.12.1-default_hfa10c62_1000.conda
+  sha256: 272cadc0575d3317a66fd9b08884415eabaf9952eef19f84070c9254fa2a5e73
+  md5: e215503517c8136c8d5972985b9825bb
+  depends:
+  - libxml2 >=2.13.8,<2.14.0a0
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30133
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 2462672
+  timestamp: 1755247386628
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libiconv-1.18-hc89ec93_0.conda
+  sha256: 73e19e873fad84ca239ccfd53a51830a8004a14b388a9d30a8c09ce3b8b386a2
+  md5: 53c556b8109eaab09231874106a025f3
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: LGPL-2.1-only
+  size: 703101
+  timestamp: 1771491956799
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libllama-0.5.0-cpu_mkl_h3737487_0.conda
+  sha256: d0d71aaacdc9a27aefe30fc1fefae4614ae4796470f59a30b6b95759b28ec77b
+  md5: fb38886e86966cdba83c37212f9e234b
+  depends:
+  - _openmp_mutex * *_intel
+  - blas * mkl
+  - intel-openmp >=2025.0.0,<2026.0a0
+  - mkl >=2025.0.0,<2026.0a0
+  - mkl-service >=2.3.0,<3.0a0
+  - openssl >=3.5.8,<4.0a0
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15.0a0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - vs2015_runtime >=14.29.30133,<15.0a0
+  license: MIT
+  license_family: MIT
+  size: 4366303
+  timestamp: 1790641634281
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libmpdec-4.0.1-h1c6eee0_0.conda
+  sha256: 4e89181b2d9ec67a855517ff35c6901d649829a31ac9c366c5277bd56563fe50
+  md5: 2b3719f254286608767ca0dfb37ba00e
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: BSD-2-Clause
+  license_family: BSD
+  size: 95439
+  timestamp: 1781726059827
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libxml2-2.13.9-h6201b9f_0.conda
+  sha256: 7f90427c984b96deda664a993dcda120490c955c2298cdffc9860f20f7caf1e0
+  md5: 32feaa8872e9a7c839069a0c2a37df20
+  depends:
+  - libiconv >=1.16,<2.0a0
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30133
+  - zlib >=1.2.13,<2.0a0
+  license: MIT
+  license_family: MIT
+  size: 1531227
+  timestamp: 1761769014771
+- conda: https://repo.anaconda.com/pkgs/main/win-64/libzlib-1.3.2-h1c6eee0_0.conda
+  sha256: ee9ff49405717b96ec8d9b586beaaf96b741ffc4d37df6623f1d599ab8bdbb14
+  md5: ffdad8ab74f765222bdf2e3473e12c76
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  constrains:
+  - zlib 1.3.2
+  license: Zlib
+  license_family: OTHER
+  size: 64908
+  timestamp: 1780963346435
+- conda: https://repo.anaconda.com/pkgs/main/win-64/llama.cpp-0.5.0-cpu_mkl_h3737487_0.conda
+  sha256: 8010bd9b7ecd72100ac26a06e3ea9b0082b993df7ab8f3107ef0b2f2b5c80a99
+  md5: 4ac3ad9a9978b42aa73f80f3164b86cf
+  depends:
+  - _openmp_mutex * *_intel
+  - blas * mkl
+  - intel-openmp >=2025.0.0,<2026.0a0
+  - libllama 0.5.0 cpu_mkl_h3737487_0
+  - mkl >=2025.0.0,<2026.0a0
+  - mkl-service >=2.3.0,<3.0a0
+  - openssl >=3.5.8,<4.0a0
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15.0a0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - vs2015_runtime >=14.29.30133,<15.0a0
+  license: MIT
+  license_family: MIT
+  size: 5758860
+  timestamp: 1790641755389
+- conda: https://repo.anaconda.com/pkgs/main/win-64/mkl-2025.0.0-h585ebfc_931.conda
+  sha256: 4db0230edb91311c038df544bddee9c055575daeed5fa19b104f69a0644c5763
+  md5: ab54863322e3db34cd07c7ab02400a94
+  depends:
+  - intel-openmp 2025.*
+  - tbb-devel 2022.*
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: LicenseRef-IntelSimplifiedSoftwareOct2022
+  license_family: Proprietary
+  size: 96502236
+  timestamp: 1779209443689
+- conda: https://repo.anaconda.com/pkgs/main/win-64/mkl-service-2.7.2-py313h1b35211_0.conda
+  sha256: d2ac3b49e004bfdb7a739d92642e19b8c09af2c2bcf5b0c108367a78b9ff88a5
+  md5: 701bc29d09c6ac210c1c23b794378b7a
+  depends:
+  - blas * mkl
+  - mkl >=2025.0.0,<2026.0a0
+  - python >=3.13,<3.14.0a0
+  - python_abi 3.13.* *_cp313
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 75918
+  timestamp: 1782369683565
+- conda: https://repo.anaconda.com/pkgs/main/win-64/openssl-3.5.9-hbb43b14_0.conda
+  sha256: 21eb85790bfa29ef178a40951afb72ce9b67e08a6ed836ebe5571e68fbbbd512
+  md5: c1c51e52fe981aef404be2250f1dfb18
+  depends:
+  - ca-certificates
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: Apache-2.0
+  license_family: Apache
+  size: 9311230
+  timestamp: 1790777863487
+- conda: https://repo.anaconda.com/pkgs/main/win-64/python-3.13.16-h2e1fde4_102_cp313.conda
+  build_number: 102
+  sha256: 21d7dfdbf1140634ac764e3f735a91f5bfc15b2fed0cbca24915c97e14ce3d06
+  md5: 457fd345ddd98ca4e28f4940bfe0f119
+  depends:
+  - bzip2 >=1.0.8,<2.0a0
+  - libexpat >=2.8.5,<3.0a0
+  - libffi >=3.4.8,<3.5.0a0
+  - libmpdec >=4.0.0,<5.0a0
+  - libzlib >=1.3.2,<2.0a0
+  - openssl >=3.5.9,<4.0a0
+  - python_abi * *_cp313
+  - sqlite >=3.53.4,<4.0a0
+  - tk >=8.6.15,<8.7.0a0
+  - tzdata
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - xz >=5.8.4,<6.0a0
+  license: PSF-2.0
+  license_family: PSF
+  size: 16195228
+  timestamp: 1790886122214
+- conda: https://repo.anaconda.com/pkgs/main/win-64/python_abi-3.13-5_cp313.conda
+  build_number: 5
+  sha256: e7f20986020710b7b531f2febe61dab3e42f580f6a596e47cbb585156626f38b
+  md5: 88e40ed437acf2d8352cd331a09034f0
+  constrains:
+  - python 3.13.* *_cp313
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 5530
+  timestamp: 1790773319024
+- conda: https://repo.anaconda.com/pkgs/main/win-64/sqlite-3.53.4-hee5a0db_0.conda
+  sha256: 8adb7b42e99594567e5789c33813b90cc7669183d6760836150ce8a23a7d3813
+  md5: fc36e4a70e3cc8104ec96a4ca359d15b
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: blessing
+  license_family: Other
+  size: 968847
+  timestamp: 1789046873980
+- conda: https://repo.anaconda.com/pkgs/main/win-64/tbb-2022.3.0-h90c84d6_0.conda
+  sha256: 40cd6dad655407ba9fc1cf56e7504a5a5865427f703b0f7ebdf4718cf3975b66
+  md5: 2bf446510a51e17350dcd40a99d1333f
+  depends:
+  - libhwloc >=2.12.1,<2.12.2.0a0
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30133
+  license: Apache-2.0
+  license_family: Apache
+  size: 165498
+  timestamp: 1764336927072
+- conda: https://repo.anaconda.com/pkgs/main/win-64/tbb-devel-2022.3.0-h90c84d6_0.conda
+  sha256: 18fc8f3df7aa7f7f8fffcd384e596488e3a22f4dd1d32d86019bb119c5c7ac37
+  md5: 43792af7a7c3d8654bc96e543564e657
+  depends:
+  - libhwloc >=2.12.1,<2.12.2.0a0
+  - tbb 2022.3.0 h90c84d6_0
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30133
+  license: Apache-2.0
+  license_family: Apache
+  size: 1123181
+  timestamp: 1764336942662
+- conda: https://repo.anaconda.com/pkgs/main/win-64/tk-8.6.15-hf199647_0.conda
+  sha256: 2f7e9d06b513bcabce6d9ae195e45ccf94fd249edfefc591a5430a9f6f92a7fa
+  md5: ddff7b6a72958ef802f40a735e505474
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30133
+  - zlib >=1.2.13,<2.0.0a0
+  license: TCL
+  license_family: BSD
+  size: 3700492
+  timestamp: 1755244051664
+- conda: https://repo.anaconda.com/pkgs/main/win-64/ucrt-10.0.22621.0-haa95532_0.conda
+  sha256: 9dfca4fb23f20e62a48b9c52e2fdf4d0d34bb31eb6a930c2195fcd10651b3cc3
+  md5: 15e1b10231d7d236520501fcfb440f31
+  constrains:
+  - vs2015_runtime >=14.29.30037
+  license: LicenseRef-MicrosoftWindowsSDK10
+  size: 634816
+  timestamp: 1752158202557
+- conda: https://repo.anaconda.com/pkgs/main/win-64/vc-14.3-h2df5915_12.conda
+  sha256: 81f68bd3f7e74032547fc3c2b1d7d914b2688cc11f2470625c5c65d49d1474bd
+  md5: 6737bfee92a331a876eadd8a2af7bc09
+  depends:
+  - vc14_runtime >=14.42.34433
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 16822
+  timestamp: 1779209283775
+- conda: https://repo.anaconda.com/pkgs/main/win-64/vc14_runtime-14.44.35208-h4927774_12.conda
+  sha256: 492ba65a50d99120e047469057f5eaddd3043cf17a18761653d1b3ae5d9d6c84
+  md5: 061ea1cc93ee2dd574defcaa4e93c4e5
+  depends:
+  - ucrt >=10.0.20348.0
+  constrains:
+  - vs2015_runtime 14.44.35208.* *_12
+  license: LicenseRef-MicrosoftVisualCpp2015-2022Runtime
+  license_family: Proprietary
+  size: 679595
+  timestamp: 1779209267029
+- conda: https://repo.anaconda.com/pkgs/main/win-64/vs2015_runtime-14.44.35208-ha6b5a95_12.conda
+  sha256: 5b484a4b7df0133f60fd9e12dcf1926f868eaa34a2c3ddad8475169a1a99d9fa
+  md5: 74783ea081af58781a57cf9ec9b09008
+  depends:
+  - vc14_runtime >=14.44.35208
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 16841
+  timestamp: 1779209282759
+- conda: https://repo.anaconda.com/pkgs/main/win-64/xz-5.8.4-hb851c79_0.conda
+  sha256: 786d5df4b6f0097eeef2c07c642119a80b8b97ed062fd956707d2810bd15428a
+  md5: b0c7a36026c7f0b764fc8118ff0bb4b4
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: LGPL-2.1-or-later and GPL-2.0-or-later and 0BSD
+  license_family: GPL2
+  size: 273475
+  timestamp: 1790074416701
+- conda: https://repo.anaconda.com/pkgs/main/win-64/zlib-1.3.2-h1c6eee0_0.conda
+  sha256: 538f7c9b5ed6fa388c51bd499c736fd474826bcd7f2908456e9d2050b486e476
+  md5: 5885e2a4e16e0ba2f1792f3d61ef41f9
+  depends:
+  - libzlib 1.3.2 h1c6eee0_0
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: Zlib
+  license_family: OTHER
+  size: 847370
+  timestamp: 1780963361058
