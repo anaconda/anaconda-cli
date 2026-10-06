@@ -3,10 +3,8 @@ name: CI
 on:
   pull_request:
   merge_group:
-  # Nightly full pipeline on main: validates the release-only steps (signing,
-  # notarization, conda packaging) and warms the cargo cache that PRs reuse.
-  schedule:
-    - cron: 0 6 * * *
+  # Manual trigger for on-demand full runs on main (validates release-only
+  # steps like signing/notarization and warms the cargo cache PRs reuse).
   workflow_dispatch:
   workflow_call:
     inputs:
