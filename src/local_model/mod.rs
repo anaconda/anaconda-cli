@@ -4,6 +4,7 @@ mod delete;
 mod gguf;
 mod kilo;
 mod list;
+mod picker;
 mod pull;
 mod run;
 mod server;
@@ -64,7 +65,7 @@ pub async fn run(ctx: &mut CommandContext, command: LocalModelCommands) -> miett
             run::run(
                 ctx,
                 run::RunOptions {
-                    model: &model,
+                    model: model.as_deref(),
                     quant: quant.as_deref(),
                     host: &host,
                     port,

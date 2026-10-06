@@ -105,9 +105,9 @@ pub enum LocalModelCommands {
 
     /// Serve a model in the background with llama-server, downloading it first if needed
     Run {
-        /// Model name (e.g., Qwen/Qwen2.5-0.5B-Instruct) or path to a .gguf file
-        #[arg(required_unless_present = "help", default_value = "")]
-        model: String,
+        /// Model name (e.g., Qwen/Qwen2.5-0.5B-Instruct) or path to a .gguf file.
+        /// Omit to search the catalog interactively
+        model: Option<String>,
 
         /// GGUF quantization to use (e.g., q4_k_m, q8_0). Defaults to q4_k_m when downloading
         #[arg(long)]

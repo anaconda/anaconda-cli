@@ -21,7 +21,8 @@ pub const DEFAULT_QUANT: &str = "q4_k_m";
 /// Options for `ana lm run`.
 #[cfg_attr(not(tool_install), allow(dead_code))]
 pub struct RunOptions<'a> {
-    pub model: &'a str,
+    /// Model name or `.gguf` path; `None` opens the interactive picker.
+    pub model: Option<&'a str>,
     pub quant: Option<&'a str>,
     pub host: &'a str,
     pub port: u16,
@@ -42,27 +43,54 @@ pub async fn run(ctx: &mut CommandContext, opts: RunOptions<'_>) -> miette::Resu
 
     let models_dir = crate::paths::models_dir();
 
-    let model_path = match lookup_model(&models_dir, opts.model, opts.quant)? {
+    // Without a model argument, let the user search the catalog.
+    let picked;
+    let model: &str = match opts.model {
+        Some(model) => model,
+        None => {
+            use std::io::IsTerminal;
+            if !std::io::stdin().is_terminal() || !std::io::stderr().is_terminal() {
+                return Err(miette!(
+                    help = "Pass a model, e.g. `ana lm run Qwen/Qwen2.5-0.5B-Instruct`, \
+                            or browse the catalog with `ana lm list`",
+                    "A model is required when not running interactively"
+                ));
+            }
+            let quant = opts.quant.unwrap_or(DEFAULT_QUANT);
+            match super::picker::pick_model(ctx, quant).await? {
+                Some(name) => {
+                    picked = name;
+                    &picked
+                }
+                None => {
+                    eprintln!("Cancelled.");
+                    return Ok(());
+                }
+            }
+        }
+    };
+
+    let model_path = match lookup_model(&models_dir, model, opts.quant)? {
         Lookup::Found(path) => path,
         // Several quants are downloaded and none was requested: prefer the default.
         Lookup::Ambiguous(candidates) => match opts.quant {
-            None => match lookup_model(&models_dir, opts.model, Some(DEFAULT_QUANT))? {
+            None => match lookup_model(&models_dir, model, Some(DEFAULT_QUANT))? {
                 Lookup::Found(path) => path,
-                _ => return Err(ambiguous_error(opts.model, &candidates)),
+                _ => return Err(ambiguous_error(model, &candidates)),
             },
-            Some(_) => return Err(ambiguous_error(opts.model, &candidates)),
+            Some(_) => return Err(ambiguous_error(model, &candidates)),
         },
         Lookup::NotDownloaded => {
             let quant = opts.quant.unwrap_or(DEFAULT_QUANT);
             status::info(&format!(
                 "Model {} ({}) not found locally, downloading...",
-                status::highlight(opts.model),
+                status::highlight(model),
                 quant
             ));
             super::pull::pull(
                 ctx,
                 super::pull::PullOptions {
-                    model: opts.model,
+                    model,
                     format: super::commands::ModelFormat::Gguf,
                     file: None,
                     quant: Some(quant),
@@ -70,15 +98,15 @@ pub async fn run(ctx: &mut CommandContext, opts: RunOptions<'_>) -> miette::Resu
             )
             .await?;
 
-            match lookup_model(&models_dir, opts.model, Some(quant))? {
+            match lookup_model(&models_dir, model, Some(quant))? {
                 Lookup::Found(path) => path,
                 Lookup::Ambiguous(candidates) => {
-                    return Err(ambiguous_error(opts.model, &candidates));
+                    return Err(ambiguous_error(model, &candidates));
                 }
                 Lookup::NotDownloaded => {
                     return Err(miette!(
                         "Downloaded '{}' but could not locate its GGUF file in {}",
-                        opts.model,
+                        model,
                         models_dir.display()
                     ));
                 }

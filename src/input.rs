@@ -4,6 +4,7 @@
 //! - `KeyListener`: Background key detection with Ctrl+C handling
 //! - `prompt_yes_no`: Line-based yes/no confirmation prompt
 //! - `multiselect`: Interactive checkbox list with key hints
+//! - `search_select`: Interactive single-select list with a search box
 
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
@@ -287,6 +288,251 @@ pub fn multiselect(prompt: &str, items: &[&str], defaults: &[bool]) -> Result<Ve
     outcome
 }
 
+/// An entry in a [`search_select`] list.
+#[cfg_attr(not(tool_install), allow(dead_code))]
+pub struct SearchItem {
+    /// Text the query is matched against (e.g. a model name).
+    pub key: String,
+    /// Text displayed for the row. May include extra details beyond `key`.
+    pub label: String,
+}
+
+/// What to do after a key press in [`search_select`].
+#[derive(Debug, PartialEq)]
+enum SearchAction {
+    Continue,
+    Select(usize),
+    Cancel,
+}
+
+/// Query, cursor, and scroll state for [`search_select`], kept separate from
+/// rendering so it can be unit tested.
+#[derive(Debug, Default)]
+struct SearchState {
+    query: String,
+    /// Index into the current matches.
+    cursor: usize,
+    /// First visible match (scroll position).
+    offset: usize,
+}
+
+#[cfg_attr(not(tool_install), allow(dead_code))]
+impl SearchState {
+    /// Indices of items whose key contains every whitespace-separated query
+    /// term (case-insensitive).
+    fn matches(&self, items: &[SearchItem]) -> Vec<usize> {
+        let terms: Vec<String> = self
+            .query
+            .split_whitespace()
+            .map(str::to_lowercase)
+            .collect();
+        items
+            .iter()
+            .enumerate()
+            .filter(|(_, item)| {
+                let key = item.key.to_lowercase();
+                terms.iter().all(|t| key.contains(t))
+            })
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    /// Apply a key press. `matches` are the matches before the key, and
+    /// `height` is the number of visible rows.
+    fn handle_key(&mut self, key: Key, matches: &[usize], height: usize) -> SearchAction {
+        let last = matches.len().saturating_sub(1);
+        match key {
+            Key::Escape | Key::CtrlC | Key::Char('\u{3}') => return SearchAction::Cancel,
+            Key::Enter => {
+                if let Some(&index) = matches.get(self.cursor) {
+                    return SearchAction::Select(index);
+                }
+            }
+            Key::Char(c) if !c.is_control() => {
+                self.query.push(c);
+                self.cursor = 0;
+                self.offset = 0;
+            }
+            Key::Backspace => {
+                if self.query.pop().is_some() {
+                    self.cursor = 0;
+                    self.offset = 0;
+                }
+            }
+            Key::ArrowUp if !matches.is_empty() => {
+                self.cursor = if self.cursor == 0 {
+                    last
+                } else {
+                    self.cursor - 1
+                };
+            }
+            Key::ArrowDown if !matches.is_empty() => {
+                self.cursor = if self.cursor >= last {
+                    0
+                } else {
+                    self.cursor + 1
+                };
+            }
+            Key::PageUp => self.cursor = self.cursor.saturating_sub(height.max(1)),
+            Key::PageDown => self.cursor = (self.cursor + height.max(1)).min(last),
+            Key::Home => self.cursor = 0,
+            Key::End => self.cursor = last,
+            _ => {}
+        }
+        self.scroll_into_view(height);
+        SearchAction::Continue
+    }
+
+    /// Adjust the scroll offset so the cursor row is visible.
+    fn scroll_into_view(&mut self, height: usize) {
+        let height = height.max(1);
+        if self.cursor < self.offset {
+            self.offset = self.cursor;
+        } else if self.cursor >= self.offset + height {
+            self.offset = self.cursor + 1 - height;
+        }
+    }
+}
+
+/// Interactive single-select list with a search box.
+///
+/// Typing filters the list (every whitespace-separated term must appear in
+/// an item's `key`), arrow/page keys move the highlight, enter selects, and
+/// escape or Ctrl+C cancels. The list scrolls to fit the terminal height.
+///
+/// Returns the index of the selected item, or `Ok(None)` when cancelled. All
+/// output goes to stderr; the caller is expected to have verified stdin is a
+/// terminal.
+#[cfg_attr(not(tool_install), allow(dead_code))]
+pub fn search_select(prompt: &str, items: &[SearchItem]) -> Result<Option<usize>, String> {
+    use std::fmt::Write as _;
+
+    let term = Term::stderr();
+    let width = terminal_width(&term);
+    let rows = term
+        .size_checked()
+        .or_else(|| Term::stdout().size_checked())
+        .map(|(rows, _)| usize::from(rows))
+        .unwrap_or(24);
+    // Leave room for the prompt, query, and hint lines.
+    let height = rows.saturating_sub(4).clamp(3, 15);
+
+    let mut state = SearchState::default();
+    let mut rendered = 0usize;
+
+    term.hide_cursor().map_err(|e| e.to_string())?;
+    let outcome = loop {
+        if rendered > 0
+            && let Err(e) = term.clear_last_lines(rendered)
+        {
+            break Err(e.to_string());
+        }
+
+        let matches = state.matches(items);
+        let mut frame = format!(
+            "{} {}\n",
+            console::style("?").for_stderr().yellow(),
+            console::style(fit(prompt, width.saturating_sub(2)))
+                .for_stderr()
+                .bold()
+        );
+
+        let query_line = if state.query.is_empty() {
+            console::style("type to search".to_string())
+                .for_stderr()
+                .dim()
+                .to_string()
+        } else {
+            format!(
+                "{}{}",
+                fit(&state.query, width.saturating_sub(5)),
+                console::style("▏").for_stderr().cyan()
+            )
+        };
+        let _ = writeln!(
+            frame,
+            "  {} {}",
+            console::style("›").for_stderr().cyan(),
+            query_line
+        );
+
+        let visible = matches.iter().enumerate().skip(state.offset).take(height);
+        let mut lines = 0;
+        for (pos, &index) in visible {
+            let label = fit(&items[index].label, width.saturating_sub(4));
+            if pos == state.cursor {
+                let _ = writeln!(
+                    frame,
+                    "  {} {}",
+                    console::style("❯").for_stderr().cyan(),
+                    console::style(label).for_stderr().cyan()
+                );
+            } else {
+                let _ = writeln!(frame, "    {label}");
+            }
+            lines += 1;
+        }
+        if matches.is_empty() {
+            let _ = writeln!(
+                frame,
+                "    {}",
+                console::style("No matches").for_stderr().dim()
+            );
+            lines += 1;
+        }
+
+        let hint = format!(
+            "{}/{} · ↑/↓ to navigate · enter to select · esc to cancel",
+            matches.len(),
+            items.len()
+        );
+        let _ = writeln!(
+            frame,
+            "  {}",
+            console::style(fit(&hint, width.saturating_sub(2)))
+                .for_stderr()
+                .dim()
+        );
+        rendered = lines + 3;
+
+        if let Err(e) = term.write_str(&frame).and_then(|_| term.flush()) {
+            break Err(e.to_string());
+        }
+
+        let key = match term.read_key() {
+            Ok(key) => key,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Key::CtrlC,
+            Err(e) => break Err(e.to_string()),
+        };
+
+        match state.handle_key(key, &matches, height) {
+            SearchAction::Continue => {}
+            SearchAction::Cancel => {
+                let _ = term.clear_last_lines(rendered);
+                break Ok(None);
+            }
+            SearchAction::Select(index) => {
+                let _ = term.clear_last_lines(rendered);
+                let fitted_prompt = fit(prompt, width.saturating_sub(2));
+                let used = 2 + console::measure_text_width(&fitted_prompt) + 1;
+                let _ = term.write_line(&format!(
+                    "{} {} {}",
+                    console::style("✔").for_stderr().green(),
+                    console::style(&fitted_prompt).for_stderr().bold(),
+                    console::style(fit(&items[index].key, width.saturating_sub(used)))
+                        .for_stderr()
+                        .green()
+                ));
+                break Ok(Some(index));
+            }
+        }
+    };
+
+    let _ = term.show_cursor();
+    let _ = term.flush();
+    outcome
+}
+
 /// RAII guard for terminal state restoration.
 ///
 /// The console crate's `read_key()` puts stdin into raw mode. If the
@@ -376,6 +622,135 @@ mod tests {
             let fitted = fit("日本語テスト", 8);
             assert!(console::measure_text_width(&fitted) <= 8);
             assert!(fitted.ends_with('…'));
+        }
+    }
+
+    mod search_state {
+        use super::*;
+
+        fn items(keys: &[&str]) -> Vec<SearchItem> {
+            keys.iter()
+                .map(|k| SearchItem {
+                    key: k.to_string(),
+                    label: format!("{k}  details"),
+                })
+                .collect()
+        }
+
+        fn type_str(state: &mut SearchState, items: &[SearchItem], s: &str) {
+            for c in s.chars() {
+                let m = state.matches(items);
+                state.handle_key(Key::Char(c), &m, 5);
+            }
+        }
+
+        #[test]
+        fn empty_query_matches_everything() {
+            let items = items(&["a", "b", "c"]);
+            assert_eq!(SearchState::default().matches(&items), vec![0, 1, 2]);
+        }
+
+        #[test]
+        fn query_terms_are_anded_and_case_insensitive() {
+            let items = items(&[
+                "Qwen/Qwen2.5-0.5B-Instruct",
+                "Qwen/Qwen3-8B",
+                "google/gemma-2-2b",
+            ]);
+            let mut state = SearchState::default();
+            type_str(&mut state, &items, "QWEN");
+            assert_eq!(state.matches(&items), vec![0, 1]);
+            type_str(&mut state, &items, " instruct");
+            assert_eq!(state.matches(&items), vec![0]);
+        }
+
+        #[test]
+        fn query_matches_key_not_label() {
+            let items = items(&["alpha"]);
+            let mut state = SearchState::default();
+            type_str(&mut state, &items, "details");
+            assert!(state.matches(&items).is_empty());
+        }
+
+        #[test]
+        fn typing_and_backspace_reset_cursor() {
+            let items = items(&["aa", "ab", "ac"]);
+            let mut state = SearchState::default();
+            let m = state.matches(&items);
+            state.handle_key(Key::ArrowDown, &m, 5);
+            state.handle_key(Key::ArrowDown, &m, 5);
+            assert_eq!(state.cursor, 2);
+            type_str(&mut state, &items, "a");
+            assert_eq!(state.cursor, 0);
+            let m = state.matches(&items);
+            state.handle_key(Key::ArrowDown, &m, 5);
+            state.handle_key(Key::Backspace, &m, 5);
+            assert_eq!((state.cursor, state.query.as_str()), (0, ""));
+        }
+
+        #[test]
+        fn arrows_wrap_around() {
+            let items = items(&["a", "b", "c"]);
+            let mut state = SearchState::default();
+            let m = state.matches(&items);
+            state.handle_key(Key::ArrowUp, &m, 5);
+            assert_eq!(state.cursor, 2);
+            state.handle_key(Key::ArrowDown, &m, 5);
+            assert_eq!(state.cursor, 0);
+        }
+
+        #[test]
+        fn scrolling_keeps_cursor_visible() {
+            let keys: Vec<String> = (0..10).map(|i| format!("m{i}")).collect();
+            let refs: Vec<&str> = keys.iter().map(String::as_str).collect();
+            let items = items(&refs);
+            let mut state = SearchState::default();
+            let m = state.matches(&items);
+            for _ in 0..4 {
+                state.handle_key(Key::ArrowDown, &m, 3);
+            }
+            assert_eq!((state.cursor, state.offset), (4, 2));
+            state.handle_key(Key::Home, &m, 3);
+            assert_eq!((state.cursor, state.offset), (0, 0));
+            state.handle_key(Key::End, &m, 3);
+            assert_eq!((state.cursor, state.offset), (9, 7));
+            state.handle_key(Key::PageUp, &m, 3);
+            assert_eq!(state.cursor, 6);
+            // Wrapping from the top jumps the view to the end.
+            state.handle_key(Key::Home, &m, 3);
+            state.handle_key(Key::ArrowUp, &m, 3);
+            assert_eq!((state.cursor, state.offset), (9, 7));
+        }
+
+        #[test]
+        fn enter_selects_highlighted_item() {
+            let items = items(&["Qwen3-8B", "gemma-2-2b", "Qwen2.5"]);
+            let mut state = SearchState::default();
+            type_str(&mut state, &items, "qwen");
+            let m = state.matches(&items);
+            state.handle_key(Key::ArrowDown, &m, 5);
+            assert_eq!(state.handle_key(Key::Enter, &m, 5), SearchAction::Select(2));
+        }
+
+        #[test]
+        fn enter_with_no_matches_does_nothing() {
+            let items = items(&["a"]);
+            let mut state = SearchState::default();
+            type_str(&mut state, &items, "zzz");
+            let m = state.matches(&items);
+            assert_eq!(state.handle_key(Key::Enter, &m, 5), SearchAction::Continue);
+        }
+
+        #[test]
+        fn escape_and_ctrl_c_cancel() {
+            let items = items(&["a"]);
+            let m = SearchState::default().matches(&items);
+            for key in [Key::Escape, Key::CtrlC, Key::Char('\u{3}')] {
+                assert_eq!(
+                    SearchState::default().handle_key(key, &m, 5),
+                    SearchAction::Cancel
+                );
+            }
         }
     }
 

@@ -50,7 +50,7 @@ fn print_json(value: &serde_json::Value) {
 // ---------------------------------------------------------------------------
 
 /// GGUF quantizations of `model` that are downloaded locally.
-fn downloaded_quants(models_dir: &Path, model: &CatalogModel) -> Vec<String> {
+pub(super) fn downloaded_quants(models_dir: &Path, model: &CatalogModel) -> Vec<String> {
     let Some(dir) = store::find_model_dir(models_dir, &model.full_name()) else {
         return Vec::new();
     };
@@ -165,7 +165,7 @@ fn catalog_json(models: &[CatalogModel], models_dir: &Path) -> serde_json::Value
 }
 
 /// `27000000000` -> `27B`, `500000000` -> `500M`, `1600000000000` -> `1.6T`.
-fn format_params(n: u64) -> String {
+pub(super) fn format_params(n: u64) -> String {
     let (value, unit) = match n {
         n if n >= 1_000_000_000_000 => (n as f64 / 1e12, "T"),
         n if n >= 1_000_000_000 => (n as f64 / 1e9, "B"),
@@ -180,7 +180,7 @@ fn format_params(n: u64) -> String {
 ///
 /// Context windows are published both as round decimal numbers (`128000`) and
 /// as powers of two (`131072`), so prefer whichever divides evenly.
-fn format_context(n: u64) -> String {
+pub(super) fn format_context(n: u64) -> String {
     if n >= 1_000_000 && n.is_multiple_of(1_000_000) {
         format!("{}M", n / 1_000_000)
     } else if n >= 1 << 20 && n.is_multiple_of(1 << 20) {
