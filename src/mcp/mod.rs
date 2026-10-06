@@ -1,6 +1,7 @@
 mod clients;
 mod commands;
 mod setup;
+mod skill;
 mod state;
 
 pub use commands::McpCommands;

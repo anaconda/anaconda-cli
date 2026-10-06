@@ -642,13 +642,13 @@ class TestFeatureHelp:
 class TestFeatureUnknown:
     """Tests for unknown feature names."""
 
-    def test_enable_unknown_feature(self, run_ana: AnaRunner) -> None:
-        result = run_ana("feature", "enable", "unknown-feature", "-f")
+    def test_enable_unknown_feature(self, run_ana_logged_in: AnaRunner) -> None:
+        result = run_ana_logged_in("feature", "enable", "unknown-feature", "-f")
         assert result.returncode != 0
         assert "Unknown feature" in result.stderr
 
-    def test_disable_unknown_feature(self, run_ana: AnaRunner) -> None:
-        result = run_ana("feature", "disable", "unknown-feature", "-f")
+    def test_disable_unknown_feature(self, run_ana_logged_in: AnaRunner) -> None:
+        result = run_ana_logged_in("feature", "disable", "unknown-feature", "-f")
         assert result.returncode != 0
         assert "Unknown feature" in result.stderr
 
@@ -906,6 +906,10 @@ class TestMainXDisable:
         initial_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL in initial_channels
 
+        # Login first (commands are gated behind login)
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
         # Disable main-x with force flag
         result = run_ana_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
@@ -923,6 +927,10 @@ class TestMainXDisable:
         # Verify main-x is not in default_channels
         initial_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL not in initial_channels
+
+        # Login first (commands are gated behind login)
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
 
         result = run_ana_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0
@@ -944,6 +952,10 @@ class TestMainXDisable:
         initial_default_channels = get_default_channels(feature_env)
         assert MAIN_X_CHANNEL in initial_default_channels
         assert "https://repo.anaconda.cloud/repo/main" in initial_default_channels
+
+        # Login first (commands are gated behind login)
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
 
         # Disable main-x
         result = run_ana_feature("feature", "disable", "main-x", "-f")
@@ -992,6 +1004,10 @@ class TestMainXUserInteraction:
         condarc_path.write_text(
             f"channels:\n  - defaults\ndefault_channels:\n  - {MAIN_X_CHANNEL}\n"
         )
+
+        # Login first (commands are gated behind login)
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
 
         # Run disable without -f, answer 'n' to abort
         result = run_ana_feature("feature", "disable", "main-x", input="n\n")
@@ -1446,6 +1462,7 @@ class TestMainXPixiDisable:
         self,
         run_ana_pixi_feature: AnaRunner,
         pixi_feature_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
     ) -> None:
         """Disabling main-x --pixi should remove the main-x channel from pixi config."""
         # Pre-configure main-x channel
@@ -1466,8 +1483,19 @@ class TestMainXPixiDisable:
         initial_channels = get_pixi_channels(pixi_feature_env)
         assert MAIN_X_CHANNEL in initial_channels
 
+        # Login first (commands are gated behind login)
+        gated_env = {
+            **pixi_feature_env,
+            "ANA_DOMAIN": mock_auth_server.domain,
+            "ANA_USE_HTTPS": "false",
+        }
+        login_result = run_ana_pixi_feature("login", env=gated_env)
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
         # Disable main-x with --pixi and force flag
-        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f", env=gated_env
+        )
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
 
         # Verify main-x channel was removed
@@ -1478,13 +1506,25 @@ class TestMainXPixiDisable:
         self,
         run_ana_pixi_feature: AnaRunner,
         pixi_feature_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
     ) -> None:
         """Disabling main-x --pixi when not enabled should succeed with appropriate message."""
         # Verify main-x is not in channels
         initial_channels = get_pixi_channels(pixi_feature_env)
         assert MAIN_X_CHANNEL not in initial_channels
 
-        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        # Login first (commands are gated behind login)
+        gated_env = {
+            **pixi_feature_env,
+            "ANA_DOMAIN": mock_auth_server.domain,
+            "ANA_USE_HTTPS": "false",
+        }
+        login_result = run_ana_pixi_feature("login", env=gated_env)
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
+
+        result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f", env=gated_env
+        )
         assert result.returncode == 0
         assert "not enabled" in result.stderr.lower()
 
@@ -1492,8 +1532,17 @@ class TestMainXPixiDisable:
         self,
         run_ana_pixi_feature: AnaRunner,
         pixi_feature_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
     ) -> None:
         """Disabling main-x --pixi should preserve the main channel (not wipe all channels)."""
+        gated_env = {
+            **pixi_feature_env,
+            "ANA_DOMAIN": mock_auth_server.domain,
+            "ANA_USE_HTTPS": "false",
+        }
+        # Login first (commands are gated behind login)
+        login_result = run_ana_pixi_feature("login", env=gated_env)
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
         # Pre-configure both main and main-x channels (as enable would do)
         subprocess.run(
             [
@@ -1519,7 +1568,9 @@ class TestMainXPixiDisable:
         assert MAIN_X_CHANNEL in initial_channels
 
         # Disable main-x
-        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f", env=gated_env
+        )
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
 
         # Verify main-x was removed but main is preserved
@@ -1531,8 +1582,17 @@ class TestMainXPixiDisable:
         self,
         run_ana_pixi_feature: AnaRunner,
         pixi_feature_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
     ) -> None:
         """Disabling main-x --pixi should preserve all other configured channels."""
+        gated_env = {
+            **pixi_feature_env,
+            "ANA_DOMAIN": mock_auth_server.domain,
+            "ANA_USE_HTTPS": "false",
+        }
+        # Login first (commands are gated behind login)
+        login_result = run_ana_pixi_feature("login", env=gated_env)
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
         # Pre-configure main, main-x, and conda-forge channels
         subprocess.run(
             [
@@ -1571,7 +1631,9 @@ class TestMainXPixiDisable:
         assert "conda-forge" in initial_channels
 
         # Disable main-x
-        result = run_ana_pixi_feature("feature", "disable", "main-x", "--pixi", "-f")
+        result = run_ana_pixi_feature(
+            "feature", "disable", "main-x", "--pixi", "-f", env=gated_env
+        )
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
 
         # Verify main-x was removed but others are preserved
@@ -1610,6 +1672,10 @@ class TestMainXDisableCrossToolWarning:
         assert MAIN_X_CHANNEL in get_pixi_channels(conda_and_pixi_feature_env)
         assert MAIN_X_CHANNEL not in get_default_channels(conda_and_pixi_feature_env)
 
+        # Login first (commands are gated behind login)
+        login_result = run_ana_conda_and_pixi_feature("login")
+        assert login_result.returncode == 0
+
         # Disable via the conda-default path (no --pixi flag).
         result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0
@@ -1634,6 +1700,10 @@ class TestMainXDisableCrossToolWarning:
         assert MAIN_X_CHANNEL in get_default_channels(conda_and_pixi_feature_env)
         assert MAIN_X_CHANNEL not in get_pixi_channels(conda_and_pixi_feature_env)
 
+        # Login first (commands are gated behind login)
+        login_result = run_ana_conda_and_pixi_feature("login")
+        assert login_result.returncode == 0
+
         result = run_ana_conda_and_pixi_feature(
             "feature", "disable", "main-x", "--pixi", "-f"
         )
@@ -1651,6 +1721,10 @@ class TestMainXDisableCrossToolWarning:
         run_ana_conda_and_pixi_feature: AnaRunner,
     ) -> None:
         """No false-positive warning when neither tool has main-x enabled."""
+        # Login first (commands are gated behind login)
+        login_result = run_ana_conda_and_pixi_feature("login")
+        assert login_result.returncode == 0
+
         result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0
         assert "not enabled for conda" in result.stderr.lower()
@@ -1679,6 +1753,10 @@ class TestMainXDisableCrossToolWarning:
             env=conda_and_pixi_feature_env,
             check=True,
         )
+
+        # Login first (commands are gated behind login)
+        login_result = run_ana_conda_and_pixi_feature("login")
+        assert login_result.returncode == 0
 
         result = run_ana_conda_and_pixi_feature("feature", "disable", "main-x", "-f")
         assert result.returncode == 0
@@ -1735,6 +1813,11 @@ class TestMainXPixiUserInteraction:
             env=pixi_feature_env,
             check=True,
         )
+
+        # Login first (commands are gated behind login)
+        api_key = get_test_api_key()
+        login_result = run_ana_pixi_feature("login", api_key, "-f")
+        assert login_result.returncode == 0
 
         # Run disable without -f, answer 'n' to abort
         result = run_ana_pixi_feature(
@@ -1974,8 +2057,17 @@ class TestWheelsPipDisable:
         self,
         run_ana_pip_feature: AnaRunner,
         pip_feature_env: dict[str, str],
+        mock_auth_server: MockAuthServer,
     ) -> None:
         """Disabling wheels --pip should remove pip's global index-url config."""
+        # Login first (commands are gated behind login)
+        gated_env = {
+            **pip_feature_env,
+            "ANA_DOMAIN": mock_auth_server.domain,
+            "ANA_USE_HTTPS": "false",
+        }
+        login_result = run_ana_pip_feature("login", env=gated_env)
+        assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
         # Pre-configure pip with an index URL
         for cmd in ["pip", "pip3"]:
             try:
@@ -1996,7 +2088,9 @@ class TestWheelsPipDisable:
                 continue
 
         # Disable wheels with --pip
-        result = run_ana_pip_feature("feature", "disable", "wheels", "--pip", "-f")
+        result = run_ana_pip_feature(
+            "feature", "disable", "wheels", "--pip", "-f", env=gated_env
+        )
         assert result.returncode == 0, f"Disable failed: {result.stderr}"
 
         # Verify pip index-url was removed

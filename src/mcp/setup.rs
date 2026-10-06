@@ -25,6 +25,13 @@ fn print_configured(action: &str, client: &str, result: &clients::ConfigureResul
         status::highlight(client),
         status::dim(&result.config_path.display().to_string())
     ));
+    if let Some(skill_path) = &result.skill_path {
+        status::success(&format!(
+            "Installed {} skill: {}",
+            status::highlight(super::skill::SKILL_NAME),
+            status::dim(&skill_path.display().to_string())
+        ));
+    }
     print_backup(&result.backup_path);
 }
 
@@ -345,6 +352,7 @@ fn configure_json(result: &clients::ConfigureResult) -> Value {
         "transport": TRANSPORT,
         "created": result.created,
         "updated": result.updated,
+        "skill_path": result.skill_path.as_ref().map(|p| p.display().to_string()),
     })
 }
 
@@ -378,11 +386,16 @@ mod tests {
             server_name: "anaconda-mcp".into(),
             created: true,
             updated: false,
+            skill_path: Some("/tmp/skills/anaconda-intelligence/SKILL.md".into()),
         };
         let value = configure_json(&result);
         assert_eq!(value["transport"], "http");
         assert_eq!(value["created"], true);
         assert_eq!(value["backup_path"], "/tmp/mcp.20260915.backup.json");
+        assert_eq!(
+            value["skill_path"],
+            "/tmp/skills/anaconda-intelligence/SKILL.md"
+        );
     }
 
     #[test]

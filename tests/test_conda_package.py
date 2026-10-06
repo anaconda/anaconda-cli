@@ -26,8 +26,37 @@ from pathlib import Path
 import pytest
 from helpers import IS_WINDOWS
 from helpers import REPO_ROOT
+from mock_auth_server import MockAuthServer
 
 PACKAGE_NAME = "anaconda-cli"
+
+
+@pytest.fixture
+def packaged_auth_env(
+    mock_auth_server: MockAuthServer, tmp_path: Path
+) -> dict[str, str]:
+    """Auth env (mock server) for gated commands run by the packaged binary."""
+    return {
+        "ANA_DOMAIN": mock_auth_server.domain,
+        "ANA_KEYRING_PATH": str(tmp_path / "keyring"),
+        "ANA_OPEN_BROWSER": "false",
+        "ANA_USE_HTTPS": "false",
+    }
+
+
+@pytest.fixture
+def run_packaged_ana_logged_in(
+    run_packaged_ana: Generator, packaged_auth_env: dict[str, str]
+) -> Generator:
+    """run_packaged_ana with a completed login (satisfies the login gate)."""
+    login = run_packaged_ana("login", env=packaged_auth_env)
+    assert login.returncode == 0, f"Login failed: {login.stderr}"
+
+    def _run(*args: str, env: dict[str, str | None] | None = None) -> object:
+        merged = {**packaged_auth_env, **(env or {})}
+        return run_packaged_ana(*args, env=merged)
+
+    yield _run
 
 
 def _find_built_package() -> Path | None:
@@ -204,18 +233,18 @@ class TestCondaPackage:
         assert result.returncode == 1
         assert "Self-update is not available" in result.stderr
 
-    def test_tool_install_unavailable(self, run_packaged_ana) -> None:
-        result = run_packaged_ana("tool", "install", "pixi")
+    def test_tool_install_unavailable(self, run_packaged_ana_logged_in) -> None:
+        result = run_packaged_ana_logged_in("tool", "install", "pixi")
         assert result.returncode == 1
         assert "Tool management is not available" in result.stderr
 
-    def test_tool_uninstall_unavailable(self, run_packaged_ana) -> None:
-        result = run_packaged_ana("tool", "uninstall", "pixi")
+    def test_tool_uninstall_unavailable(self, run_packaged_ana_logged_in) -> None:
+        result = run_packaged_ana_logged_in("tool", "uninstall", "pixi")
         assert result.returncode == 1
         assert "Tool management is not available" in result.stderr
 
-    def test_tool_list_works(self, run_packaged_ana) -> None:
-        result = run_packaged_ana("tool", "list")
+    def test_tool_list_works(self, run_packaged_ana_logged_in) -> None:
+        result = run_packaged_ana_logged_in("tool", "list")
         assert result.returncode == 0
         # Installation status comes from the env's conda-meta entries
         cli_row = next(
@@ -223,23 +252,25 @@ class TestCondaPackage:
         )
         assert "✓" in cli_row
 
-    def test_works_without_conda_prefix(self, run_packaged_ana) -> None:
+    def test_works_without_conda_prefix(self, run_packaged_ana_logged_in) -> None:
         """The prefix is derived from the executable location, so invoking
         ana by absolute path without an activated environment works."""
-        result = run_packaged_ana("tool", "list", env={"CONDA_PREFIX": None})
+        result = run_packaged_ana_logged_in("tool", "list", env={"CONDA_PREFIX": None})
         assert result.returncode == 0
         cli_row = next(
             line for line in result.stdout.splitlines() if "anaconda-cli" in line
         )
         assert "✓" in cli_row
 
-    def test_org_proxies_to_installed_anaconda(self, run_packaged_ana) -> None:
+    def test_org_proxies_to_installed_anaconda(
+        self, run_packaged_ana_logged_in
+    ) -> None:
         """ana org locates and executes the anaconda binary from a run dep.
 
         The proxied command itself may fail (no login); what matters is that
         binary resolution succeeded rather than erroring with 'not found'.
         """
-        result = run_packaged_ana("org", "whoami")
+        result = run_packaged_ana_logged_in("org", "whoami")
         assert "not found at" not in result.stderr
         assert "Could not determine conda environment prefix" not in result.stderr
 

@@ -83,8 +83,8 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/dev/data/ci ana_test_api_key | ana-test-api-key ;
-            anaconda-cli/dev/data/ci sentry_dsn | sentry-dsn
+            anaconda-cli/${{ inputs.environment || 'dev' }}/data/ci ana_test_api_key | ana-test-api-key ;
+            anaconda-cli/${{ inputs.environment || 'dev' }}/data/ci sentry_dsn | sentry-dsn
 
       # No DSN hash needed in the key: build.rs declares
       # rerun-if-env-changed=SENTRY_DSN, so a DSN change only rebuilds the

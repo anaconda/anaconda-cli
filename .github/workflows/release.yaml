@@ -27,7 +27,8 @@ jobs:
 
   publish-to-anaconda-dot-org:
     name: Publish to Anaconda.org
-    environment: anaconda-org-upload
+    if: ${{ github.event_name == 'release' }}
+    environment: prod
     runs-on: ubuntu-latest
     needs: [ci]
     permissions:
@@ -54,7 +55,7 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/dev/data/ci anaconda_org_upload_token | anaconda-org-upload-token
+            anaconda-cli/prod/data/ci anaconda_org_upload_token | anaconda-org-upload-token
 
       - name: Upload to anaconda.org
         uses: anaconda/actions/upload-package@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
@@ -62,13 +63,13 @@ jobs:
           token: ${{ steps.vault.outputs.anaconda-org-upload-token }}
           channel: anaconda-cloud
           packages: packages/*/*.conda
-          labels: ${{ github.event_name == 'release' && 'main' || 'dev' }}
+          labels: main
           private: 'true'
           force: 'true'
           verbose: 'true'
 
   create-github-release:
-    name: Upload Binaries to GitHub Release
+    name: Upload Assets to GitHub Release
     if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest
     needs: [ci]
@@ -94,6 +95,21 @@ jobs:
           mv binaries/binary-macos-latest/ana release-assets/ana-darwin-arm64
           mv binaries/binary-windows-latest/ana.exe release-assets/ana-windows-x86_64.exe
 
+      - name: Set up ana with pixi
+        uses: anaconda/actions/setup-anaconda-cli@a6f488910b4a1e4f3fe01736241ca1b92b4b355a # v0.3.1
+        with:
+          version: v0.1.6
+          tools: pixi
+
+      - name: Stage SBOMs
+        env:
+          # Stamp the release tag version into the attached SBOM (the
+          # committed SBOM keeps the 0.0.0 placeholder version)
+          SBOM_RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          pixi run sbom-force
+          cp SBOM.json SBOM.md release-assets/
+
       - name: Generate checksums
         run: |
           cd release-assets
@@ -112,7 +128,11 @@ jobs:
           gh release upload "$VERSION" "${GITHUB_WORKSPACE}/scripts/install.ps1"
 
           echo "Publishing release $VERSION"
-          gh release edit "$VERSION" --draft=false --latest
+          if gh release view "$VERSION" --json isPrerelease --jq .isPrerelease | grep -q true; then
+            gh release edit "$VERSION" --draft=false --latest=false
+          else
+            gh release edit "$VERSION" --draft=false --latest
+          fi
 
   deploy-to-anaconda-sh:
     name: Deploy to anaconda.sh
@@ -157,6 +177,7 @@ jobs:
   notify-slack:
     name: Notify Slack
     if: ${{ github.event_name == 'release' }}
+    environment: prod
     runs-on: ubuntu-latest
     needs: [deploy-to-anaconda-sh]
     permissions:
@@ -176,7 +197,7 @@ jobs:
           role: ${{ secrets.VAULT_ROLE }}
           url: ${{ secrets.EXT_VAULT_ADDR }}
           secrets: |
-            anaconda-cli/dev/data/ci slack_webhook_url | slack-webhook-url
+            anaconda-cli/prod/data/ci slack_webhook_url | slack-webhook-url
 
       - name: Post to Slack
         env:

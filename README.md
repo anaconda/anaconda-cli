@@ -104,13 +104,14 @@ See `ana mcp --help` for the full list of subcommands.
 
 ### Deploying ML workflows to Outerbounds
 
-Integration with the Outerbounds platform is available for production ML workflows.
+`ana platform` wraps the [Outerbounds](https://outerbounds.com) CLI. All arguments are passed straight through to `outerbounds`.
 
 ```bash
-ana platform configure --instance your-org.outerbounds.com
-ana platform init my-pipeline --name recommendation-engine
-ana platform deploy
+ana platform configure <token>
+ana platform app list
 ```
+
+See `ana platform --help` for the full list of subcommands.
 
 ## Configuration
 

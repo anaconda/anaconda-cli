@@ -66,7 +66,7 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
             command: "ana login".to_string(),
         },
         HelpExample {
-            desc: "Enable access to Anaconda's main-x (beta) channel".to_string(),
+            desc: "Enable access to Anaconda's main-x channel".to_string(),
             command: "ana feature enable main-x".to_string(),
         },
         HelpExample {

@@ -16,7 +16,7 @@ use crate::help;
 use crate::installer;
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
-use crate::outerbounds::{self, ObAction, ObCommands};
+use crate::outerbounds;
 #[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
 #[cfg(tool_install)]
@@ -172,10 +172,6 @@ pub enum Action {
     PlatformProxy {
         args: Vec<String>,
     },
-    #[cfg(all(unix, tool_install))]
-    PlatformAutoConfigure {
-        instance: String,
-    },
     Mcp {
         command: McpCommands,
     },
@@ -246,8 +242,6 @@ impl Action {
             Action::OrgProxy { .. } => "org",
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { .. } => "platform",
-            #[cfg(all(unix, tool_install))]
-            Action::PlatformAutoConfigure { .. } => "platform.configure.auto",
             Action::Mcp { command } => match command {
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
@@ -315,7 +309,38 @@ impl Action {
         result
     }
 
+    /// Whether this action requires the user to be logged in.
+    ///
+    /// Auth commands (login/logout/api-key), help/version output,
+    /// self-update, telemetry, and feedback are excluded since they must
+    /// work without credentials.
+    fn requires_login(&self) -> bool {
+        !matches!(
+            self,
+            Action::ShowHelp
+                | Action::ShowSubcommandHelp(_)
+                | Action::ShowVersion
+                | Action::ShowConfig
+                | Action::Login { .. }
+                | Action::Logout
+                | Action::ShowApiKey
+                | Action::Update { .. }
+                | Action::CheckForUpdate
+                | Action::ShowAvailableVersions
+                | Action::UserAgent { .. }
+                | Action::OpenFeedback
+                | Action::ToolDownload { .. }
+                | Action::TelemetrySubmit
+                | Action::TelemetryKill
+                | Action::TelemetryStatus
+        )
+    }
+
     async fn run(self, ctx: &mut CommandContext) -> miette::Result<()> {
+        if self.requires_login() {
+            auth::ensure_logged_in(ctx).await?;
+        }
+
         match self {
             Action::ShowHelp => {
                 let subcommands = get_subcommand_descriptions();
@@ -345,10 +370,6 @@ impl Action {
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
-            #[cfg(all(unix, tool_install))]
-            Action::PlatformAutoConfigure { instance } => {
-                outerbounds::auto_configure(ctx, &instance).await
-            }
             #[cfg(not(tool_install))]
             Action::ToolInstall { name: _ } => {
                 Err(crate::errors::ToolManagementUnavailableError.into())
@@ -627,18 +648,22 @@ impl Action {
 /// Parse CLI arguments and return the action to perform along with log level.
 /// Exits the process on unrecoverable errors (unknown commands, etc.)
 pub fn parse() -> (Action, LogLevel) {
+    match parse_from(std::env::args_os()) {
+        Ok(parsed) => parsed,
+        Err(e) => handle_parse_error(e),
+    }
+}
+
+fn parse_from<I, T>(itr: I) -> Result<(Action, LogLevel), clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
     // Two-step parsing: first get ArgMatches, then convert to typed struct.
     // This gives us access to both the raw matches (for subcommand path extraction)
     // and the typed Cli struct.
-    let matches = match Cli::command().try_get_matches() {
-        Ok(m) => m,
-        Err(e) => return handle_parse_error(e),
-    };
-
-    let mut cli = match Cli::from_arg_matches(&matches) {
-        Ok(c) => c,
-        Err(e) => return handle_parse_error(e),
-    };
+    let matches = Cli::command().try_get_matches_from(itr)?;
+    let mut cli = Cli::from_arg_matches(&matches)?;
 
     let level: LogLevel = cli.verbose.into();
 
@@ -646,13 +671,13 @@ pub fn parse() -> (Action, LogLevel) {
     // proxies own their own help, so the flag is forwarded to them instead.
     if cli.help {
         if let Some(action) = forward_help_to_wrapped_tool(cli.command.take()) {
-            return (action, level);
+            return Ok((action, level));
         }
         let action = match get_subcommand_path_from_matches(&matches) {
             None => Action::ShowHelp,
             Some(path) => Action::ShowSubcommandHelp(path),
         };
-        return (action, level);
+        return Ok((action, level));
     }
 
     let action = match cli.command.take() {
@@ -704,7 +729,12 @@ pub fn parse() -> (Action, LogLevel) {
             }
             Some(SelfCommands::UserAgent { prefix }) => Action::UserAgent { prefix },
         },
-        Some(Commands::Org { args }) => Action::OrgProxy { args },
+        Some(Commands::Org { mut args }) => {
+            if args.is_empty() {
+                args.push("--help".to_string());
+            }
+            Action::OrgProxy { args }
+        }
         Some(Commands::Mcp { command }) => match command {
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
@@ -718,14 +748,7 @@ pub fn parse() -> (Action, LogLevel) {
             },
         },
         #[cfg(all(unix, tool_install))]
-        Some(Commands::Platform { command }) => match command {
-            None => Action::ShowSubcommandHelp("platform".to_string()),
-            Some(cmd) => match cmd.into_action() {
-                ObAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
-                ObAction::Proxy(args) => Action::PlatformProxy { args },
-                ObAction::AutoConfigure { instance } => Action::PlatformAutoConfigure { instance },
-            },
-        },
+        Some(Commands::Platform { args }) => Action::PlatformProxy { args },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
@@ -792,7 +815,7 @@ pub fn parse() -> (Action, LogLevel) {
         Some(Commands::TelemetryStatus) => Action::TelemetryStatus,
     };
 
-    (action, level)
+    Ok((action, level))
 }
 
 /// Extract the subcommand path from ArgMatches by walking the subcommand chain.
@@ -825,14 +848,7 @@ fn forward_help_to_wrapped_tool(command: Option<Commands>) -> Option<Action> {
             Some(Action::OrgProxy { args })
         }
         #[cfg(all(unix, tool_install))]
-        Commands::Platform { command } => {
-            let mut args = match command {
-                None => Vec::new(),
-                Some(cmd) => match cmd.into_action() {
-                    ObAction::Proxy(args) => args,
-                    ObAction::AutoConfigure { .. } | ObAction::ShowHelp(_) => return None,
-                },
-            };
+        Commands::Platform { mut args } => {
             args.push("--help".to_string());
             Some(Action::PlatformProxy { args })
         }
@@ -1025,16 +1041,16 @@ enum Commands {
         command: Option<McpCommands>,
     },
 
-    /// Outerbounds platform CLI
+    /// Anaconda platform CLI (wraps the outerbounds CLI)
     #[cfg(all(unix, tool_install))]
     #[command(
-        subcommand_required = false,
-        arg_required_else_help = false,
+        trailing_var_arg = true,
         override_usage = "ana platform <command> [options]"
     )]
     Platform {
-        #[command(subcommand)]
-        command: Option<ObCommands>,
+        /// Arguments to pass to outerbounds
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 
     /// Manage tools
@@ -1240,11 +1256,11 @@ enum FeatureCommands {
         uv: bool,
 
         /// Configure conda (for main-x feature, default if neither --conda nor --pixi specified)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "pixi")]
         conda: bool,
 
         /// Configure pixi (for main-x feature)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "conda")]
         pixi: bool,
     },
 
@@ -1267,11 +1283,11 @@ enum FeatureCommands {
         uv: bool,
 
         /// Deconfigure conda (for main-x feature, default if neither --conda nor --pixi specified)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "pixi")]
         conda: bool,
 
         /// Deconfigure pixi (for main-x feature)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "conda")]
         pixi: bool,
     },
 }
@@ -1652,5 +1668,84 @@ mod tests {
     fn test_forward_help_to_wrapped_tool_ignores_other_commands() {
         assert!(forward_help_to_wrapped_tool(Some(Commands::Bootstrap)).is_none());
         assert!(forward_help_to_wrapped_tool(None).is_none());
+    }
+
+    fn org_args(argv: &[&str]) -> Vec<String> {
+        match parse_from(argv).unwrap().0 {
+            Action::OrgProxy { args } => args,
+            _ => panic!("expected OrgProxy for {:?}", argv),
+        }
+    }
+
+    #[test]
+    fn test_parse_bare_org_proxies_help() {
+        assert_eq!(org_args(&["ana", "org"]), vec!["--help"]);
+    }
+
+    #[test]
+    fn test_parse_org_help_flags_are_proxied() {
+        assert_eq!(org_args(&["ana", "org", "--help"]), vec!["--help"]);
+        assert_eq!(org_args(&["ana", "org", "-h"]), vec!["--help"]);
+        assert_eq!(
+            org_args(&["ana", "org", "whoami", "--help"]),
+            vec!["whoami", "--help"]
+        );
+    }
+
+    #[test]
+    fn test_parse_org_args_pass_through_verbatim() {
+        assert_eq!(
+            org_args(&["ana", "org", "upload", "--force", "-u", "me", "pkg.tar.bz2"]),
+            vec!["upload", "--force", "-u", "me", "pkg.tar.bz2"]
+        );
+    }
+
+    #[cfg(all(unix, tool_install))]
+    fn platform_args(argv: &[&str]) -> Vec<String> {
+        match parse_from(argv).unwrap().0 {
+            Action::PlatformProxy { args } => args,
+            _ => panic!("expected PlatformProxy for {:?}", argv),
+        }
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_bare_platform_proxies_to_outerbounds() {
+        assert!(platform_args(&["ana", "platform"]).is_empty());
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_platform_help_flags_are_proxied() {
+        assert_eq!(
+            platform_args(&["ana", "platform", "--help"]),
+            vec!["--help"]
+        );
+        assert_eq!(platform_args(&["ana", "platform", "-h"]), vec!["--help"]);
+        assert_eq!(
+            platform_args(&["ana", "platform", "app", "list", "--help"]),
+            vec!["app", "list", "--help"]
+        );
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_platform_args_pass_through_verbatim() {
+        assert_eq!(
+            platform_args(&["ana", "platform", "configure", "--force", "tok-123"]),
+            vec!["configure", "--force", "tok-123"]
+        );
+        assert_eq!(
+            platform_args(&["ana", "platform", "init", "my-proj", "--name", "x"]),
+            vec!["init", "my-proj", "--name", "x"]
+        );
+    }
+
+    #[test]
+    fn test_parse_non_proxy_help_shows_ana_help() {
+        assert!(matches!(
+            parse_from(["ana", "auth", "--help"]).unwrap().0,
+            Action::ShowSubcommandHelp(path) if path == "auth"
+        ));
     }
 }
