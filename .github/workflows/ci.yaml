@@ -3,6 +3,9 @@ name: CI
 on:
   pull_request:
   merge_group:
+  # Manual trigger for on-demand full runs on main (validates release-only
+  # steps like signing/notarization and warms the cargo cache PRs reuse).
+  workflow_dispatch:
   workflow_call:
     inputs:
       environment:
@@ -23,12 +26,17 @@ permissions: {}
 jobs:
   build:
     environment:
-      # Only deploy when calling this workflow via pushes to main or releases
+      # Only deploy when calling this workflow via releases
       # Otherwise, pull requests will be cluttered with deployment messages
       deployment: ${{ github.event_name == 'workflow_call' }}
       name: ${{ inputs.environment || 'dev' }}
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Signing and notarization are slow and only matter for artifacts that
+      # ship. PR and merge-queue runs skip them; the signing integration
+      # tests auto-skip when the certificate fingerprint env vars are unset.
+      SIGN_BINARIES: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
     permissions:
       contents: read   # To access the Vault
       id-token: write  # Required to authenticate with Azure via OIDC
@@ -127,7 +135,7 @@ jobs:
         run: pixi run build-shim
 
       - name: Sign shim (Windows)
-        if: ${{ runner.os == 'Windows' }}
+        if: ${{ runner.os == 'Windows' && env.SIGN_BINARIES == 'true' }}
         id: sign-shim
         uses: ./.github/actions/sign-windows
         with:
@@ -145,7 +153,7 @@ jobs:
         run: pixi run build-release
 
       - name: Sign binary (Windows)
-        if: ${{ runner.os == 'Windows' }}
+        if: ${{ runner.os == 'Windows' && env.SIGN_BINARIES == 'true' }}
         id: sign-windows
         uses: ./.github/actions/sign-windows
         with:
@@ -157,7 +165,7 @@ jobs:
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
       - name: Sign and notarize binary (macOS)
-        if: ${{ runner.os == 'macOS' }}
+        if: ${{ runner.os == 'macOS' && env.SIGN_BINARIES == 'true' }}
         id: sign-notarize-macos
         uses: ./.github/actions/sign-notarize-macos
         with:
