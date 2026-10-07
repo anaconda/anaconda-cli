@@ -1308,7 +1308,6 @@ mod tests {
         // Commands intentionally hidden from help output
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
-            "org",
             "config",
             "bootstrap",
             "telemetry-submit",
