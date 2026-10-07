@@ -3,9 +3,6 @@ name: Release
 permissions: {}
 
 on:
-  push:
-    branches:
-      - main
   release:
     types:
       - published
@@ -18,8 +15,7 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yaml
     with:
-      environment: ${{ github.event_name == 'release' && 'prod' || 'dev' }}
-      skip-tests: ${{ github.event_name == 'push' }}
+      environment: prod
     secrets: inherit  # zizmor: ignore[secrets-inherit] reusable workflows must inherit environment secrets
     permissions:
       contents: read   # To access the Vault
