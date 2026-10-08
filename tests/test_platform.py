@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 from helpers import IS_WINDOWS
 from helpers import AnaRunner
+from helpers import assert_output_contains
 
 pytestmark = pytest.mark.skipif(
     IS_WINDOWS, reason="ana platform is Unix-only (src/cli.rs)"
@@ -88,3 +89,27 @@ class TestPlatformCheckHelp:
         assert result.returncode == 0, f"check failed: {result.stderr}"
         assert "Usage: outerbounds check" not in result.stdout
         assert stub_outerbounds.read_text().splitlines() == ["check"]
+
+    def test_child_failure_is_reported(
+        self, run_ana_logged_in: AnaRunner, stub_outerbounds: Path
+    ) -> None:
+        """A non-zero exit from the wrapped tool is reported with its real
+        code, but ana itself always exits 1 (src/tools/run.rs). Uses plain
+        `check` since the stub's --help branch always exits 0."""
+        result = run_ana_logged_in("platform", "check", env={"STUB_EXIT_CODE": "3"})
+        assert result.returncode == 1
+        assert "outerbounds exited with code 3" in result.stderr
+
+
+class TestPlatformLoginGate:
+    """ana platform is gated behind login like every other command
+    (Action::requires_login in src/cli.rs); declining the gate must stop the
+    proxy call before it ever reaches ensure_tool/outerbounds."""
+
+    def test_check_help_requires_login(
+        self, run_ana: AnaRunner, auth_env: dict[str, str]
+    ) -> None:
+        result = run_ana("platform", "check", "--help", env=auth_env, input="n\n")
+        assert result.returncode != 0
+        assert_output_contains(result.stderr, "Login required")
+        assert "Login now?" in result.stdout
