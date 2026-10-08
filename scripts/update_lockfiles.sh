@@ -29,8 +29,8 @@ elif [ Cargo.toml -nt Cargo.lock ]; then
 fi
 
 # In CI, skip SBOM regeneration if SBOM.json is already up to date with
-# Cargo.lock. Compare the commit timestamps of the last change to each file.
-if [ -n "${CI:-}" ]; then
+# Cargo.lock, unless explicitly forced or stamping a release version.
+if [ -n "${CI:-}" ] && [ "$FORCE_FLAG" != "--force" ] && [ -z "${SBOM_RELEASE_VERSION:-}" ]; then
     lock_ts=$(git log -1 --format=%ct -- Cargo.lock 2>/dev/null || echo 0)
     sbom_ts=$(git log -1 --format=%ct -- SBOM.json 2>/dev/null || echo 0)
     if [ "$lock_ts" -le "$sbom_ts" ]; then
