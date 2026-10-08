@@ -14,6 +14,7 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
+use crate::local_model::{self, LocalModelCommands};
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds;
@@ -175,6 +176,9 @@ pub enum Action {
     Mcp {
         command: McpCommands,
     },
+    LocalModel {
+        command: LocalModelCommands,
+    },
     #[cfg(tool_install)]
     ChannelRun {
         args: Vec<String>,
@@ -246,6 +250,12 @@ impl Action {
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
+            },
+            Action::LocalModel { command } => match command {
+                LocalModelCommands::List { .. } => "lm.list",
+                LocalModelCommands::Pull { .. } => "lm.pull",
+                LocalModelCommands::Run { .. } => "lm.run",
+                LocalModelCommands::Delete { .. } => "lm.delete",
             },
             #[cfg(tool_install)]
             Action::ChannelRun { .. } => "channel",
@@ -366,6 +376,7 @@ impl Action {
                 .await
                 .map_err(|e| miette!("{}", e))?),
             Action::Mcp { command } => mcp::run(ctx, command),
+            Action::LocalModel { command } => local_model::run(ctx, command).await,
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -739,6 +750,10 @@ where
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
         },
+        Some(Commands::Lm { command }) => match command {
+            None => Action::ShowSubcommandHelp("lm".to_string()),
+            Some(cmd) => Action::LocalModel { command: cmd },
+        },
         #[cfg(tool_install)]
         Some(Commands::Channel { command }) => match command {
             None => Action::ShowSubcommandHelp("channel".to_string()),
@@ -1039,6 +1054,18 @@ enum Commands {
     Mcp {
         #[command(subcommand)]
         command: Option<McpCommands>,
+    },
+
+    /// Manage local models
+    #[command(
+        visible_alias = "local-model",
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana lm <command> [options]"
+    )]
+    Lm {
+        #[command(subcommand)]
+        command: Option<LocalModelCommands>,
     },
 
     /// Anaconda platform CLI (wraps the outerbounds CLI)

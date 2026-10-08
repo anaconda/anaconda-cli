@@ -128,7 +128,7 @@ pub fn config_path(client: &str) -> Result<PathBuf, McpError> {
 ///
 /// Returns every existing candidate, or the preferred candidate when none
 /// exist.
-fn config_paths(client: &str) -> Result<Vec<PathBuf>, McpError> {
+pub(crate) fn config_paths(client: &str) -> Result<Vec<PathBuf>, McpError> {
     let candidates = config_candidates(client)?;
     let existing: Vec<PathBuf> = candidates
         .iter()
@@ -175,14 +175,14 @@ fn is_jsonc(path: &Path) -> bool {
 
 /// Parse JSONC (comments and trailing commas allowed) into a CST, treating an
 /// empty file as an empty object.
-fn parse_jsonc(path: &Path, text: &str) -> miette::Result<CstRootNode> {
+pub(crate) fn parse_jsonc(path: &Path, text: &str) -> miette::Result<CstRootNode> {
     let text = if text.trim().is_empty() { "{}" } else { text };
     CstRootNode::parse(text, &ParseOptions::default())
         .map_err(|e| miette!("Failed to parse {}: {e}", path.display()))
 }
 
 /// Convert a JSON value into a CST input value for insertion.
-fn to_cst_input(value: &Value) -> CstInputValue {
+pub(crate) fn to_cst_input(value: &Value) -> CstInputValue {
     match value {
         Value::Null => CstInputValue::Null,
         Value::Bool(b) => CstInputValue::Bool(*b),
@@ -266,7 +266,7 @@ fn save_json(path: &Path, config: &Value) -> miette::Result<()> {
 }
 
 /// Write a JSONC document, ensuring a trailing newline.
-fn save_jsonc(path: &Path, content: &str) -> miette::Result<()> {
+pub(crate) fn save_jsonc(path: &Path, content: &str) -> miette::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).into_diagnostic()?;
     }

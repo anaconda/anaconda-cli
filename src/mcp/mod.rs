@@ -1,4 +1,4 @@
-mod clients;
+pub(crate) mod clients;
 mod commands;
 mod setup;
 mod skill;
