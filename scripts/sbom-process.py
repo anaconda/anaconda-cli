@@ -658,7 +658,7 @@ def main() -> None:
     )
 
     # Compare material content against existing SBOM.json
-    if not args.force and os.path.exists(args.output_json):
+    if not args.force and not args.release_version and os.path.exists(args.output_json):
         with open(args.output_json) as f:
             existing = json.load(f)
         if material_content(sbom) == material_content(existing):
