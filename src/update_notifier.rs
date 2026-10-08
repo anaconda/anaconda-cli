@@ -163,6 +163,7 @@ pub fn show_notification(current: &str, latest: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_is_newer_version_newer() {
@@ -256,6 +257,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_update_check_enabled_default() {
         temp_env::with_var_unset("ANA_UPDATE_CHECK", || {
             assert!(config::update_check_enabled());
@@ -263,6 +265,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_update_check_enabled_false() {
         temp_env::with_var("ANA_UPDATE_CHECK", Some("false"), || {
             assert!(!config::update_check_enabled());
@@ -270,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_update_check_enabled_zero() {
         temp_env::with_var("ANA_UPDATE_CHECK", Some("0"), || {
             assert!(!config::update_check_enabled());
@@ -277,6 +281,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_update_check_enabled_true() {
         temp_env::with_var("ANA_UPDATE_CHECK", Some("true"), || {
             assert!(config::update_check_enabled());
@@ -284,6 +289,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_check_interval_default() {
         use std::time::Duration;
         temp_env::with_var_unset("ANA_UPDATE_CHECK_INTERVAL_HOURS", || {
@@ -295,6 +301,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_check_interval_custom() {
         use std::time::Duration;
         temp_env::with_var("ANA_UPDATE_CHECK_INTERVAL_HOURS", Some("12"), || {
@@ -306,6 +313,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_notify_interval_default() {
         use std::time::Duration;
         temp_env::with_var_unset("ANA_UPDATE_NOTIFY_INTERVAL_HOURS", || {
@@ -317,6 +325,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_notify_interval_custom() {
         use std::time::Duration;
         temp_env::with_var("ANA_UPDATE_NOTIFY_INTERVAL_HOURS", Some("12"), || {

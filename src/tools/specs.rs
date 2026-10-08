@@ -3,11 +3,13 @@
 use std::path::PathBuf;
 
 /// Tool configuration.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 struct Tool {
     name: &'static str,
+    #[cfg_attr(not(tool_install), allow(dead_code))]
     lockfile: &'static str,
     binaries: &'static [&'static [&'static str]],
-    /// If set, the tool is experimental and this message will be shown as a warning.
+    #[cfg_attr(not(tool_install), allow(dead_code))]
     experimental: Option<&'static str>,
     /// Whether this tool should be auto-updated when `ana` is updated.
     auto_update: bool,
@@ -29,7 +31,7 @@ const TOOLS: &[Tool] = &[
         name: "outerbounds",
         lockfile: include_str!("../../tool-specs/outerbounds/pixi.lock"),
         binaries: &[&["bin", "outerbounds"]],
-        experimental: Some("Outerbounds integration is an experimental alpha feature."),
+        experimental: None,
         auto_update: true,
     },
     Tool {
@@ -49,6 +51,7 @@ fn find_tool(name: &str) -> Option<&'static Tool> {
 ///
 /// If `ANA_LOCKFILES_DIR` is set, reads from that directory.
 /// Otherwise, returns the embedded lockfile compiled into the binary.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn content(name: &str) -> Option<String> {
     if let Ok(dir) = std::env::var("ANA_LOCKFILES_DIR") {
         let path = PathBuf::from(dir).join(name).join("pixi.lock");
@@ -64,6 +67,7 @@ pub fn binaries(name: &str) -> Option<Vec<PathBuf>> {
 }
 
 /// Returns the binary names to link for a tool.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn binary_names(name: &str) -> Option<Vec<&'static str>> {
     find_tool(name).map(|t| {
         t.binaries
@@ -79,11 +83,13 @@ pub fn all_tools() -> Vec<&'static str> {
 }
 
 /// Returns the experimental warning message for a tool, if any.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
 }
 
 /// Returns whether auto-update is enabled for a tool by default.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn auto_update_default(name: &str) -> bool {
     find_tool(name).is_some_and(|t| t.auto_update)
 }
@@ -91,17 +97,20 @@ pub fn auto_update_default(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial(env)]
     fn test_content_embedded() {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
             let lockfile = content("anaconda-cli");
             assert!(lockfile.is_some());
-            assert!(lockfile.unwrap().contains("version: 6"));
+            assert!(lockfile.unwrap().starts_with("version: "));
         });
     }
 
     #[test]
+    #[serial(env)]
     fn test_content_unknown_tool() {
         temp_env::with_var_unset("ANA_LOCKFILES_DIR", || {
             assert!(content("unknown-tool").is_none());

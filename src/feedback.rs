@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::ui::status;
 
-const GITHUB_ISSUES_URL: &str = "https://github.com/anaconda/ana-cli/issues/new/choose";
+const GITHUB_ISSUES_URL: &str = "https://github.com/anaconda/anaconda-cli/issues/new/choose";
 
 pub fn open_feedback(config: &Config) {
     eprintln!(

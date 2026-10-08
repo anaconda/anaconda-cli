@@ -11,6 +11,7 @@ use crate::paths;
 ///
 /// Removes the tool's environment and any symlinks in the bin directory.
 /// Cleans up empty directories afterward.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
@@ -93,6 +94,7 @@ pub fn uninstall_tool(ctx: &mut CommandContext, name: &str, force: bool) -> miet
 }
 
 /// Remove a directory if it's empty.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 fn cleanup_empty_dir(path: &std::path::Path) -> miette::Result<()> {
     if !path.exists() {
         return Ok(());
@@ -153,11 +155,13 @@ fn remove_shims_cfg_entries(binaries: &[&str]) -> miette::Result<()> {
 mod tests {
     #[cfg(windows)]
     mod windows_tests {
+        use serial_test::serial;
         use tempfile::TempDir;
 
         use super::super::remove_shims_cfg_entries;
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_removes_single() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -181,6 +185,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_removes_multiple() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -205,6 +210,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_handles_missing_file() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -217,6 +223,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_remove_shims_cfg_entries_preserves_trailing_newlines() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");

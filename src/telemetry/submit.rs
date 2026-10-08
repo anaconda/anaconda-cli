@@ -119,6 +119,7 @@ fn cleanup_old_files(dir: &Path, max_age_days: i64) -> Result<(), std::io::Error
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::collections::HashMap;
     use std::io::Write;
 
@@ -170,6 +171,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_submit_pending_inner_no_pending_dir() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
@@ -180,6 +182,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_submit_pending_inner_empty_pending_dir() {
         let temp_dir = tempfile::tempdir().unwrap();
         let pending_dir = temp_dir.path().join("telemetry").join("pending");
@@ -193,6 +196,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_submit_pending_inner_skips_non_json_files() {
         let temp_dir = tempfile::tempdir().unwrap();
         let pending_dir = temp_dir.path().join("telemetry").join("pending");
@@ -214,6 +218,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_submit_pending_inner_handles_invalid_json() {
         let temp_dir = tempfile::tempdir().unwrap();
         let pending_dir = temp_dir.path().join("telemetry").join("pending");
@@ -241,6 +246,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_submit_pending_timeout_returns_result() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {

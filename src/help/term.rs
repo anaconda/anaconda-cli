@@ -204,7 +204,7 @@ fn print_section_blocks(term: &Term, subcommands: &HashMap<String, String>) {
         print_section(term, section.name);
 
         for cmd in section.commands {
-            // Skip commands that aren't in the subcommands map (e.g., disabled experimental features)
+            // Skip commands that aren't in the subcommands map (e.g., unix-only commands on Windows)
             if let Some(desc) = subcommands.get(*cmd) {
                 print_command_row(term, cmd, desc);
             }
@@ -321,14 +321,6 @@ pub fn print_subcommand_help(cmd: &clap::Command, path: &str) {
     let _ = term.write_line("");
 
     // After help (e.g., experimental warnings)
-    // Show experimental warning for all ob subcommands (unix only)
-    #[cfg(unix)]
-    let after_help = if path.starts_with("ob") {
-        Some("Note: Outerbounds integration is an experimental alpha feature.".to_string())
-    } else {
-        cmd.get_after_help().map(|h| h.to_string())
-    };
-    #[cfg(not(unix))]
     let after_help = cmd.get_after_help().map(|h| h.to_string());
     if let Some(help_text) = after_help {
         let styled = crate::ui::status::note_experimental(&help_text);

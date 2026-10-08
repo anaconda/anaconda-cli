@@ -1,3 +1,10 @@
+//! Self-update functionality for ana.
+//!
+//! This module is compiled out when built without the `self-update` feature
+//! (e.g., when installed via conda where updates are managed externally).
+
+#![cfg_attr(not(self_update), allow(dead_code, unused_imports))]
+
 use std::collections::HashMap;
 
 use serde::Deserialize;
@@ -422,6 +429,10 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
 ///
 /// After self-replace, the current process still has old lockfiles embedded.
 /// We spawn the new binary to update tools using the new lockfiles.
+#[cfg(not(tool_install))]
+fn update_installed_tools() {}
+
+#[cfg(tool_install)]
 fn update_installed_tools() {
     use crate::tools::install::installed_tools;
     use crate::ui::status;

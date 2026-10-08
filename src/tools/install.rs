@@ -448,7 +448,7 @@ mod tests {
 
     #[test]
     fn test_hash_lockfile_deterministic() {
-        let content = "version: 6\npackages:\n  - name: foo";
+        let content = "version: 7\npackages:\n  - name: foo";
         let hash1 = hash_lockfile(content);
         let hash2 = hash_lockfile(content);
         assert_eq!(hash1, hash2);
@@ -456,8 +456,8 @@ mod tests {
 
     #[test]
     fn test_hash_lockfile_different_content() {
-        let content1 = "version: 6\npackages:\n  - name: foo";
-        let content2 = "version: 6\npackages:\n  - name: bar";
+        let content1 = "version: 7\npackages:\n  - name: foo";
+        let content2 = "version: 7\npackages:\n  - name: bar";
         assert_ne!(hash_lockfile(content1), hash_lockfile(content2));
     }
 
@@ -633,9 +633,11 @@ mod tests {
     #[cfg(windows)]
     mod windows_tests {
         use super::*;
+        use serial_test::serial;
         use tempfile::TempDir;
 
         #[test]
+        #[serial(env)]
         fn test_create_bin_shim_creates_exe_and_config() {
             let temp = TempDir::new().unwrap();
             let bin_dir = temp.path().join("bin");
@@ -671,6 +673,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_create_bin_shim_skips_missing_binary() {
             let temp = TempDir::new().unwrap();
             let bin_dir = temp.path().join("bin");
@@ -690,6 +693,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_creates_new_file() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -706,6 +710,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_adds_entry() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");
@@ -725,6 +730,7 @@ mod tests {
         }
 
         #[test]
+        #[serial(env)]
         fn test_update_shims_cfg_updates_existing_entry() {
             let temp = TempDir::new().unwrap();
             let tools_dir = temp.path().join("tools");

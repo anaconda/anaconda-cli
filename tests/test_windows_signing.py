@@ -83,11 +83,11 @@ def test_binary_signed(ana_binary: Path | None) -> None:
 
 
 def test_shim_signed(
-    run_ana: AnaRunner,
+    run_ana_logged_in: AnaRunner,
     fake_home: Path,
 ) -> None:
     """Test whether the installed shim is signed with the expected certificate."""
-    result = run_ana("tool", "install", "pixi")
+    result = run_ana_logged_in("tool", "install", "pixi")
     assert result.returncode == 0, f"Failed to install pixi: {result.stderr}"
 
     shim_path = fake_home / ".ana" / "bin" / "pixi.exe"

@@ -86,6 +86,19 @@ pub fn dim(text: &str) -> String {
     UiColor::Dim.apply_to(text).to_string()
 }
 
+/// URL of the Anaconda Terms of Service.
+pub const TOS_URL: &str = "https://www.anaconda.com/legal/terms/terms-of-service";
+
+/// Print the Anaconda Terms of Service disclaimer.
+///
+/// Example output:
+/// `Use of Anaconda services and packages is subject to our Terms of Service (ToS): https://www.anaconda.com/legal/terms/terms-of-service`
+pub fn tos_disclaimer() {
+    eprintln!(
+        "Use of Anaconda services and packages is subject to our Terms of Service (ToS): {TOS_URL}"
+    );
+}
+
 /// Print a blank line to stderr.
 pub fn blank_line() {
     eprintln!();

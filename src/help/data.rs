@@ -14,6 +14,7 @@ pub(super) struct HelpExample {
 /// TODO(mattkram): It would be more ergonomic to define sections alongside each
 ///                 subcommand but the implementation of that is complicated. For
 ///                 now, assuming YAGNI and asserting inclusing via unit tests.
+#[cfg(tool_install)]
 pub(super) const HELP_SECTIONS: &[HelpSection] = &[
     HelpSection {
         name: "TOOLCHAIN",
@@ -21,18 +22,40 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "tool",
             // Hiding bootstrap, as it's synonymous to `ana tool install anaconda-cli`
             // "bootstrap",
-            "feature", "api", "mcp", "ob",
+            "feature", "api", "mcp", "platform",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",
         ],
     },
-    // TODO(mattkram): Removed PACKAGES section from help until we can comprehensively
-    //                 define the wrappers.
-    // HelpSection {
-    //     name: "PACKAGES",
-    //     commands: &["org"],
-    // },
+    HelpSection {
+        name: "PACKAGES",
+        commands: &["channel", "org"],
+    },
+    HelpSection {
+        name: "ACCOUNT",
+        commands: &["login", "logout", "whoami", "auth"],
+    },
+];
+
+#[cfg(not(tool_install))]
+pub(super) const HELP_SECTIONS: &[HelpSection] = &[
+    HelpSection {
+        name: "TOOLCHAIN",
+        commands: &[
+            "tool",
+            // Hiding bootstrap, as it's synonymous to `ana tool install anaconda-cli`
+            // "bootstrap",
+            "feature", "api", "mcp", "platform",
+            // TODO(mattkram): Hiding config from help until we fully implement CRUD
+            // "config",
+            "self",
+        ],
+    },
+    HelpSection {
+        name: "PACKAGES",
+        commands: &["org"],
+    },
     HelpSection {
         name: "ACCOUNT",
         commands: &["login", "logout", "whoami", "auth"],
@@ -47,7 +70,7 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
             command: "ana login".to_string(),
         },
         HelpExample {
-            desc: "Enable access to Anaconda's main-x (beta) channel".to_string(),
+            desc: "Enable access to Anaconda's main-x channel".to_string(),
             command: "ana feature enable main-x".to_string(),
         },
         HelpExample {

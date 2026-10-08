@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import base64
 import http.server
+import json
 import os
 import socketserver
 import subprocess
+import tempfile
 import threading
 from collections.abc import Generator
 from functools import partial
@@ -90,6 +93,22 @@ def ana_binary() -> Path | None:
     return None
 
 
+def _seeded_keyring(keyring_path: Path, domain: str = "seeded.test") -> None:
+    """Write a keyring file containing a credential for `domain`.
+
+    The login gate only checks credential presence (no server validation),
+    so a seeded file is enough to run gated commands without network access.
+    """
+    credential = {
+        "domain": domain,
+        "api_key": "seeded-not-a-real-token",
+        "repo_tokens": [],
+        "version": 2,
+    }
+    encoded = base64.b64encode(json.dumps(credential).encode()).decode()
+    keyring_path.write_text(json.dumps({"Anaconda Cloud": {domain: encoded}}))
+
+
 def _binary_supports_wheels(binary_path: Path | None) -> bool:
     """Check if the ana binary supports the wheels feature.
 
@@ -99,13 +118,30 @@ def _binary_supports_wheels(binary_path: Path | None) -> bool:
     if binary_path is None:
         return False
 
-    result = subprocess.run(
-        [str(binary_path), "feature", "enable", "wheels"],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        timeout=10,
-    )
+    # Use a seeded keyring so the login gate passes without any network
+    # access or prompting, regardless of the caller's real login state.
+    with tempfile.TemporaryDirectory() as tmp:
+        keyring_file = Path(tmp) / "keyring"
+        _seeded_keyring(keyring_file)
+        env = {
+            key: val for key, val in os.environ.items() if not key.startswith("ANA_")
+        }
+        env.update(
+            {
+                "ANA_DOMAIN": "seeded.test",
+                "ANA_KEYRING_PATH": str(keyring_file),
+                "ANA_OPEN_BROWSER": "false",
+            }
+        )
+
+        result = subprocess.run(
+            [str(binary_path), "feature", "enable", "wheels"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            timeout=10,
+        )
     return "Unknown feature: wheels" not in result.stderr
 
 
@@ -171,6 +207,39 @@ def auth_env(
         "ANA_OPEN_BROWSER": "false",  # Don't try to open browser in tests
         "ANA_USE_HTTPS": "false",  # Use HTTP for mock server
     }
+
+
+@pytest.fixture
+def logged_in_env(run_ana: AnaRunner, auth_env: dict[str, str]) -> dict[str, str]:
+    """Provide auth_env after completing a login against the mock auth server.
+
+    Commands gated behind the login requirement need credentials in the
+    keyring before they will run; use this (or run_ana_logged_in) for tests
+    that invoke gated commands.
+    """
+    result = run_ana("login", env=auth_env)
+    assert result.returncode == 0, f"fixture login failed: {result.stderr}"
+    return auth_env
+
+
+@pytest.fixture
+def run_ana_logged_in(run_ana: AnaRunner, logged_in_env: dict[str, str]) -> AnaRunner:
+    """run_ana variant where every invocation runs logged in.
+
+    Each call is executed with the logged-in auth environment unless the
+    caller overrides individual environment variables.
+    """
+
+    def _run(
+        *args: str,
+        env: dict[str, str] | None = None,
+        input: str | None = None,
+        cwd: Path | str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        merged_env = {**logged_in_env, **(env or {})}
+        return run_ana(*args, env=merged_env, input=input, cwd=cwd)
+
+    return _run
 
 
 @pytest.fixture

@@ -33,6 +33,7 @@ fn tools_dir() -> PathBuf {
 }
 
 /// Returns the bin directory for shims (~/.ana/bin).
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn bin_dir() -> PathBuf {
     ana_home().join("bin")
 }
@@ -51,7 +52,28 @@ pub fn binary_name(name: &str) -> String {
     }
 }
 
+/// Resolve the conda environment prefix for the conda-package build.
+///
+/// Prefers the prefix implied by the current executable location
+/// (`<prefix>/bin/ana`), falling back to `$CONDA_PREFIX`. This allows ana
+/// to work when invoked by absolute path without an activated environment.
+/// The exe-derived path is only trusted if it looks like a conda prefix
+/// (i.e. it contains a `conda-meta` directory).
+#[cfg(not(tool_install))]
+pub fn conda_prefix() -> Option<PathBuf> {
+    if let Ok(exe) = std::env::current_exe()
+        && let Ok(exe) = exe.canonicalize()
+        && let Some(prefix) = exe.parent().and_then(|bin| bin.parent())
+        && prefix.join("conda-meta").is_dir()
+    {
+        return Some(prefix.to_path_buf());
+    }
+
+    std::env::var("CONDA_PREFIX").ok().map(PathBuf::from)
+}
+
 /// Returns the path to a binary in the bin directory, adding .exe on Windows.
+#[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn bin_path(name: &str) -> PathBuf {
     bin_dir().join(binary_name(name))
 }
@@ -59,6 +81,7 @@ pub fn bin_path(name: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_home_dir_returns_path() {
@@ -71,6 +94,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_ana_home_default() {
         temp_env::with_var_unset("ANA_HOME", || {
             let ana = ana_home();
@@ -83,6 +107,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_ana_home_from_env() {
         temp_env::with_var("ANA_HOME", Some("/custom/ana/path"), || {
             assert_eq!(ana_home(), PathBuf::from("/custom/ana/path"));
@@ -90,6 +115,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_tools_dir() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(tools_dir(), PathBuf::from("/test/ana/tools"));
@@ -97,6 +123,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_bin_dir() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(bin_dir(), PathBuf::from("/test/ana/bin"));
@@ -104,6 +131,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_tool_prefix() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(
@@ -124,6 +152,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_bin_path() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             let path = bin_path("pixi");

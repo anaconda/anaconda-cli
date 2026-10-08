@@ -78,11 +78,13 @@ fn enforce_max_files(dir: &PathBuf, max_files: usize) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::collections::HashMap;
 
     use crate::telemetry::otel::SerializableValue;
 
     #[test]
+    #[serial(env)]
     fn test_write_batch_creates_file() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
@@ -110,6 +112,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_write_batch_no_temp_files_left() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
@@ -222,6 +225,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_write_batch_multiple_events() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
@@ -252,6 +256,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_write_batch_empty_events() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
@@ -266,6 +271,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(env)]
     fn test_write_batch_contains_timestamp() {
         let temp_dir = tempfile::tempdir().unwrap();
         temp_env::with_var("ANA_HOME", Some(temp_dir.path()), || {
