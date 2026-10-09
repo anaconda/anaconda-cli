@@ -79,7 +79,10 @@ pub fn list_tools() -> Vec<ToolInfo> {
         .iter()
         .map(|name| {
             #[cfg(tool_install)]
-            let installed = paths::tool_prefix(name).exists();
+            let installed = {
+                let prefix = paths::tool_prefix(name);
+                prefix.exists() && super::install::binaries_exist(&prefix)
+            };
             #[cfg(not(tool_install))]
             let installed = is_conda_package_installed(name);
             let binaries = specs::binaries(name).unwrap_or_default();
