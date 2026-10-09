@@ -6,6 +6,17 @@ ensure_tool first, so missing outerbounds installs are created
 automatically. Since the command is gated behind login, invocations run
 with a completed login against the mock auth server (run_ana_logged_in).
 
+"Integration" here means ana's own process boundary: these tests run the
+real compiled `ana` binary as a subprocess and verify it actually execs a
+child binary, forwards argv correctly, and propagates exit codes/help
+flags across that boundary — behavior src/cli.rs's unit tests can't
+observe since they never spawn a process. The wrapped tool is stubbed
+(see stub_outerbounds below) because outerbounds' own CLI behavior is
+outerbounds' test suite's job, not ana's; stubbing also avoids requiring
+a real configured Outerbounds instance/token in CI. This mirrors
+test_channel.py's stub_anaconda, where "assertions stop at ana's
+boundary."
+
 ana platform is Unix-only (src/cli.rs: #[cfg(all(unix, tool_install))]).
 """
 
