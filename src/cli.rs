@@ -1729,6 +1729,21 @@ mod tests {
 
     #[test]
     #[cfg(all(unix, tool_install))]
+    fn test_parse_platform_leaf_command_help_is_forwarded() {
+        // Regression test for CLI-790: `check` is a leaf command (takes its own
+        // flags) rather than a subcommand group, so --help must still reach it.
+        assert_eq!(
+            platform_args(&["ana", "platform", "check", "--help"]),
+            vec!["check", "--help"]
+        );
+        assert_eq!(
+            platform_args(&["ana", "platform", "check", "-h"]),
+            vec!["check", "-h"]
+        );
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
     fn test_parse_platform_args_pass_through_verbatim() {
         assert_eq!(
             platform_args(&["ana", "platform", "configure", "--force", "tok-123"]),
