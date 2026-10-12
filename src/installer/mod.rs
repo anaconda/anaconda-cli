@@ -196,20 +196,19 @@ fn run_command(filename: &str) -> String {
 }
 
 /// Resolve the installer base URL: an explicit argument wins, then the
-/// `ANA_INSTALLER_BASE_URL` override (used by tests and future config-driven
-/// hosts), then the public default.
-fn resolve_base_url(explicit: Option<&str>) -> String {
+/// configured override, then the public default.
+fn resolve_base_url(explicit: Option<&str>, configured: Option<&str>) -> String {
     if let Some(url) = explicit {
         return url.to_string();
     }
-    std::env::var("ANA_INSTALLER_BASE_URL")
-        .ok()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| MINICONDA_BASE_URL.to_string())
+    configured
+        .filter(|url| !url.is_empty())
+        .unwrap_or(MINICONDA_BASE_URL)
+        .to_string()
 }
 
 pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
-    let base_url = resolve_base_url(base_url);
+    let base_url = resolve_base_url(base_url, ctx.config.installer_base_url.as_deref());
     let base_url = base_url.as_str();
     let target = detect_target(base_url, std::env::consts::OS, std::env::consts::ARCH)?;
 
@@ -364,16 +363,26 @@ mod tests {
     #[test]
     fn test_resolve_base_url_explicit_wins() {
         assert_eq!(
-            resolve_base_url(Some("https://example.com/miniconda/")),
+            resolve_base_url(
+                Some("https://example.com/miniconda/"),
+                Some("https://configured.example/miniconda/")
+            ),
+            "https://example.com/miniconda/"
+        );
+    }
+
+    #[test]
+    fn test_resolve_base_url_configured() {
+        assert_eq!(
+            resolve_base_url(None, Some("https://example.com/miniconda/")),
             "https://example.com/miniconda/"
         );
     }
 
     #[test]
     fn test_resolve_base_url_default() {
-        // No explicit argument and no env override (tests run with an isolated
-        // environment) resolves to the public default.
-        assert_eq!(resolve_base_url(None), MINICONDA_BASE_URL);
+        assert_eq!(resolve_base_url(None, None), MINICONDA_BASE_URL);
+        assert_eq!(resolve_base_url(None, Some("")), MINICONDA_BASE_URL);
     }
 
     #[test]

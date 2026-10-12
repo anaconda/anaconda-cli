@@ -150,6 +150,9 @@ pub struct Config {
     /// Pip index URL for package installation
     pub pip_index_url: String,
 
+    /// Base URL for Miniconda installer downloads
+    pub installer_base_url: Option<String>,
+
     /// Base URL for static self-update; if None, uses GitHub Releases
     #[serde(deserialize_with = "deserialize_self_update_url")]
     pub self_update_url: Option<String>,
@@ -212,6 +215,7 @@ impl Config {
             use_https: DEFAULT_USE_HTTPS,
             include_prereleases: DEFAULT_INCLUDE_PRERELEASES,
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
+            installer_base_url: None,
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             auto_update_tools: DEFAULT_AUTO_UPDATE_TOOLS,
             #[cfg(feature = "diagnostics")]
@@ -454,6 +458,7 @@ mod tests {
             use_https: true,
             include_prereleases: false,
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
+            installer_base_url: None,
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             auto_update_tools: None,
             #[cfg(feature = "diagnostics")]
@@ -557,6 +562,22 @@ mod tests {
             let config = Config::load();
             assert_eq!(config.client_id, "my-custom-client-id");
         });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_config_load_installer_base_url_from_env() {
+        temp_env::with_var(
+            "ANA_INSTALLER_BASE_URL",
+            Some("https://example.com/miniconda/"),
+            || {
+                let config = Config::load();
+                assert_eq!(
+                    config.installer_base_url.as_deref(),
+                    Some("https://example.com/miniconda/")
+                );
+            },
+        );
     }
 
     #[test]
