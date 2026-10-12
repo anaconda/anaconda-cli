@@ -200,7 +200,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1daa54020e05aa0b163ee10434fff35a0f18d28a1cafa142bd1290e1abe630e"
 dependencies = [
  "astral-reqwest-middleware",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "secrecy",
  "serde",
  "serde_json",
@@ -235,7 +235,7 @@ dependencies = [
  "rattler_cache",
  "rattler_conda_types",
  "rattler_lock",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "reqwest-middleware",
  "rlimit",
  "rpassword",
@@ -392,7 +392,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.5.0",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "serde",
  "thiserror 2.0.19",
  "tower-service",
@@ -425,7 +425,7 @@ dependencies = [
  "http-content-range",
  "itertools 0.14.0",
  "memmap2",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "thiserror 2.0.19",
  "tokio",
  "tokio-stream",
@@ -1266,7 +1266,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1824,7 +1824,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.5",
+ "socket2 0.5.10",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -2027,7 +2027,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3289,7 +3289,7 @@ dependencies = [
  "rayon",
  "reflink-copy",
  "regex",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "serde",
  "serde_json",
  "simple_spawn_blocking",
@@ -3326,7 +3326,7 @@ dependencies = [
  "rattler_package_streaming",
  "rattler_redaction",
  "rayon",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "serde_json",
  "simple_spawn_blocking",
  "tempfile",
@@ -3486,7 +3486,7 @@ dependencies = [
  "http 1.5.0",
  "http-auth",
  "itertools 0.15.0",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "retry-policies",
  "serde",
  "serde_json",
@@ -3523,7 +3523,7 @@ dependencies = [
  "rattler_digest",
  "rattler_networking",
  "rattler_redaction",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "serde_json",
  "simple_spawn_blocking",
  "tar",
@@ -3556,7 +3556,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "068b9b88444342b01133c4eb1af90f44e3bc04463d738ac3fa3813df0096c177"
 dependencies = [
  "astral-reqwest-middleware",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "url",
 ]
 
@@ -3749,11 +3749,11 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "219c5811de6525e5416c7d5d53bb656d3afdbc6c5af816e0802bcfa42dbdc1c3"
+checksum = "16a1cfa75cc186dd73d5818e510e042e40927bccc9c236b061cea97e1eb08029"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "bytes",
  "futures-channel",
  "futures-core",
@@ -3799,7 +3799,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.5.0",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "serde",
  "thiserror 2.0.19",
  "tower-service",
@@ -3899,7 +3899,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4069,7 +4069,7 @@ dependencies = [
  "cfg_aliases",
  "httpdate",
  "native-tls",
- "reqwest 0.13.4",
+ "reqwest 0.13.5",
  "sentry-actix",
  "sentry-backtrace",
  "sentry-contexts",
@@ -4684,10 +4684,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5554,7 +5554,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
