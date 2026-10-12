@@ -1,5 +1,0 @@
-[project]
-name = "{project}"
-version = "0.1.0"
-description = "{title}"
-requires-python = ">=3.12"

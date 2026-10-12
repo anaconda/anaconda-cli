@@ -14,7 +14,7 @@ pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()
 
     let mut channel_args = vec!["channel".to_string()];
     channel_args.extend(args.iter().cloned());
-    tools::run_tool_binary("anaconda-cli", "anaconda", &channel_args)
+    tools::run_tool_binary("anaconda-cli", "anaconda", &channel_args, &[])
 }
 
 /// Run the `anaconda channel` command with the given arguments.

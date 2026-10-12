@@ -1,52 +1,13 @@
 use crate::context::CommandContext;
 use crate::tools;
-use crate::ui::status;
 
-use super::{InitOptions, ensure_configured, init_project, open_app, view_app};
-
-/// Run the outerbounds CLI wrapper with the given arguments.
+/// Forward the given arguments to the outerbounds CLI unchanged.
 pub async fn run(ctx: &mut CommandContext, args: &[String]) -> miette::Result<()> {
     tools::install::ensure_tool(ctx, "outerbounds").await?;
-    // Handle `platform app open <name>`
-    if args.len() >= 3 && args[0] == "app" && args[1] == "open" {
-        return open_app(&args[2]);
-    }
-
-    // Handle `platform app view [--web]`
-    if args.len() >= 2 && args[0] == "app" && args[1] == "view" {
-        let web = args.get(2).map(|a| a == "--web").unwrap_or(false);
-        return view_app(web);
-    }
-
-    // Handle `platform init [path] [options]`
-    if !args.is_empty() && args[0] == "init" {
-        let init_args: Vec<String> = args[1..].to_vec();
-        let opts = InitOptions::from_args(&init_args);
-        return init_project(opts);
-    }
-
-    // Handle `platform check` - verify configuration first to give a nicer error,
-    // but skip the check when --help is requested so help text is always shown.
-    if !args.is_empty() && args[0] == "check" {
-        let is_help = args.iter().any(|a| a == "--help" || a == "-h");
-        if !is_help {
-            ensure_configured()?;
-        }
-        return tools::run_tool_binary("outerbounds", "outerbounds", args);
-    }
-
-    // Handle `platform deploy` by running obproject-deploy from the outerbounds tool
-    if !args.is_empty() && args[0] == "deploy" {
-        let deploy_args: Vec<String> = args[1..].to_vec();
-        tools::run_tool_binary("outerbounds", "obproject-deploy", &deploy_args)?;
-        status::blank_line();
-        status::celebrate("Deployment complete!");
-        status::blank_line();
-        eprintln!("Open your app in the browser with:");
-        eprintln!("  {}", status::highlight("ana platform app view --web"));
-        return Ok(());
-    }
-
-    // Pass through to the outerbounds CLI
-    tools::run_tool_binary("outerbounds", "outerbounds", args)
+    tools::run_tool_binary(
+        "outerbounds",
+        "outerbounds",
+        args,
+        &[("OB_CLI_CALLED_FROM_ANA", "true")],
+    )
 }

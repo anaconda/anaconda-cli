@@ -26,6 +26,29 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
+@pytest.fixture(scope="session", autouse=True)
+def isolated_conda_pkgs_dir(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Generator[Path, None, None]:
+    """Give each pytest-xdist worker its own conda package cache.
+
+    By default every `conda create` shares the root prefix's pkgs dir
+    (e.g. `.pixi/envs/default/pkgs`). With `-n auto` several workers can
+    download and extract the same package at the same time, leaving a
+    partly extracted package that fails to link ("Cannot link a source
+    that does not exist"). `tmp_path_factory` is per worker under xdist,
+    and test subprocesses inherit `os.environ`, so this removes that race.
+    """
+    pkgs_dir = tmp_path_factory.mktemp("conda-pkgs")
+    previous = os.environ.get("CONDA_PKGS_DIRS")
+    os.environ["CONDA_PKGS_DIRS"] = str(pkgs_dir)
+    yield pkgs_dir
+    if previous is None:
+        os.environ.pop("CONDA_PKGS_DIRS", None)
+    else:
+        os.environ["CONDA_PKGS_DIRS"] = previous
+
+
 @pytest.fixture
 def fake_home(tmp_path: Path) -> Path:
     """Provide a fake HOME directory for test isolation.

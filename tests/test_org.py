@@ -35,3 +35,9 @@ class TestOrg:
         result = run_ana_logged_in("org", "-h")
         assert result.returncode == 0
         assert "anaconda org" in result.stdout
+
+    def test_bare_org_shows_wrapped_help(self, run_ana_logged_in: AnaRunner) -> None:
+        """Bare `ana org` shows anaconda org's help and exits cleanly."""
+        result = run_ana_logged_in("org")
+        assert result.returncode == 0
+        assert "anaconda org" in result.stdout

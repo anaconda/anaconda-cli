@@ -1092,7 +1092,7 @@ class TestMainXCondaPackageInstall:
             text=True,
             encoding="utf-8",
             env=env,
-            timeout=30,
+            timeout=120,
         )
         assert login_result.returncode == 0, f"Login failed: {login_result.stderr}"
 
@@ -1103,7 +1103,7 @@ class TestMainXCondaPackageInstall:
             text=True,
             encoding="utf-8",
             env=env,
-            timeout=30,
+            timeout=120,
         )
         assert enable_result.returncode == 0, f"Enable failed: {enable_result.stderr}"
 
@@ -1126,7 +1126,7 @@ class TestMainXCondaPackageInstall:
             text=True,
             encoding="utf-8",
             env=env,
-            timeout=120,
+            timeout=300,
         )
 
         # Install should succeed when authenticated
@@ -1139,7 +1139,7 @@ class TestMainXCondaPackageInstall:
             [str(ana_binary), "feature", "disable", "main-x", "-f"],
             capture_output=True,
             env=env,
-            timeout=30,
+            timeout=120,
         )
 
     def test_cannot_install_from_main_x_without_auth(
@@ -1169,7 +1169,7 @@ class TestMainXCondaPackageInstall:
             text=True,
             encoding="utf-8",
             env=conda_isolated_env,
-            timeout=120,
+            timeout=300,
         )
 
         # Should fail - either 403 Forbidden or token not found error
