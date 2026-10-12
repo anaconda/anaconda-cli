@@ -198,13 +198,11 @@ fn run_command(filename: &str) -> String {
 /// Resolve the installer base URL: an explicit argument wins, then the
 /// configured override, then the public default.
 fn resolve_base_url(explicit: Option<&str>, configured: Option<&str>) -> String {
-    if let Some(url) = explicit {
-        return url.to_string();
-    }
-    configured
-        .filter(|url| !url.is_empty())
-        .unwrap_or(MINICONDA_BASE_URL)
-        .to_string()
+    let url = explicit
+        .filter(|url| !url.trim().is_empty())
+        .or_else(|| configured.filter(|url| !url.trim().is_empty()))
+        .unwrap_or(MINICONDA_BASE_URL);
+    format!("{}/", url.trim().trim_end_matches('/'))
 }
 
 pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
