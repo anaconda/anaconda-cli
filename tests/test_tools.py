@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from conftest import MOCK_MINICONDA_INSTALLER_CONTENT
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -119,10 +120,13 @@ class TestToolDownloadCommand:
         filename = _expected_miniconda_filename()
         installer = tmp_path / filename
         assert installer.exists(), "installer should be written to the cwd"
-        assert installer.read_bytes() == b"#!/bin/sh\necho mock miniconda installer\n"
+        assert installer.read_bytes() == MOCK_MINICONDA_INSTALLER_CONTENT
 
-        # No leftover temp file from the atomic rename.
-        assert not (tmp_path / f"{filename}.tmp").exists()
+        # No leftover temp file from the atomic rename. `download_and_verify`
+        # writes to `dest.with_extension("tmp")`, which *replaces* the
+        # extension (foo.sh -> foo.tmp) rather than appending.
+        temp_path = installer.with_suffix(".tmp")
+        assert not temp_path.exists(), f"leftover temp file: {temp_path.name}"
 
         assert filename in result.stdout
         assert "SHA256 verified." in result.stdout
@@ -139,8 +143,13 @@ class TestToolDownloadCommand:
         result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
 
         assert result.returncode == 0, result.stderr
-        assert "Downloading" in result.stderr
-        assert "Downloaded" in result.stdout
+
+        # The " (X.X MB)" suffix is only printed when the manifest entry has a
+        # size, so asserting the full line verifies the size was reported.
+        filename = _expected_miniconda_filename()
+        size_part = f" ({len(MOCK_MINICONDA_INSTALLER_CONTENT) / 1_000_000:.1f} MB)"
+        assert f"Downloading {filename}{size_part}" in result.stderr
+        assert f"Downloaded {filename}{size_part} to:" in result.stdout
 
     def test_download_miniconda_second_run_fails(
         self,

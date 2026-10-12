@@ -398,6 +398,11 @@ _MINICONDA_INSTALLER_FILENAMES = [
     "Miniconda3-latest-Windows-x86_64.exe",
 ]
 
+# Placeholder installer bytes served by `miniconda_mock_server`. Only the
+# checksum and size in the manifest matter to ana; tests import this constant
+# to assert on the reported size.
+MOCK_MINICONDA_INSTALLER_CONTENT = b"#!/bin/sh\necho mock miniconda installer\n"
+
 
 @pytest.fixture(scope="session")
 def miniconda_mock_server(
@@ -413,7 +418,7 @@ def miniconda_mock_server(
     import hashlib
 
     root = tmp_path_factory.mktemp("miniconda_server")
-    installer_content = b"#!/bin/sh\necho mock miniconda installer\n"
+    installer_content = MOCK_MINICONDA_INSTALLER_CONTENT
 
     # Mirror the real layout: files live under a /miniconda/ path.
     miniconda_dir = root / "miniconda"
