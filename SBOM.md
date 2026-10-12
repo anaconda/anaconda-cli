@@ -190,7 +190,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [lazy-regex-proc\_macros](https://crates.io/crates/lazy-regex-proc_macros) | 3.6.0 | MIT |  |  |
 | [lazy\_static](https://crates.io/crates/lazy_static) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [libbz2-rs-sys](https://crates.io/crates/libbz2-rs-sys) | 0.2.5 | bzip2-1.0.6 |  |  |
-| [libc](https://crates.io/crates/libc) | 0.2.189 | MIT OR Apache-2.0 |  |  |
+| [libc](https://crates.io/crates/libc) | 0.2.190 | MIT OR Apache-2.0 |  |  |
 | [linux-raw-sys](https://crates.io/crates/linux-raw-sys) | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux |  |
 | [litemap](https://crates.io/crates/litemap) | 0.8.2 | Unicode-3.0 |  |  |
 | [litrs](https://crates.io/crates/litrs) | 1.0.0 | MIT OR Apache-2.0 |  |  |
