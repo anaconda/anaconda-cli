@@ -2,9 +2,8 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:f67e08a0-8224-47b0-8d50-22ed13b5ff76",
+  "serialNumber": "urn:uuid:56e9c537-ebe9-4ddc-8e05-14ef59bac5bb",
   "metadata": {
-    "timestamp": "2026-09-21T19:42:40Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -26,6 +25,12 @@
           "name": "ana",
           "version": "0.0.0",
           "purl": "pkg:cargo/ana@0.0.0?download_url=file://.#src/main.rs"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6b495b2525633edb9819571ea03339b313215b52813271f608dd64604e01bf2f"
         }
       ]
     },
@@ -18011,6 +18016,25 @@
       "affects": [
         {
           "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2024-0449",
+      "description": "[unmaintained] unsafe-libyaml is unmaintained",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2024-0449.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#unsafe-libyaml@0.2.11"
         }
       ]
     }
