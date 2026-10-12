@@ -2,7 +2,7 @@
 
 Generated: unknown<br>
 Format: CycloneDX 1.4<br>
-Packages: 464 (64 platform-specific)<br>
+Packages: 465 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 3 (1 INFO) across 3 packages**
 
@@ -345,6 +345,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.1 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
+| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.5 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -377,7 +378,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [tinystr](https://crates.io/crates/tinystr) | 0.8.3 | Unicode-3.0 |  |  |
 | [tinyvec](https://crates.io/crates/tinyvec) | 1.12.0 | Zlib OR Apache-2.0 OR MIT |  |  |
 | [tinyvec\_macros](https://crates.io/crates/tinyvec_macros) | 0.1.1 | MIT OR Apache-2.0 OR Zlib |  |  |
-| [tokio](https://crates.io/crates/tokio) | 1.53.1 | MIT |  |  |
+| [tokio](https://crates.io/crates/tokio) | 1.53.2 | MIT |  |  |
 | [tokio-macros](https://crates.io/crates/tokio-macros) | 2.7.1 | MIT |  |  |
 | [tokio-native-tls](https://crates.io/crates/tokio-native-tls) | 0.3.1 | MIT |  |  |
 | [tokio-rustls](https://crates.io/crates/tokio-rustls) | 0.26.4 | MIT OR Apache-2.0 |  |  |
@@ -487,7 +488,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 250 |
+| MIT OR Apache-2.0 | 251 |
 | MIT | 88 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
