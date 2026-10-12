@@ -4,7 +4,7 @@ Generated: unknown<br>
 Format: CycloneDX 1.4<br>
 Packages: 464 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 2 across 2 packages**
+<br>**[Security advisories](#security-advisories): 3 (1 INFO) across 3 packages**
 
 ## Packages
 
@@ -145,7 +145,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [heck](https://crates.io/crates/heck) | 0.5.0 | MIT OR Apache-2.0 |  |  |
 | [hex](https://crates.io/crates/hex) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [hostname](https://crates.io/crates/hostname) | 0.4.2 | MIT |  |  |
-| [http](https://crates.io/crates/http) | 1.4.2 | MIT OR Apache-2.0 |  |  |
+| [http](https://crates.io/crates/http) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [http-auth](https://crates.io/crates/http-auth) | 0.1.10 | MIT OR Apache-2.0 |  |  |
 | [http-body](https://crates.io/crates/http-body) | 1.1.0 | MIT |  |  |
 | [http-body-util](https://crates.io/crates/http-body-util) | 0.1.4 | MIT |  |  |
@@ -416,7 +416,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [unicode-width](https://crates.io/crates/unicode-width) | 0.1.14 | MIT OR Apache-2.0 |  |  |
 | [unicode-width](https://crates.io/crates/unicode-width) | 0.2.2 | MIT OR Apache-2.0 |  |  |
 | [unit-prefix](https://crates.io/crates/unit-prefix) | 0.5.2 | MIT |  |  |
-| [unsafe-libyaml](https://crates.io/crates/unsafe-libyaml) | 0.2.11 | MIT |  |  |
+| [unsafe-libyaml](https://crates.io/crates/unsafe-libyaml) | 0.2.11 | MIT |  | 1 |
 | [unscanny](https://crates.io/crates/unscanny) | 0.1.0 | MIT OR Apache-2.0 |  |  |
 | [untrusted](https://crates.io/crates/untrusted) | 0.9.0 | ISC |  |  |
 | [url](https://crates.io/crates/url) | 2.5.8 | MIT OR Apache-2.0 |  |  |
@@ -481,6 +481,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
 
 ## License Summary
 
