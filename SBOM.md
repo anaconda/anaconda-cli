@@ -326,7 +326,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [serde\_bytes](https://crates.io/crates/serde_bytes) | 0.11.19 | MIT OR Apache-2.0 |  |  |
 | [serde\_core](https://crates.io/crates/serde_core) | 1.0.229 | MIT OR Apache-2.0 |  |  |
 | [serde\_derive](https://crates.io/crates/serde_derive) | 1.0.229 | MIT OR Apache-2.0 |  |  |
-| [serde\_json](https://crates.io/crates/serde_json) | 1.0.151 | MIT OR Apache-2.0 |  |  |
+| [serde\_json](https://crates.io/crates/serde_json) | 1.0.154 | MIT OR Apache-2.0 |  |  |
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.21 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_urlencoded](https://crates.io/crates/serde_urlencoded) | 0.7.1 | MIT OR Apache-2.0 |  |  |
