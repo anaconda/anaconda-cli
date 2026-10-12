@@ -386,3 +386,65 @@ def ana_version(run_ana: AnaRunner) -> str:
     result = run_ana("--version")
     assert result.returncode == 0
     return result.stdout.strip()
+
+
+# Installer filenames ana maps for each supported (os, arch). Kept in sync with
+# src/installer/mod.rs::detect_target.
+_MINICONDA_INSTALLER_FILENAMES = [
+    "Miniconda3-latest-MacOSX-arm64.sh",
+    "Miniconda3-latest-MacOSX-x86_64.sh",
+    "Miniconda3-latest-Linux-x86_64.sh",
+    "Miniconda3-latest-Linux-aarch64.sh",
+    "Miniconda3-latest-Windows-x86_64.exe",
+]
+
+
+@pytest.fixture(scope="session")
+def miniconda_mock_server(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Generator[str, None, None]:
+    """Host a mock Miniconda installer and its ``.files.json`` manifest.
+
+    Mirrors the layout of ``https://repo.anaconda.com/miniconda/`` so that
+    ``ana tool download miniconda`` can be exercised end-to-end without a
+    real ~120 MB download. The installer bytes are a small placeholder; only
+    the checksum and size in the manifest matter to ana.
+    """
+    import hashlib
+
+    root = tmp_path_factory.mktemp("miniconda_server")
+    installer_content = b"#!/bin/sh\necho mock miniconda installer\n"
+
+    # Mirror the real layout: files live under a /miniconda/ path.
+    miniconda_dir = root / "miniconda"
+    miniconda_dir.mkdir()
+
+    manifest: dict[str, dict[str, object]] = {}
+    for filename in _MINICONDA_INSTALLER_FILENAMES:
+        (miniconda_dir / filename).write_bytes(installer_content)
+        manifest[filename] = {
+            "md5": hashlib.md5(installer_content).hexdigest(),
+            "sha256": hashlib.sha256(installer_content).hexdigest(),
+            "size": len(installer_content),
+            "mtime": 1777399036.0,
+        }
+
+    (miniconda_dir / ".files.json").write_text(json.dumps(manifest))
+
+    class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+        """HTTP request handler that suppresses logging."""
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass  # Suppress logging
+
+    handler = partial(QuietHTTPRequestHandler, directory=str(root))
+
+    with socketserver.TCPServer(("127.0.0.1", 0), handler) as server:
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever)
+        thread.daemon = True
+        thread.start()
+
+        yield f"http://127.0.0.1:{port}/miniconda/"
+
+        server.shutdown()

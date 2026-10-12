@@ -25,6 +25,7 @@
 //! | `ANA_UPDATE_CHECK`               | `true`                     | Enable background update notifications |
 //! | `ANA_UPDATE_CHECK_INTERVAL_HOURS`| `24`                       | Hours between update checks     |
 //! | `ANA_UPDATE_NOTIFY_INTERVAL_HOURS`| `24`                      | Hours between showing notifications |
+//! | `ANA_INSTALLER_BASE_URL`         | (public miniconda URL)     | Base URL for `ana tool download miniconda` |
 //!
 //! When the `diagnostics` feature is enabled:
 //!

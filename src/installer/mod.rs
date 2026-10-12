@@ -195,8 +195,22 @@ fn run_command(filename: &str) -> String {
     }
 }
 
+/// Resolve the installer base URL: an explicit argument wins, then the
+/// `ANA_INSTALLER_BASE_URL` override (used by tests and future config-driven
+/// hosts), then the public default.
+fn resolve_base_url(explicit: Option<&str>) -> String {
+    if let Some(url) = explicit {
+        return url.to_string();
+    }
+    std::env::var("ANA_INSTALLER_BASE_URL")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| MINICONDA_BASE_URL.to_string())
+}
+
 pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
-    let base_url = base_url.unwrap_or(MINICONDA_BASE_URL);
+    let base_url = resolve_base_url(base_url);
+    let base_url = base_url.as_str();
     let target = detect_target(base_url, std::env::consts::OS, std::env::consts::ARCH)?;
 
     let dest = std::env::current_dir()
@@ -345,6 +359,21 @@ mod tests {
         );
         let result = expected_for(&manifest, "Miniconda3-latest-Linux-x86_64.sh");
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_resolve_base_url_explicit_wins() {
+        assert_eq!(
+            resolve_base_url(Some("https://example.com/miniconda/")),
+            "https://example.com/miniconda/"
+        );
+    }
+
+    #[test]
+    fn test_resolve_base_url_default() {
+        // No explicit argument and no env override (tests run with an isolated
+        // environment) resolves to the public default.
+        assert_eq!(resolve_base_url(None), MINICONDA_BASE_URL);
     }
 
     #[test]
