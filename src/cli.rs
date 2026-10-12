@@ -1308,7 +1308,6 @@ mod tests {
         // Commands intentionally hidden from help output
         // "bootstrap" is hidden as it's synonymous to `ana tool install anaconda-cli`
         let hidden_from_help: std::collections::HashSet<_> = [
-            "org",
             "config",
             "bootstrap",
             "telemetry-submit",
@@ -1725,6 +1724,21 @@ mod tests {
         assert_eq!(
             platform_args(&["ana", "platform", "app", "list", "--help"]),
             vec!["app", "list", "--help"]
+        );
+    }
+
+    #[test]
+    #[cfg(all(unix, tool_install))]
+    fn test_parse_platform_leaf_command_help_is_forwarded() {
+        // Regression test for CLI-790: `check` is a leaf command (takes its own
+        // flags) rather than a subcommand group, so --help must still reach it.
+        assert_eq!(
+            platform_args(&["ana", "platform", "check", "--help"]),
+            vec!["check", "--help"]
+        );
+        assert_eq!(
+            platform_args(&["ana", "platform", "check", "-h"]),
+            vec!["check", "-h"]
         );
     }
 

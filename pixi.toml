@@ -7,6 +7,7 @@ platforms = ["osx-arm64", "linux-64", "win-64", "linux-aarch64"]
 conda = ">=24"
 pre-commit = ">=4.5.1,<5"
 pytest = ">=8"
+pytest-xdist = ">=3.6"
 python = ">=3.10"
 rattler-build = ">=0.72,<0.73"
 rust = "*"
@@ -58,7 +59,9 @@ depends-on = ["build-release"]
 description = "Run the unit tests in release mode"
 
 [tasks.test-integration]
-cmd = "pytest tests -v"
+# loadfile keeps each test file (and its session-scoped fixtures) on a
+# single worker, so the conda package build and mock servers happen once.
+cmd = "pytest tests -v -n auto --dist loadfile"
 description = "Run integration tests"
 
 [tasks.check-minimal]
