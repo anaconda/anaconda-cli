@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import http.server
+import itertools
 import json
 import os
 import socketserver
 import subprocess
 import tempfile
 import threading
+from collections.abc import Callable
 from collections.abc import Generator
 from functools import partial
 from pathlib import Path
@@ -386,3 +389,125 @@ def ana_version(run_ana: AnaRunner) -> str:
     result = run_ana("--version")
     assert result.returncode == 0
     return result.stdout.strip()
+
+
+# Installer filenames ana maps for each supported (os, arch). Kept in sync with
+# src/installer/mod.rs::detect_target.
+_MINICONDA_INSTALLER_FILENAMES = [
+    "Miniconda3-latest-MacOSX-arm64.sh",
+    "Miniconda3-latest-MacOSX-x86_64.sh",
+    "Miniconda3-latest-Linux-x86_64.sh",
+    "Miniconda3-latest-Linux-aarch64.sh",
+    "Miniconda3-latest-Windows-x86_64.exe",
+]
+
+# Placeholder installer bytes served by `miniconda_server_factory`. Only the
+# checksum and size in the manifest matter to ana; tests import this constant
+# to assert on the downloaded bytes.
+MOCK_MINICONDA_INSTALLER_CONTENT = b"#!/bin/sh\necho mock miniconda installer\n"
+
+
+_DEFAULT_SHA = object()
+
+
+def _build_miniconda_manifest(
+    *,
+    sha256: str | None | object = _DEFAULT_SHA,
+    size: int | None = None,
+    filenames: list[str] | None = None,
+) -> str:
+    """Build a ``.files.json`` manifest body for the supported installers.
+
+    ``sha256`` defaults to the real hash of the mock installer bytes; pass a
+    string to override it, an empty string for an empty checksum, or ``None``
+    to omit the field entirely. ``size`` is omitted unless provided.
+    """
+    import hashlib
+
+    filenames = filenames if filenames is not None else _MINICONDA_INSTALLER_FILENAMES
+    if sha256 is _DEFAULT_SHA:
+        sha256 = hashlib.sha256(MOCK_MINICONDA_INSTALLER_CONTENT).hexdigest()
+
+    manifest: dict[str, dict[str, object]] = {}
+    for filename in filenames:
+        entry: dict[str, object] = {"mtime": 1777399036.0}
+        if sha256 is not None:
+            entry["sha256"] = sha256
+        if size is not None:
+            entry["size"] = size
+        manifest[filename] = entry
+    return json.dumps(manifest)
+
+
+@contextlib.contextmanager
+def _serve_directory(directory: Path) -> Generator[str, None, None]:
+    """Serve ``directory`` over HTTP on an ephemeral port; yield the base URL."""
+
+    class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+        """HTTP request handler that suppresses logging."""
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass  # Suppress logging
+
+    handler = partial(QuietHTTPRequestHandler, directory=str(directory))
+
+    with socketserver.TCPServer(("127.0.0.1", 0), handler) as server:
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever)
+        thread.daemon = True
+        thread.start()
+
+        yield f"http://127.0.0.1:{port}/"
+
+        server.shutdown()
+
+
+@pytest.fixture
+def miniconda_server_factory(
+    tmp_path: Path,
+) -> Generator[Callable[..., str], None, None]:
+    """Start mock Miniconda servers with configurable failure behavior.
+
+    Returns a callable that builds a fresh server per call and yields its base
+    URL (ending in ``/miniconda/``). Arguments let a test drive negative and
+    edge paths:
+
+    - ``manifest_body``: raw ``.files.json`` text (for malformed/missing-key
+      cases). Defaults to a valid manifest for the current platform.
+    - ``sha256`` / ``size``: override the manifest entry fields.
+    - ``installer_bytes``: bytes served for the installer, or ``None`` to
+      omit the installer file entirely (drives a download 404).
+    """
+    servers: list[contextlib.ExitStack] = []
+    counter = itertools.count()
+
+    def _start(
+        *,
+        manifest_body: str | None = None,
+        write_manifest: bool = True,
+        sha256: str | None | object = _DEFAULT_SHA,
+        size: int | None = None,
+        installer_bytes: bytes | None = MOCK_MINICONDA_INSTALLER_CONTENT,
+    ) -> str:
+        root = tmp_path / f"server-{next(counter)}"
+        miniconda_dir = root / "miniconda"
+        miniconda_dir.mkdir(parents=True)
+
+        for filename in _MINICONDA_INSTALLER_FILENAMES:
+            if installer_bytes is not None:
+                (miniconda_dir / filename).write_bytes(installer_bytes)
+
+        if write_manifest:
+            if manifest_body is None:
+                manifest_body = _build_miniconda_manifest(sha256=sha256, size=size)
+            (miniconda_dir / ".files.json").write_text(manifest_body)
+
+        stack = contextlib.ExitStack()
+        servers.append(stack)
+        base_url = stack.enter_context(_serve_directory(root))
+        return f"{base_url}miniconda/"
+
+    yield _start
+
+    for stack in servers:
+        stack.close()
