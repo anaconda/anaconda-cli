@@ -15,25 +15,18 @@ from mock_auth_server import MockAuthServer
 # main-x is always from .cloud/repo, others are from .com/pkgs for free users
 MAIN_X_CHANNEL = "https://repo.anaconda.cloud/repo/main-x"
 MAIN_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/main"
-MSYS2_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/msys2"
-R_CHANNEL_FREE = "https://repo.anaconda.com/pkgs/r"
 
 # Premium tier URLs (all from .cloud/repo)
 MAIN_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/main"
-MSYS2_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/msys2"
-R_CHANNEL_PREMIUM = "https://repo.anaconda.cloud/repo/r"
 
 # Aliases for pixi tests that use real API keys (which have premium subscriptions)
 MAIN_CHANNEL = MAIN_CHANNEL_PREMIUM
-MSYS2_CHANNEL = MSYS2_CHANNEL_PREMIUM
-R_CHANNEL = R_CHANNEL_PREMIUM
 
-# All required default_channels when main-x is enabled (free tier, for mock auth tests)
+# Required default_channels when main-x is enabled (free tier, for mock auth
+# tests): main must precede main-x so main-x packages take priority.
 REQUIRED_DEFAULT_CHANNELS = [
-    MAIN_X_CHANNEL,
     MAIN_CHANNEL_FREE,
-    MSYS2_CHANNEL_FREE,
-    R_CHANNEL_FREE,
+    MAIN_X_CHANNEL,
 ]
 
 
@@ -684,8 +677,8 @@ class TestMainXEnable:
         run_ana_feature: AnaRunner,
         feature_env: dict[str, str],
     ) -> None:
-        """Enabling main-x when already enabled should succeed and ensure correct config."""
-        # Pre-configure all required default_channels
+        """Enabling main-x when already enabled should leave the config unchanged."""
+        # Pre-configure main followed by main-x
         condarc_path = Path(feature_env["CONDARC"])
         default_channels_yaml = "\n".join(
             f"  - {ch}" for ch in REQUIRED_DEFAULT_CHANNELS
@@ -698,14 +691,61 @@ class TestMainXEnable:
         login_result = run_ana_feature("login")
         assert login_result.returncode == 0
 
-        # Try to enable main-x again - should succeed and reconfigure channels
+        # Try to enable main-x again - should report it is already enabled
         result = run_ana_feature("feature", "enable", "main-x", "-f")
         assert result.returncode == 0
+        assert "already enabled" in result.stderr.lower()
 
-        # Verify channels are still correctly configured
+        # Verify channels are unchanged
         final_channels = get_default_channels(feature_env)
-        for ch in REQUIRED_DEFAULT_CHANNELS:
-            assert ch in final_channels, f"Expected {ch} in final channels"
+        assert final_channels == REQUIRED_DEFAULT_CHANNELS
+
+    def test_enable_main_x_idempotent_premium_main(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """An existing premium main followed by main-x counts as enabled (issue #425)."""
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            "channels:\n  - defaults\n"
+            f"default_channels:\n  - {MAIN_CHANNEL_PREMIUM}\n  - {MAIN_X_CHANNEL}\n"
+        )
+
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0
+        assert "already enabled" in result.stderr.lower()
+
+        final_channels = get_default_channels(feature_env)
+        assert final_channels == [MAIN_CHANNEL_PREMIUM, MAIN_X_CHANNEL]
+
+    def test_enable_main_x_does_not_add_msys2_or_r(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """Enabling main-x should only add main and main-x, not msys2 or r."""
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            "channels:\n  - defaults\n"
+            "default_channels:\n  - https://conda.anaconda.org/conda-forge\n"
+        )
+
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        final_channels = get_default_channels(feature_env)
+        assert final_channels == [
+            MAIN_CHANNEL_FREE,
+            MAIN_X_CHANNEL,
+            "https://conda.anaconda.org/conda-forge",
+        ]
 
     def test_enable_main_x_correct_order(
         self,
@@ -1227,21 +1267,18 @@ class TestMainXPixiEnable:
         pixi_feature_env: dict[str, str],
     ) -> None:
         """Enabling main-x with --pixi when already enabled should succeed."""
-        # Pre-configure all 4 required channels via pixi config
-        # (all are required for "already enabled")
-        for channel in [MAIN_X_CHANNEL, MAIN_CHANNEL, MSYS2_CHANNEL, R_CHANNEL]:
+        # Pre-configure main followed by main-x via pixi config
+        # (prepend in reverse order so main ends up first)
+        for channel in [MAIN_X_CHANNEL, MAIN_CHANNEL]:
             subprocess.run(
                 ["pixi", "config", "prepend", "--global", "default-channels", channel],
                 env=pixi_feature_env,
                 check=True,
             )
 
-        # Verify all channels are configured
+        # Verify channels are configured
         initial_channels = get_pixi_channels(pixi_feature_env)
-        assert MAIN_X_CHANNEL in initial_channels
-        assert MAIN_CHANNEL in initial_channels
-        assert MSYS2_CHANNEL in initial_channels
-        assert R_CHANNEL in initial_channels
+        assert initial_channels == [MAIN_CHANNEL, MAIN_X_CHANNEL]
 
         # Login with API key
         api_key = get_test_api_key()
