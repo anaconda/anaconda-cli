@@ -38,6 +38,24 @@ def _expected_miniconda_filename() -> str:
     return filename
 
 
+def _pixi_row(stdout: str) -> str:
+    """Return the `ana tool list` table row for pixi."""
+    return next(
+        line
+        for line in stdout.split("\n")
+        if "│ pixi" in line.lower() and "anaconda" not in line.lower()
+    )
+
+
+def _make_fake_executable(directory: Path, name: str) -> Path:
+    """Create a fake executable file named `name` in `directory`."""
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    path.write_text("#!/bin/sh\necho fake\n")
+    path.chmod(0o755)
+    return path
+
+
 class TestToolHelp:
     """Tests for tool command help."""
 
@@ -232,19 +250,16 @@ class TestToolList:
         assert "ana tool download miniconda" in result.stdout
 
     def test_tool_list_shows_installed_status(
-        self, run_ana_logged_in: AnaRunner, fake_home: Path
+        self, run_ana_logged_in: AnaRunner, fake_home: Path, tmp_path: Path
     ) -> None:
         """Test that tool list correctly shows installation status."""
-        # Before install, should show ✗
-        result_before = run_ana_logged_in("tool", "list")
+        # Before install, should show ✗. Use an empty PATH so a pixi on the
+        # host machine isn't reported as an external install.
+        empty_bin = tmp_path / "empty-bin"
+        empty_bin.mkdir()
+        result_before = run_ana_logged_in("tool", "list", env={"PATH": str(empty_bin)})
         assert result_before.returncode == 0
-        # pixi should show as not installed (find line with pixi but not anaconda)
-        lines_before = result_before.stdout.split("\n")
-        pixi_line_before = [
-            line
-            for line in lines_before
-            if "pixi" in line.lower() and "anaconda" not in line.lower()
-        ][0]
+        pixi_line_before = _pixi_row(result_before.stdout)
         assert "✗" in pixi_line_before
 
         # Install pixi
@@ -254,13 +269,41 @@ class TestToolList:
         # After install, should show ✓
         result_after = run_ana_logged_in("tool", "list")
         assert result_after.returncode == 0
-        lines_after = result_after.stdout.split("\n")
-        pixi_line_after = [
-            line
-            for line in lines_after
-            if "pixi" in line.lower() and "anaconda" not in line.lower()
-        ][0]
+        pixi_line_after = _pixi_row(result_after.stdout)
         assert "✓" in pixi_line_after
+
+    def test_tool_list_detects_external_install(
+        self, run_ana_logged_in: AnaRunner, tmp_path: Path
+    ) -> None:
+        """A pixi installed outside ana (e.g. via pixi.sh/install.sh into
+        ~/.pixi/bin) should be reported as external, not as missing. See
+        GitHub issue #423."""
+        external_pixi = _make_fake_executable(tmp_path / ".pixi" / "bin", PIXI_BIN)
+
+        result = run_ana_logged_in(
+            "tool", "list", env={"PATH": str(external_pixi.parent)}
+        )
+        assert result.returncode == 0
+        pixi_line = _pixi_row(result.stdout)
+        assert "external" in pixi_line
+        assert "✗" not in pixi_line
+        assert "not managed by ana" in result.stdout
+        assert str(external_pixi) in result.stdout
+
+    def test_tool_list_ignores_ana_bin_dir_on_path(
+        self, run_ana_logged_in: AnaRunner, fake_home: Path
+    ) -> None:
+        """Binaries in ~/.ana/bin are ana's own links and must never be
+        reported as an external install."""
+        _make_fake_executable(fake_home / ".ana" / "bin", PIXI_BIN)
+
+        result = run_ana_logged_in(
+            "tool", "list", env={"PATH": str(fake_home / ".ana" / "bin")}
+        )
+        assert result.returncode == 0
+        pixi_line = _pixi_row(result.stdout)
+        assert "external" not in pixi_line
+        assert "not managed by ana" not in result.stdout
 
     @pytest.mark.skipif(IS_WINDOWS, reason="Windows uses shims.cfg, not symlinks")
     def test_tool_list_cleans_up_broken_symlink(
