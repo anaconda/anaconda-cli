@@ -303,16 +303,17 @@ fn conda_effective_channels<'a>(
 /// removed first. Then main and main-x are looked up in both `channels` and
 /// `default_channels`. If both are present, with main searched before main-x
 /// (so main-x packages take priority over main), nothing else changes.
-/// Otherwise main-x is added to `default_channels` right after main, adding
-/// main first if it is not configured anywhere.
+/// Otherwise main and main-x are consolidated into `default_channels`: they
+/// are removed from both lists and added back as main, main-x at the front
+/// of `default_channels`.
 ///
-/// When main has to go into `default_channels`, any existing main entry
-/// there is removed and re-added rather than appended to: `conda config
-/// --show` reports conda's built-in default_channels even when none are
-/// explicitly configured, but the first `conda config --add` writes an
-/// explicit list containing only the added channel, which would silently
-/// drop an implicit main. Removing an entry that only exists implicitly fails
-/// harmlessly and the error is ignored on execute.
+/// Existing entries in `default_channels` are removed and re-added rather
+/// than appended to: `conda config --show` reports conda's built-in
+/// default_channels even when none are explicitly configured, but the first
+/// `conda config --add` writes an explicit list containing only the added
+/// channel, which would silently drop an implicit main. Removing an entry
+/// that only exists implicitly fails harmlessly and the error is ignored on
+/// execute.
 fn plan_conda_enable_actions(
     channels: &[String],
     default_channels: &[String],
@@ -347,33 +348,18 @@ fn plan_conda_enable_actions(
         return actions;
     }
 
-    // Any main-x entry in channels is searched before main (or there is no
-    // main at all), so drop it; main-x is re-added to default_channels below.
-    for channel in channels.iter().filter(|c| is_main_x_channel(c)) {
+    // Consolidate main and main-x into default_channels: remove them from
+    // both lists, then add them back to the front of default_channels.
+    let is_managed = |c: &&String| urls.is_main(c) || is_main_x_channel(c);
+    for channel in channels.iter().filter(is_managed) {
         actions.push(MainXCondaAction::RemoveChannel(channel.clone()));
     }
-
-    // A main entry in channels listed before "defaults" is searched before
-    // everything in default_channels, so main-x can simply be added there.
-    let main_precedes_defaults =
-        defaults_pos.is_some_and(|pos| channels[..pos].iter().any(|c| urls.is_main(c)));
-
-    if main_precedes_defaults {
-        for channel in default_channels.iter().filter(|c| is_main_x_channel(c)) {
-            actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
-        }
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
-    } else {
-        for channel in default_channels
-            .iter()
-            .filter(|c| urls.is_main(c) || is_main_x_channel(c))
-        {
-            actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
-        }
-        // Add in reverse order since `conda config --add` prepends
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
-        actions.push(MainXCondaAction::AddDefaultChannel(urls.main.clone()));
+    for channel in default_channels.iter().filter(is_managed) {
+        actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
     }
+    // Add in reverse order since `conda config --add` prepends
+    actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
+    actions.push(MainXCondaAction::AddDefaultChannel(urls.main.clone()));
 
     if defaults_pos.is_none() {
         actions.push(MainXCondaAction::EnsureDefaultsInChannels);
@@ -1393,8 +1379,16 @@ mod tests {
         let default_channels = strings(&["https://repo.anaconda.com/pkgs/r"]);
         let actions = plan_conda_enable_actions(&channels, &default_channels, &urls);
 
-        // main is already searched first, so only main-x is needed
-        assert_eq!(conda_commands(&actions), vec![add_default(&urls.main_x)]);
+        // main is moved out of channels and consolidated with main-x in
+        // default_channels
+        assert_eq!(
+            conda_commands(&actions),
+            vec![
+                remove_channel(&urls.main),
+                add_default(&urls.main_x),
+                add_default(&urls.main),
+            ]
+        );
     }
 
     #[test]
@@ -1403,11 +1397,36 @@ mod tests {
         let channels = vec!["defaults".into(), urls.main.clone()];
         let actions = plan_conda_enable_actions(&channels, &[], &urls);
 
-        // main-x in default_channels would be searched before main, so
-        // main is added ahead of it
         assert_eq!(
             conda_commands(&actions),
-            vec![add_default(&urls.main_x), add_default(&urls.main)]
+            vec![
+                remove_channel(&urls.main),
+                add_default(&urls.main_x),
+                add_default(&urls.main),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_plan_conda_enable_actions_consolidates_both_from_channels() {
+        // main-x before main in channels: both move to default_channels
+        let urls = premium_urls();
+        let channels = vec![
+            urls.main_x.clone(),
+            urls.main.clone(),
+            "conda-forge".into(),
+            "defaults".into(),
+        ];
+        let actions = plan_conda_enable_actions(&channels, &[], &urls);
+
+        assert_eq!(
+            conda_commands(&actions),
+            vec![
+                remove_channel(&urls.main_x),
+                remove_channel(&urls.main),
+                add_default(&urls.main_x),
+                add_default(&urls.main),
+            ]
         );
     }
 

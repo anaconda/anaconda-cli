@@ -721,6 +721,31 @@ class TestMainXEnable:
         final_channels = get_default_channels(feature_env)
         assert final_channels == [MAIN_CHANNEL_FREE, MAIN_X_CHANNEL]
 
+    def test_enable_main_x_consolidates_into_default_channels(
+        self,
+        run_ana_feature: AnaRunner,
+        feature_env: dict[str, str],
+    ) -> None:
+        """main configured in channels is moved into default_channels with main-x."""
+        condarc_path = Path(feature_env["CONDARC"])
+        condarc_path.write_text(
+            f"channels:\n  - {MAIN_CHANNEL_FREE}\n  - conda-forge\n  - defaults\n"
+            "default_channels:\n  - https://conda.anaconda.org/bioconda\n"
+        )
+
+        login_result = run_ana_feature("login")
+        assert login_result.returncode == 0
+
+        result = run_ana_feature("feature", "enable", "main-x", "-f")
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
+
+        assert get_channels(feature_env) == ["conda-forge", "defaults"]
+        assert get_default_channels(feature_env) == [
+            MAIN_CHANNEL_FREE,
+            MAIN_X_CHANNEL,
+            "https://conda.anaconda.org/bioconda",
+        ]
+
     def test_enable_main_x_does_not_add_msys2_or_r(
         self,
         run_ana_feature: AnaRunner,
