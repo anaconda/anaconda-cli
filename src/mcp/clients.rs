@@ -478,9 +478,15 @@ pub struct RemoveResult {
     pub removed: bool,
     /// One entry per config file the server was removed from.
     pub configs: Vec<RemovedConfig>,
+    /// Path of the Anaconda Package Intelligence skill removed for this client.
+    pub skill_path: Option<PathBuf>,
 }
 
-/// Remove the Anaconda MCP server entry from every config file that has it.
+/// Remove the Anaconda MCP server entry from every config file that has it,
+/// along with the Anaconda Package Intelligence skill installed by `configure`.
+///
+/// A skill left behind without a server entry (e.g. by an older `ana` that
+/// did not remove it) is still cleaned up rather than reported as an error.
 pub fn remove(client: &str, server_name: &str, backup: bool) -> miette::Result<RemoveResult> {
     let spec = spec(client).ok_or_else(|| McpError::UnsupportedClient(client.to_string()))?;
     let paths = config_paths(client)?;
@@ -492,7 +498,9 @@ pub fn remove(client: &str, server_name: &str, backup: bool) -> miette::Result<R
         }
     }
 
-    if configs.is_empty() {
+    let skill_path = super::skill::uninstall(client)?;
+
+    if configs.is_empty() && skill_path.is_none() {
         let any_exists = paths.iter().any(|path| path.exists());
         if !any_exists {
             return Err(McpError::ConfigNotFound(paths[0].clone()).into());
@@ -508,6 +516,7 @@ pub fn remove(client: &str, server_name: &str, backup: bool) -> miette::Result<R
         server_name: server_name.to_string(),
         removed: true,
         configs,
+        skill_path,
     })
 }
 
@@ -827,13 +836,44 @@ mod tests {
                     .contains("// keep me")
             );
 
-            remove("kilo", "anaconda-mcp", false).unwrap();
+            let removed = remove("kilo", "anaconda-mcp", false).unwrap();
             assert!(!is_installed("kilo", "anaconda-mcp"));
             assert!(
                 std::fs::read_to_string(&jsonc)
                     .unwrap()
                     .contains("// keep me")
             );
+            assert_eq!(removed.skill_path, result.skill_path);
+            assert!(!kilo_dir.join("skills/anaconda-intelligence").exists());
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_remove_cleans_up_leftover_skill_without_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        let kilo_dir = dir.path().join(".config").join("kilo");
+        std::fs::create_dir_all(&kilo_dir).unwrap();
+        let jsonc = kilo_dir.join("kilo.jsonc");
+        std::fs::write(&jsonc, "{}\n").unwrap();
+
+        with_home(dir.path(), || {
+            // Entry already removed (e.g. by an older `ana`), skill left behind.
+            let skill = super::super::skill::install("kilo").unwrap();
+            assert!(!is_installed("kilo", "anaconda-mcp"));
+
+            let result = remove("kilo", "anaconda-mcp", false).unwrap();
+            assert!(result.configs.is_empty());
+            assert_eq!(result.skill_path, Some(skill.clone()));
+            assert!(!skill.exists());
+
+            // Nothing left to remove.
+            assert!(matches!(
+                remove("kilo", "anaconda-mcp", false)
+                    .unwrap_err()
+                    .downcast_ref::<McpError>(),
+                Some(McpError::ServerNotFound { .. })
+            ));
         });
     }
 

@@ -124,3 +124,64 @@ class TestMcpSetup:
             assert Path(str(payload[client]["skill_path"])) == skill_path
             _assert_skill_md(skill_path)
             _assert_mcp_entry(Path(str(payload[client]["config_path"])), client)
+
+
+def _remove_client(run_ana: AnaRunner, client: str) -> dict[str, object]:
+    result = run_ana("mcp", "remove", "--client", client, "--json", "--no-backup")
+    assert result.returncode == 0, f"remove failed for {client}: {result.stderr}"
+    payload = json.loads(result.stdout)
+    assert client in payload, f"JSON output missing {client}: {payload}"
+    return payload[client]
+
+
+class TestMcpRemove:
+    """End-to-end tests for `ana mcp remove`."""
+
+    @pytest.mark.parametrize("client", list(CLIENT_SKILLS))
+    def test_remove_undoes_setup(
+        self,
+        client: str,
+        run_ana_logged_in: AnaRunner,
+        fake_home: Path,
+    ) -> None:
+        """Remove deletes both the MCP config entry and the skill written by setup."""
+        setup_info = _setup_client(run_ana_logged_in, client)
+        config_path = Path(str(setup_info["config_path"]))
+        skill_path = fake_home / CLIENT_SKILLS[client]
+        _assert_skill_md(skill_path)
+
+        info = _remove_client(run_ana_logged_in, client)
+
+        assert Path(str(info["skill_path"])) == skill_path
+        assert not skill_path.exists()
+        assert not skill_path.parent.exists()
+        # The shared skills directory is left for other skills.
+        assert skill_path.parent.parent.is_dir()
+        assert SERVER_NAME not in config_path.read_text(encoding="utf-8")
+
+    def test_remove_cleans_up_leftover_skill(
+        self,
+        run_ana_logged_in: AnaRunner,
+        fake_home: Path,
+    ) -> None:
+        """A skill left behind after its MCP entry is gone is still removed."""
+        client = "kilo"
+        _setup_client(run_ana_logged_in, client)
+        skill_path = fake_home / CLIENT_SKILLS[client]
+
+        # Simulate an older `ana` that removed the entry but kept the skill.
+        skill_path.parent.rename(skill_path.parent.with_name("stash"))
+        _remove_client(run_ana_logged_in, client)
+        skill_path.parent.with_name("stash").rename(skill_path.parent)
+        _assert_skill_md(skill_path)
+
+        info = _remove_client(run_ana_logged_in, client)
+        assert info["configs"] == []
+        assert Path(str(info["skill_path"])) == skill_path
+        assert not skill_path.exists()
+
+        # Nothing left: removing again fails.
+        result = run_ana_logged_in(
+            "mcp", "remove", "--client", client, "--json", "--no-backup"
+        )
+        assert result.returncode != 0

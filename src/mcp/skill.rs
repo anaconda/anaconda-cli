@@ -302,6 +302,33 @@ pub fn install(client: &str) -> miette::Result<PathBuf> {
     Ok(path)
 }
 
+/// Remove the Anaconda Package Intelligence skill for a client.
+///
+/// Deletes `SKILL.md` and then the `anaconda-intelligence` directory if it is
+/// left empty; any other files the user added there are preserved. The parent
+/// `skills` directory is shared with other skills and is never removed.
+///
+/// Returns the removed `SKILL.md` path, or `None` when no skill was installed.
+pub fn uninstall(client: &str) -> miette::Result<Option<PathBuf>> {
+    let path = skill_path(client)?;
+    match std::fs::remove_file(&path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => {
+            return Err(miette::miette!(
+                "Failed to remove {} skill at {}: {e}",
+                SKILL_NAME,
+                path.display()
+            ));
+        }
+    }
+    if let Some(dir) = path.parent() {
+        // Fails (and is ignored) when the directory still holds other files.
+        let _ = std::fs::remove_dir(dir);
+    }
+    Ok(Some(path))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -385,6 +412,43 @@ mod tests {
             let content = std::fs::read_to_string(&path).unwrap();
             assert!(content.starts_with("---\nname: anaconda-intelligence\n"));
             assert!(content.ends_with("execution was checked\n"));
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_uninstall_removes_skill_and_empty_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        with_home(dir.path(), || {
+            let skills_dir = dir.path().join(".config/kilo/skills");
+            let other_skill = skills_dir.join("other-skill/SKILL.md");
+            std::fs::create_dir_all(other_skill.parent().unwrap()).unwrap();
+            std::fs::write(&other_skill, "other").unwrap();
+
+            let path = install("kilo").unwrap();
+            assert_eq!(uninstall("kilo").unwrap(), Some(path.clone()));
+            assert!(!path.exists());
+            assert!(!skills_dir.join(SKILL_NAME).exists());
+            // Sibling skills and the shared skills directory are untouched.
+            assert!(other_skill.exists());
+
+            // Nothing left to remove.
+            assert_eq!(uninstall("kilo").unwrap(), None);
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_uninstall_preserves_user_files_in_skill_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        with_home(dir.path(), || {
+            let path = install("cursor").unwrap();
+            let extra = path.parent().unwrap().join("notes.md");
+            std::fs::write(&extra, "mine").unwrap();
+
+            assert_eq!(uninstall("cursor").unwrap(), Some(path.clone()));
+            assert!(!path.exists());
+            assert!(extra.exists());
         });
     }
 

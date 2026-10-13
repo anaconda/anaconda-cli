@@ -46,6 +46,13 @@ fn print_removed(client: &str, result: &clients::RemoveResult) {
         ));
         print_backup(&config.backup_path);
     }
+    if let Some(skill_path) = &result.skill_path {
+        status::success(&format!(
+            "Removed {} skill: {}",
+            status::highlight(super::skill::SKILL_NAME),
+            status::dim(&skill_path.display().to_string())
+        ));
+    }
 }
 
 fn print_backup(backup_path: &Option<std::path::PathBuf>) {
@@ -371,6 +378,7 @@ fn remove_json(result: &clients::RemoveResult) -> Value {
         "server_name": result.server_name,
         "removed": result.removed,
         "configs": configs,
+        "skill_path": result.skill_path.as_ref().map(|p| p.display().to_string()),
     })
 }
 
@@ -413,9 +421,14 @@ mod tests {
                     backup_path: None,
                 },
             ],
+            skill_path: Some("/tmp/skills/anaconda-intelligence/SKILL.md".into()),
         };
         let value = remove_json(&result);
         assert_eq!(value["removed"], true);
+        assert_eq!(
+            value["skill_path"],
+            "/tmp/skills/anaconda-intelligence/SKILL.md"
+        );
         assert_eq!(value["configs"][0]["config_path"], "/tmp/kilo.jsonc");
         assert_eq!(
             value["configs"][0]["backup_path"],

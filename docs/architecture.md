@@ -70,6 +70,8 @@ and resource-quota policies, separately from the CLI's local login gate.
 4. Native MCP setup writes supported AI-client configuration for `/api/mcp`,
    including a bearer credential, backups and companion skill/state. The AI
    client subsequently connects to the remote server; `ana` does not serve MCP.
+   Native MCP removal deletes the client entry and the companion skill; backups
+   and shared `.anaconda` state are retained.
 5. Logout removes the current domain's stored credential. It does not automatically
    revoke the remote key or erase all telemetry and AI-client credential copies.
 
