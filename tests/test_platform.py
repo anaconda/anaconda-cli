@@ -1,0 +1,126 @@
+"""Integration tests for the 'ana platform' command.
+
+ana platform is a thin, verbatim passthrough to the outerbounds CLI (see
+src/outerbounds/run.rs and src/cli.rs's Platform command). It calls
+ensure_tool first, so missing outerbounds installs are created
+automatically. Since the command is gated behind login, invocations run
+with a completed login against the mock auth server (run_ana_logged_in).
+
+"Integration" here means ana's own process boundary: these tests run the
+real compiled `ana` binary as a subprocess and verify it actually execs a
+child binary, forwards argv correctly, and propagates exit codes/help
+flags across that boundary — behavior src/cli.rs's unit tests can't
+observe since they never spawn a process. The wrapped tool is stubbed
+(see stub_outerbounds below) because outerbounds' own CLI behavior is
+outerbounds' test suite's job, not ana's; stubbing also avoids requiring
+a real configured Outerbounds instance/token in CI. This mirrors
+test_channel.py's stub_anaconda, where "assertions stop at ana's
+boundary."
+
+ana platform is Unix-only (src/cli.rs: #[cfg(all(unix, tool_install))]).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from helpers import IS_WINDOWS
+from helpers import AnaRunner
+from helpers import assert_output_contains
+
+pytestmark = pytest.mark.skipif(
+    IS_WINDOWS, reason="ana platform is Unix-only (src/cli.rs)"
+)
+
+
+@pytest.fixture
+def stub_outerbounds(run_ana_logged_in: AnaRunner, fake_home: Path) -> Path:
+    """Install a stub outerbounds binary and return the file it logs argv to.
+
+    The stub stands in for the real outerbounds CLI so the handoff — and the
+    --help forwarding fixed by CLI-790 — can be inspected without a real
+    Outerbounds instance. It prints a known usage string for `check --help`
+    (mirroring the real `outerbounds check --help` output) and exits 0,
+    without the stub attempting the real check logic.
+
+    outerbounds is first installed for real so that ensure_tool finds a
+    valid .lockfile-hash and skips reinstalling (src/tools/install.rs). The
+    real outerbounds binary is then replaced with the stub.
+    """
+    result = run_ana_logged_in("tool", "install", "outerbounds")
+    assert result.returncode == 0, f"outerbounds install failed: {result.stderr}"
+
+    argv_log = fake_home / "outerbounds-argv.txt"
+
+    stub = fake_home / ".ana" / "tools" / "outerbounds" / "bin" / "outerbounds"
+    stub.write_text(
+        "#!/bin/sh\n"
+        f'printf "%s\\n" "$@" > "{argv_log}"\n'
+        'if [ "$1" = "check" ] && { [ "$2" = "--help" ] || [ "$2" = "-h" ]; }; then\n'
+        '  echo "Usage: outerbounds check [OPTIONS]"\n'
+        '  echo "Check packages and configuration for common errors"\n'
+        "  exit 0\n"
+        "fi\n"
+        'exit "${STUB_EXIT_CODE:-0}"\n'
+    )
+    stub.chmod(0o755)
+
+    return argv_log
+
+
+class TestPlatformCheckHelp:
+    """Regression tests for CLI-790/CLI-799: `check` is a leaf command (it
+    takes its own flags, unlike subcommand groups such as `kubernetes` or
+    `integrations`), so --help must still reach the wrapped tool instead of
+    being swallowed before the proxy call."""
+
+    def test_check_help_is_forwarded_and_shows_usage(
+        self, run_ana_logged_in: AnaRunner, stub_outerbounds: Path
+    ) -> None:
+        result = run_ana_logged_in("platform", "check", "--help")
+        assert result.returncode == 0, f"check --help failed: {result.stderr}"
+        assert "Usage: outerbounds check" in result.stdout
+        assert stub_outerbounds.read_text().splitlines() == ["check", "--help"]
+
+    def test_check_short_help_is_forwarded_and_shows_usage(
+        self, run_ana_logged_in: AnaRunner, stub_outerbounds: Path
+    ) -> None:
+        result = run_ana_logged_in("platform", "check", "-h")
+        assert result.returncode == 0, f"check -h failed: {result.stderr}"
+        assert "Usage: outerbounds check" in result.stdout
+        assert stub_outerbounds.read_text().splitlines() == ["check", "-h"]
+
+    def test_check_without_help_does_not_show_usage(
+        self, run_ana_logged_in: AnaRunner, stub_outerbounds: Path
+    ) -> None:
+        """Control: without --help, the stub exercises the real check path
+        (here just the argv-logging branch) rather than the help text."""
+        result = run_ana_logged_in("platform", "check")
+        assert result.returncode == 0, f"check failed: {result.stderr}"
+        assert "Usage: outerbounds check" not in result.stdout
+        assert stub_outerbounds.read_text().splitlines() == ["check"]
+
+    def test_child_failure_is_reported(
+        self, run_ana_logged_in: AnaRunner, stub_outerbounds: Path
+    ) -> None:
+        """A non-zero exit from the wrapped tool is reported with its real
+        code, but ana itself always exits 1 (src/tools/run.rs). Uses plain
+        `check` since the stub's --help branch always exits 0."""
+        result = run_ana_logged_in("platform", "check", env={"STUB_EXIT_CODE": "3"})
+        assert result.returncode == 1
+        assert "outerbounds exited with code 3" in result.stderr
+
+
+class TestPlatformLoginGate:
+    """ana platform is gated behind login like every other command
+    (Action::requires_login in src/cli.rs); declining the gate must stop the
+    proxy call before it ever reaches ensure_tool/outerbounds."""
+
+    def test_check_help_requires_login(
+        self, run_ana: AnaRunner, auth_env: dict[str, str]
+    ) -> None:
+        result = run_ana("platform", "check", "--help", env=auth_env, input="n\n")
+        assert result.returncode != 0
+        assert_output_contains(result.stderr, "Login required")
+        assert "Login now?" in result.stdout
