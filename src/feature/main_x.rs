@@ -21,8 +21,11 @@ const ANACONDA_DOWNLOAD_URL: &str = "https://www.anaconda.com/download";
 /// Channel URLs for conda/pixi configuration.
 #[derive(Clone)]
 struct ChannelUrls {
-    /// The main channel to add when no main channel is configured yet.
+    /// The main channel for the user's subscription tier.
     main: String,
+    /// The main channel for the other subscription tier, which is replaced
+    /// with `main` when found.
+    other_tier_main: String,
     main_x: String,
     /// The host to use for pixi auth login
     host: String,
@@ -30,49 +33,51 @@ struct ChannelUrls {
 
 impl ChannelUrls {
     fn new(is_premium: bool) -> Self {
+        let premium_main = format!("https://{}/repo/main", REPO_HOST_CLOUD);
+        let free_main = format!("https://{}/pkgs/main", REPO_HOST_COM);
+        let (main, other_tier_main) = if is_premium {
+            // Premium: main from .cloud/repo
+            (premium_main, free_main)
+        } else {
+            // Free: main from .com/pkgs
+            (free_main, premium_main)
+        };
+
         Self {
+            main,
+            other_tier_main,
             // main-x is always from .cloud/repo
-            main_x: main_x_url(),
-            main: if is_premium {
-                main_url_premium()
-            } else {
-                main_url_free()
-            },
+            main_x: format!("https://{}/repo/main-x", REPO_HOST_CLOUD),
             // Auth is always against .cloud since main-x is always from .cloud
             host: REPO_HOST_CLOUD.to_string(),
         }
     }
-}
 
-fn main_x_url() -> String {
-    format!("https://{}/repo/main-x", REPO_HOST_CLOUD)
-}
+    /// Whether a channel is the main channel for the user's tier.
+    fn is_main(&self, channel: &str) -> bool {
+        channel.trim_end_matches('/') == self.main
+    }
 
-fn main_url_premium() -> String {
-    format!("https://{}/repo/main", REPO_HOST_CLOUD)
-}
+    /// Whether a channel is the main channel for the other tier.
+    fn is_other_tier_main(&self, channel: &str) -> bool {
+        channel.trim_end_matches('/') == self.other_tier_main
+    }
 
-fn main_url_free() -> String {
-    format!("https://{}/pkgs/main", REPO_HOST_COM)
-}
-
-/// Whether a channel is an Anaconda main channel (from either tier).
-fn is_main_channel(channel: &str) -> bool {
-    let channel = channel.trim_end_matches('/');
-    channel == main_url_premium() || channel == main_url_free()
+    /// Whether an ordered channel list contains both main (for the user's
+    /// tier) and main-x, with main first so main-x packages take priority.
+    fn has_main_then_main_x<'a>(
+        &self,
+        channels: impl IntoIterator<Item = &'a str> + Clone,
+    ) -> bool {
+        let main_pos = channels.clone().into_iter().position(|c| self.is_main(c));
+        let main_x_pos = channels.into_iter().position(is_main_x_channel);
+        matches!((main_pos, main_x_pos), (Some(m), Some(x)) if m < x)
+    }
 }
 
 /// Whether a channel is the Anaconda main-x channel.
 fn is_main_x_channel(channel: &str) -> bool {
     channel.trim_end_matches('/').ends_with("/repo/main-x")
-}
-
-/// Whether an ordered channel list contains both main and main-x, with main
-/// first (so main-x packages take priority over main).
-fn has_main_then_main_x<'a>(channels: impl IntoIterator<Item = &'a str> + Clone) -> bool {
-    let main_pos = channels.clone().into_iter().position(is_main_channel);
-    let main_x_pos = channels.into_iter().position(is_main_x_channel);
-    matches!((main_pos, main_x_pos), (Some(m), Some(x)) if m < x)
 }
 
 /// Detect the repo host from configured channel URLs.
@@ -293,11 +298,13 @@ fn conda_effective_channels<'a>(
 
 /// Plan the actions needed to enable main-x channel for conda.
 ///
-/// Looks for main and main-x in both `channels` and `default_channels`. If
-/// both are already present, with main searched before main-x (so main-x
-/// packages take priority over main), nothing changes. Otherwise main-x is
-/// added to `default_channels` right after main, adding main first if it is
-/// not configured anywhere.
+/// The main channel's domain depends on the subscription tier (.cloud/repo
+/// for premium, .com/pkgs for free), so a main channel from the other tier is
+/// removed first. Then main and main-x are looked up in both `channels` and
+/// `default_channels`. If both are present, with main searched before main-x
+/// (so main-x packages take priority over main), nothing else changes.
+/// Otherwise main-x is added to `default_channels` right after main, adding
+/// main first if it is not configured anywhere.
 ///
 /// When main has to go into `default_channels`, any existing main entry
 /// there is removed and re-added rather than appended to: `conda config
@@ -312,13 +319,29 @@ fn plan_conda_enable_actions(
     urls: &ChannelUrls,
 ) -> Vec<MainXCondaAction> {
     let mut actions = vec![];
-    let defaults_pos = channels.iter().position(|c| c == "defaults");
-    let effective = conda_effective_channels(channels, default_channels);
 
-    if has_main_then_main_x(effective.iter().copied()) {
+    // Remove main channels from the other tier
+    for channel in channels.iter().filter(|c| urls.is_other_tier_main(c)) {
+        actions.push(MainXCondaAction::RemoveChannel(channel.clone()));
+    }
+    for channel in default_channels
+        .iter()
+        .filter(|c| urls.is_other_tier_main(c))
+    {
+        actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
+    }
+    let keep = |c: &&String| !urls.is_other_tier_main(c);
+    let channels: Vec<String> = channels.iter().filter(keep).cloned().collect();
+    let default_channels: Vec<String> = default_channels.iter().filter(keep).cloned().collect();
+
+    let defaults_pos = channels.iter().position(|c| c == "defaults");
+    let effective = conda_effective_channels(&channels, &default_channels);
+
+    if urls.has_main_then_main_x(effective.iter().copied()) {
         // Already configured. default_channels is only searched through the
         // "defaults" entry, so make sure it is present when relied upon.
-        if defaults_pos.is_none() && !has_main_then_main_x(channels.iter().map(String::as_str)) {
+        if defaults_pos.is_none() && !urls.has_main_then_main_x(channels.iter().map(String::as_str))
+        {
             actions.push(MainXCondaAction::EnsureDefaultsInChannels);
         }
         return actions;
@@ -333,7 +356,7 @@ fn plan_conda_enable_actions(
     // A main entry in channels listed before "defaults" is searched before
     // everything in default_channels, so main-x can simply be added there.
     let main_precedes_defaults =
-        defaults_pos.is_some_and(|pos| channels[..pos].iter().any(|c| is_main_channel(c)));
+        defaults_pos.is_some_and(|pos| channels[..pos].iter().any(|c| urls.is_main(c)));
 
     if main_precedes_defaults {
         for channel in default_channels.iter().filter(|c| is_main_x_channel(c)) {
@@ -341,23 +364,15 @@ fn plan_conda_enable_actions(
         }
         actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
     } else {
-        // Keep the user's existing main channel if there is one.
-        let main = default_channels
-            .iter()
-            .chain(channels)
-            .find(|c| is_main_channel(c))
-            .cloned()
-            .unwrap_or_else(|| urls.main.clone());
-
         for channel in default_channels
             .iter()
-            .filter(|c| is_main_channel(c) || is_main_x_channel(c))
+            .filter(|c| urls.is_main(c) || is_main_x_channel(c))
         {
             actions.push(MainXCondaAction::RemoveDefaultChannel(channel.clone()));
         }
         // Add in reverse order since `conda config --add` prepends
         actions.push(MainXCondaAction::AddDefaultChannel(urls.main_x.clone()));
-        actions.push(MainXCondaAction::AddDefaultChannel(main));
+        actions.push(MainXCondaAction::AddDefaultChannel(urls.main.clone()));
     }
 
     if defaults_pos.is_none() {
@@ -387,20 +402,41 @@ fn plan_conda_disable_actions(
 
 /// Plan the actions needed to enable main-x channel for pixi.
 ///
-/// If main and main-x are both already present, with main first (so main-x
-/// packages take priority over main), nothing changes. Otherwise main-x is
-/// placed right after the existing main channel, or main and main-x are
-/// prepended if no main channel is configured.
+/// A main channel from the other subscription tier is replaced in place with
+/// the main channel for the user's tier. Then, if main and main-x are both
+/// present with main first (so main-x packages take priority over main),
+/// nothing else changes. Otherwise main-x is placed right after main, or main
+/// and main-x are prepended if no main channel is configured.
 fn plan_pixi_enable_actions(
     current_channels: &[String],
     urls: &ChannelUrls,
 ) -> Vec<MainXPixiAction> {
-    if has_main_then_main_x(current_channels.iter().map(String::as_str)) {
-        return vec![];
+    // Replace other-tier main with this tier's main, keeping its position
+    // (and without duplicating main if it was already configured too)
+    let replacing = current_channels.iter().any(|c| urls.is_other_tier_main(c));
+    let mut new_channels: Vec<String> = vec![];
+    for channel in current_channels {
+        let channel = if urls.is_other_tier_main(channel) {
+            &urls.main
+        } else {
+            channel
+        };
+        if replacing && urls.is_main(channel) && new_channels.iter().any(|c| urls.is_main(c)) {
+            continue;
+        }
+        new_channels.push(channel.clone());
     }
 
-    let has_main = current_channels.iter().any(|c| is_main_channel(c));
-    let has_main_x = current_channels.iter().any(|c| is_main_x_channel(c));
+    if urls.has_main_then_main_x(new_channels.iter().map(String::as_str)) {
+        return if new_channels == current_channels {
+            vec![]
+        } else {
+            vec![MainXPixiAction::SetChannels(new_channels)]
+        };
+    }
+
+    let has_main = new_channels.iter().any(|c| urls.is_main(c));
+    let has_main_x = new_channels.iter().any(|c| is_main_x_channel(c));
 
     if !has_main && !has_main_x {
         // Prepend main-x, then main, so main ends up first
@@ -411,12 +447,8 @@ fn plan_pixi_enable_actions(
     }
 
     // Drop any misplaced main-x and re-insert it right after main
-    let mut new_channels: Vec<String> = current_channels
-        .iter()
-        .filter(|c| !is_main_x_channel(c))
-        .cloned()
-        .collect();
-    match new_channels.iter().position(|c| is_main_channel(c)) {
+    new_channels.retain(|c| !is_main_x_channel(c));
+    match new_channels.iter().position(|c| urls.is_main(c)) {
         Some(pos) => new_channels.insert(pos + 1, urls.main_x.clone()),
         None => {
             new_channels.insert(0, urls.main_x.clone());
@@ -974,14 +1006,28 @@ mod tests {
     }
 
     #[test]
-    fn test_is_main_channel() {
-        assert!(is_main_channel("https://repo.anaconda.cloud/repo/main"));
-        assert!(is_main_channel("https://repo.anaconda.com/pkgs/main"));
-        assert!(is_main_channel("https://repo.anaconda.com/pkgs/main/"));
-        assert!(!is_main_channel("https://repo.anaconda.cloud/repo/main-x"));
-        assert!(!is_main_channel("https://repo.anaconda.com/pkgs/r"));
-        assert!(!is_main_channel("defaults"));
-        assert!(!is_main_channel("conda-forge"));
+    fn test_is_main_premium() {
+        let urls = premium_urls();
+        assert!(urls.is_main("https://repo.anaconda.cloud/repo/main"));
+        assert!(urls.is_main("https://repo.anaconda.cloud/repo/main/"));
+        assert!(!urls.is_main("https://repo.anaconda.com/pkgs/main"));
+        assert!(!urls.is_main("https://repo.anaconda.cloud/repo/main-x"));
+        assert!(!urls.is_main("defaults"));
+        assert!(urls.is_other_tier_main("https://repo.anaconda.com/pkgs/main"));
+        assert!(urls.is_other_tier_main("https://repo.anaconda.com/pkgs/main/"));
+        assert!(!urls.is_other_tier_main("https://repo.anaconda.cloud/repo/main"));
+        assert!(!urls.is_other_tier_main("https://repo.anaconda.com/pkgs/r"));
+    }
+
+    #[test]
+    fn test_is_main_free() {
+        let urls = free_urls();
+        assert!(urls.is_main("https://repo.anaconda.com/pkgs/main"));
+        assert!(!urls.is_main("https://repo.anaconda.cloud/repo/main"));
+        assert!(!urls.is_main("conda-forge"));
+        assert!(urls.is_other_tier_main("https://repo.anaconda.cloud/repo/main"));
+        assert!(!urls.is_other_tier_main("https://repo.anaconda.com/pkgs/main"));
+        assert!(!urls.is_other_tier_main("https://repo.anaconda.cloud/repo/main-x"));
     }
 
     #[test]
@@ -998,10 +1044,16 @@ mod tests {
     fn test_has_main_then_main_x() {
         let premium = premium_urls();
         let free = free_urls();
-        let check = |c: &[String]| has_main_then_main_x(c.iter().map(String::as_str));
+        let check = |c: &[String]| premium.has_main_then_main_x(c.iter().map(String::as_str));
 
         assert!(check(&[premium.main.clone(), premium.main_x.clone()]));
-        assert!(check(&[free.main.clone(), "x".into(), free.main_x.clone()]));
+        assert!(check(&[
+            premium.main.clone(),
+            "x".into(),
+            premium.main_x.clone()
+        ]));
+        // Only the main channel for the user's tier counts
+        assert!(!check(&[free.main.clone(), premium.main_x.clone()]));
         assert!(!check(&[premium.main_x.clone(), premium.main.clone()]));
         assert!(!check(std::slice::from_ref(&premium.main)));
         assert!(!check(std::slice::from_ref(&premium.main_x)));
@@ -1145,19 +1197,55 @@ mod tests {
     }
 
     #[test]
-    fn test_plan_conda_enable_actions_already_configured_other_tier_main() {
-        // Existing main channels are respected regardless of subscription tier
+    fn test_plan_conda_enable_actions_upgrade_free_to_premium() {
+        // main's domain depends on the subscription tier, so the free main is
+        // replaced with the premium one
         let premium = premium_urls();
         let free = free_urls();
         let channels = strings(&["defaults"]);
-
-        let default_channels = vec![premium.main.clone(), premium.main_x.clone()];
-        let actions = plan_conda_enable_actions(&channels, &default_channels, &free);
-        assert!(conda_commands(&actions).is_empty());
-
         let default_channels = vec![free.main.clone(), free.main_x.clone()];
         let actions = plan_conda_enable_actions(&channels, &default_channels, &premium);
-        assert!(conda_commands(&actions).is_empty());
+
+        assert_eq!(
+            conda_commands(&actions),
+            vec![
+                remove_default(&free.main),
+                remove_default(&premium.main_x),
+                add_default(&premium.main_x),
+                add_default(&premium.main),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_plan_conda_enable_actions_downgrade_premium_to_free() {
+        let premium = premium_urls();
+        let free = free_urls();
+        let channels = strings(&["defaults"]);
+        let default_channels = vec![premium.main.clone(), premium.main_x.clone()];
+        let actions = plan_conda_enable_actions(&channels, &default_channels, &free);
+
+        assert_eq!(
+            conda_commands(&actions),
+            vec![
+                remove_default(&premium.main),
+                remove_default(&free.main_x),
+                add_default(&free.main_x),
+                add_default(&free.main),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_plan_conda_enable_actions_other_tier_main_in_channels() {
+        // Other-tier main is removed from channels too
+        let premium = premium_urls();
+        let free = free_urls();
+        let channels = vec![free.main.clone(), "defaults".into()];
+        let default_channels = vec![premium.main.clone(), premium.main_x.clone()];
+        let actions = plan_conda_enable_actions(&channels, &default_channels, &premium);
+
+        assert_eq!(conda_commands(&actions), vec![remove_channel(&free.main)]);
     }
 
     #[test]
@@ -1212,16 +1300,27 @@ mod tests {
             "https://repo.anaconda.com/pkgs/main",
             "https://repo.anaconda.com/pkgs/r",
         ]);
-        let actions = plan_conda_enable_actions(&channels, &default_channels, &urls);
-
-        // The existing main is kept (and re-added so it is explicit); r is
+        // Premium: the free main is replaced with the premium one; r is
         // neither removed nor added
+        let actions = plan_conda_enable_actions(&channels, &default_channels, &urls);
         assert_eq!(
             conda_commands(&actions),
             vec![
                 remove_default("https://repo.anaconda.com/pkgs/main"),
                 add_default(&urls.main_x),
-                add_default("https://repo.anaconda.com/pkgs/main"),
+                add_default(&urls.main),
+            ]
+        );
+
+        // Free: the existing main is kept (and re-added so it is explicit)
+        let free = free_urls();
+        let actions = plan_conda_enable_actions(&channels, &default_channels, &free);
+        assert_eq!(
+            conda_commands(&actions),
+            vec![
+                remove_default(&free.main),
+                add_default(&free.main_x),
+                add_default(&free.main),
             ]
         );
     }
@@ -1460,9 +1559,43 @@ mod tests {
         let current = vec![urls.main.clone(), urls.main_x.clone()];
         assert!(plan_pixi_enable_actions(&current, &urls).is_empty());
 
-        // Other-tier main is respected
-        let current = vec![free_urls().main, urls.main_x.clone(), "conda-forge".into()];
+        let current = vec!["conda-forge".into(), urls.main.clone(), urls.main_x.clone()];
         assert!(plan_pixi_enable_actions(&current, &urls).is_empty());
+    }
+
+    #[test]
+    fn test_plan_pixi_enable_actions_replaces_other_tier_main_in_place() {
+        let premium = premium_urls();
+        let free = free_urls();
+        let current = vec![
+            "conda-forge".into(),
+            free.main.clone(),
+            premium.main_x.clone(),
+        ];
+        let actions = plan_pixi_enable_actions(&current, &premium);
+
+        assert_eq!(
+            pixi_commands(&actions),
+            pixi_set(&[
+                "conda-forge".into(),
+                premium.main.clone(),
+                premium.main_x.clone(),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_plan_pixi_enable_actions_downgrade_premium_to_free() {
+        let premium = premium_urls();
+        let free = free_urls();
+        // Both tiers' main present: the premium one is dropped, not duplicated
+        let current = vec![premium.main.clone(), free.main.clone()];
+        let actions = plan_pixi_enable_actions(&current, &free);
+
+        assert_eq!(
+            pixi_commands(&actions),
+            pixi_set(&[free.main.clone(), free.main_x.clone()])
+        );
     }
 
     #[test]
@@ -1484,7 +1617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_plan_pixi_enable_actions_keeps_existing_main() {
+    fn test_plan_pixi_enable_actions_upgrade_free_to_premium() {
         let premium = premium_urls();
         let free = free_urls();
         let current = vec![free.main.clone()];
@@ -1492,7 +1625,7 @@ mod tests {
 
         assert_eq!(
             pixi_commands(&actions),
-            pixi_set(&[free.main.clone(), premium.main_x.clone()])
+            pixi_set(&[premium.main.clone(), premium.main_x.clone()])
         );
     }
 

@@ -700,12 +700,12 @@ class TestMainXEnable:
         final_channels = get_default_channels(feature_env)
         assert final_channels == REQUIRED_DEFAULT_CHANNELS
 
-    def test_enable_main_x_idempotent_premium_main(
+    def test_enable_main_x_replaces_other_tier_main(
         self,
         run_ana_feature: AnaRunner,
         feature_env: dict[str, str],
     ) -> None:
-        """An existing premium main followed by main-x counts as enabled (issue #425)."""
+        """main's domain follows the subscription: a free user's premium main is replaced."""
         condarc_path = Path(feature_env["CONDARC"])
         condarc_path.write_text(
             "channels:\n  - defaults\n"
@@ -716,11 +716,10 @@ class TestMainXEnable:
         assert login_result.returncode == 0
 
         result = run_ana_feature("feature", "enable", "main-x", "-f")
-        assert result.returncode == 0
-        assert "already enabled" in result.stderr.lower()
+        assert result.returncode == 0, f"Enable failed: {result.stderr}"
 
         final_channels = get_default_channels(feature_env)
-        assert final_channels == [MAIN_CHANNEL_PREMIUM, MAIN_X_CHANNEL]
+        assert final_channels == [MAIN_CHANNEL_FREE, MAIN_X_CHANNEL]
 
     def test_enable_main_x_does_not_add_msys2_or_r(
         self,
