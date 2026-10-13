@@ -1,10 +1,10 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-21T19:42:40Z<br>
+Generated: unknown<br>
 Format: CycloneDX 1.4<br>
 Packages: 464 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 2 across 2 packages**
+<br>**[Security advisories](#security-advisories): 3 (1 INFO) across 3 packages**
 
 ## Packages
 
@@ -31,7 +31,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [async-compression](https://crates.io/crates/async-compression) | 0.4.42 | MIT OR Apache-2.0 |  |  |
 | [async-once-cell](https://crates.io/crates/async-once-cell) | 0.5.4 | MIT OR Apache-2.0 |  |  |
 | [async-spooled-tempfile](https://crates.io/crates/async-spooled-tempfile) | 0.1.0 | Apache-2.0 OR MIT |  |  |
-| [async-trait](https://crates.io/crates/async-trait) | 0.1.91 | MIT OR Apache-2.0 |  |  |
+| [async-trait](https://crates.io/crates/async-trait) | 0.1.92 | MIT OR Apache-2.0 |  |  |
 | [atomic-waker](https://crates.io/crates/atomic-waker) | 1.1.2 | Apache-2.0 OR MIT |  |  |
 | [autocfg](https://crates.io/crates/autocfg) | 1.5.1 | Apache-2.0 OR MIT |  |  |
 | [backtrace](https://crates.io/crates/backtrace) | 0.3.76 | MIT OR Apache-2.0 |  |  |
@@ -121,15 +121,15 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [fs-err](https://crates.io/crates/fs-err) | 3.3.1 | MIT OR Apache-2.0 |  |  |
 | [fs4](https://crates.io/crates/fs4) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [futures](https://crates.io/crates/futures) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-channel](https://crates.io/crates/futures-channel) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-core](https://crates.io/crates/futures-core) | 0.3.33 | MIT OR Apache-2.0 |  |  |
+| [futures-channel](https://crates.io/crates/futures-channel) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-core](https://crates.io/crates/futures-core) | 0.3.34 | MIT OR Apache-2.0 |  |  |
 | [futures-executor](https://crates.io/crates/futures-executor) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-io](https://crates.io/crates/futures-io) | 0.3.33 | MIT OR Apache-2.0 |  |  |
+| [futures-io](https://crates.io/crates/futures-io) | 0.3.34 | MIT OR Apache-2.0 |  |  |
 | [futures-lite](https://crates.io/crates/futures-lite) | 2.6.1 | Apache-2.0 OR MIT |  |  |
-| [futures-macro](https://crates.io/crates/futures-macro) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-sink](https://crates.io/crates/futures-sink) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-task](https://crates.io/crates/futures-task) | 0.3.33 | MIT OR Apache-2.0 |  |  |
-| [futures-util](https://crates.io/crates/futures-util) | 0.3.33 | MIT OR Apache-2.0 |  |  |
+| [futures-macro](https://crates.io/crates/futures-macro) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-sink](https://crates.io/crates/futures-sink) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-task](https://crates.io/crates/futures-task) | 0.3.34 | MIT OR Apache-2.0 |  |  |
+| [futures-util](https://crates.io/crates/futures-util) | 0.3.34 | MIT OR Apache-2.0 |  |  |
 | [generic-array](https://crates.io/crates/generic-array) | 0.14.7 | MIT |  |  |
 | [getrandom](https://crates.io/crates/getrandom) | 0.2.17 | MIT OR Apache-2.0 |  |  |
 | [getrandom](https://crates.io/crates/getrandom) | 0.3.4 | MIT OR Apache-2.0 |  |  |
@@ -145,7 +145,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [heck](https://crates.io/crates/heck) | 0.5.0 | MIT OR Apache-2.0 |  |  |
 | [hex](https://crates.io/crates/hex) | 0.4.3 | MIT OR Apache-2.0 |  |  |
 | [hostname](https://crates.io/crates/hostname) | 0.4.2 | MIT |  |  |
-| [http](https://crates.io/crates/http) | 1.4.2 | MIT OR Apache-2.0 |  |  |
+| [http](https://crates.io/crates/http) | 1.5.0 | MIT OR Apache-2.0 |  |  |
 | [http-auth](https://crates.io/crates/http-auth) | 0.1.10 | MIT OR Apache-2.0 |  |  |
 | [http-body](https://crates.io/crates/http-body) | 1.1.0 | MIT |  |  |
 | [http-body-util](https://crates.io/crates/http-body-util) | 0.1.4 | MIT |  |  |
@@ -195,7 +195,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [litemap](https://crates.io/crates/litemap) | 0.8.2 | Unicode-3.0 |  |  |
 | [litrs](https://crates.io/crates/litrs) | 1.0.0 | MIT OR Apache-2.0 |  |  |
 | [lock\_api](https://crates.io/crates/lock_api) | 0.4.14 | MIT OR Apache-2.0 |  |  |
-| [log](https://crates.io/crates/log) | 0.4.33 | MIT OR Apache-2.0 |  |  |
+| [log](https://crates.io/crates/log) | 0.4.34 | MIT OR Apache-2.0 |  |  |
 | [mac\_address](https://crates.io/crates/mac_address) | 1.1.8 | MIT OR Apache-2.0 |  |  |
 | [matchers](https://crates.io/crates/matchers) | 0.2.0 | MIT |  |  |
 | [md-5](https://crates.io/crates/md-5) | 0.11.0 | MIT OR Apache-2.0 |  |  |
@@ -416,7 +416,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [unicode-width](https://crates.io/crates/unicode-width) | 0.1.14 | MIT OR Apache-2.0 |  |  |
 | [unicode-width](https://crates.io/crates/unicode-width) | 0.2.2 | MIT OR Apache-2.0 |  |  |
 | [unit-prefix](https://crates.io/crates/unit-prefix) | 0.5.2 | MIT |  |  |
-| [unsafe-libyaml](https://crates.io/crates/unsafe-libyaml) | 0.2.11 | MIT |  |  |
+| [unsafe-libyaml](https://crates.io/crates/unsafe-libyaml) | 0.2.11 | MIT |  | 1 |
 | [unscanny](https://crates.io/crates/unscanny) | 0.1.0 | MIT OR Apache-2.0 |  |  |
 | [untrusted](https://crates.io/crates/untrusted) | 0.9.0 | ISC |  |  |
 | [url](https://crates.io/crates/url) | 2.5.8 | MIT OR Apache-2.0 |  |  |
@@ -481,6 +481,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
 
 ## License Summary
 
