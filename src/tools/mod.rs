@@ -16,4 +16,4 @@ pub mod utils;
 pub mod uv;
 
 #[cfg(tool_install)]
-pub use run::run_tool_binary;
+pub use run::{run_tool_binary, tool_binary_path};

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use miette::miette;
@@ -9,6 +9,16 @@ use crate::paths;
 /// under `~/.ana/tools/`.
 fn resolve_tool_binary(tool_name: &str, binary_name: &str) -> miette::Result<PathBuf> {
     let bin_subdir = if cfg!(windows) { "Scripts" } else { "bin" };
+    resolve_tool_binary_in(tool_name, Path::new(bin_subdir), binary_name)
+}
+
+/// Resolve the path to a tool binary located in `bin_subdir` (relative to the
+/// tool prefix under `~/.ana/tools/`).
+fn resolve_tool_binary_in(
+    tool_name: &str,
+    bin_subdir: &Path,
+    binary_name: &str,
+) -> miette::Result<PathBuf> {
     let binary = paths::binary_name(binary_name);
     let tool_bin = paths::tool_prefix(tool_name).join(bin_subdir).join(&binary);
 
@@ -34,6 +44,20 @@ pub fn run_tool_binary(
 ) -> miette::Result<()> {
     let tool_bin = resolve_tool_binary(tool_name, binary_name)?;
     run_binary(&tool_bin, binary_name, args, envs)
+}
+
+/// Path to a binary located in `bin_subdir` of a tool's installation
+/// directory, for callers that manage the process themselves.
+///
+/// Use this for tools whose binaries don't live in the default `bin`
+/// (Unix) / `Scripts` (Windows) directory, e.g. native conda packages that
+/// install to `Library/bin` on Windows.
+pub fn tool_binary_path(
+    tool_name: &str,
+    bin_subdir: &Path,
+    binary_name: &str,
+) -> miette::Result<PathBuf> {
+    resolve_tool_binary_in(tool_name, bin_subdir, binary_name)
 }
 
 fn run_binary(

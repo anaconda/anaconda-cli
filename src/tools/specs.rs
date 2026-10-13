@@ -35,6 +35,15 @@ const TOOLS: &[Tool] = &[
         auto_update: true,
     },
     Tool {
+        name: "llama.cpp",
+        lockfile: include_str!("../../tool-specs/llama.cpp/pixi.lock"),
+        // No symlinks - llama.cpp is accessed via `ana lm run` to avoid
+        // shadowing users' existing llama.cpp installations
+        binaries: &[],
+        experimental: None,
+        auto_update: true,
+    },
+    Tool {
         name: "pixi",
         lockfile: include_str!("../../tool-specs/pixi/pixi.lock"),
         binaries: &[&["bin", "pixi"]],

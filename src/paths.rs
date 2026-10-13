@@ -32,6 +32,12 @@ fn tools_dir() -> PathBuf {
     ana_home().join("tools")
 }
 
+/// Returns the directory where local models are stored (~/.ana/models).
+#[cfg_attr(not(tool_install), allow(dead_code))]
+pub fn models_dir() -> PathBuf {
+    ana_home().join("models")
+}
+
 /// Returns the bin directory for shims (~/.ana/bin).
 #[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn bin_dir() -> PathBuf {
@@ -119,6 +125,14 @@ mod tests {
     fn test_tools_dir() {
         temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
             assert_eq!(tools_dir(), PathBuf::from("/test/ana/tools"));
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_models_dir() {
+        temp_env::with_var("ANA_HOME", Some("/test/ana"), || {
+            assert_eq!(models_dir(), PathBuf::from("/test/ana/models"));
         });
     }
 
