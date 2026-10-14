@@ -478,6 +478,9 @@ pub struct RemoveResult {
     pub removed: bool,
     /// One entry per config file the server was removed from.
     pub configs: Vec<RemovedConfig>,
+    /// Path of the Anaconda Package Intelligence skill removed alongside the
+    /// server entry, if one was installed.
+    pub skill_path: Option<PathBuf>,
 }
 
 /// Remove the Anaconda MCP server entry from every config file that has it.
@@ -504,10 +507,15 @@ pub fn remove(client: &str, server_name: &str, backup: bool) -> miette::Result<R
         .into());
     }
 
+    // A removed server also takes its companion skill with it so that
+    // `ana mcp remove` fully undoes `ana mcp setup`.
+    let skill_path = super::skill::uninstall(client)?;
+
     Ok(RemoveResult {
         server_name: server_name.to_string(),
         removed: true,
         configs,
+        skill_path,
     })
 }
 
@@ -829,6 +837,12 @@ mod tests {
 
             remove("kilo", "anaconda-mcp", false).unwrap();
             assert!(!is_installed("kilo", "anaconda-mcp"));
+            // `ana mcp remove` must also undo the skill installed by setup.
+            assert!(
+                !kilo_dir
+                    .join("skills/anaconda-intelligence/SKILL.md")
+                    .exists()
+            );
             assert!(
                 std::fs::read_to_string(&jsonc)
                     .unwrap()
