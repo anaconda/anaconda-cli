@@ -46,6 +46,13 @@ fn print_removed(client: &str, result: &clients::RemoveResult) {
         ));
         print_backup(&config.backup_path);
     }
+    if let Some(skill_path) = &result.skill_path {
+        status::success(&format!(
+            "Removed {} skill: {}",
+            status::highlight(super::skill::SKILL_NAME),
+            status::dim(&skill_path.display().to_string())
+        ));
+    }
 }
 
 fn print_backup(backup_path: &Option<std::path::PathBuf>) {
@@ -371,6 +378,7 @@ fn remove_json(result: &clients::RemoveResult) -> Value {
         "server_name": result.server_name,
         "removed": result.removed,
         "configs": configs,
+        "skill_path": result.skill_path.as_ref().map(|p| p.display().to_string()),
     })
 }
 
@@ -413,6 +421,7 @@ mod tests {
                     backup_path: None,
                 },
             ],
+            skill_path: Some("/tmp/kilo/skills/anaconda-intelligence/SKILL.md".into()),
         };
         let value = remove_json(&result);
         assert_eq!(value["removed"], true);
@@ -422,5 +431,24 @@ mod tests {
             "/tmp/kilo.20260915.backup.jsonc"
         );
         assert!(value["configs"][1]["backup_path"].is_null());
+        assert_eq!(
+            value["skill_path"],
+            "/tmp/kilo/skills/anaconda-intelligence/SKILL.md"
+        );
+    }
+
+    #[test]
+    fn test_remove_json_shape_without_skill() {
+        let result = clients::RemoveResult {
+            server_name: "anaconda-mcp".into(),
+            removed: true,
+            configs: vec![clients::RemovedConfig {
+                config_path: "/tmp/kilo.jsonc".into(),
+                backup_path: None,
+            }],
+            skill_path: None,
+        };
+        let value = remove_json(&result);
+        assert!(value["skill_path"].is_null());
     }
 }
