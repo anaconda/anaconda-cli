@@ -195,8 +195,19 @@ fn run_command(filename: &str) -> String {
     }
 }
 
+/// Resolve the installer base URL: an explicit argument wins, then the
+/// configured override, then the public default.
+fn resolve_base_url(explicit: Option<&str>, configured: Option<&str>) -> String {
+    let url = explicit
+        .filter(|url| !url.trim().is_empty())
+        .or_else(|| configured.filter(|url| !url.trim().is_empty()))
+        .unwrap_or(MINICONDA_BASE_URL);
+    format!("{}/", url.trim().trim_end_matches('/'))
+}
+
 pub async fn run(ctx: &CommandContext, base_url: Option<&str>) -> miette::Result<()> {
-    let base_url = base_url.unwrap_or(MINICONDA_BASE_URL);
+    let base_url = resolve_base_url(base_url, ctx.config.installer_base_url.as_deref());
+    let base_url = base_url.as_str();
     let target = detect_target(base_url, std::env::consts::OS, std::env::consts::ARCH)?;
 
     let dest = std::env::current_dir()
@@ -345,6 +356,31 @@ mod tests {
         );
         let result = expected_for(&manifest, "Miniconda3-latest-Linux-x86_64.sh");
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_resolve_base_url_explicit_wins() {
+        assert_eq!(
+            resolve_base_url(
+                Some("https://example.com/miniconda/"),
+                Some("https://configured.example/miniconda/")
+            ),
+            "https://example.com/miniconda/"
+        );
+    }
+
+    #[test]
+    fn test_resolve_base_url_configured() {
+        assert_eq!(
+            resolve_base_url(None, Some("https://example.com/miniconda/")),
+            "https://example.com/miniconda/"
+        );
+    }
+
+    #[test]
+    fn test_resolve_base_url_default() {
+        assert_eq!(resolve_base_url(None, None), MINICONDA_BASE_URL);
+        assert_eq!(resolve_base_url(None, Some("")), MINICONDA_BASE_URL);
     }
 
     #[test]

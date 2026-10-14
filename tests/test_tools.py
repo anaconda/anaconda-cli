@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from conftest import MOCK_MINICONDA_INSTALLER_CONTENT
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -96,12 +97,10 @@ class TestToolHelp:
 class TestToolDownloadCommand:
     """Tests for 'ana tool download miniconda' subcommand.
 
-    These cases only cover paths that don't require a real network call:
-    ana tool download miniconda always fetches from the hardcoded
-    https://repo.anaconda.com/miniconda/ (no env var or flag override
-    exists yet to redirect it to a mock server), so actual download,
-    checksum verification, and checksum-mismatch behavior aren't covered
-    here. See src/installer/mod.rs for that logic and its Rust unit tests.
+    The download flow (manifest fetch, checksum verification, atomic rename) is
+    exercised end-to-end against the ``miniconda_mock_server`` fixture, which
+    serves a mock ``.files.json`` and installer. The base URL is redirected via
+    ``ANA_INSTALLER_BASE_URL`` so no real network call is made.
     """
 
     def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
@@ -123,6 +122,74 @@ class TestToolDownloadCommand:
         assert result.returncode != 0
         assert "already exists" in result.stderr.lower()
         assert existing.read_bytes() == sentinel
+
+    def test_download_miniconda_succeeds(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_mock_server: str,
+    ) -> None:
+        """Happy path: download, verify checksum, and print the run command."""
+        env = {"ANA_INSTALLER_BASE_URL": miniconda_mock_server}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode == 0, result.stderr
+
+        filename = _expected_miniconda_filename()
+        installer = tmp_path / filename
+        assert installer.exists(), "installer should be written to the cwd"
+        assert installer.read_bytes() == MOCK_MINICONDA_INSTALLER_CONTENT
+
+        # No leftover temp file from the atomic rename. `download_and_verify`
+        # writes to `dest.with_extension("tmp")`, which *replaces* the
+        # extension (foo.sh -> foo.tmp) rather than appending.
+        temp_path = installer.with_suffix(".tmp")
+        assert not temp_path.exists(), f"leftover temp file: {temp_path.name}"
+
+        assert filename in result.stdout
+        assert "SHA256 verified." in result.stdout
+        assert _expected_run_command(filename) in result.stdout
+
+    def test_download_miniconda_reports_size(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_mock_server: str,
+    ) -> None:
+        """The manifest size is surfaced in the progress and success output."""
+        env = {"ANA_INSTALLER_BASE_URL": miniconda_mock_server}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode == 0, result.stderr
+
+        # The " (X.X MB)" suffix is only printed when the manifest entry has a
+        # size, so asserting the full line verifies the size was reported.
+        filename = _expected_miniconda_filename()
+        size_part = f" ({len(MOCK_MINICONDA_INSTALLER_CONTENT) / 1_000_000:.1f} MB)"
+        assert f"Downloading {filename}{size_part}" in result.stderr
+        assert f"Downloaded {filename}{size_part} to:" in result.stdout
+
+    def test_download_miniconda_second_run_fails(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_mock_server: str,
+    ) -> None:
+        """Re-running after a successful download refuses to overwrite."""
+        env = {"ANA_INSTALLER_BASE_URL": miniconda_mock_server}
+        first = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+        assert first.returncode == 0, first.stderr
+
+        second = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+        assert second.returncode != 0
+        assert "already exists" in second.stderr.lower()
+
+
+def _expected_run_command(filename: str) -> str:
+    """The run command ana prints for the given installer filename."""
+    if filename.endswith(".exe"):
+        return f'start "" ".\\{filename}"'
+    return f"bash ./{filename}"
 
 
 class TestToolInstallPixi:
