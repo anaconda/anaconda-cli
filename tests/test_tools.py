@@ -6,6 +6,7 @@ import platform
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -190,6 +191,176 @@ def _expected_run_command(filename: str) -> str:
     if filename.endswith(".exe"):
         return f'start "" ".\\{filename}"'
     return f"bash ./{filename}"
+
+
+def _assert_no_artifacts(tmp_path: Path) -> None:
+    """No installer or leftover temp file should exist in the working dir."""
+    filename = _expected_miniconda_filename()
+    assert not (tmp_path / filename).exists(), "installer should not be written"
+    assert not (tmp_path / filename).with_suffix(".tmp").exists(), (
+        "temp file should not be left behind"
+    )
+
+
+class TestToolDownloadNegative:
+    """Negative and edge cases for 'ana tool download miniconda'.
+
+    Complements the positive coverage in ``TestToolDownloadCommand`` by driving
+    the failure branches of the download flow (manifest errors, missing/empty
+    checksums, checksum mismatch, installer download failure) and asserting the
+    process exits non-zero, reports a useful error, and leaves no artifacts.
+    """
+
+    def test_download_fails_when_manifest_missing(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """A 404 on .files.json is reported and nothing is downloaded."""
+        base_url = miniconda_server_factory(write_manifest=False, installer_bytes=None)
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "manifest request failed" in result.stderr.lower()
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_fails_when_manifest_malformed(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """An unparseable .files.json is reported and nothing is downloaded."""
+        base_url = miniconda_server_factory(manifest_body="not valid json")
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "failed to parse manifest" in result.stderr.lower()
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_fails_when_filename_not_in_manifest(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """A manifest without our platform's key is a stale-map error."""
+        base_url = miniconda_server_factory(manifest_body="{}")
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "not in manifest" in result.stderr.lower()
+        assert _expected_miniconda_filename() in result.stderr
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_fails_when_sha256_missing(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """A manifest entry with no sha256 refuses to download unverified."""
+        base_url = miniconda_server_factory(sha256=None)
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "refusing unverified download" in result.stderr.lower()
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_fails_when_sha256_empty(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """An empty sha256 string is treated the same as a missing one."""
+        base_url = miniconda_server_factory(sha256="")
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "refusing unverified download" in result.stderr.lower()
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_fails_on_checksum_mismatch(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """A checksum that doesn't match the bytes aborts and cleans up."""
+        base_url = miniconda_server_factory(sha256="0" * 64)
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "checksum mismatch" in result.stderr.lower()
+        # Neither the final installer nor the temp file may remain.
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_fails_when_installer_missing(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """A 404 on the installer (manifest OK) is reported, no artifacts."""
+        # Valid manifest, but the installer file itself is absent.
+        base_url = miniconda_server_factory(installer_bytes=None)
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode != 0
+        assert "download request failed" in result.stderr.lower()
+        _assert_no_artifacts(tmp_path)
+
+    def test_download_succeeds_without_size_in_manifest(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """Size is optional: a manifest without it still downloads cleanly."""
+        # size=None omits the field; sha256 still defaults to the correct hash.
+        base_url = miniconda_server_factory(size=None)
+
+        env = {"ANA_INSTALLER_BASE_URL": base_url}
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+
+        assert result.returncode == 0, result.stderr
+        filename = _expected_miniconda_filename()
+        assert (tmp_path / filename).read_bytes() == MOCK_MINICONDA_INSTALLER_CONTENT
+        # No size suffix when the manifest entry omits size.
+        assert f"Downloading {filename}\n" in result.stderr
+
+    def test_download_accepts_base_url_with_trailing_slash_variants(
+        self,
+        run_ana: AnaRunner,
+        tmp_path: Path,
+        miniconda_server_factory: Callable[..., str],
+    ) -> None:
+        """The base URL is normalized: trailing/absent slashes both work."""
+        base_url = miniconda_server_factory()
+
+        for variant in (base_url, base_url.rstrip("/")):
+            target = tmp_path / variant.replace("/", "_").replace(":", "")
+            target.mkdir()
+            env = {"ANA_INSTALLER_BASE_URL": variant}
+            result = run_ana("tool", "download", "miniconda", cwd=target, env=env)
+            assert result.returncode == 0, f"{variant}: {result.stderr}"
+            assert (target / _expected_miniconda_filename()).exists()
 
 
 class TestToolInstallPixi:
