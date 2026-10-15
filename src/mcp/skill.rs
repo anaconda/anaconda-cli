@@ -302,6 +302,23 @@ pub fn install(client: &str) -> miette::Result<PathBuf> {
     Ok(path)
 }
 
+/// Remove the Anaconda Package Intelligence skill for a client.
+///
+/// Deletes the `SKILL.md` file and the skill directory that `install`
+/// created. Returns `Ok(None)` when no skill was installed.
+pub fn uninstall(client: &str) -> miette::Result<Option<PathBuf>> {
+    let path = skill_path(client)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    std::fs::remove_file(&path).into_diagnostic()?;
+    // The directory only holds SKILL.md; drop it when it is now empty.
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::remove_dir(parent);
+    }
+    Ok(Some(path))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -385,6 +402,45 @@ mod tests {
             let content = std::fs::read_to_string(&path).unwrap();
             assert!(content.starts_with("---\nname: anaconda-intelligence\n"));
             assert!(content.ends_with("execution was checked\n"));
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_uninstall_removes_skill_and_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        with_home(dir.path(), || {
+            let path = install("claude-code").unwrap();
+            let removed = uninstall("claude-code").unwrap();
+            assert_eq!(removed, Some(path.clone()));
+            assert!(!path.exists());
+            assert!(!path.parent().unwrap().exists());
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_uninstall_without_installed_skill_returns_none() {
+        let dir = tempfile::tempdir().unwrap();
+        with_home(dir.path(), || {
+            assert_eq!(uninstall("claude-code").unwrap(), None);
+        });
+    }
+
+    #[test]
+    #[serial(env)]
+    fn test_install_after_uninstall_restores_skill() {
+        let dir = tempfile::tempdir().unwrap();
+        with_home(dir.path(), || {
+            install("claude-code").unwrap();
+            uninstall("claude-code").unwrap();
+            let path = install("claude-code").unwrap();
+            assert!(path.is_file());
+            assert!(
+                std::fs::read_to_string(&path)
+                    .unwrap()
+                    .starts_with("---\nname: anaconda-intelligence\n")
+            );
         });
     }
 
