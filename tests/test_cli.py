@@ -45,6 +45,12 @@ class TestHelp:
         assert "self" in result.stdout
         assert "Manage the ana installation" in result.stdout
 
+    def test_help_shows_config_command(self, run_ana: AnaRunner) -> None:
+        result = run_ana("--help")
+        assert re.search(
+            r"^\s*config\s+Show current configuration", result.stdout, re.M
+        )
+
     def test_help_shows_options(self, run_ana: AnaRunner) -> None:
         result = run_ana("--help")
         assert "-V, --version" in result.stdout
