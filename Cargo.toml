@@ -45,6 +45,7 @@ rattler_conda_types = { version = "0.48", default-features = false }
 rattler_lock = { version = "0.31", default-features = false, optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart", "native-tls"] }
 reqwest-middleware = { version = "0.5", features = ["json", "form", "query"] }
+regex = "1"
 rmcp = { version = "3.5", features = ["transport-io"] }
 rpassword = "7"
 schemars = "1.1"

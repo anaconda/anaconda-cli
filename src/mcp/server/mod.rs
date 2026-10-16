@@ -6,11 +6,17 @@
 //!
 //! stdout carries the JSON-RPC protocol. Nothing else may write to it while
 //! the server runs: logs go to stderr (see `cli::execute`).
+//!
+//! The protocol itself (stdio transport, JSON-RPC framing, the `initialize`
+//! handshake, tool listing and dispatch) comes from `rmcp`, the official Rust
+//! MCP SDK, the counterpart of FastMCP in the Python service. This module
+//! only declares the tools; the `package_info` and `search_forum` modules
+//! hold the logic, ported from bigbend `apps/remote-mcp`.
 
+mod backend;
 mod package_info;
 mod schemas;
 mod search_forum;
-mod state;
 
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -21,8 +27,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::context::CommandContext;
 use crate::errors::McpError;
-use schemas::ToolError;
-use state::ServerState;
+use backend::Backend;
+use schemas::{SERIALIZATION_ERROR_JSON, ToolError};
 
 pub const SERVER_NAME: &str = "anaconda-mcp";
 
@@ -35,81 +41,103 @@ If a tool returns `unauthenticated`, ask the user to run `ana login` in a
 terminal, then retry.
 These tools neither install packages nor modify environments.";
 
+// Argument structs. `Deserialize` parses the tool arguments; `JsonSchema`
+// generates the input schema that `tools/list` advertises (doc comments become
+// field descriptions). The `schemars` limits are hints for the agent only;
+// the tool functions still validate every argument themselves.
+
 /// Arguments for `package_info`.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct PackageInfoArgs {
     /// Exact package name, e.g. 'numpy'.
+    #[schemars(length(min = 1, max = 256))]
     pub name: String,
     /// Exact version, e.g. '2.5.1'. Omit for latest.
     #[serde(default)]
+    #[schemars(length(min = 1, max = 256))]
     pub version: Option<String>,
     /// Channel name, e.g. 'main'. Omit to search all default channels.
     #[serde(default)]
+    #[schemars(length(min = 1, max = 256))]
     pub channel: Option<String>,
     /// Platform subdir, e.g. 'linux-64' or 'osx-arm64'. Omit for all platforms.
     #[serde(default)]
+    #[schemars(length(min = 1, max = 256))]
     pub platform: Option<String>,
     /// Python version, e.g. '3.12'. Adds a compatibility note but does not filter results.
     #[serde(default)]
+    #[schemars(length(min = 1, max = 256))]
     pub python_version: Option<String>,
 }
 
+// `#[serde(default = "...")]` takes the path of a function, not a constant,
+// so the defaults below are tiny functions.
 fn default_page() -> i64 {
-    1
+    search_forum::DEFAULT_PAGE
 }
 
 fn default_page_size() -> i64 {
-    10
+    search_forum::DEFAULT_PAGE_SIZE
 }
 
 /// Arguments for `search_forum`.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SearchForumArgs {
     /// Free-text forum search; error messages and symptom phrases work well.
+    #[schemars(length(min = 1, max = 256))]
     pub query: String,
     /// Page of results to return, starting at 1.
     #[serde(default = "default_page")]
+    #[schemars(range(min = 1))]
     pub page: i64,
     /// Threads per page (1-100); oversized values are rejected, not clamped.
     /// Page and page_size cannot pass the 10000-result window.
     #[serde(default = "default_page_size")]
+    #[schemars(range(min = 1, max = 100))]
     pub page_size: i64,
 }
 
 /// Convert a tool outcome into an MCP result. Errors are tool-level
 /// (`isError: true`) so the agent sees the structured code and message.
+///
+/// Generic over the response type, like Python's
+/// `serialize_tool_result(result: BaseModel)`.
 fn to_call_result<T: Serialize>(result: Result<T, ToolError>) -> CallToolResult {
-    let (body, is_error) = match result {
-        Ok(value) => (serde_json::to_string(&value), false),
-        Err(error) => (serde_json::to_string(&error), true),
+    let (json, is_error) = match &result {
+        Ok(value) => (serde_json::to_string(value), false),
+        Err(error) => (serde_json::to_string(error), true),
     };
-    match (body, is_error) {
-        (Ok(json), false) => CallToolResult::success(vec![ContentBlock::text(json)]),
-        (Ok(json), true) => CallToolResult::error(vec![ContentBlock::text(json)]),
-        (Err(e), _) => {
+    let (json, is_error) = match json {
+        Ok(json) => (json, is_error),
+        Err(e) => {
             tracing::error!(error = %e, "failed to serialize tool result");
-            let fallback = ToolError::new(
-                "internal_error",
-                "The tool result could not be serialized. Try again later.",
-            );
-            CallToolResult::error(vec![ContentBlock::text(
-                serde_json::to_string(&fallback).unwrap_or_default(),
-            )])
+            (SERIALIZATION_ERROR_JSON.to_string(), true)
         }
+    };
+    let content = vec![ContentBlock::text(json)];
+    if is_error {
+        CallToolResult::error(content)
+    } else {
+        CallToolResult::success(content)
     }
 }
 
 #[derive(Clone)]
 pub struct AnacondaMcp {
-    state: ServerState,
+    backend: Backend,
+    /// Registry of the `#[tool]` methods below, built by `#[tool_router]`.
     tool_router: ToolRouter<Self>,
 }
 
+// `#[tool_router]` (from rmcp) generates `Self::tool_router()`, which
+// registers every `#[tool]` method with its name, description, annotations,
+// and an input schema derived from its argument struct, plus a dispatcher
+// that deserializes arguments and calls the method.
 #[tool_router]
 impl AnacondaMcp {
-    pub fn new(state: ServerState) -> Self {
+    pub fn new(backend: Backend) -> Self {
         Self {
-            state,
+            backend,
             tool_router: Self::tool_router(),
         }
     }
@@ -128,7 +156,7 @@ impl AnacondaMcp {
     async fn package_info(&self, Parameters(args): Parameters<PackageInfoArgs>) -> CallToolResult {
         to_call_result(
             package_info::package_info(
-                &self.state,
+                &self.backend,
                 &args.name,
                 args.version.as_deref(),
                 args.channel.as_deref(),
@@ -152,11 +180,14 @@ impl AnacondaMcp {
     )]
     async fn search_forum(&self, Parameters(args): Parameters<SearchForumArgs>) -> CallToolResult {
         to_call_result(
-            search_forum::search_forum(&self.state, &args.query, args.page, args.page_size).await,
+            search_forum::search_forum(&self.backend, &args.query, args.page, args.page_size).await,
         )
     }
 }
 
+// `#[tool_handler]` (from rmcp) implements `ServerHandler::list_tools` and
+// `call_tool` by delegating to the router above; rmcp handles the rest of the
+// protocol.
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for AnacondaMcp {
     fn get_info(&self) -> ServerConfig {
@@ -168,7 +199,7 @@ impl ServerHandler for AnacondaMcp {
 
 /// Run the MCP server on stdin/stdout until the client disconnects.
 pub async fn serve(ctx: &CommandContext) -> miette::Result<()> {
-    let server = AnacondaMcp::new(ServerState::from_context(ctx));
+    let server = AnacondaMcp::new(Backend::from_context(ctx));
     let service = server
         .serve(rmcp::transport::stdio())
         .await
@@ -203,7 +234,7 @@ mod tests {
     }
 
     /// Config pointing at the mock server, with an isolated keyring.
-    fn test_state(server: &MockServer, logged_in: bool) -> (ServerState, tempfile::TempDir) {
+    fn test_backend(server: &MockServer, logged_in: bool) -> (Backend, tempfile::TempDir) {
         let dir = tempfile::tempdir().unwrap();
         let mut config = Config::load();
         let address = server.address();
@@ -215,18 +246,18 @@ mod tests {
             auth::save_credential(&config, "test-api-key", None, None).unwrap();
         }
         let client = Client::new(reqwest::Client::builder(), server.uri()).unwrap();
-        let state = ServerState {
+        let backend = Backend {
             client: client.clone(),
             public_client: client,
             config,
         };
-        (state, dir)
+        (backend, dir)
     }
 
-    async fn call(state: ServerState, tool: &str, arguments: Value) -> CallToolResult {
+    async fn call(backend: Backend, tool: &str, arguments: Value) -> CallToolResult {
         let (server_io, client_io) = tokio::io::duplex(64 * 1024);
         let server = tokio::spawn(async move {
-            AnacondaMcp::new(state)
+            AnacondaMcp::new(backend)
                 .serve(server_io)
                 .await
                 .unwrap()
@@ -255,10 +286,10 @@ mod tests {
     #[tokio::test]
     async fn lists_tools_with_contract_argument_names() {
         let server = MockServer::start().await;
-        let (state, _dir) = test_state(&server, true);
+        let (backend, _dir) = test_backend(&server, true);
         let (server_io, client_io) = tokio::io::duplex(64 * 1024);
         let handle = tokio::spawn(async move {
-            AnacondaMcp::new(state)
+            AnacondaMcp::new(backend)
                 .serve(server_io)
                 .await
                 .unwrap()
@@ -303,6 +334,14 @@ mod tests {
         );
         assert_eq!(properties("search_forum"), ["page", "page_size", "query"]);
 
+        // Argument limits are advertised to the agent in the input schema.
+        let forum = tools.iter().find(|t| t.name == "search_forum").unwrap();
+        let page_size = &forum.input_schema["properties"]["page_size"];
+        assert_eq!(page_size["minimum"], 1);
+        assert_eq!(page_size["maximum"], 100);
+        assert_eq!(page_size["default"], 10);
+        assert_eq!(forum.input_schema["properties"]["query"]["maxLength"], 256);
+
         client.cancel().await.unwrap();
         handle.await.unwrap();
     }
@@ -343,8 +382,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let (state, _dir) = test_state(&server, true);
-        let result = call(state, "package_info", json!({"name": "numpy"})).await;
+        let (backend, _dir) = test_backend(&server, true);
+        let result = call(backend, "package_info", json!({"name": "numpy"})).await;
         assert_eq!(result.is_error, Some(false));
         let value = body(&result);
         assert_eq!(value["name"], "numpy");
@@ -359,8 +398,8 @@ mod tests {
     #[tokio::test]
     async fn package_info_requires_login() {
         let server = MockServer::start().await;
-        let (state, _dir) = test_state(&server, false);
-        let result = call(state, "package_info", json!({"name": "numpy"})).await;
+        let (backend, _dir) = test_backend(&server, false);
+        let result = call(backend, "package_info", json!({"name": "numpy"})).await;
         assert_eq!(result.is_error, Some(true));
         assert_eq!(body(&result)["error"], "unauthenticated");
         assert!(server.received_requests().await.unwrap().is_empty());
@@ -373,29 +412,29 @@ mod tests {
             .respond_with(ResponseTemplate::new(401))
             .mount(&server)
             .await;
-        let (state, _dir) = test_state(&server, true);
-        let result = call(state, "package_info", json!({"name": "numpy"})).await;
+        let (backend, _dir) = test_backend(&server, true);
+        let result = call(backend, "package_info", json!({"name": "numpy"})).await;
         assert_eq!(body(&result)["error"], "unauthenticated");
     }
 
     #[tokio::test]
     async fn package_info_unreachable_is_search_unavailable() {
         let server = MockServer::start().await;
-        let (mut state, _dir) = test_state(&server, true);
+        let (mut backend, _dir) = test_backend(&server, true);
         // Point at a port that was free a moment ago, so connections are refused.
         let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let closed_url = format!("http://{}", closed.local_addr().unwrap());
         drop(closed);
-        state.client = Client::new(reqwest::Client::builder(), closed_url).unwrap();
-        let result = call(state, "package_info", json!({"name": "numpy"})).await;
+        backend.client = Client::new(reqwest::Client::builder(), closed_url).unwrap();
+        let result = call(backend, "package_info", json!({"name": "numpy"})).await;
         assert_eq!(body(&result)["error"], "search_unavailable");
     }
 
     #[tokio::test]
     async fn package_info_rejects_path_traversal() {
         let server = MockServer::start().await;
-        let (state, _dir) = test_state(&server, true);
-        let result = call(state, "package_info", json!({"name": "../etc"})).await;
+        let (backend, _dir) = test_backend(&server, true);
+        let result = call(backend, "package_info", json!({"name": "../etc"})).await;
         assert_eq!(body(&result)["error"], "invalid_request");
         assert!(server.received_requests().await.unwrap().is_empty());
     }
@@ -434,8 +473,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let (state, _dir) = test_state(&server, true);
-        let result = call(state, "package_info", json!({"name": "pytorch"})).await;
+        let (backend, _dir) = test_backend(&server, true);
+        let result = call(backend, "package_info", json!({"name": "pytorch"})).await;
         assert_eq!(body(&result)["platforms"], json!(["linux-64"]));
     }
 
@@ -485,8 +524,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let (state, _dir) = test_state(&server, true);
-        let value = body(&call(state, "package_info", json!({"name": "pytorch"})).await);
+        let (backend, _dir) = test_backend(&server, true);
+        let value = body(&call(backend, "package_info", json!({"name": "pytorch"})).await);
         assert_eq!(value["platforms"], json!(["osx-arm64"]));
         assert!(value["notes"].as_array().unwrap().iter().any(|n| {
             n.as_str()
@@ -518,8 +557,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let (state, _dir) = test_state(&server, true);
-        let value = body(&call(state, "package_info", json!({"name": "pytorch"})).await);
+        let (backend, _dir) = test_backend(&server, true);
+        let value = body(&call(backend, "package_info", json!({"name": "pytorch"})).await);
         assert_eq!(value["platforms"], json!(["linux-64"]));
     }
 
@@ -540,8 +579,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let (state, _dir) = test_state(&server, true);
-        let value = body(&call(state, "package_info", json!({"name": "mystery"})).await);
+        let (backend, _dir) = test_backend(&server, true);
+        let value = body(&call(backend, "package_info", json!({"name": "mystery"})).await);
         assert_eq!(value["platforms"], json!(["linux-64"]));
         let requests = server.received_requests().await.unwrap();
         assert!(
@@ -555,13 +594,13 @@ mod tests {
     #[tokio::test]
     async fn package_info_explicit_channel_outage_is_search_unavailable() {
         let server = MockServer::start().await;
-        let (mut state, _dir) = test_state(&server, true);
+        let (mut backend, _dir) = test_backend(&server, true);
         let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let closed_url = format!("http://{}", closed.local_addr().unwrap());
         drop(closed);
-        state.client = Client::new(reqwest::Client::builder(), closed_url).unwrap();
+        backend.client = Client::new(reqwest::Client::builder(), closed_url).unwrap();
         let result = call(
-            state,
+            backend,
             "package_info",
             json!({"name": "numpy", "channel": "main"}),
         )
@@ -596,8 +635,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let (state, _dir) = test_state(&server, false);
-        let result = call(state, "search_forum", json!({"query": "solver error"})).await;
+        let (backend, _dir) = test_backend(&server, false);
+        let result = call(backend, "search_forum", json!({"query": "solver error"})).await;
         assert_eq!(result.is_error, Some(false));
         let value = body(&result);
         assert_eq!(value["total"], 1);
@@ -616,8 +655,8 @@ mod tests {
             .respond_with(ResponseTemplate::new(500))
             .mount(&server)
             .await;
-        let (state, _dir) = test_state(&server, false);
-        let result = call(state, "search_forum", json!({"query": "x"})).await;
+        let (backend, _dir) = test_backend(&server, false);
+        let result = call(backend, "search_forum", json!({"query": "x"})).await;
         assert_eq!(result.is_error, Some(true));
         assert_eq!(body(&result)["error"], "search_unavailable");
     }
@@ -625,9 +664,9 @@ mod tests {
     #[tokio::test]
     async fn search_forum_invalid_paging_is_tool_error() {
         let server = MockServer::start().await;
-        let (state, _dir) = test_state(&server, false);
+        let (backend, _dir) = test_backend(&server, false);
         let result = call(
-            state,
+            backend,
             "search_forum",
             json!({"query": "x", "page_size": 500}),
         )

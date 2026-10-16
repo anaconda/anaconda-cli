@@ -1,19 +1,27 @@
 //! Wire types returned by the MCP tools.
 //!
-//! Field names are part of the contract the Anaconda Package Intelligence
-//! skill (`src/mcp/skill.rs`) relies on. Optional fields serialize as
-//! explicit `null` rather than being omitted, so an agent can tell
-//! "unavailable" apart from "not part of the response".
+//! Mirrors bigbend `apps/remote-mcp/remote_mcp/mcp/schemas.py`: same field
+//! names, order, and nesting. Fields Python marks `exclude=True` (deferred
+//! data such as `github_stars`) are not declared here. The contract tests at
+//! the bottom of this file pin the exact key sets.
+//!
+//! Optional fields serialize as explicit `null` rather than being omitted
+//! (never use `skip_serializing_if`), so an agent can tell "unavailable"
+//! apart from "not part of the response".
 
 use serde::Serialize;
+
+/// Serialized `ToolError` used when a tool result cannot be encoded. Kept as
+/// a literal so the fallback cannot itself fail; a test checks it matches.
+pub const SERIALIZATION_ERROR_JSON: &str = r#"{"error":"internal_error","message":"The tool result could not be serialized. Try again later.","name":null}"#;
 
 /// A tool-level error, returned with `isError: true`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ToolError {
     pub error: &'static str,
     pub message: String,
-    /// Echo of the package name the caller supplied, when relevant.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Echo of the package name the caller supplied, when relevant; `null`
+    /// otherwise.
     pub name: Option<String>,
 }
 
@@ -123,22 +131,38 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    // Contract tests: each expected string is what Python's
+    // `model_dump_json()` emits for the same model in
+    // `remote_mcp/mcp/schemas.py`, so key names, key order, nesting, and
+    // explicit nulls are all pinned.
+
     #[test]
-    fn tool_error_omits_name_when_absent() {
-        let value = serde_json::to_value(ToolError::invalid_request("bad")).unwrap();
-        assert_eq!(value, json!({"error": "invalid_request", "message": "bad"}));
+    fn tool_error_contract() {
+        assert_eq!(
+            serde_json::to_string(&ToolError::invalid_request("bad")).unwrap(),
+            r#"{"error":"invalid_request","message":"bad","name":null}"#
+        );
+        assert_eq!(
+            serde_json::to_string(&ToolError::new("package_not_found", "missing").with_name("np"))
+                .unwrap(),
+            r#"{"error":"package_not_found","message":"missing","name":"np"}"#
+        );
     }
 
     #[test]
-    fn tool_error_includes_name_when_present() {
-        let value =
-            serde_json::to_value(ToolError::new("package_not_found", "missing").with_name("numpy"))
-                .unwrap();
-        assert_eq!(value["name"], "numpy");
+    fn serialization_error_json_matches_tool_error() {
+        let expected = ToolError::new(
+            "internal_error",
+            "The tool result could not be serialized. Try again later.",
+        );
+        assert_eq!(
+            SERIALIZATION_ERROR_JSON,
+            serde_json::to_string(&expected).unwrap()
+        );
     }
 
     #[test]
-    fn package_info_serializes_nulls_explicitly() {
+    fn package_info_contract() {
         let response = PackageInfoResponse {
             name: "numpy".into(),
             version: None,
@@ -162,22 +186,63 @@ mod tests {
             policy_detail: None,
             notes: vec![],
         };
-        let value = serde_json::to_value(&response).unwrap();
-        let object = value.as_object().unwrap();
-        for key in [
-            "version",
-            "python_versions",
-            "license",
-            "notable_constraints",
-            "build_variants",
-            "summary",
-            "doc_url",
-            "policy_status",
-            "policy_detail",
-        ] {
-            assert!(object.contains_key(key), "missing key {key}");
-            assert!(object[key].is_null(), "{key} should be null");
-        }
-        assert!(value["cve_summary"]["count"].is_null());
+        assert_eq!(
+            serde_json::to_string(&response).unwrap(),
+            concat!(
+                r#"{"name":"numpy","version":null,"channel":"main","platforms":[],"#,
+                r#""python_versions":null,"license":null,"notable_constraints":null,"#,
+                r#""build_variants":null,"summary":null,"doc_url":null,"#,
+                r#""download_count":{"total":null,"channel":null},"#,
+                r#""cve_summary":{"count":null,"critical":null},"#,
+                r#""policy_status":null,"policy_detail":null,"notes":[]}"#,
+            )
+        );
+        let variant = BuildVariant {
+            label: "cpu".into(),
+            selector: "pytorch=*=cpu*".into(),
+        };
+        assert_eq!(
+            serde_json::to_value(&variant).unwrap(),
+            json!({"label": "cpu", "selector": "pytorch=*=cpu*"})
+        );
+    }
+
+    #[test]
+    fn forum_search_contract() {
+        let response = ForumSearchResponse {
+            topics: vec![ForumTopic {
+                id: 1,
+                title: "t".into(),
+                url: None,
+                category: "c".into(),
+                posts_count: 1,
+                reply_count: 0,
+                views: 2,
+                created_at: None,
+                last_posted_at: None,
+                blurbs: vec![ForumBlurb {
+                    username: "u".into(),
+                    blurb: "b".into(),
+                    post_number: 1,
+                }],
+            }],
+            total: 1,
+            pagination: ForumPagination {
+                page: 1,
+                page_size: 10,
+                total_pages: 1,
+            },
+            notes: vec![],
+        };
+        assert_eq!(
+            serde_json::to_string(&response).unwrap(),
+            concat!(
+                r#"{"topics":[{"id":1,"title":"t","url":null,"category":"c","#,
+                r#""posts_count":1,"reply_count":0,"views":2,"created_at":null,"#,
+                r#""last_posted_at":null,"blurbs":[{"username":"u","blurb":"b","#,
+                r#""post_number":1}]}],"total":1,"#,
+                r#""pagination":{"page":1,"page_size":10,"total_pages":1},"notes":[]}"#,
+            )
+        );
     }
 }

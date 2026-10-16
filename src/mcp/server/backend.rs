@@ -1,4 +1,4 @@
-//! Shared, cloneable state for the MCP tool handlers.
+//! Immutable dependencies shared by the MCP tool handlers.
 
 use std::time::Duration;
 
@@ -10,18 +10,26 @@ use crate::http::Client;
 /// Per-request timeout for backend calls. Matches the remote service.
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 
-/// State owned by the MCP server for the lifetime of `ana mcp serve`.
+/// What the tools need to reach Anaconda's services. Nothing here changes
+/// while the server runs.
+///
+/// rmcp requires the server handler to be `Clone + Send + Sync + 'static`, so
+/// this holds owned, cheaply cloneable copies taken from `CommandContext`
+/// (which is borrowed mutably and built lazily). Keeping it separate from the
+/// rmcp handler also lets the tool functions be tested without the SDK.
 #[derive(Clone)]
-pub struct ServerState {
+pub struct Backend {
     /// Authenticated client; reads the API key from the keyring per request,
     /// so `ana login`/`ana logout` take effect without restarting the server.
     pub client: Client,
-    /// Unauthenticated client for public endpoints (forum search).
+    /// Unauthenticated client for public endpoints (forum search), so the API
+    /// key is not sent where it is not needed.
     pub public_client: Client,
+    /// Keyring location (for the login check) and `forum_base_url`.
     pub config: Config,
 }
 
-impl ServerState {
+impl Backend {
     pub fn from_context(ctx: &CommandContext) -> Self {
         Self {
             client: ctx.client().clone(),

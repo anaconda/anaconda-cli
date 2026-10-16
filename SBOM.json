@@ -2,7 +2,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:e4ca0471-3219-4cbc-a4cd-e1e063ec6501",
+  "serialNumber": "urn:uuid:709b7046-3967-426e-b131-1263d9a0f91b",
   "metadata": {
     "tools": [
       {
@@ -30,7 +30,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "58fda8bdfc8bdc01cab70e559243c1ff0c96b66b716cc07866b7c0e0ea49df16"
+          "content": "77acad4ad6f6090a4224aaf86cea6761a95e12822e3a7f4fc00255c047093b73"
         }
       ]
     },
@@ -14682,6 +14682,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#rattler_cache@0.10.3",
         "registry+https://github.com/rust-lang/crates.io-index#rattler_conda_types@0.48.1",
         "registry+https://github.com/rust-lang/crates.io-index#rattler_lock@0.31.5",
+        "registry+https://github.com/rust-lang/crates.io-index#regex@1.13.1",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest-middleware@0.5.2",
         "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
         "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.11.0",
@@ -18404,6 +18405,25 @@
       "affects": [
         {
           "ref": "registry+https://github.com/rust-lang/crates.io-index#unsafe-libyaml@0.2.11"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "description": "[yanked] ",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zip@8.6.0"
         }
       ]
     }

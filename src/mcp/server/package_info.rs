@@ -1,7 +1,8 @@
 //! `package_info`: pre-install intelligence for a conda package.
 //!
 //! Ported from bigbend `apps/remote-mcp/remote_mcp/services/package_info.py`
-//! (free-tier path). Calls the public package routes:
+//! (free-tier path, `_package_info_from_ce_routes`); each helper names the
+//! Python function it ports. Calls the public package routes:
 //!
 //! 1. `GET /api/ce/packages/{channel}/artifacts/conda/{name}`, once per
 //!    default channel, in parallel, to find the best channel.
@@ -9,17 +10,23 @@
 //!
 //! Every response is parsed tolerantly as `serde_json::Value`: a missing or
 //! oddly typed field degrades to `null` or a note, never to a hard failure.
+//! Conda versions and dependency specs are parsed with `rattler_conda_types`;
+//! build strings, which conda treats as opaque, use Python's regexes.
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use futures_util::future::join_all;
+use rattler_conda_types::version_spec::{EqualityOperator, RangeOperator, StrictRangeOperator};
+use rattler_conda_types::{MatchSpec, PackageNameMatcher, ParseStrictness, Version, VersionSpec};
+use regex::Regex;
 use reqwest::StatusCode;
 use serde_json::Value;
 
+use super::backend::{Backend, REQUEST_TIMEOUT};
 use super::schemas::{BuildVariant, CveSummary, DownloadCount, PackageInfoResponse, ToolError};
-use super::state::{REQUEST_TIMEOUT, ServerState};
 
 pub const DEFAULT_CHANNELS: &[&str] = &["main", "main-x", "msys2"];
 const DEPRECATED_CHANNELS: &[&str] = &["r"];
@@ -46,6 +53,7 @@ pub struct ValidatedArguments {
     pub python_version: Option<String>,
 }
 
+/// Port of `_validate_arguments`.
 pub fn validate_arguments(
     name: &str,
     version: Option<&str>,
@@ -94,7 +102,7 @@ pub fn validate_arguments(
 
 /// Reject anything that is not a plain conda name segment before it is
 /// interpolated into a request path.
-pub fn checked_segment<'a>(value: &'a str, field: &str) -> Result<&'a str, ToolError> {
+pub fn check_segment(value: &str, field: &str) -> Result<(), ToolError> {
     let safe = !value.is_empty()
         && value
             .bytes()
@@ -102,7 +110,7 @@ pub fn checked_segment<'a>(value: &'a str, field: &str) -> Result<&'a str, ToolE
         && value != "."
         && value != "..";
     if safe {
-        Ok(value)
+        Ok(())
     } else {
         Err(ToolError::invalid_request(format!(
             "{field} may only contain letters, digits, '.', '_' and '-', and may not be '.' or '..'"
@@ -114,10 +122,10 @@ pub fn checked_segment<'a>(value: &'a str, field: &str) -> Result<&'a str, ToolE
 // Versions
 // ---------------------------------------------------------------------------
 
-/// Compare conda versions with `VersionOrder` semantics, falling back to a
-/// plain string comparison when either side does not parse.
+/// Port of `compare_versions` (`domain/package_models.py`): conda
+/// `VersionOrder` semantics via rattler's `Version`, falling back to a plain
+/// string comparison when either side does not parse.
 pub fn compare_versions(a: &str, b: &str) -> Ordering {
-    use rattler_conda_types::Version;
     match (Version::from_str(a), Version::from_str(b)) {
         (Ok(a), Ok(b)) => a.cmp(&b),
         _ => a.cmp(b),
@@ -132,7 +140,8 @@ fn str_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
-/// The repodata record carried by a `/files` item, or an empty object.
+/// Port of `_conda_record_from_item`: the repodata record carried by a
+/// `/files` item, or `null`.
 fn conda_record(item: &Value) -> &Value {
     static EMPTY: Value = Value::Null;
     let metadata = item.get("metadata");
@@ -143,6 +152,7 @@ fn conda_record(item: &Value) -> &Value {
         .unwrap_or(&EMPTY)
 }
 
+/// Raw dependency strings of one item.
 fn depends(item: &Value) -> impl Iterator<Item = &str> {
     conda_record(item)
         .get("depends")
@@ -152,93 +162,128 @@ fn depends(item: &Value) -> impl Iterator<Item = &str> {
         .filter_map(Value::as_str)
 }
 
-/// Parse `python[ ][>=|==|=][ ]X.Y…` and return `X.Y`.
-fn python_major_minor(dep: &str) -> Option<&str> {
-    let rest = dep.strip_prefix("python")?;
-    let rest = rest.trim_start();
-    let rest = rest
-        .strip_prefix(">=")
-        .or_else(|| rest.strip_prefix("=="))
-        .or_else(|| rest.strip_prefix('='))
-        .unwrap_or(rest)
-        .trim_start();
-    let major_len = rest.bytes().take_while(u8::is_ascii_digit).count();
-    if major_len == 0 || rest.as_bytes().get(major_len) != Some(&b'.') {
-        return None;
+/// A dependency string parsed by rattler into its package name and version
+/// constraint. Python matches these with regexes; parsing them as conda
+/// match specs handles `3.12.*`, `|` alternatives, and spacing correctly.
+struct Dependency<'a> {
+    raw: &'a str,
+    name: String,
+    version: Option<VersionSpec>,
+}
+
+impl<'a> Dependency<'a> {
+    /// `None` for strings that are not a plain-named match spec.
+    fn parse(raw: &'a str) -> Option<Self> {
+        let raw = raw.trim();
+        let spec = MatchSpec::from_str(raw, ParseStrictness::Lenient).ok()?;
+        let PackageNameMatcher::Exact(name) = &spec.name else {
+            return None;
+        };
+        Some(Self {
+            raw,
+            name: name.as_source().to_string(),
+            version: spec.version,
+        })
     }
-    let minor_len = rest[major_len + 1..]
-        .bytes()
-        .take_while(u8::is_ascii_digit)
-        .count();
-    (minor_len > 0).then(|| &rest[..major_len + 1 + minor_len])
+
+    /// Text after the package name, e.g. `>=3.10` for `python >=3.10`.
+    fn raw_constraint(&self) -> Option<&'a str> {
+        self.raw
+            .split_once(char::is_whitespace)
+            .map(|(_, rest)| rest.trim())
+            .filter(|rest| !rest.is_empty())
+    }
 }
 
-fn numeric_key(version: &str) -> Vec<u64> {
-    version
-        .split('.')
-        .map(|part| part.parse().unwrap_or(0))
-        .collect()
+fn parsed_depends(items: &[Value]) -> impl Iterator<Item = Dependency<'_>> {
+    items.iter().flat_map(depends).filter_map(Dependency::parse)
 }
 
-/// Python versions supported by the builds.
+/// Leaf constraints of a version spec, in source order.
+fn leaves(spec: &VersionSpec) -> Vec<&VersionSpec> {
+    match spec {
+        VersionSpec::Group(_, specs) => specs.iter().flat_map(leaves).collect(),
+        leaf => vec![leaf],
+    }
+}
+
+/// `X.Y` of the first constraint that pins a minimum or exact Python
+/// version (`>=3.12`, `==3.12`, `3.12`, `3.12.*`). Matches Python's
+/// `^python\s*(?:>=|==|=)?\s*(\d+\.\d+)`, which only looks at the first one.
+fn python_major_minor(spec: &VersionSpec) -> Option<String> {
+    let version = match leaves(spec).first()? {
+        VersionSpec::Range(RangeOperator::GreaterEquals, v)
+        | VersionSpec::Exact(EqualityOperator::Equals, v) => v,
+        VersionSpec::StrictRange(StrictRangeOperator::StartsWith, v) => &v.0,
+        _ => return None,
+    };
+    let (major, minor) = version.as_major_minor()?;
+    Some(format!("{major}.{minor}"))
+}
+
+fn has_upper_bound(spec: &VersionSpec) -> bool {
+    leaves(spec).iter().any(|leaf| {
+        matches!(
+            leaf,
+            VersionSpec::Range(RangeOperator::Less | RangeOperator::LessEquals, _)
+        )
+    })
+}
+
+/// First `>=X` lower bound in a version spec.
+fn lower_bound(spec: &VersionSpec) -> Option<String> {
+    leaves(spec).into_iter().find_map(|leaf| match leaf {
+        VersionSpec::Range(RangeOperator::GreaterEquals, v) => Some(v.to_string()),
+        _ => None,
+    })
+}
+
+/// Port of `_extract_python_versions`: Python versions supported by the
+/// builds.
 ///
 /// Per-version builds (`python >=3.12,<3.13.0a0`) yield `["3.11", "3.12"]`.
 /// noarch builds (`python >=3.10`) yield the raw constraint `[">=3.10"]` so the
 /// agent knows the package is not pinned to one version.
 pub fn extract_python_versions(items: &[Value]) -> Option<Vec<String>> {
     let mut found = BTreeSet::new();
-    let mut has_upper_bound = false;
+    let mut any_upper_bound = false;
     let mut raw_constraints = BTreeSet::new();
-    for dep in items.iter().flat_map(depends) {
-        let dep = dep.trim();
-        let Some(version) = python_major_minor(dep) else {
+    for dep in parsed_depends(items).filter(|d| d.name == "python") {
+        let Some(version) = dep.version.as_ref() else {
             continue;
         };
-        found.insert(version.to_string());
-        if dep.contains('<') {
-            has_upper_bound = true;
-        } else if let Some((_, spec)) = dep.split_once(char::is_whitespace) {
-            let spec = spec.trim();
-            if !spec.is_empty() {
-                raw_constraints.insert(spec.to_string());
-            }
+        let Some(major_minor) = python_major_minor(version) else {
+            continue;
+        };
+        found.insert(major_minor);
+        if has_upper_bound(version) {
+            any_upper_bound = true;
+        } else if let Some(raw) = dep.raw_constraint() {
+            raw_constraints.insert(raw.to_string());
         }
     }
     if found.is_empty() {
         return None;
     }
-    if !has_upper_bound && !raw_constraints.is_empty() {
+    if !any_upper_bound && !raw_constraints.is_empty() {
         return Some(raw_constraints.into_iter().collect());
     }
     let mut versions: Vec<String> = found.into_iter().collect();
-    versions.sort_by_key(|v| numeric_key(v));
+    versions.sort_by(|a, b| compare_versions(a, b));
     Some(versions)
 }
 
-/// First `>=X` lower bound in a dependency spec.
-fn lower_bound(dep: &str) -> Option<&str> {
-    let start = dep.find(">=")? + 2;
-    let rest = &dep[start..];
-    let end = rest
-        .find(|c: char| c.is_whitespace() || c == ',' || c == '<')
-        .unwrap_or(rest.len());
-    (end > 0).then(|| &rest[..end])
-}
-
-/// Lower-bounded dependency constraints, one line per dependency. Virtual
-/// packages (`__*`) and python (see `python_versions`) are skipped.
+/// Port of `_extract_notable_constraints`: lower-bounded dependency
+/// constraints, one line per dependency. Virtual packages (`__*`) and python
+/// (see `python_versions`) are skipped.
 pub fn extract_notable_constraints(items: &[Value]) -> Option<Vec<String>> {
-    let mut bounds: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
-    for dep in items.iter().flat_map(depends) {
-        let dep = dep.trim();
-        let Some(name) = dep.split_whitespace().next() else {
-            continue;
-        };
-        if name.starts_with("__") || name == "python" {
+    let mut bounds: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for dep in parsed_depends(items) {
+        if dep.name.starts_with("__") || dep.name == "python" {
             continue;
         }
-        if let Some(bound) = lower_bound(dep) {
-            bounds.entry(name).or_default().insert(bound);
+        if let Some(bound) = dep.version.as_ref().and_then(lower_bound) {
+            bounds.entry(dep.name).or_default().insert(bound);
         }
     }
     if bounds.is_empty() {
@@ -261,143 +306,75 @@ pub fn extract_notable_constraints(items: &[Value]) -> Option<Vec<String>> {
     )
 }
 
-/// Actionable (active/reported) CVE counts, de-duplicated by id across builds.
-/// Both counts are null when no item carries CVE metadata at all.
+/// Port of `_extract_cve_summary`: actionable (active/reported) CVE counts,
+/// de-duplicated by id across builds. Both counts are null when no item
+/// carries CVE metadata at all.
 pub fn extract_cve_summary(items: &[Value]) -> CveSummary {
-    let mut seen = BTreeSet::new();
-    let mut actionable = 0;
-    let mut critical = 0;
-    let mut has_metadata = false;
-    for item in items {
-        let Some(cves) = item.get("metadata").and_then(|m| m.get("cves")) else {
-            continue;
-        };
-        if cves.is_null() {
-            continue;
-        }
-        has_metadata = true;
-        for cve in cves.as_array().into_iter().flatten() {
-            let Some(id) = str_at(cve, "id").filter(|id| !id.is_empty()) else {
-                continue;
-            };
-            if !seen.insert(id.to_string()) {
-                continue;
-            }
-            let status = str_at(cve, "status").unwrap_or_default();
-            if !ACTIONABLE_CVE_STATUSES.contains(&status) {
-                continue;
-            }
-            actionable += 1;
-            if cve
-                .get("score")
-                .and_then(Value::as_f64)
-                .is_some_and(|score| score >= CRITICAL_CVSS_THRESHOLD)
-            {
-                critical += 1;
-            }
-        }
-    }
-    if has_metadata {
-        CveSummary {
-            count: Some(actionable),
-            critical: Some(critical),
-        }
-    } else {
-        CveSummary {
+    let cve_lists: Vec<&Value> = items
+        .iter()
+        .filter_map(|item| item.get("metadata")?.get("cves"))
+        .filter(|cves| !cves.is_null())
+        .collect();
+    if cve_lists.is_empty() {
+        return CveSummary {
             count: None,
             critical: None,
-        }
-    }
-}
-
-/// Strip a trailing `_?h<hex{6,}>_<digits>` build hash suffix.
-fn strip_build_hash(build: &str) -> &str {
-    let bytes = build.as_bytes();
-    let mut i = bytes.len();
-    while i > 0 && bytes[i - 1].is_ascii_digit() {
-        i -= 1;
-    }
-    if i == bytes.len() || i == 0 || bytes[i - 1] != b'_' {
-        return build;
-    }
-    i -= 1;
-    let hex_end = i;
-    while i > 0 && matches!(bytes[i - 1], b'0'..=b'9' | b'a'..=b'f') {
-        i -= 1;
-    }
-    if hex_end - i < 6 || i == 0 || bytes[i - 1] != b'h' {
-        return build;
-    }
-    i -= 1;
-    if i > 0 && bytes[i - 1] == b'_' {
-        i -= 1;
-    }
-    &build[..i]
-}
-
-/// Remove every `_?py\d{2,3}` occurrence.
-fn strip_python_tags(label: &str) -> String {
-    let bytes = label.as_bytes();
-    let mut out = String::with_capacity(label.len());
-    let mut i = 0;
-    let python_tag_len = |at: usize| -> usize {
-        if !label[at..].starts_with("py") {
-            return 0;
-        }
-        let digits = bytes[at + 2..]
-            .iter()
-            .take(3)
-            .take_while(|b| b.is_ascii_digit())
-            .count();
-        if digits >= 2 { 2 + digits } else { 0 }
-    };
-    while i < bytes.len() {
-        let with_underscore = if bytes[i] == b'_' {
-            python_tag_len(i + 1)
-        } else {
-            0
         };
-        if with_underscore > 0 {
-            i += 1 + with_underscore;
-            continue;
-        }
-        let plain = python_tag_len(i);
-        if plain > 0 {
-            i += plain;
-            continue;
-        }
-        let ch = label[i..]
-            .chars()
-            .next()
-            .expect("index is on a char boundary");
-        out.push(ch);
-        i += ch.len_utf8();
     }
-    out
+    let mut seen = BTreeSet::new();
+    let actionable: Vec<&Value> = cve_lists
+        .iter()
+        .flat_map(|cves| cves.as_array().into_iter().flatten())
+        // First occurrence of each id wins, whatever its status.
+        .filter(|cve| {
+            str_at(cve, "id")
+                .filter(|id| !id.is_empty())
+                .is_some_and(|id| seen.insert(id.to_string()))
+        })
+        .filter(|cve| ACTIONABLE_CVE_STATUSES.contains(&str_at(cve, "status").unwrap_or_default()))
+        .collect();
+    let critical = actionable
+        .iter()
+        .filter(|cve| {
+            cve.get("score")
+                .and_then(Value::as_f64)
+                .is_some_and(|score| score >= CRITICAL_CVSS_THRESHOLD)
+        })
+        .count();
+    CveSummary {
+        count: Some(actionable.len() as u64),
+        critical: Some(critical as u64),
+    }
 }
 
-/// Distinct build variants, from build-string prefixes (`cpu_mkl`) or BLAS
-/// metapackage dependencies (`blas * openblas`). `None` when all builds
-/// share one variant.
+// The same patterns as Python's `_extract_build_variants`. They are constant,
+// so compiling them cannot fail at runtime.
+static BUILD_HASH_SUFFIX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"_?h[0-9a-f]{6,}_\d+$").expect("valid regex"));
+static PYTHON_TAG: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"_?py\d{2,3}").expect("valid regex"));
+static BLAS_DEPENDENCY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^blas\s+\S+\s+(\S+)$").expect("valid regex"));
+
+/// Variant label of a build string: `cpu_mkl_py312h0452e45_104` -> `cpu_mkl`.
+/// conda treats build strings as opaque, so rattler has nothing for this.
+fn build_label(build: &str) -> String {
+    let without_hash = BUILD_HASH_SUFFIX.replace(build, "");
+    let without_python = PYTHON_TAG.replace_all(&without_hash, "");
+    without_python.trim_end_matches('_').to_string()
+}
+
+/// Port of `_extract_build_variants`: distinct build variants, from
+/// build-string prefixes (`cpu_mkl`) or BLAS metapackage dependencies
+/// (`blas * openblas`). `None` when all builds share one variant.
 pub fn extract_build_variants(items: &[Value], package_name: &str) -> Option<Vec<BuildVariant>> {
-    let mut build_labels = BTreeSet::new();
-    let mut blas_labels = BTreeSet::new();
-    for item in items {
-        let record = conda_record(item);
-        if let Some(build) = str_at(record, "build").filter(|b| !b.is_empty()) {
-            let label = strip_python_tags(strip_build_hash(build));
-            let label = label.trim_end_matches('_');
-            if !label.is_empty() {
-                build_labels.insert(label.to_string());
-            }
-        }
-        for dep in depends(item) {
-            let parts: Vec<&str> = dep.split_whitespace().collect();
-            if let ["blas", _, variant] = parts.as_slice() {
-                blas_labels.insert((*variant).to_string());
-            }
-        }
-    }
+    let build_labels: BTreeSet<String> = items
+        .iter()
+        .filter_map(|item| str_at(conda_record(item), "build"))
+        .filter(|build| !build.is_empty())
+        .map(build_label)
+        .filter(|label| !label.is_empty())
+        .collect();
     if build_labels.len() > 1 {
         return Some(
             build_labels
@@ -409,6 +386,12 @@ pub fn extract_build_variants(items: &[Value], package_name: &str) -> Option<Vec
                 .collect(),
         );
     }
+    let blas_labels: BTreeSet<String> = items
+        .iter()
+        .flat_map(depends)
+        .filter_map(|dep| BLAS_DEPENDENCY.captures(dep))
+        .map(|captures| captures[1].to_string())
+        .collect();
     if blas_labels.len() > 1 {
         return Some(
             blas_labels
@@ -423,8 +406,9 @@ pub fn extract_build_variants(items: &[Value], package_name: &str) -> Option<Vec
     None
 }
 
-/// Keep a publisher-supplied documentation URL only if it is plain http(s)
-/// with a real host and no control characters or backslashes.
+/// Port of `_safe_doc_url`: keep a publisher-supplied documentation URL only
+/// if it is plain http(s) with a real host and no control characters or
+/// backslashes.
 pub fn safe_doc_url(doc_url: &str) -> Option<String> {
     if doc_url.is_empty() || doc_url.chars().any(|c| c == '\\' || c.is_control()) {
         return None;
@@ -434,6 +418,7 @@ pub fn safe_doc_url(doc_url: &str) -> Option<String> {
         .then(|| doc_url.to_string())
 }
 
+/// Port of `_subdirs_from_items`.
 fn subdirs_from_items(items: &[Value]) -> Vec<String> {
     items
         .iter()
@@ -476,7 +461,7 @@ pub struct ChannelResolution {
     pub other_channels: Vec<(String, Value)>,
 }
 
-/// Pick the best channel from parallel lookups.
+/// Port of `_resolve_channel`: pick the best channel from parallel lookups.
 ///
 /// `results` holds one `(channel, metadata)` per channel that carries the
 /// package. An explicitly requested channel is never silently swapped for
@@ -571,8 +556,9 @@ pub fn resolve_channel(
 // Response assembly
 // ---------------------------------------------------------------------------
 
-/// Build the response from the resolved channel and the `/files` payload
-/// (`None` when that request failed).
+/// Port of `_resolve_version_and_assemble` and `_assemble_response` (free
+/// tier, so no policy fields): build the response from the resolved channel
+/// and the `/files` payload (`None` when that request failed).
 pub fn assemble(
     args: &ValidatedArguments,
     echo_name: &str,
@@ -725,9 +711,9 @@ enum Lookup {
     Failed,
 }
 
-async fn lookup_channel(state: &ServerState, channel: &str, name: &str) -> Lookup {
+async fn lookup_channel(backend: &Backend, channel: &str, name: &str) -> Lookup {
     let path = format!("/api/ce/packages/{channel}/artifacts/conda/{name}");
-    let response = match state
+    let response = match backend
         .client
         .get(&path)
         .timeout(REQUEST_TIMEOUT)
@@ -755,7 +741,7 @@ async fn lookup_channel(state: &ServerState, channel: &str, name: &str) -> Looku
 
 /// Fetch all `/files` items for one version. `None` on any failure.
 async fn fetch_files(
-    state: &ServerState,
+    backend: &Backend,
     channel: &str,
     name: &str,
     version: Option<&str>,
@@ -766,7 +752,7 @@ async fn fetch_files(
         if let Some(version) = version {
             query.push(("version", version.to_string()));
         }
-        state
+        backend
             .client
             .get(&path)
             .query(&query)
@@ -806,9 +792,9 @@ async fn fetch_files(
     read(request(limit).await).await.or(Some(first))
 }
 
-/// Tool entry point.
+/// Tool entry point. Port of `_package_info_from_ce_routes`.
 pub async fn package_info(
-    state: &ServerState,
+    backend: &Backend,
     name: &str,
     version: Option<&str>,
     channel: Option<&str>,
@@ -816,12 +802,11 @@ pub async fn package_info(
     python_version: Option<&str>,
 ) -> Result<PackageInfoResponse, ToolError> {
     let args = validate_arguments(name, version, channel, platform, python_version)?;
-    if !state.has_credentials() {
+    if !backend.has_credentials() {
         return Err(ToolError::unauthenticated());
     }
 
-    let checked_name =
-        checked_segment(&args.name, "package_name").map_err(|e| e.with_name(name))?;
+    check_segment(&args.name, "package_name").map_err(|e| e.with_name(name))?;
     let preferred = args.channel.as_deref().unwrap_or("main");
     let mut channels = vec![preferred];
     channels.extend(
@@ -831,13 +816,13 @@ pub async fn package_info(
             .filter(|ch| *ch != preferred),
     );
     for ch in &channels {
-        checked_segment(ch, "channel").map_err(|e| e.with_name(name))?;
+        check_segment(ch, "channel").map_err(|e| e.with_name(name))?;
     }
 
     let lookups = join_all(
         channels
             .iter()
-            .map(|ch| lookup_channel(state, ch, checked_name)),
+            .map(|ch| lookup_channel(backend, ch, &args.name)),
     )
     .await;
 
@@ -868,9 +853,9 @@ pub async fn package_info(
         .or_else(|| artifact_version(&resolution.artifact_meta))
         .map(str::to_string);
     let files = fetch_files(
-        state,
+        backend,
         &resolution.resolved_channel,
-        checked_name,
+        &args.name,
         resolved_version.as_deref(),
     )
     .await;
@@ -946,12 +931,12 @@ mod tests {
     }
 
     #[test]
-    fn checked_segment_rejects_traversal() {
+    fn check_segment_rejects_traversal() {
         for bad in ["..", ".", "a/b", "a b", "", "a%2f"] {
-            assert!(checked_segment(bad, "name").is_err(), "{bad}");
+            assert!(check_segment(bad, "name").is_err(), "{bad}");
         }
         for good in ["numpy", "scikit-learn", "python_abi", "ca-certificates.1"] {
-            assert!(checked_segment(good, "name").is_ok(), "{good}");
+            assert!(check_segment(good, "name").is_ok(), "{good}");
         }
     }
 
@@ -990,6 +975,46 @@ mod tests {
             &["python_abi 3.12.* *_cp312", "pythonnet 3.0"],
         )];
         assert_eq!(extract_python_versions(&items), None);
+    }
+
+    #[test]
+    fn python_versions_from_other_spec_forms() {
+        // Exact, starts-with, and `==` pins are treated like `>=` minimums,
+        // as Python's `(?:>=|==|=)?` regex does; `>` and `<` alone are not.
+        for (dep, expected) in [
+            ("python 3.12.*", Some(vec!["3.12.*"])),
+            ("python ==3.11.4", Some(vec!["==3.11.4"])),
+            ("  python >=3.9,<3.10.0a0  ", Some(vec!["3.9"])),
+            ("python >3.9", None),
+            ("python <3.13", None),
+            ("python", None),
+        ] {
+            let items = [item("linux-64", "b", &[dep])];
+            let expected = expected.map(|v| v.into_iter().map(String::from).collect::<Vec<_>>());
+            assert_eq!(extract_python_versions(&items), expected, "{dep}");
+        }
+    }
+
+    #[test]
+    fn python_versions_sort_numerically() {
+        let items = [
+            item("linux-64", "a", &["python >=3.10,<3.11.0a0"]),
+            item("linux-64", "b", &["python >=3.9,<3.10.0a0"]),
+        ];
+        assert_eq!(extract_python_versions(&items).unwrap(), ["3.9", "3.10"]);
+    }
+
+    #[test]
+    fn dependency_parsing_skips_unparseable_specs() {
+        let items = [item(
+            "linux-64",
+            "a",
+            &["", "numpy >=1.22", "not a valid spec >=>= ???"],
+        )];
+        assert_eq!(
+            extract_notable_constraints(&items).unwrap(),
+            ["numpy >=1.22"]
+        );
     }
 
     #[test]
@@ -1046,19 +1071,20 @@ mod tests {
 
     #[test]
     fn build_label_stripping() {
-        assert_eq!(
-            strip_build_hash("cpu_mkl_py312h0452e45_104"),
-            "cpu_mkl_py312"
-        );
-        assert_eq!(strip_build_hash("py312h8456e4e_0"), "py312");
-        assert_eq!(strip_build_hash("h1234_0"), "h1234_0");
-        assert_eq!(
-            strip_build_hash("cuda118_py310_h0123456_1"),
-            "cuda118_py310"
-        );
-        assert_eq!(strip_python_tags("cpu_mkl_py312"), "cpu_mkl");
-        assert_eq!(strip_python_tags("py312"), "");
-        assert_eq!(strip_python_tags("cuda118_py310"), "cuda118");
+        for (build, label) in [
+            ("cpu_mkl_py312h0452e45_104", "cpu_mkl"),
+            ("py312h8456e4e_0", ""),
+            ("cuda118_py310_h0123456_1", "cuda118"),
+            ("cuda126_py312h0452e45_104", "cuda126"),
+            // Hash shorter than six hex digits: not a hash suffix.
+            ("h1234_0", "h1234_0"),
+            // Same results as Python's regexes, quirks included: noarch
+            // builds keep `py`, and `\d{2,3}` is greedy.
+            ("pyhd8ed1ab_0", "py"),
+            ("py2713_0", "3_0"),
+        ] {
+            assert_eq!(build_label(build), label, "{build}");
+        }
     }
 
     #[test]

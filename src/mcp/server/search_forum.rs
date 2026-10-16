@@ -1,15 +1,20 @@
 //! `search_forum`: free-text search of the Anaconda community forum.
 //!
-//! Ported from bigbend `apps/remote-mcp/remote_mcp/services/search_forum.py`.
-//! The forum index is served by `GET {base}/api/search/forum` and needs no
-//! credentials.
+//! Ported from bigbend `apps/remote-mcp/remote_mcp/services/search_forum.py`;
+//! each helper names the Python function it ports. The forum index is served
+//! by `GET {base}/api/search/forum` and needs no credentials.
+//!
+//! Python's `_is_utf8_encodable` check has no counterpart: a Rust `String` is
+//! always valid UTF-8.
 
 use serde::Deserialize;
 use serde_json::Value;
 
+use super::backend::{Backend, REQUEST_TIMEOUT};
 use super::schemas::{ForumBlurb, ForumPagination, ForumSearchResponse, ForumTopic, ToolError};
-use super::state::{REQUEST_TIMEOUT, ServerState};
 
+pub const DEFAULT_PAGE: i64 = 1;
+pub const DEFAULT_PAGE_SIZE: i64 = 10;
 pub const MAX_QUERY_LENGTH: usize = 256;
 pub const MAX_PAGE_SIZE: i64 = 100;
 /// OpenSearch `index.max_result_window` default.
@@ -26,6 +31,9 @@ pub struct ValidatedForumArguments {
     pub page_size: i64,
 }
 
+/// Port of `_validate_arguments`. Hand-written like the Python: trimming
+/// before checking and the cross-field result-window rule do not fit a
+/// derive-based validator.
 pub fn validate_arguments(
     query: &str,
     page: i64,
@@ -65,7 +73,8 @@ pub fn validate_arguments(
     })
 }
 
-/// Read a non-negative integer total. Returns `(total, was_sanitized)`.
+/// Port of `_read_total`: a non-negative integer total. Returns
+/// `(total, was_sanitized)`.
 fn read_total(raw: Option<&Value>) -> (i64, bool) {
     // `as_i64` is `None` for floats, so `1.5` and `1.0` are both rejected.
     match raw.and_then(Value::as_i64) {
@@ -74,9 +83,9 @@ fn read_total(raw: Option<&Value>) -> (i64, bool) {
     }
 }
 
-/// Return `url` only if it is absolute http(s), has a host, carries no
-/// credentials or control characters, and shares scheme, host and port with
-/// `expected_origin`.
+/// Port of `_safe_absolute_url`: return `url` only if it is absolute
+/// http(s), has a host, carries no credentials or control characters, and
+/// shares scheme, host and port with `expected_origin`.
 pub fn safe_absolute_url(url: Option<&Value>, expected_origin: &str) -> Option<String> {
     let url = url?.as_str()?;
     if expected_origin.is_empty()
@@ -107,6 +116,7 @@ pub fn safe_absolute_url(url: Option<&Value>, expected_origin: &str) -> Option<S
     (origin_of(&parsed_url) == origin_of(&parsed_origin)).then(|| url.to_string())
 }
 
+/// Port of `_normalize_blurb`: collapse whitespace runs to single spaces.
 fn normalize_blurb(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -131,27 +141,48 @@ struct RawTopic {
     blurbs: Vec<RawBlurb>,
 }
 
-fn is_timestamp(value: &str) -> bool {
-    chrono::DateTime::parse_from_rfc3339(value).is_ok()
-        || chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f").is_ok()
+/// Parse an ISO-8601 timestamp and re-serialize it the way pydantic emits a
+/// Python `datetime` (the remote's `ForumTopic.created_at` is typed
+/// `datetime`): microseconds only when non-zero, `Z` for UTC, `±HH:MM` for
+/// other offsets, no suffix for naive values. `None` if it does not parse.
+fn normalize_timestamp(value: &str) -> Option<String> {
+    use chrono::{DateTime, NaiveDateTime, Timelike};
+    fn base(naive: &NaiveDateTime) -> String {
+        let mut out = naive.format("%Y-%m-%dT%H:%M:%S").to_string();
+        let micros = naive.nanosecond() / 1_000;
+        if micros != 0 {
+            out.push_str(&format!(".{micros:06}"));
+        }
+        out
+    }
+    if let Ok(aware) = DateTime::parse_from_rfc3339(value) {
+        let offset = aware.offset().local_minus_utc();
+        let suffix = if offset == 0 {
+            "Z".to_string()
+        } else {
+            aware.format("%:z").to_string()
+        };
+        return Some(base(&aware.naive_local()) + &suffix);
+    }
+    NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f")
+        .ok()
+        .map(|naive| base(&naive))
 }
 
-/// Map one raw topic. Returns `Err` with a short reason when unreadable.
+/// Port of `_map_topic`. Returns `Err` with a short reason when unreadable.
 fn map_topic(raw: &Value, expected_origin: &str) -> Result<ForumTopic, String> {
     let Value::Object(map) = raw else {
         return Err("topic was not a mapping".to_string());
     };
     let topic: RawTopic = serde_json::from_value(raw.clone()).map_err(|e| e.to_string())?;
-    for (field, value) in [
-        ("created_at", &topic.created_at),
-        ("last_posted_at", &topic.last_posted_at),
-    ] {
-        if let Some(value) = value
-            && !is_timestamp(value)
-        {
-            return Err(format!("{field} is not a timestamp"));
-        }
-    }
+    let timestamp = |field: &str, value: Option<String>| match value {
+        None => Ok(None),
+        Some(value) => normalize_timestamp(&value)
+            .map(Some)
+            .ok_or_else(|| format!("{field} is not a timestamp")),
+    };
+    let created_at = timestamp("created_at", topic.created_at)?;
+    let last_posted_at = timestamp("last_posted_at", topic.last_posted_at)?;
     Ok(ForumTopic {
         id: topic.id,
         title: topic.title,
@@ -162,8 +193,8 @@ fn map_topic(raw: &Value, expected_origin: &str) -> Result<ForumTopic, String> {
         posts_count: topic.posts_count,
         reply_count: topic.reply_count,
         views: topic.views,
-        created_at: topic.created_at,
-        last_posted_at: topic.last_posted_at,
+        created_at,
+        last_posted_at,
         blurbs: topic
             .blurbs
             .into_iter()
@@ -179,7 +210,8 @@ fn map_topic(raw: &Value, expected_origin: &str) -> Result<ForumTopic, String> {
     })
 }
 
-/// Turn a search API payload into the tool response.
+/// Turn a search API payload into the tool response. Port of the response
+/// half of `search_forum` plus `_read_topics` and `_pagination`.
 pub fn build_response(
     args: &ValidatedForumArguments,
     payload: &Value,
@@ -290,7 +322,7 @@ pub fn build_response(
 
 /// Tool entry point.
 pub async fn search_forum(
-    state: &ServerState,
+    backend: &Backend,
     query: &str,
     page: i64,
     page_size: i64,
@@ -298,7 +330,7 @@ pub async fn search_forum(
     let args = validate_arguments(query, page, page_size)?;
     let unavailable = || ToolError::new("search_unavailable", UNAVAILABLE_MESSAGE);
 
-    let response = state
+    let response = backend
         .public_client
         .get(FORUM_SEARCH_PATH)
         .query(&[
@@ -323,7 +355,7 @@ pub async fn search_forum(
         tracing::error!(error = %e, "forum search response was not valid JSON");
         unavailable()
     })?;
-    build_response(&args, &payload, &state.config.forum_base_url)
+    build_response(&args, &payload, &backend.config.forum_base_url)
 }
 
 #[cfg(test)]
@@ -610,6 +642,43 @@ mod tests {
             result.notes,
             ["requested page 4 is past the last available page (3); use an earlier page"]
         );
+    }
+
+    #[test]
+    fn timestamps_match_pydantic_datetime_serialization() {
+        for (input, expected) in [
+            ("2024-01-02T03:04:05.000Z", Some("2024-01-02T03:04:05Z")),
+            ("2024-01-02T03:04:05Z", Some("2024-01-02T03:04:05Z")),
+            ("2024-01-02T03:04:05+00:00", Some("2024-01-02T03:04:05Z")),
+            (
+                "2022-10-12T09:31:23.304Z",
+                Some("2022-10-12T09:31:23.304000Z"),
+            ),
+            (
+                "2022-10-12T09:31:23.304000Z",
+                Some("2022-10-12T09:31:23.304000Z"),
+            ),
+            (
+                "2024-01-02T03:04:05.5+02:00",
+                Some("2024-01-02T03:04:05.500000+02:00"),
+            ),
+            ("2024-01-02T03:04:05", Some("2024-01-02T03:04:05")),
+            ("not-a-timestamp", None),
+        ] {
+            assert_eq!(normalize_timestamp(input).as_deref(), expected, "{input}");
+        }
+    }
+
+    #[test]
+    fn mapped_topics_carry_normalized_timestamps() {
+        let mut payload = single(json!("https://forum.anaconda.com/t/a/1"));
+        payload["topics"][0]["last_posted_at"] = json!(null);
+        let result = build_response(&args(1, 10), &payload, ORIGIN).unwrap();
+        assert_eq!(
+            result.topics[0].created_at.as_deref(),
+            Some("2024-01-02T03:04:05Z")
+        );
+        assert_eq!(result.topics[0].last_posted_at, None);
     }
 
     #[test]
