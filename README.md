@@ -93,14 +93,22 @@ echo "$ANACONDA_API_KEY" | ana login --api-key
 
 ### Integrating AI assistants with your environment
 
-`ana` provides MCP (Model Context Protocol) support so AI assistants like Claude can discover and work with packages in your conda environments:
+`ana` provides MCP (Model Context Protocol) support so AI assistants like Claude can look up conda package details and organization context:
 
 ```bash
 ana mcp setup
-ana mcp discover
 ```
 
 See `ana mcp --help` for the full list of subcommands.
+
+`ana intel` gives agents (and people) read-only package intelligence from the
+command line. Output is JSON when piped, which is how agents run it, and
+readable text in a terminal; pass `--json` to see what an agent sees.
+
+```bash
+ana intel package-info pytorch --platform linux-64
+ana intel search-forum "Solving environment failed"
+```
 
 ### Deploying ML workflows to Outerbounds
 
@@ -127,6 +135,7 @@ View current settings with `ana config`.
 | `ANA_ENABLE_TELEMETRY` | `true` | Send anonymous usage telemetry (see [telemetry policy](docs/telemetry.md)) |
 | `ANA_PRERELEASES` | `false` | Include pre-releases in update checks |
 | `ANA_KEYRING_PATH` | `~/.anaconda/keyring` | API key storage location |
+| `ANA_FORUM_BASE_URL` | `https://forum.anaconda.com` | Expected origin of forum links from `ana intel search-forum` |
 
 Boolean values accept `true`/`false`, `1`/`0`, or empty string (treated as false).
 
@@ -172,11 +181,18 @@ ana self update --list           # List available versions
 
 ```bash
 ana mcp setup                    # Configure AI clients for Anaconda MCP
-ana mcp discover                 # Discover MCP servers from environments
 ana mcp clients                  # List supported AI clients
-ana mcp serve                    # Start MCP servers
 ana mcp remove                   # Remove MCP configuration
 ```
+
+### Package intelligence
+
+```bash
+ana intel package-info <name>    # Versions, platforms, constraints, build variants, CVEs
+ana intel search-forum <query>   # Search the Anaconda community forum
+```
+
+JSON when piped (errors too, with a non-zero exit); text in a terminal; `--json` forces JSON.
 
 ### API access
 

@@ -26,6 +26,7 @@ flowchart LR
         OB["Outerbounds subprocesses (Unix standalone)"]
         AICFG["AI-client config, backups and skill files"]
         AICLIENT["User's AI client"]
+        INTEL["ana intel: package-info, search-forum"]
         SPOOL["Pending telemetry JSON"]
         SUBMIT["Detached ana telemetry-submit"]
     end
@@ -49,6 +50,8 @@ flowchart LR
     ANA -->|"MCP setup / remove"| AICFG
     AICFG -->|"configuration and bearer credential"| AICLIENT
     AICLIENT -->|"HTTPS MCP requests"| MCP
+    AICLIENT -->|"runs in a shell; reads JSON"| INTEL
+    INTEL -->|"package routes (stored key); forum search (no key)"| API
     ANA -->|"when metrics enabled"| SPOOL
     SPOOL --> SUBMIT
     SUBMIT --> METRICS
@@ -70,19 +73,34 @@ and resource-quota policies, separately from the CLI's local login gate.
 4. Native MCP setup writes supported AI-client configuration for `/api/mcp`,
    including a bearer credential, backups and companion skill/state. The AI
    client subsequently connects to the remote server; `ana` does not serve MCP.
-5. Logout removes the current domain's stored credential. It does not automatically
+5. `ana intel` commands are read-only package-intelligence lookups intended
+   mainly for AI agents running them in a shell. `package-info` calls the
+   public package routes under `/api/ce/packages` with the stored API key;
+   `search-forum` calls `/api/search/forum` through the unauthenticated client,
+   so the key is never sent. They bypass the central login gate, whose prompt
+   writes to stdout and starts the device flow: at an interactive terminal
+   `package-info` prompts for login itself, otherwise it returns an
+   `unauthenticated` error. Output is JSON when stdout is not a terminal (or
+   with `--json`), including errors, which go to stdout with a non-zero exit
+   and no second diagnostic; logs go to stderr. A terminal gets readable text.
+   *Planned:* organization-aware commands (`org-config`, `package-security`,
+   policy fields in `package-info`), then moving AI-client setup to
+   `ana intel setup` (skill only, no remote MCP entry or credential copy) and
+   removing `ana mcp`.
+6. Logout removes the current domain's stored credential. It does not automatically
    revoke the remote key or erase all telemetry and AI-client credential copies.
 
 Sources: [dispatch](../src/cli.rs), [context](../src/context.rs),
 [HTTP clients](../src/http.rs), [authentication](../src/auth/actions.rs),
 [Python wrapper](../src/anaconda_cli.rs), [channels](../src/packages/run.rs),
-[platform wrapper](../src/outerbounds/run.rs), [MCP setup](../src/mcp/setup.rs).
+[platform wrapper](../src/outerbounds/run.rs), [MCP setup](../src/mcp/setup.rs),
+[intel commands](../src/intel/mod.rs).
 
 ### Local Storage and Configuration
 
 | State | Location / behavior |
 | --- | --- |
-| General runtime settings | Defaults plus `ANA_*` environment variables; no general configuration-file provider in `Config` |
+| General runtime settings | Defaults plus `ANA_*` environment variables (including `ANA_FORUM_BASE_URL`, the expected origin of forum links returned by `ana intel search-forum`); no general configuration-file provider in `Config` |
 | Experimental feature flags | Separate reader for `[ana.features]` in `$ANA_HOME/config.toml` |
 | Managed tools and exposed executables | Under `ANA_HOME`, default `~/.ana`; selected tools use Unix symlinks or Windows shims |
 | API credentials | Domain-keyed JSON/Base64 file, default `~/.anaconda/keyring`; separately overridable with `ANA_KEYRING_PATH`. This is encoding, not an OS credential vault. |
@@ -260,7 +278,7 @@ managed-tool prefix workflow.
 | Organization commands | Managed Python CLI subprocess | Environment Python CLI subprocess |
 | Channel commands | Available | Not exposed |
 | Platform commands | Unix only | Not exposed |
-| Native MCP setup and Miniconda download | Available | Available |
+| Native MCP setup, `ana intel`, and Miniconda download | Available | Available |
 
 Sources: [shell installer](../scripts/install.sh), [PowerShell installer](../scripts/install.ps1),
 [self-update](../src/update.rs), [feature gates](../build.rs),
@@ -286,6 +304,7 @@ versions and publication settings.
 | User environment to CLI configuration | Environment variables select paths/endpoints. `ANA_USE_HTTPS` controls the generated base URL's scheme; native clients use their default certificate validation, independently of the parsed `ANA_SSL_VERIFY` setting. |
 | CLI credentials to remote destinations | HTTP authentication middleware attaches credentials to selected destinations. Remote services handle authentication and authorization separately from the CLI's stored-key login gate. |
 | CLI storage to AI-client configuration | API keys reside in the file keyring and are copied into AI-client configuration during MCP setup. New Unix keyring files request owner-only permissions; Windows writes use inherited filesystem ACLs. |
+| AI agent to `ana intel` | Agents run `ana intel` with the user's privileges and pass arguments that may come from untrusted prompts. Arguments are length-checked, and package/channel names are restricted to `[A-Za-z0-9._-]` (no `.`/`..`) before they enter request paths. Publisher-supplied documentation URLs and forum links are dropped unless they are plain http(s); forum links must also match `ANA_FORUM_BASE_URL`'s origin. The API key stays in the keyring/HTTP middleware path and never appears in output. |
 | Downloaded packages/executables to local execution | Installer, managed-tool, self-update and conda paths have different integrity controls. Managed installation enables package link scripts, and wrappers invoke external executables. |
 | CI identity to signing/publication | GitHub workload identity authenticates to Vault, which supplies credentials for signing, testing, publication and site dispatch to their respective jobs. |
 | Cloudflare edge to S3 origin | TLS terminates at Cloudflare; the configured S3 website origin uses HTTP. Edge access policies and bucket policies form separate access-control layers. |

@@ -199,6 +199,28 @@ pub enum McpError {
     UnsupportedClient(String),
 }
 
+/// Errors from `ana intel` commands.
+#[derive(Error, Debug, Diagnostic)]
+pub enum IntelError {
+    /// A structured error was already printed to stdout as JSON. `execute()`
+    /// exits non-zero without printing a diagnostic, so agents see exactly
+    /// one machine-readable error.
+    #[error("{0}")]
+    #[diagnostic(code(ana::intel::reported))]
+    Reported(String),
+
+    /// A tool-level error shown to a person at a terminal.
+    #[error("{message}")]
+    #[diagnostic(code(ana::intel::error))]
+    Tool {
+        /// Machine-readable error code, e.g. `package_not_found`.
+        code: &'static str,
+        message: String,
+        #[help]
+        help: Option<String>,
+    },
+}
+
 /// Error when self-update is unavailable.
 #[cfg(not(self_update))]
 #[derive(Error, Debug, Diagnostic)]
