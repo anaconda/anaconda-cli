@@ -14,6 +14,7 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
+use crate::intel::{self, IntelCommands};
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds;
@@ -71,16 +72,11 @@ impl LogLevel {
 pub async fn execute() {
     let (action, level) = parse();
 
-    // `mcp serve` speaks JSON-RPC on stdout, so logs must go to stderr.
-    let is_mcp_serve = matches!(
-        &action,
-        Action::Mcp {
-            command: McpCommands::Serve
-        }
-    );
+    // `ana intel` prints JSON on stdout for agents, so logs must go to stderr.
+    let is_intel = matches!(&action, Action::Intel { .. });
 
     let filter = build_tracing_filter(level);
-    if is_mcp_serve {
+    if is_intel {
         tracing_subscriber::fmt()
             .with_env_filter(filter)
             .with_writer(std::io::stderr)
@@ -94,8 +90,9 @@ pub async fn execute() {
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
+    // No update notice for agents and scripts consuming `ana intel` output.
     #[cfg(self_update)]
-    let skip_update_check = is_mcp_serve
+    let skip_update_check = (is_intel && !std::io::IsTerminal::is_terminal(&std::io::stdout()))
         || matches!(
             &action,
             Action::Update { .. }
@@ -119,7 +116,13 @@ pub async fn execute() {
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("{:?}", e);
+        // The error was already printed to stdout as JSON for an agent.
+        if !matches!(
+            e.downcast_ref::<crate::errors::IntelError>(),
+            Some(crate::errors::IntelError::Reported(_))
+        ) {
+            eprintln!("{:?}", e);
+        }
         std::process::exit(1);
     }
 }
@@ -191,6 +194,9 @@ pub enum Action {
     Mcp {
         command: McpCommands,
     },
+    Intel {
+        command: IntelCommands,
+    },
     #[cfg(tool_install)]
     ChannelRun {
         args: Vec<String>,
@@ -259,11 +265,11 @@ impl Action {
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { .. } => "platform",
             Action::Mcp { command } => match command {
-                McpCommands::Serve => "mcp.serve",
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
             },
+            Action::Intel { command } => command.action_name(),
             #[cfg(tool_install)]
             Action::ChannelRun { .. } => "channel",
             Action::UserAgent { .. } => "user-agent",
@@ -330,16 +336,14 @@ impl Action {
     ///
     /// Auth commands (login/logout/api-key), help/version output,
     /// self-update, telemetry, and feedback are excluded since they must
-    /// work without credentials. `mcp serve` is excluded because it is
-    /// launched non-interactively by AI clients and stdout carries the MCP
-    /// protocol; its tools report `unauthenticated` instead of prompting.
+    /// work without credentials. `ana intel` handles login itself: the
+    /// prompt here writes to stdout and would hang an agent (see
+    /// `intel::run`).
     fn requires_login(&self) -> bool {
         !matches!(
             self,
             Action::ShowHelp
-                | Action::Mcp {
-                    command: McpCommands::Serve
-                }
+                | Action::Intel { .. }
                 | Action::ShowSubcommandHelp(_)
                 | Action::ShowVersion
                 | Action::ShowConfig
@@ -387,7 +391,8 @@ impl Action {
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)
                 .await
                 .map_err(|e| miette!("{}", e))?),
-            Action::Mcp { command } => mcp::run(ctx, command).await,
+            Action::Mcp { command } => mcp::run(ctx, command),
+            Action::Intel { command } => intel::run(ctx, command).await,
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -761,6 +766,10 @@ where
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
         },
+        Some(Commands::Intel { command }) => match command {
+            None => Action::ShowSubcommandHelp("intel".to_string()),
+            Some(cmd) => Action::Intel { command: cmd },
+        },
         #[cfg(tool_install)]
         Some(Commands::Channel { command }) => match command {
             None => Action::ShowSubcommandHelp("channel".to_string()),
@@ -1061,6 +1070,18 @@ enum Commands {
     Mcp {
         #[command(subcommand)]
         command: Option<McpCommands>,
+    },
+
+    /// Package intelligence for agents: package details and forum search
+    /// (JSON when output is piped)
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana intel <command> [options]"
+    )]
+    Intel {
+        #[command(subcommand)]
+        command: Option<IntelCommands>,
     },
 
     /// Anaconda platform CLI (wraps the outerbounds CLI)
@@ -1786,15 +1807,91 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_mcp_serve_never_prompts_for_login() {
-        let action = parse_from(["ana", "mcp", "serve"]).unwrap().0;
-        assert!(matches!(
-            action,
-            Action::Mcp {
-                command: McpCommands::Serve
-            }
-        ));
-        assert_eq!(action.match_action_name(), "mcp.serve");
+    fn test_parse_intel_package_info() {
+        let action = parse_from([
+            "ana",
+            "intel",
+            "package-info",
+            "numpy",
+            "--version",
+            "2.0",
+            "--channel",
+            "main",
+            "--platform",
+            "osx-arm64",
+            "--python-version",
+            "3.12",
+            "--json",
+        ])
+        .unwrap()
+        .0;
+        assert_eq!(action.match_action_name(), "intel.package-info");
+        // `ana intel` handles login itself so agents never see a prompt.
         assert!(!action.requires_login());
+        match action {
+            Action::Intel {
+                command:
+                    IntelCommands::PackageInfo {
+                        name,
+                        version,
+                        channel,
+                        platform,
+                        python_version,
+                        json,
+                    },
+            } => {
+                assert_eq!(name, "numpy");
+                assert_eq!(version.as_deref(), Some("2.0"));
+                assert_eq!(channel.as_deref(), Some("main"));
+                assert_eq!(platform.as_deref(), Some("osx-arm64"));
+                assert_eq!(python_version.as_deref(), Some("3.12"));
+                assert!(json);
+            }
+            _ => panic!("expected intel package-info"),
+        }
+    }
+
+    #[test]
+    fn test_parse_intel_search_forum_collects_query_words() {
+        let action = parse_from([
+            "ana",
+            "intel",
+            "search-forum",
+            "solving",
+            "environment",
+            "failed",
+            "--page-size",
+            "5",
+        ])
+        .unwrap()
+        .0;
+        assert_eq!(action.match_action_name(), "intel.search-forum");
+        assert!(!action.requires_login());
+        match action {
+            Action::Intel {
+                command:
+                    IntelCommands::SearchForum {
+                        query,
+                        page,
+                        page_size,
+                        json,
+                    },
+            } => {
+                assert_eq!(query, ["solving", "environment", "failed"]);
+                assert_eq!(page, 1);
+                assert_eq!(page_size, 5);
+                assert!(!json);
+            }
+            _ => panic!("expected intel search-forum"),
+        }
+    }
+
+    #[test]
+    fn test_parse_intel_without_subcommand_shows_help() {
+        assert!(matches!(
+            parse_from(["ana", "intel"]).unwrap().0,
+            Action::ShowSubcommandHelp(path) if path == "intel"
+        ));
+        assert!(parse_from(["ana", "intel", "search-forum"]).is_err());
     }
 }

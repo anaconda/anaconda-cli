@@ -1,4 +1,4 @@
-//! `package_info`: pre-install intelligence for a conda package.
+//! `ana intel package-info`: pre-install intelligence for a conda package.
 //!
 //! Ported from bigbend `apps/remote-mcp/remote_mcp/services/package_info.py`
 //! (free-tier path, `_package_info_from_ce_routes`); each helper names the
@@ -25,8 +25,9 @@ use regex::Regex;
 use reqwest::StatusCode;
 use serde_json::Value;
 
-use super::backend::{Backend, REQUEST_TIMEOUT};
+use super::REQUEST_TIMEOUT;
 use super::schemas::{BuildVariant, CveSummary, DownloadCount, PackageInfoResponse, ToolError};
+use crate::context::CommandContext;
 
 pub const DEFAULT_CHANNELS: &[&str] = &["main", "main-x", "msys2"];
 const DEPRECATED_CHANNELS: &[&str] = &["r"];
@@ -276,6 +277,9 @@ pub fn extract_python_versions(items: &[Value]) -> Option<Vec<String>> {
 /// Port of `_extract_notable_constraints`: lower-bounded dependency
 /// constraints, one line per dependency. Virtual packages (`__*`) and python
 /// (see `python_versions`) are skipped.
+///
+/// Unlike Python, which sorts bounds as strings (`2.10.0` before `2.9.0`),
+/// a range is ordered by conda version so it reads lowest to highest.
 pub fn extract_notable_constraints(items: &[Value]) -> Option<Vec<String>> {
     let mut bounds: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for dep in parsed_depends(items) {
@@ -293,7 +297,8 @@ pub fn extract_notable_constraints(items: &[Value]) -> Option<Vec<String>> {
         bounds
             .into_iter()
             .map(|(name, versions)| {
-                let versions: Vec<_> = versions.into_iter().collect();
+                let mut versions: Vec<_> = versions.into_iter().collect();
+                versions.sort_by(|a, b| compare_versions(a, b));
                 match versions.as_slice() {
                     [only] => format!("{name} >={only}"),
                     [first, .., last] => {
@@ -711,10 +716,10 @@ enum Lookup {
     Failed,
 }
 
-async fn lookup_channel(backend: &Backend, channel: &str, name: &str) -> Lookup {
+async fn lookup_channel(ctx: &CommandContext, channel: &str, name: &str) -> Lookup {
     let path = format!("/api/ce/packages/{channel}/artifacts/conda/{name}");
-    let response = match backend
-        .client
+    let response = match ctx
+        .client()
         .get(&path)
         .timeout(REQUEST_TIMEOUT)
         .send()
@@ -741,7 +746,7 @@ async fn lookup_channel(backend: &Backend, channel: &str, name: &str) -> Lookup 
 
 /// Fetch all `/files` items for one version. `None` on any failure.
 async fn fetch_files(
-    backend: &Backend,
+    ctx: &CommandContext,
     channel: &str,
     name: &str,
     version: Option<&str>,
@@ -752,8 +757,7 @@ async fn fetch_files(
         if let Some(version) = version {
             query.push(("version", version.to_string()));
         }
-        backend
-            .client
+        ctx.client()
             .get(&path)
             .query(&query)
             .timeout(REQUEST_TIMEOUT)
@@ -792,9 +796,9 @@ async fn fetch_files(
     read(request(limit).await).await.or(Some(first))
 }
 
-/// Tool entry point. Port of `_package_info_from_ce_routes`.
+/// Entry point for `ana intel package-info`. Port of `_package_info_from_ce_routes`.
 pub async fn package_info(
-    backend: &Backend,
+    ctx: &CommandContext,
     name: &str,
     version: Option<&str>,
     channel: Option<&str>,
@@ -802,7 +806,7 @@ pub async fn package_info(
     python_version: Option<&str>,
 ) -> Result<PackageInfoResponse, ToolError> {
     let args = validate_arguments(name, version, channel, platform, python_version)?;
-    if !backend.has_credentials() {
+    if !super::has_credentials(&ctx.config) {
         return Err(ToolError::unauthenticated());
     }
 
@@ -822,7 +826,7 @@ pub async fn package_info(
     let lookups = join_all(
         channels
             .iter()
-            .map(|ch| lookup_channel(backend, ch, &args.name)),
+            .map(|ch| lookup_channel(ctx, ch, &args.name)),
     )
     .await;
 
@@ -853,7 +857,7 @@ pub async fn package_info(
         .or_else(|| artifact_version(&resolution.artifact_meta))
         .map(str::to_string);
     let files = fetch_files(
-        backend,
+        ctx,
         &resolution.resolved_channel,
         &args.name,
         resolved_version.as_deref(),
@@ -1002,6 +1006,18 @@ mod tests {
             item("linux-64", "b", &["python >=3.9,<3.10.0a0"]),
         ];
         assert_eq!(extract_python_versions(&items).unwrap(), ["3.9", "3.10"]);
+    }
+
+    #[test]
+    fn notable_constraint_ranges_use_version_order() {
+        let items = [
+            item("linux-64", "a", &["magma >=2.10.0"]),
+            item("linux-64", "b", &["magma >=2.9.0"]),
+        ];
+        assert_eq!(
+            extract_notable_constraints(&items).unwrap(),
+            ["magma >=2.9.0 to >=2.10.0 (varies by python version)"]
+        );
     }
 
     #[test]

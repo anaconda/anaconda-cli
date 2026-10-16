@@ -8,7 +8,7 @@ This server mimics the Anaconda authentication endpoints:
 - /api/auth/api-keys (API key creation)
 - /api/auth/sessions/whoami (user info with organizations)
 
-and the public package/forum endpoints used by `ana mcp serve`:
+and the public package/forum endpoints used by `ana intel`:
 - /api/ce/packages/{channel}/artifacts/conda/{name}[/files]
 - /api/search/forum
 """

@@ -13,6 +13,7 @@ mod help;
 mod http;
 mod input;
 mod installer;
+mod intel;
 mod mcp;
 #[cfg(all(unix, tool_install))]
 mod outerbounds;

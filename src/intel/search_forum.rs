@@ -1,4 +1,4 @@
-//! `search_forum`: free-text search of the Anaconda community forum.
+//! `ana intel search-forum`: free-text search of the Anaconda community forum.
 //!
 //! Ported from bigbend `apps/remote-mcp/remote_mcp/services/search_forum.py`;
 //! each helper names the Python function it ports. The forum index is served
@@ -10,8 +10,9 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use super::backend::{Backend, REQUEST_TIMEOUT};
+use super::REQUEST_TIMEOUT;
 use super::schemas::{ForumBlurb, ForumPagination, ForumSearchResponse, ForumTopic, ToolError};
+use crate::context::CommandContext;
 
 pub const DEFAULT_PAGE: i64 = 1;
 pub const DEFAULT_PAGE_SIZE: i64 = 10;
@@ -320,9 +321,10 @@ pub fn build_response(
     })
 }
 
-/// Tool entry point.
+/// Entry point for `ana intel search-forum`. Needs no credentials, so it uses
+/// the unauthenticated client and the API key is never sent.
 pub async fn search_forum(
-    backend: &Backend,
+    ctx: &CommandContext,
     query: &str,
     page: i64,
     page_size: i64,
@@ -330,8 +332,8 @@ pub async fn search_forum(
     let args = validate_arguments(query, page, page_size)?;
     let unavailable = || ToolError::new("search_unavailable", UNAVAILABLE_MESSAGE);
 
-    let response = backend
-        .public_client
+    let response = ctx
+        .unauthenticated_client(REQUEST_TIMEOUT)
         .get(FORUM_SEARCH_PATH)
         .query(&[
             ("query", args.query.as_str()),
@@ -355,7 +357,7 @@ pub async fn search_forum(
         tracing::error!(error = %e, "forum search response was not valid JSON");
         unavailable()
     })?;
-    build_response(&args, &payload, &backend.config.forum_base_url)
+    build_response(&args, &payload, &ctx.config.forum_base_url)
 }
 
 #[cfg(test)]

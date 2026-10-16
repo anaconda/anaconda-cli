@@ -42,9 +42,6 @@ impl fmt::Display for McpClient {
 
 #[derive(Subcommand)]
 pub enum McpCommands {
-    /// Run the Anaconda MCP server over stdio (launched by AI clients)
-    Serve,
-
     /// List supported AI clients and their configuration status
     Clients {
         /// Output as JSON

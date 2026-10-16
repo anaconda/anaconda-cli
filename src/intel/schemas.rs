@@ -1,4 +1,4 @@
-//! Wire types returned by the MCP tools.
+//! JSON output of the `ana intel` commands.
 //!
 //! Mirrors bigbend `apps/remote-mcp/remote_mcp/mcp/schemas.py`: same field
 //! names, order, and nesting. Fields Python marks `exclude=True` (deferred
@@ -11,11 +11,12 @@
 
 use serde::Serialize;
 
-/// Serialized `ToolError` used when a tool result cannot be encoded. Kept as
-/// a literal so the fallback cannot itself fail; a test checks it matches.
+/// Serialized `ToolError` used when a result cannot be encoded. Kept as a
+/// literal so the fallback cannot itself fail; a test checks it matches.
 pub const SERIALIZATION_ERROR_JSON: &str = r#"{"error":"internal_error","message":"The tool result could not be serialized. Try again later.","name":null}"#;
 
-/// A tool-level error, returned with `isError: true`.
+/// A structured command error. In JSON mode it is printed to stdout and the
+/// command exits non-zero; in a terminal it becomes a miette diagnostic.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ToolError {
     pub error: &'static str,

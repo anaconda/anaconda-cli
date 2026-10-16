@@ -88,9 +88,6 @@ impl Middleware for AuthMiddleware {
 }
 
 /// HTTP client with base URL and logging middleware.
-///
-/// Cloning is cheap: the underlying connection pool is shared.
-#[derive(Clone)]
 pub struct Client {
     inner: reqwest_middleware::ClientWithMiddleware,
     base_url: String,
