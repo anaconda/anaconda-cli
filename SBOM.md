@@ -2,9 +2,9 @@
 
 Generated: unknown<br>
 Format: CycloneDX 1.4<br>
-Packages: 464 (64 platform-specific)<br>
+Packages: 472 (64 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 3 (1 INFO) across 3 packages**
+<br>**[Security advisories](#security-advisories): 6 (1 INFO) across 3 packages**
 
 ## Packages
 
@@ -83,8 +83,11 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [crypto-common](https://crates.io/crates/crypto-common) | 0.2.2 | MIT OR Apache-2.0 |  |  |
 | [ctutils](https://crates.io/crates/ctutils) | 0.4.2 | Apache-2.0 OR MIT |  |  |
 | [darling](https://crates.io/crates/darling) | 0.23.0 | MIT |  |  |
+| [darling](https://crates.io/crates/darling) | 0.24.1 | MIT |  |  |
 | [darling\_core](https://crates.io/crates/darling_core) | 0.23.0 | MIT |  |  |
+| [darling\_core](https://crates.io/crates/darling_core) | 0.24.1 | MIT |  |  |
 | [darling\_macro](https://crates.io/crates/darling_macro) | 0.23.0 | MIT |  |  |
+| [darling\_macro](https://crates.io/crates/darling_macro) | 0.24.1 | MIT |  |  |
 | [dashmap](https://crates.io/crates/dashmap) | 6.2.1 | MIT |  |  |
 | [defmt](https://crates.io/crates/defmt) | 1.1.1 | MIT OR Apache-2.0 |  |  |
 | [defmt-macros](https://crates.io/crates/defmt-macros) | 1.1.1 | MIT OR Apache-2.0 |  |  |
@@ -242,6 +245,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [parking](https://crates.io/crates/parking) | 2.2.1 | Apache-2.0 OR MIT |  |  |
 | [parking\_lot](https://crates.io/crates/parking_lot) | 0.12.5 | MIT OR Apache-2.0 |  |  |
 | [parking\_lot\_core](https://crates.io/crates/parking_lot_core) | 0.9.12 | MIT OR Apache-2.0 |  |  |
+| [pastey](https://crates.io/crates/pastey) | 0.2.3 | MIT OR Apache-2.0 |  |  |
 | [path\_resolver](https://crates.io/crates/path_resolver) | 0.2.12 | BSD-3-Clause |  |  |
 | [pear](https://crates.io/crates/pear) | 0.2.9 | MIT OR Apache-2.0 |  |  |
 | [pear\_codegen](https://crates.io/crates/pear_codegen) | 0.2.9 | MIT OR Apache-2.0 |  |  |
@@ -299,6 +303,8 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [retry-policies](https://crates.io/crates/retry-policies) | 0.5.2 | MIT OR Apache-2.0 |  |  |
 | [ring](https://crates.io/crates/ring) | 0.17.14 | Apache-2.0 AND ISC |  |  |
 | [rlimit](https://crates.io/crates/rlimit) | 0.11.0 | MIT | linux, macos |  |
+| [rmcp](https://crates.io/crates/rmcp) | 3.5.1 | Apache-2.0 |  |  |
+| [rmcp-macros](https://crates.io/crates/rmcp-macros) | 3.5.1 | Apache-2.0 |  |  |
 | [rpassword](https://crates.io/crates/rpassword) | 7.5.4 | Apache-2.0 |  |  |
 | [rtoolbox](https://crates.io/crates/rtoolbox) | 0.0.5 | Apache-2.0 |  |  |
 | [rustc-demangle](https://crates.io/crates/rustc-demangle) | 0.1.28 | MIT OR Apache-2.0 |  |  |
@@ -306,7 +312,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
 | [rustc\_version\_runtime](https://crates.io/crates/rustc_version_runtime) | 0.3.0 | MIT |  |  |
 | [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
-| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 1 |
+| [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 4 |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.15.0 | MIT OR Apache-2.0 |  |  |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki) | 0.103.13 | ISC |  |  |
 | [rusty-fork](https://crates.io/crates/rusty-fork) | 0.3.1 | MIT OR Apache-2.0 |  |  |
@@ -314,6 +320,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [schannel](https://crates.io/crates/schannel) | 0.1.29 | MIT | windows |  |
 | [schemars](https://crates.io/crates/schemars) | 0.9.0 | MIT |  |  |
 | [schemars](https://crates.io/crates/schemars) | 1.2.1 | MIT |  |  |
+| [schemars\_derive](https://crates.io/crates/schemars_derive) | 1.2.1 | MIT |  |  |
 | [scopeguard](https://crates.io/crates/scopeguard) | 1.2.0 | MIT OR Apache-2.0 |  |  |
 | [secrecy](https://crates.io/crates/secrecy) | 0.10.3 | Apache-2.0 OR MIT |  |  |
 | [security-framework](https://crates.io/crates/security-framework) | 3.7.0 | MIT OR Apache-2.0 | macos |  |
@@ -326,6 +333,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [serde\_bytes](https://crates.io/crates/serde_bytes) | 0.11.19 | MIT OR Apache-2.0 |  |  |
 | [serde\_core](https://crates.io/crates/serde_core) | 1.0.229 | MIT OR Apache-2.0 |  |  |
 | [serde\_derive](https://crates.io/crates/serde_derive) | 1.0.229 | MIT OR Apache-2.0 |  |  |
+| [serde\_derive\_internals](https://crates.io/crates/serde_derive_internals) | 0.29.1 | MIT OR Apache-2.0 |  |  |
 | [serde\_json](https://crates.io/crates/serde_json) | 1.0.151 | MIT OR Apache-2.0 |  |  |
 | [serde\_repr](https://crates.io/crates/serde_repr) | 0.1.21 | MIT OR Apache-2.0 |  |  |
 | [serde\_spanned](https://crates.io/crates/serde_spanned) | 1.1.1 | MIT OR Apache-2.0 |  |  |
@@ -480,17 +488,20 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | Package | Version | Advisory | CVSS v2 | CVSS v3 | Severity |
 | --- | --- | --- | :---: | :---: | --- |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
 | unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
 
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 250 |
-| MIT | 88 |
+| MIT OR Apache-2.0 | 252 |
+| MIT | 92 |
 | Apache-2.0 OR MIT | 35 |
-| Apache-2.0 | 21 |
+| Apache-2.0 | 23 |
 | BSD-3-Clause | 19 |
 | Unicode-3.0 | 18 |
 | Unlicense OR MIT | 4 |

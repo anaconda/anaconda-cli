@@ -71,8 +71,23 @@ impl LogLevel {
 pub async fn execute() {
     let (action, level) = parse();
 
+    // `mcp serve` speaks JSON-RPC on stdout, so logs must go to stderr.
+    let is_mcp_serve = matches!(
+        &action,
+        Action::Mcp {
+            command: McpCommands::Serve
+        }
+    );
+
     let filter = build_tracing_filter(level);
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    if is_mcp_serve {
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_writer(std::io::stderr)
+            .init();
+    } else {
+        tracing_subscriber::fmt().with_env_filter(filter).init();
+    }
 
     let skip_telemetry_spawn = matches!(
         &action,
@@ -80,15 +95,16 @@ pub async fn execute() {
     );
 
     #[cfg(self_update)]
-    let skip_update_check = matches!(
-        &action,
-        Action::Update { .. }
-            | Action::CheckForUpdate
-            | Action::ShowAvailableVersions
-            | Action::TelemetrySubmit
-            | Action::TelemetryKill
-            | Action::TelemetryStatus
-    );
+    let skip_update_check = is_mcp_serve
+        || matches!(
+            &action,
+            Action::Update { .. }
+                | Action::CheckForUpdate
+                | Action::ShowAvailableVersions
+                | Action::TelemetrySubmit
+                | Action::TelemetryKill
+                | Action::TelemetryStatus
+        );
 
     let result = action.execute().await;
 
@@ -243,6 +259,7 @@ impl Action {
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { .. } => "platform",
             Action::Mcp { command } => match command {
+                McpCommands::Serve => "mcp.serve",
                 McpCommands::Clients { .. } => "mcp.clients",
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
@@ -313,11 +330,16 @@ impl Action {
     ///
     /// Auth commands (login/logout/api-key), help/version output,
     /// self-update, telemetry, and feedback are excluded since they must
-    /// work without credentials.
+    /// work without credentials. `mcp serve` is excluded because it is
+    /// launched non-interactively by AI clients and stdout carries the MCP
+    /// protocol; its tools report `unauthenticated` instead of prompting.
     fn requires_login(&self) -> bool {
         !matches!(
             self,
             Action::ShowHelp
+                | Action::Mcp {
+                    command: McpCommands::Serve
+                }
                 | Action::ShowSubcommandHelp(_)
                 | Action::ShowVersion
                 | Action::ShowConfig
@@ -365,7 +387,7 @@ impl Action {
             Action::OrgProxy { args } => Ok(anaconda_cli::run_subcommand(ctx, "org", &args)
                 .await
                 .map_err(|e| miette!("{}", e))?),
-            Action::Mcp { command } => mcp::run(ctx, command),
+            Action::Mcp { command } => mcp::run(ctx, command).await,
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -1761,5 +1783,18 @@ mod tests {
             parse_from(["ana", "auth", "--help"]).unwrap().0,
             Action::ShowSubcommandHelp(path) if path == "auth"
         ));
+    }
+
+    #[test]
+    fn test_parse_mcp_serve_never_prompts_for_login() {
+        let action = parse_from(["ana", "mcp", "serve"]).unwrap().0;
+        assert!(matches!(
+            action,
+            Action::Mcp {
+                command: McpCommands::Serve
+            }
+        ));
+        assert_eq!(action.match_action_name(), "mcp.serve");
+        assert!(!action.requires_login());
     }
 }

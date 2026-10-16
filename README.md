@@ -93,11 +93,10 @@ echo "$ANACONDA_API_KEY" | ana login --api-key
 
 ### Integrating AI assistants with your environment
 
-`ana` provides MCP (Model Context Protocol) support so AI assistants like Claude can discover and work with packages in your conda environments:
+`ana` provides MCP (Model Context Protocol) support so AI assistants like Claude can look up conda package details and search the Anaconda community forum:
 
 ```bash
 ana mcp setup
-ana mcp discover
 ```
 
 See `ana mcp --help` for the full list of subcommands.
@@ -172,9 +171,8 @@ ana self update --list           # List available versions
 
 ```bash
 ana mcp setup                    # Configure AI clients for Anaconda MCP
-ana mcp discover                 # Discover MCP servers from environments
 ana mcp clients                  # List supported AI clients
-ana mcp serve                    # Start MCP servers
+ana mcp serve                    # Run the local stdio MCP server (launched by AI clients)
 ana mcp remove                   # Remove MCP configuration
 ```
 

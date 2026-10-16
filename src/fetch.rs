@@ -166,6 +166,7 @@ mod tests {
             pip_index_url: "https://example.com/simple".to_string(),
             self_update_url: Some("https://example.com".to_string()),
             auto_update_tools: None,
+            forum_base_url: "https://forum.example.com".to_string(),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]

@@ -197,6 +197,11 @@ pub enum McpError {
     #[error("Unsupported client: '{0}'. Run `ana mcp clients` to see supported clients.")]
     #[diagnostic(code(ana::mcp::unsupported_client))]
     UnsupportedClient(String),
+
+    /// The stdio MCP server failed to start or stopped unexpectedly.
+    #[error("MCP server error: {0}")]
+    #[diagnostic(code(ana::mcp::serve))]
+    Serve(String),
 }
 
 /// Error when self-update is unavailable.
