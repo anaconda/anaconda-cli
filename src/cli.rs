@@ -17,6 +17,7 @@ use crate::installer;
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds;
+use crate::package_intelligence::{self, ForumCommands, PackageCommands};
 #[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
 #[cfg(tool_install)]
@@ -71,24 +72,38 @@ impl LogLevel {
 pub async fn execute() {
     let (action, level) = parse();
 
+    // `ana package` and `ana forum` print JSON on stdout for agents, so logs
+    // must go to stderr.
+    let is_package_intelligence = action.is_package_intelligence();
+
     let filter = build_tracing_filter(level);
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    if is_package_intelligence {
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_writer(std::io::stderr)
+            .init();
+    } else {
+        tracing_subscriber::fmt().with_env_filter(filter).init();
+    }
 
     let skip_telemetry_spawn = matches!(
         &action,
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
+    // No update notice for agents and scripts consuming package intelligence output.
     #[cfg(self_update)]
-    let skip_update_check = matches!(
-        &action,
-        Action::Update { .. }
-            | Action::CheckForUpdate
-            | Action::ShowAvailableVersions
-            | Action::TelemetrySubmit
-            | Action::TelemetryKill
-            | Action::TelemetryStatus
-    );
+    let skip_update_check = (is_package_intelligence
+        && !std::io::IsTerminal::is_terminal(&std::io::stdout()))
+        || matches!(
+            &action,
+            Action::Update { .. }
+                | Action::CheckForUpdate
+                | Action::ShowAvailableVersions
+                | Action::TelemetrySubmit
+                | Action::TelemetryKill
+                | Action::TelemetryStatus
+        );
 
     let result = action.execute().await;
 
@@ -103,7 +118,13 @@ pub async fn execute() {
 
     if let Err(e) = result {
         tracing::error!("Command failed: {}", e);
-        eprintln!("{:?}", e);
+        // The error was already printed to stdout as JSON for an agent.
+        if !matches!(
+            e.downcast_ref::<crate::errors::PackageIntelligenceError>(),
+            Some(crate::errors::PackageIntelligenceError::Reported(_))
+        ) {
+            eprintln!("{:?}", e);
+        }
         std::process::exit(1);
     }
 }
@@ -174,6 +195,12 @@ pub enum Action {
     },
     Mcp {
         command: McpCommands,
+    },
+    Package {
+        command: PackageCommands,
+    },
+    Forum {
+        command: ForumCommands,
     },
     #[cfg(tool_install)]
     ChannelRun {
@@ -247,6 +274,8 @@ impl Action {
                 McpCommands::Setup { .. } => "mcp.setup",
                 McpCommands::Remove { .. } => "mcp.remove",
             },
+            Action::Package { command } => command.action_name(),
+            Action::Forum { command } => command.action_name(),
             #[cfg(tool_install)]
             Action::ChannelRun { .. } => "channel",
             Action::UserAgent { .. } => "user-agent",
@@ -313,11 +342,15 @@ impl Action {
     ///
     /// Auth commands (login/logout/api-key), help/version output,
     /// self-update, telemetry, and feedback are excluded since they must
-    /// work without credentials.
+    /// work without credentials. `ana package` and `ana forum` handle login
+    /// themselves: the prompt here writes to stdout and would hang an agent
+    /// (see `package_intelligence::run_package`).
     fn requires_login(&self) -> bool {
         !matches!(
             self,
             Action::ShowHelp
+                | Action::Package { .. }
+                | Action::Forum { .. }
                 | Action::ShowSubcommandHelp(_)
                 | Action::ShowVersion
                 | Action::ShowConfig
@@ -334,6 +367,13 @@ impl Action {
                 | Action::TelemetryKill
                 | Action::TelemetryStatus
         )
+    }
+
+    /// Package intelligence (`ana package`, `ana forum`): agent-first commands
+    /// whose stdout carries JSON when piped, so logs and notices must stay
+    /// off it.
+    fn is_package_intelligence(&self) -> bool {
+        matches!(self, Action::Package { .. } | Action::Forum { .. })
     }
 
     async fn run(self, ctx: &mut CommandContext) -> miette::Result<()> {
@@ -366,6 +406,8 @@ impl Action {
                 .await
                 .map_err(|e| miette!("{}", e))?),
             Action::Mcp { command } => mcp::run(ctx, command),
+            Action::Package { command } => package_intelligence::run_package(ctx, command).await,
+            Action::Forum { command } => package_intelligence::run_forum(ctx, command).await,
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -739,6 +781,14 @@ where
             None => Action::ShowSubcommandHelp("mcp".to_string()),
             Some(cmd) => Action::Mcp { command: cmd },
         },
+        Some(Commands::Package { command }) => match command {
+            None => Action::ShowSubcommandHelp("package".to_string()),
+            Some(cmd) => Action::Package { command: cmd },
+        },
+        Some(Commands::Forum { command }) => match command {
+            None => Action::ShowSubcommandHelp("forum".to_string()),
+            Some(cmd) => Action::Forum { command: cmd },
+        },
         #[cfg(tool_install)]
         Some(Commands::Channel { command }) => match command {
             None => Action::ShowSubcommandHelp("channel".to_string()),
@@ -1039,6 +1089,28 @@ enum Commands {
     Mcp {
         #[command(subcommand)]
         command: Option<McpCommands>,
+    },
+
+    /// Look up conda package details (JSON when output is piped)
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana package <command> [options]"
+    )]
+    Package {
+        #[command(subcommand)]
+        command: Option<PackageCommands>,
+    },
+
+    /// Search the Anaconda community forum (JSON when output is piped)
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana forum <command> [options]"
+    )]
+    Forum {
+        #[command(subcommand)]
+        command: Option<ForumCommands>,
     },
 
     /// Anaconda platform CLI (wraps the outerbounds CLI)
@@ -1761,5 +1833,148 @@ mod tests {
             parse_from(["ana", "auth", "--help"]).unwrap().0,
             Action::ShowSubcommandHelp(path) if path == "auth"
         ));
+    }
+
+    #[test]
+    fn test_parse_package_info() {
+        let action = parse_from([
+            "ana",
+            "package",
+            "info",
+            "numpy",
+            "--version",
+            "2.0",
+            "--channel",
+            "main",
+            "--platform",
+            "osx-arm64",
+            "--python-version",
+            "3.12",
+            "--json",
+        ])
+        .unwrap()
+        .0;
+        assert_eq!(action.match_action_name(), "package.info");
+        // Package intelligence commands handle login themselves (no prompt for agents).
+        assert!(!action.requires_login());
+        assert!(action.is_package_intelligence());
+        match action {
+            Action::Package {
+                command:
+                    PackageCommands::Info {
+                        name,
+                        version,
+                        channel,
+                        platform,
+                        python_version,
+                        json,
+                    },
+            } => {
+                assert_eq!(name.as_deref(), Some("numpy"));
+                assert_eq!(version.as_deref(), Some("2.0"));
+                assert_eq!(channel.as_deref(), Some("main"));
+                assert_eq!(platform.as_deref(), Some("osx-arm64"));
+                assert_eq!(python_version.as_deref(), Some("3.12"));
+                assert!(json);
+            }
+            _ => panic!("expected package info"),
+        }
+    }
+
+    #[test]
+    fn test_parse_forum_search_collects_query_words() {
+        let action = parse_from([
+            "ana",
+            "forum",
+            "search",
+            "solving",
+            "environment",
+            "failed",
+            "--page-size",
+            "5",
+        ])
+        .unwrap()
+        .0;
+        assert_eq!(action.match_action_name(), "forum.search");
+        assert!(!action.requires_login());
+        assert!(action.is_package_intelligence());
+        match action {
+            Action::Forum {
+                command:
+                    ForumCommands::Search {
+                        query,
+                        page,
+                        page_size,
+                        json,
+                    },
+            } => {
+                assert_eq!(query, ["solving", "environment", "failed"]);
+                assert_eq!(page, 1);
+                assert_eq!(page_size, 5);
+                assert!(!json);
+            }
+            _ => panic!("expected forum search"),
+        }
+    }
+
+    #[test]
+    fn test_parse_package_intelligence_rejects_invalid_arguments() {
+        let rejected = |args: &[&str]| {
+            let mut argv = vec!["ana"];
+            argv.extend_from_slice(args);
+            parse_from(argv).is_err()
+        };
+        // package info: names must be safe path segments; filters non-blank.
+        assert!(rejected(&["package", "info", "../etc"]));
+        assert!(rejected(&["package", "info", "a/b"]));
+        assert!(rejected(&["package", "info", "  "]));
+        assert!(rejected(&["package", "info", "numpy", "--channel", "../x"]));
+        assert!(rejected(&["package", "info", "numpy", "--version", " "]));
+        assert!(rejected(&["package", "info", "numpy", "--platform", ""]));
+        assert!(rejected(&[
+            "package",
+            "info",
+            "numpy",
+            "--python-version",
+            " "
+        ]));
+        let long = "x".repeat(257);
+        assert!(rejected(&["package", "info", &long]));
+        // forum search: page >= 1, page size 1-100.
+        assert!(rejected(&["forum", "search", "x", "--page", "0"]));
+        assert!(rejected(&["forum", "search", "x", "--page", "-1"]));
+        assert!(rejected(&["forum", "search", "x", "--page-size", "0"]));
+        assert!(rejected(&["forum", "search", "x", "--page-size", "101"]));
+        assert!(rejected(&["forum", "search", "x", "--page", "abc"]));
+        // Values are trimmed; boundaries are accepted.
+        assert!(!rejected(&["forum", "search", "x", "--page-size", "100"]));
+        match parse_from(["ana", "package", "info", " numpy ", "--version", " 2.0 "])
+            .unwrap()
+            .0
+        {
+            Action::Package {
+                command: PackageCommands::Info { name, version, .. },
+            } => {
+                assert_eq!(name.as_deref(), Some("numpy"));
+                assert_eq!(version.as_deref(), Some("2.0"));
+            }
+            _ => panic!("expected package info"),
+        }
+    }
+
+    #[test]
+    fn test_parse_package_intelligence_help_without_required_args() {
+        for (group, command) in [("package", "info"), ("forum", "search")] {
+            assert!(matches!(
+                parse_from(["ana", group, command, "--help"]).unwrap().0,
+                Action::ShowSubcommandHelp(path) if path == format!("{group} {command}")
+            ));
+            assert!(matches!(
+                parse_from(["ana", group]).unwrap().0,
+                Action::ShowSubcommandHelp(path) if path == group
+            ));
+        }
+        assert!(parse_from(["ana", "package", "info"]).is_err());
+        assert!(parse_from(["ana", "forum", "search"]).is_err());
     }
 }

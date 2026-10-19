@@ -25,6 +25,7 @@
 //! | `ANA_UPDATE_CHECK`               | `true`                     | Enable background update notifications |
 //! | `ANA_UPDATE_CHECK_INTERVAL_HOURS`| `24`                       | Hours between update checks     |
 //! | `ANA_UPDATE_NOTIFY_INTERVAL_HOURS`| `24`                      | Hours between showing notifications |
+//! | `ANA_FORUM_BASE_URL`             | `https://forum.anaconda.com` | Expected origin of forum topic links (`ana forum search`) |
 //!
 //! When the `diagnostics` feature is enabled:
 //!
@@ -95,6 +96,7 @@ const DEFAULT_INCLUDE_PRERELEASES: bool = false;
 const DEFAULT_PIP_INDEX_URL: &str = "https://repo.anaconda.cloud/repo/anaconda-wheels/simple";
 const DEFAULT_SELF_UPDATE_URL: &str = "https://anaconda.sh";
 const DEFAULT_AUTO_UPDATE_TOOLS: Option<bool> = None;
+const DEFAULT_FORUM_BASE_URL: &str = "https://forum.anaconda.com";
 #[cfg(feature = "diagnostics")]
 const DEFAULT_SENTRY_DISABLED: bool = false;
 #[cfg(feature = "diagnostics")]
@@ -158,6 +160,10 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_optional_bool")]
     pub auto_update_tools: Option<bool>,
 
+    /// Expected origin of Anaconda community forum topic links. Forum search
+    /// results whose URLs are not on this origin have their link nulled.
+    pub forum_base_url: String,
+
     /// Whether Sentry error reporting is disabled
     #[cfg(feature = "diagnostics")]
     #[serde(deserialize_with = "deserialize_bool")]
@@ -213,6 +219,7 @@ impl Config {
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             auto_update_tools: DEFAULT_AUTO_UPDATE_TOOLS,
+            forum_base_url: DEFAULT_FORUM_BASE_URL.to_string(),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: DEFAULT_SENTRY_DISABLED,
             #[cfg(feature = "diagnostics")]
@@ -455,6 +462,7 @@ mod tests {
             pip_index_url: DEFAULT_PIP_INDEX_URL.to_string(),
             self_update_url: Some(DEFAULT_SELF_UPDATE_URL.to_string()),
             auto_update_tools: None,
+            forum_base_url: DEFAULT_FORUM_BASE_URL.to_string(),
             #[cfg(feature = "diagnostics")]
             sentry_disabled: false,
             #[cfg(feature = "diagnostics")]

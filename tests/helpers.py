@@ -26,6 +26,28 @@ REPO_ROOT = _find_repo_root()
 
 AnaRunner = Callable[..., subprocess.CompletedProcess[str]]
 
+LIVE_TIMEOUT_SECONDS = 60
+
+
+def run_live(
+    binary: Path, env: dict[str, str], *args: str, input: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run ana non-interactively against live services.
+
+    stdout is captured (as in an agent's shell), stdin is closed unless
+    `input` is given, and the call is bounded so a hang fails the test.
+    """
+    return subprocess.run(
+        [str(binary), *args],
+        capture_output=True,
+        input=input,
+        stdin=None if input is not None else subprocess.DEVNULL,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        timeout=LIVE_TIMEOUT_SECONDS,
+    )
+
 
 def get_powershell_binary() -> str:
     """Find the PowerShell binary installed for the system.
