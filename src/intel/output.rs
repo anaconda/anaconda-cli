@@ -9,7 +9,7 @@ use std::io::IsTerminal;
 
 use serde::Serialize;
 
-use super::schemas::{SERIALIZATION_ERROR_JSON, ToolError};
+use super::errors::{SERIALIZATION_ERROR_JSON, ToolError};
 use crate::errors::IntelError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +20,11 @@ pub enum OutputMode {
 
 impl OutputMode {
     /// JSON when forced or when stdout is not a terminal.
+    ///
+    /// The terminal check is the standard library's `IsTerminal` (stable
+    /// since Rust 1.70), which replaced the `atty` and `is-terminal` crates;
+    /// it is what `console` and the rest of the CLI use too. Only the
+    /// JSON-vs-text decision is ours.
     pub fn detect(force_json: bool) -> Self {
         Self::select(force_json, std::io::stdout().is_terminal())
     }
@@ -34,6 +39,10 @@ impl OutputMode {
 }
 
 /// Print a command result in the given mode.
+///
+/// Generic so one function serves every command's response type (each is a
+/// distinct `Serialize` struct with its own text renderer); the alternative is
+/// a copy of this function per command.
 pub fn emit<T: Serialize>(
     mode: OutputMode,
     result: Result<T, ToolError>,
@@ -68,22 +77,7 @@ pub fn emit_error(mode: OutputMode, error: ToolError) -> miette::Report {
             println!("{json}");
             IntelError::Reported(format!("{}: {}", error.error, error.message)).into()
         }
-        OutputMode::Text => IntelError::Tool {
-            code: error.error,
-            message: error.message,
-            help: help_for(error.error).map(str::to_string),
-        }
-        .into(),
-    }
-}
-
-fn help_for(code: &str) -> Option<&'static str> {
-    match code {
-        "unauthenticated" => Some("Run `ana login`, then retry."),
-        "search_unavailable" => {
-            Some("The service may be temporarily unavailable. Try again later.")
-        }
-        _ => None,
+        OutputMode::Text => IntelError::from(error).into(),
     }
 }
 

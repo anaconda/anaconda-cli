@@ -6,6 +6,7 @@
 //! readable text otherwise; see `output.rs`.
 
 mod commands;
+mod errors;
 mod output;
 mod package_info;
 mod render;
@@ -54,15 +55,17 @@ pub async fn run(ctx: &mut CommandContext, command: IntelCommands) -> miette::Re
             {
                 auth::ensure_logged_in(ctx).await?;
             }
-            let result = package_info::package_info(
-                ctx,
-                &name,
-                version.as_deref(),
-                channel.as_deref(),
-                platform.as_deref(),
-                python_version.as_deref(),
-            )
-            .await;
+            let query = package_info::PackageQuery {
+                // clap requires the name unless `--help` was given, and help
+                // never reaches `run`. An empty name would still be rejected
+                // by the request-path guard.
+                name: name.unwrap_or_default(),
+                version,
+                channel,
+                platform,
+                python_version,
+            };
+            let result = package_info::package_info(ctx, &query).await;
             output::emit(mode, result, render::package_info)
         }
         IntelCommands::SearchForum {
@@ -120,7 +123,14 @@ mod tests {
     }
 
     async fn info(ctx: &CommandContext, name: &str, channel: Option<&str>) -> Value {
-        match package_info::package_info(ctx, name, None, channel, None, None).await {
+        let query = package_info::PackageQuery {
+            name: name.into(),
+            version: None,
+            channel: channel.map(String::from),
+            platform: None,
+            python_version: None,
+        };
+        match package_info::package_info(ctx, &query).await {
             Ok(response) => serde_json::to_value(response).unwrap(),
             Err(error) => serde_json::to_value(error).unwrap(),
         }
@@ -215,10 +225,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn package_info_rejects_path_traversal() {
+    async fn package_info_guards_request_paths() {
+        // clap rejects these first; the guard keeps URLs safe for any caller.
         let server = MockServer::start().await;
         let (ctx, _dir) = test_ctx(&server, true);
         assert_eq!(info(&ctx, "../etc", None).await["error"], "invalid_request");
+        assert_eq!(
+            info(&ctx, "numpy", Some("../x")).await["error"],
+            "invalid_request"
+        );
         assert!(server.received_requests().await.unwrap().is_empty());
     }
 
@@ -433,7 +448,7 @@ mod tests {
         let server = MockServer::start().await;
         let (mut ctx, _dir) = test_ctx(&server, false);
         let command = IntelCommands::PackageInfo {
-            name: "numpy".into(),
+            name: Some("numpy".into()),
             version: None,
             channel: None,
             platform: None,

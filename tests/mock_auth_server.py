@@ -7,10 +7,6 @@ This server mimics the Anaconda authentication endpoints:
 - /api/account (user info)
 - /api/auth/api-keys (API key creation)
 - /api/auth/sessions/whoami (user info with organizations)
-
-and the public package/forum endpoints used by `ana intel`:
-- /api/ce/packages/{channel}/artifacts/conda/{name}[/files]
-- /api/search/forum
 """
 
 from __future__ import annotations
@@ -23,7 +19,6 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 from typing import Any
 from urllib.parse import parse_qs
-from urllib.parse import urlsplit
 
 # Mock data
 MOCK_USER = {
@@ -94,56 +89,6 @@ def _create_mock_jwt() -> str:
     return f"{header_b64}.{payload_b64}."
 
 
-MOCK_PACKAGE_CHANNEL = "main"
-MOCK_PACKAGE_NAME = "numpy"
-MOCK_PACKAGE_INFO = {
-    "name": MOCK_PACKAGE_NAME,
-    "download_count": 1234,
-    "available_versions": ["2.4.1", "2.3.0"],
-    "metadata": {
-        "version": "2.4.1",
-        "subdirs": ["linux-64", "osx-arm64"],
-        "license": "BSD-3-Clause",
-        "summary": "Array processing for numbers, strings, records, and objects.",
-        "doc_url": "https://numpy.org/doc/stable/",
-    },
-}
-MOCK_PACKAGE_FILES = {
-    "total_count": 2,
-    "items": [
-        {
-            "metadata": {
-                "repodata_record.json": {
-                    "subdir": subdir,
-                    "build": "py312h8456e4e_0",
-                    "depends": ["python >=3.12,<3.13.0a0"],
-                },
-                "cves": [],
-            }
-        }
-        for subdir in ("linux-64", "osx-arm64")
-    ],
-}
-MOCK_FORUM_RESULTS = {
-    "total": 1,
-    "topics": [
-        {
-            "id": 7,
-            "title": "Solving environment failed",
-            "url": "https://forum.anaconda.com/t/solving-environment-failed/7",
-            "category": "Product Help",
-            "posts_count": 2,
-            "reply_count": 1,
-            "views": 50,
-            "created_at": "2024-01-02T03:04:05Z",
-            "last_posted_at": "2024-01-03T03:04:05Z",
-            "blurbs": [
-                {"username": "u", "blurb": "Try conda update", "post_number": 1}
-            ],
-        }
-    ],
-}
-
 MOCK_API_KEY = _create_mock_jwt()
 MOCK_ACCESS_TOKEN = "mock-access-token-67890"
 MOCK_DEVICE_CODE = "mock-device-code"
@@ -181,32 +126,14 @@ class MockAuthHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         """Handle GET requests."""
-        path = urlsplit(self.path).path
         if self.path == "/.well-known/openid-configuration":
             self._handle_openid_config()
         elif self.path == "/api/account":
             self._handle_account()
         elif self.path == "/api/auth/sessions/whoami":
             self._handle_whoami()
-        elif path.startswith("/api/ce/packages/"):
-            self._handle_ce_package(path)
-        elif path == "/api/search/forum":
-            self._send_json(MOCK_FORUM_RESULTS)
         else:
             self.send_error(404)
-
-    def _handle_ce_package(self, path: str) -> None:
-        """Serve one package (`numpy` on `main`); require the stored API key."""
-        if self._get_auth_header() != MOCK_API_KEY:
-            self._send_error_json("unauthorized", "Missing authorization", 401)
-            return
-        prefix = f"/api/ce/packages/{MOCK_PACKAGE_CHANNEL}/artifacts/conda/{MOCK_PACKAGE_NAME}"
-        if path == prefix:
-            self._send_json(MOCK_PACKAGE_INFO)
-        elif path == f"{prefix}/files":
-            self._send_json(MOCK_PACKAGE_FILES)
-        else:
-            self._send_json({"detail": "not found"}, status=404)
 
     def do_POST(self) -> None:
         """Handle POST requests."""

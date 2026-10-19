@@ -80,9 +80,12 @@ and resource-quota policies, separately from the CLI's local login gate.
    so the key is never sent. They bypass the central login gate, whose prompt
    writes to stdout and starts the device flow: at an interactive terminal
    `package-info` prompts for login itself, otherwise it returns an
-   `unauthenticated` error. Output is JSON when stdout is not a terminal (or
-   with `--json`), including errors, which go to stdout with a non-zero exit
-   and no second diagnostic; logs go to stderr. A terminal gets readable text.
+   `unauthenticated` error. Arguments are validated by clap value parsers
+   before any request (stderr message, exit code 2); package and channel names
+   are checked again right before they enter a request path. Output is JSON
+   when stdout is not a terminal (or with `--json`), including errors, which go
+   to stdout with exit code 1 and no second diagnostic; logs go to stderr. A
+   terminal gets readable text.
    *Planned:* organization-aware commands (`org-config`, `package-security`,
    policy fields in `package-info`), then moving AI-client setup to
    `ana intel setup` (skill only, no remote MCP entry or credential copy) and

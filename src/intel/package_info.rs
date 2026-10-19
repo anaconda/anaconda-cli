@@ -26,14 +26,13 @@ use reqwest::StatusCode;
 use serde_json::Value;
 
 use super::REQUEST_TIMEOUT;
-use super::schemas::{BuildVariant, CveSummary, DownloadCount, PackageInfoResponse, ToolError};
+use super::errors::ToolError;
+use super::schemas::{BuildVariant, CveSummary, DownloadCount, PackageInfoResponse};
 use crate::context::CommandContext;
 
 pub const DEFAULT_CHANNELS: &[&str] = &["main", "main-x", "msys2"];
 const DEPRECATED_CHANNELS: &[&str] = &["r"];
 const CONDA_RECORD_KEYS: &[&str] = &["repodata_record.json", "index.json"];
-pub const MAX_PACKAGE_NAME_LENGTH: usize = 256;
-pub const MAX_FILTER_VALUE_LENGTH: usize = 256;
 const FILES_PAGE_LIMIT: u64 = 200;
 /// Upper bound for the follow-up `/files` request for one version.
 const MAX_FILES_LIMIT: u64 = 1000;
@@ -41,12 +40,13 @@ const CRITICAL_CVSS_THRESHOLD: f64 = 9.0;
 const ACTIONABLE_CVE_STATUSES: &[&str] = &["active", "reported"];
 
 // ---------------------------------------------------------------------------
-// Validation
+// Arguments
 // ---------------------------------------------------------------------------
 
-/// Tool arguments after trimming; all are exact-match filters.
+/// What to look up. Values arrive already trimmed and validated by the clap
+/// value parsers in `commands.rs`; all are exact-match filters.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidatedArguments {
+pub struct PackageQuery {
     pub name: String,
     pub version: Option<String>,
     pub channel: Option<String>,
@@ -54,67 +54,29 @@ pub struct ValidatedArguments {
     pub python_version: Option<String>,
 }
 
-/// Port of `_validate_arguments`.
-pub fn validate_arguments(
-    name: &str,
-    version: Option<&str>,
-    channel: Option<&str>,
-    platform: Option<&str>,
-    python_version: Option<&str>,
-) -> Result<ValidatedArguments, ToolError> {
-    let name = name.trim();
-    if name.is_empty() {
-        return Err(ToolError::invalid_request(
-            "name must be a non-empty, non-whitespace string",
-        ));
-    }
-    if name.chars().count() > MAX_PACKAGE_NAME_LENGTH {
-        return Err(ToolError::invalid_request(format!(
-            "name must be no longer than {MAX_PACKAGE_NAME_LENGTH} characters"
-        )));
-    }
-    let checked = |field: &str, value: Option<&str>| -> Result<Option<String>, ToolError> {
-        let Some(value) = value else {
-            return Ok(None);
-        };
-        let stripped = value.trim();
-        if stripped.chars().count() > MAX_FILTER_VALUE_LENGTH {
-            return Err(ToolError::invalid_request(format!(
-                "{field} must be no longer than {MAX_FILTER_VALUE_LENGTH} characters"
-            )));
-        }
-        // A whitespace-only filter would be an empty exact-match term that can
-        // never match, which reads back as a missing package.
-        if stripped.is_empty() {
-            return Err(ToolError::invalid_request(format!(
-                "{field} must not be empty or whitespace when provided"
-            )));
-        }
-        Ok(Some(stripped.to_string()))
-    };
-    Ok(ValidatedArguments {
-        name: name.to_string(),
-        version: checked("version", version)?,
-        channel: checked("channel", channel)?,
-        platform: checked("platform", platform)?,
-        python_version: checked("python_version", python_version)?,
-    })
-}
+/// Rule enforced by [`is_safe_segment`], phrased for error messages.
+pub const SEGMENT_RULE: &str =
+    "may only contain letters, digits, '.', '_' and '-', and may not be '.' or '..'";
 
-/// Reject anything that is not a plain conda name segment before it is
-/// interpolated into a request path.
-pub fn check_segment(value: &str, field: &str) -> Result<(), ToolError> {
-    let safe = !value.is_empty()
+/// True for a plain conda name segment, safe to interpolate into a request
+/// path (no `/`, `%`, whitespace, or `.`/`..` traversal).
+pub fn is_safe_segment(value: &str) -> bool {
+    !value.is_empty()
         && value
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
         && value != "."
-        && value != "..";
-    if safe {
+        && value != ".."
+}
+
+/// Guard applied right before a value is put into a request path. clap
+/// already rejects unsafe names; this keeps the URL safe for any caller.
+fn check_segment(value: &str, field: &str) -> Result<(), ToolError> {
+    if is_safe_segment(value) {
         Ok(())
     } else {
         Err(ToolError::invalid_request(format!(
-            "{field} may only contain letters, digits, '.', '_' and '-', and may not be '.' or '..'"
+            "{field} {SEGMENT_RULE}"
         )))
     }
 }
@@ -137,12 +99,18 @@ pub fn compare_versions(a: &str, b: &str) -> Ordering {
 // Pure extraction helpers over `/files` items
 // ---------------------------------------------------------------------------
 
+/// String value of `key` in a JSON object, if present and a string.
+///
+/// The `'a` says the returned `&str` borrows from `value` (not from `key`):
+/// with two reference inputs Rust cannot infer which one the result points
+/// into, so it must be spelled out. No copy is made.
 fn str_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
 /// Port of `_conda_record_from_item`: the repodata record carried by a
-/// `/files` item, or `null`.
+/// `/files` item, or `null`. `repodata_record.json` is preferred; an empty
+/// record falls through to `index.json`.
 fn conda_record(item: &Value) -> &Value {
     static EMPTY: Value = Value::Null;
     let metadata = item.get("metadata");
@@ -153,7 +121,9 @@ fn conda_record(item: &Value) -> &Value {
         .unwrap_or(&EMPTY)
 }
 
-/// Raw dependency strings of one item.
+/// Raw dependency strings of one item, from its conda record's `depends`
+/// array. Missing records, a missing or non-array `depends`, and non-string
+/// entries yield nothing.
 fn depends(item: &Value) -> impl Iterator<Item = &str> {
     conda_record(item)
         .get("depends")
@@ -163,41 +133,37 @@ fn depends(item: &Value) -> impl Iterator<Item = &str> {
         .filter_map(Value::as_str)
 }
 
-/// A dependency string parsed by rattler into its package name and version
-/// constraint. Python matches these with regexes; parsing them as conda
-/// match specs handles `3.12.*`, `|` alternatives, and spacing correctly.
-struct Dependency<'a> {
-    raw: &'a str,
-    name: String,
-    version: Option<VersionSpec>,
+/// A dependency string parsed by rattler as a conda match spec. Python uses
+/// regexes here; a real parser handles `3.12.*`, `|` alternatives, and
+/// spacing correctly. `None` if it does not parse or does not name a single
+/// exact package (globs, regex names).
+fn parse_dependency(raw: &str) -> Option<MatchSpec> {
+    let spec = MatchSpec::from_str(raw.trim(), ParseStrictness::Lenient).ok()?;
+    matches!(spec.name, PackageNameMatcher::Exact(_)).then_some(spec)
 }
 
-impl<'a> Dependency<'a> {
-    /// `None` for strings that are not a plain-named match spec.
-    fn parse(raw: &'a str) -> Option<Self> {
-        let raw = raw.trim();
-        let spec = MatchSpec::from_str(raw, ParseStrictness::Lenient).ok()?;
-        let PackageNameMatcher::Exact(name) = &spec.name else {
-            return None;
-        };
-        Some(Self {
-            raw,
-            name: name.as_source().to_string(),
-            version: spec.version,
-        })
-    }
-
-    /// Text after the package name, e.g. `>=3.10` for `python >=3.10`.
-    fn raw_constraint(&self) -> Option<&'a str> {
-        self.raw
-            .split_once(char::is_whitespace)
-            .map(|(_, rest)| rest.trim())
-            .filter(|rest| !rest.is_empty())
+/// The exact package name of a parsed dependency, as written.
+fn package_name(spec: &MatchSpec) -> Option<&str> {
+    match &spec.name {
+        PackageNameMatcher::Exact(name) => Some(name.as_source()),
+        _ => None,
     }
 }
 
-fn parsed_depends(items: &[Value]) -> impl Iterator<Item = Dependency<'_>> {
-    items.iter().flat_map(depends).filter_map(Dependency::parse)
+/// Every dependency of every item, parsed. Unparseable strings are skipped.
+fn parsed_depends(items: &[Value]) -> impl Iterator<Item = MatchSpec> {
+    items.iter().flat_map(depends).filter_map(parse_dependency)
+}
+
+/// The constraint text after the package name, exactly as written: `>=3.10`
+/// for `python >=3.10`, `>=3.10 *_cpython` when a build string follows.
+/// `None` when the dependency is a bare name. Used for noarch Python
+/// constraints, which are reported verbatim like the remote service does.
+fn raw_constraint(raw: &str) -> Option<&str> {
+    raw.trim()
+        .split_once(char::is_whitespace)
+        .map(|(_, rest)| rest.trim())
+        .filter(|rest| !rest.is_empty())
 }
 
 /// Leaf constraints of a version spec, in source order.
@@ -249,8 +215,14 @@ pub fn extract_python_versions(items: &[Value]) -> Option<Vec<String>> {
     let mut found = BTreeSet::new();
     let mut any_upper_bound = false;
     let mut raw_constraints = BTreeSet::new();
-    for dep in parsed_depends(items).filter(|d| d.name == "python") {
-        let Some(version) = dep.version.as_ref() else {
+    for raw in items.iter().flat_map(depends) {
+        let Some(spec) = parse_dependency(raw) else {
+            continue;
+        };
+        if package_name(&spec) != Some("python") {
+            continue;
+        }
+        let Some(version) = spec.version.as_ref() else {
             continue;
         };
         let Some(major_minor) = python_major_minor(version) else {
@@ -259,8 +231,8 @@ pub fn extract_python_versions(items: &[Value]) -> Option<Vec<String>> {
         found.insert(major_minor);
         if has_upper_bound(version) {
             any_upper_bound = true;
-        } else if let Some(raw) = dep.raw_constraint() {
-            raw_constraints.insert(raw.to_string());
+        } else if let Some(constraint) = raw_constraint(raw) {
+            raw_constraints.insert(constraint.to_string());
         }
     }
     if found.is_empty() {
@@ -282,12 +254,15 @@ pub fn extract_python_versions(items: &[Value]) -> Option<Vec<String>> {
 /// a range is ordered by conda version so it reads lowest to highest.
 pub fn extract_notable_constraints(items: &[Value]) -> Option<Vec<String>> {
     let mut bounds: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-    for dep in parsed_depends(items) {
-        if dep.name.starts_with("__") || dep.name == "python" {
+    for spec in parsed_depends(items) {
+        let Some(name) = package_name(&spec) else {
+            continue;
+        };
+        if name.starts_with("__") || name == "python" {
             continue;
         }
-        if let Some(bound) = dep.version.as_ref().and_then(lower_bound) {
-            bounds.entry(dep.name).or_default().insert(bound);
+        if let Some(bound) = spec.version.as_ref().and_then(lower_bound) {
+            bounds.entry(name.to_string()).or_default().insert(bound);
         }
     }
     if bounds.is_empty() {
@@ -476,8 +451,7 @@ pub fn resolve_channel(
     preferred_channel: Option<&str>,
     results: Vec<(String, Value)>,
     any_responded: bool,
-    query_name: &str,
-    echo_name: &str,
+    name: &str,
 ) -> Result<ChannelResolution, ToolError> {
     let preferred = preferred_channel.unwrap_or("main");
     let mut preferred_meta = None;
@@ -517,7 +491,7 @@ pub fn resolve_channel(
             "search_unavailable",
             format!("Could not reach the primary channel ({preferred}). Try again later."),
         )
-        .with_name(echo_name));
+        .with_name(name));
     }
 
     if let Some(requested) = preferred_channel {
@@ -533,9 +507,9 @@ pub fn resolve_channel(
         };
         return Err(ToolError::new(
             "package_not_found",
-            format!("No package matching {query_name:?} was found in channel {requested:?}.{hint}"),
+            format!("No package matching {name:?} was found in channel {requested:?}.{hint}"),
         )
-        .with_name(echo_name));
+        .with_name(name));
     }
 
     if !others.is_empty() {
@@ -552,9 +526,9 @@ pub fn resolve_channel(
 
     Err(ToolError::new(
         "package_not_found",
-        format!("No package matching {query_name:?} was found in any configured channel."),
+        format!("No package matching {name:?} was found in any configured channel."),
     )
-    .with_name(echo_name))
+    .with_name(name))
 }
 
 // ---------------------------------------------------------------------------
@@ -565,8 +539,7 @@ pub fn resolve_channel(
 /// tier, so no policy fields): build the response from the resolved channel
 /// and the `/files` payload (`None` when that request failed).
 pub fn assemble(
-    args: &ValidatedArguments,
-    echo_name: &str,
+    args: &PackageQuery,
     resolution: &ChannelResolution,
     files: Option<&Value>,
 ) -> Result<PackageInfoResponse, ToolError> {
@@ -628,7 +601,7 @@ pub fn assemble(
                     args.name
                 ),
             )
-            .with_name(echo_name));
+            .with_name(&args.name));
         }
     }
 
@@ -799,19 +772,15 @@ async fn fetch_files(
 /// Entry point for `ana intel package-info`. Port of `_package_info_from_ce_routes`.
 pub async fn package_info(
     ctx: &CommandContext,
-    name: &str,
-    version: Option<&str>,
-    channel: Option<&str>,
-    platform: Option<&str>,
-    python_version: Option<&str>,
+    args: &PackageQuery,
 ) -> Result<PackageInfoResponse, ToolError> {
-    let args = validate_arguments(name, version, channel, platform, python_version)?;
     if !super::has_credentials(&ctx.config) {
         return Err(ToolError::unauthenticated());
     }
 
-    check_segment(&args.name, "package_name").map_err(|e| e.with_name(name))?;
+    check_segment(&args.name, "package name").map_err(|e| e.with_name(&args.name))?;
     let preferred = args.channel.as_deref().unwrap_or("main");
+    check_segment(preferred, "channel").map_err(|e| e.with_name(&args.name))?;
     let mut channels = vec![preferred];
     channels.extend(
         DEFAULT_CHANNELS
@@ -819,9 +788,6 @@ pub async fn package_info(
             .copied()
             .filter(|ch| *ch != preferred),
     );
-    for ch in &channels {
-        check_segment(ch, "channel").map_err(|e| e.with_name(name))?;
-    }
 
     let lookups = join_all(
         channels
@@ -844,13 +810,7 @@ pub async fn package_info(
         }
     }
 
-    let resolution = resolve_channel(
-        args.channel.as_deref(),
-        found,
-        any_responded,
-        &args.name,
-        name,
-    )?;
+    let resolution = resolve_channel(args.channel.as_deref(), found, any_responded, &args.name)?;
     let resolved_version = args
         .version
         .as_deref()
@@ -864,7 +824,7 @@ pub async fn package_info(
     )
     .await;
 
-    assemble(&args, name, &resolution, files.as_ref())
+    assemble(args, &resolution, files.as_ref())
 }
 
 #[cfg(test)]
@@ -899,49 +859,208 @@ mod tests {
         })
     }
 
-    fn args(name: &str) -> ValidatedArguments {
-        validate_arguments(name, None, None, None, None).unwrap()
+    fn query(
+        name: &str,
+        version: Option<&str>,
+        platform: Option<&str>,
+        python_version: Option<&str>,
+    ) -> PackageQuery {
+        PackageQuery {
+            name: name.into(),
+            version: version.map(String::from),
+            channel: None,
+            platform: platform.map(String::from),
+            python_version: python_version.map(String::from),
+        }
+    }
+
+    fn args(name: &str) -> PackageQuery {
+        query(name, None, None, None)
     }
 
     #[test]
-    fn validates_name() {
-        for bad in ["", "   "] {
-            assert_eq!(
-                validate_arguments(bad, None, None, None, None)
-                    .unwrap_err()
-                    .error,
-                "invalid_request"
-            );
+    fn safe_segments() {
+        for bad in [
+            "..",
+            ".",
+            "a/b",
+            "a b",
+            "",
+            "a%2f",
+            "a\\b",
+            "numpy?x=1",
+            "é",
+        ] {
+            assert!(!is_safe_segment(bad), "{bad}");
         }
-        assert!(validate_arguments(&"x".repeat(257), None, None, None, None).is_err());
-        let padded = format!("  {}  ", "x".repeat(257));
-        assert!(validate_arguments(&padded, None, None, None, None).is_err());
+        for good in [
+            "numpy",
+            "scikit-learn",
+            "python_abi",
+            "ca-certificates.1",
+            "_r-mutex",
+        ] {
+            assert!(is_safe_segment(good), "{good}");
+        }
+        let err = check_segment("../etc", "package name").unwrap_err();
+        assert_eq!(err.error, "invalid_request");
+        assert!(err.message.starts_with("package name may only contain"));
+    }
+
+    #[test]
+    fn str_at_reads_only_string_values() {
+        let value = json!({"a": "x", "n": 1, "z": null});
+        assert_eq!(str_at(&value, "a"), Some("x"));
+        assert_eq!(str_at(&value, "n"), None);
+        assert_eq!(str_at(&value, "z"), None);
+        assert_eq!(str_at(&value, "missing"), None);
+        assert_eq!(str_at(&json!(["a"]), "a"), None);
+    }
+
+    // conda_record: which record of a `/files` item is used.
+
+    #[test]
+    fn conda_record_prefers_repodata_record() {
+        let item = json!({"metadata": {
+            "repodata_record.json": {"build": "from_repodata"},
+            "index.json": {"build": "from_index"},
+        }});
+        assert_eq!(conda_record(&item)["build"], "from_repodata");
+    }
+
+    #[test]
+    fn conda_record_falls_back_to_index_json() {
+        let missing = json!({"metadata": {"index.json": {"build": "from_index"}}});
+        assert_eq!(conda_record(&missing)["build"], "from_index");
+        // An empty or non-object repodata record does not count.
+        for repodata in [json!({}), json!(null), json!("x"), json!([1])] {
+            let item = json!({"metadata": {
+                "repodata_record.json": repodata,
+                "index.json": {"build": "from_index"},
+            }});
+            assert_eq!(conda_record(&item)["build"], "from_index", "{item}");
+        }
+    }
+
+    #[test]
+    fn conda_record_is_null_when_absent() {
+        for item in [
+            json!({}),
+            json!({"metadata": null}),
+            json!({"metadata": {}}),
+            json!({"metadata": {"repodata_record.json": {}, "index.json": {}}}),
+            json!({"metadata": {"cves": []}}),
+            json!("not an object"),
+            json!(null),
+        ] {
+            assert!(conda_record(&item).is_null(), "{item}");
+        }
+    }
+
+    // depends: raw dependency strings of an item.
+
+    #[test]
+    fn depends_reads_record_strings() {
+        let item = item("linux-64", "b", &["python >=3.12", "numpy >=1.22"]);
         assert_eq!(
-            validate_arguments("  numpy  ", None, None, None, None)
-                .unwrap()
-                .name,
-            "numpy"
+            depends(&item).collect::<Vec<_>>(),
+            ["python >=3.12", "numpy >=1.22"]
         );
+        // From index.json when there is no repodata record.
+        let item = json!({"metadata": {"index.json": {"depends": ["libgcc >=14"]}}});
+        assert_eq!(depends(&item).collect::<Vec<_>>(), ["libgcc >=14"]);
     }
 
     #[test]
-    fn rejects_whitespace_and_oversized_filters() {
-        assert!(validate_arguments("numpy", Some("  "), None, None, None).is_err());
-        assert!(validate_arguments("numpy", None, Some(""), None, None).is_err());
-        let long = "x".repeat(257);
-        assert!(validate_arguments("numpy", None, None, Some(&long), None).is_err());
-        let ok = validate_arguments("numpy", Some(" 2.0 "), None, None, None).unwrap();
-        assert_eq!(ok.version.as_deref(), Some("2.0"));
+    fn depends_skips_non_strings_and_bad_shapes() {
+        let mixed = json!({"metadata": {"repodata_record.json": {
+            "depends": ["ok >=1", 42, null, {"x": 1}, ["nested"], "also-ok"],
+        }}});
+        assert_eq!(depends(&mixed).collect::<Vec<_>>(), ["ok >=1", "also-ok"]);
+        for item in [
+            json!({"metadata": {"repodata_record.json": {"build": "b"}}}),
+            json!({"metadata": {"repodata_record.json": {"depends": "python"}}}),
+            json!({"metadata": {"repodata_record.json": {"depends": null}}}),
+            json!({"metadata": {"repodata_record.json": {"depends": []}}}),
+            json!({}),
+        ] {
+            assert_eq!(depends(&item).count(), 0, "{item}");
+        }
     }
 
     #[test]
-    fn check_segment_rejects_traversal() {
-        for bad in ["..", ".", "a/b", "a b", "", "a%2f"] {
-            assert!(check_segment(bad, "name").is_err(), "{bad}");
+    fn depends_keeps_raw_spacing() {
+        // Trimming is left to the consumers (Python's BLAS regex is applied
+        // to the untrimmed string).
+        let item = item("linux-64", "b", &["  blas * mkl  "]);
+        assert_eq!(depends(&item).collect::<Vec<_>>(), ["  blas * mkl  "]);
+    }
+
+    // Dependencies parsed with rattler's MatchSpec.
+
+    #[test]
+    fn parse_dependency_extracts_exact_names() {
+        for (raw, name) in [
+            ("python >=3.12,<3.13.0a0", "python"),
+            ("  numpy >=1.22  ", "numpy"),
+            ("python_abi 3.12.* *_cp312", "python_abi"),
+            ("__glibc >=2.17", "__glibc"),
+            ("libgcc", "libgcc"),
+        ] {
+            let spec = parse_dependency(raw).unwrap_or_else(|| panic!("{raw} should parse"));
+            assert_eq!(package_name(&spec), Some(name), "{raw}");
         }
-        for good in ["numpy", "scikit-learn", "python_abi", "ca-certificates.1"] {
-            assert!(check_segment(good, "name").is_ok(), "{good}");
+        let bare = parse_dependency("libgcc").unwrap();
+        assert!(bare.version.is_none());
+    }
+
+    #[test]
+    fn parse_dependency_rejects_unusable_specs() {
+        for raw in ["", "   ", "numpy >=>=1", "nump* >=1"] {
+            assert!(parse_dependency(raw).is_none(), "{raw:?}");
         }
+    }
+
+    // raw_constraint: the verbatim text after the package name.
+
+    #[test]
+    fn raw_constraint_returns_text_after_name() {
+        for (raw, expected) in [
+            ("python >=3.10", Some(">=3.10")),
+            ("python   >=3.10  ", Some(">=3.10")),
+            ("  python >=3.10", Some(">=3.10")),
+            ("python\t>=3.10", Some(">=3.10")),
+            ("python >=3.10 *_cpython", Some(">=3.10 *_cpython")),
+            ("python 3.12.*", Some("3.12.*")),
+            ("python >=3.12,<3.13.0a0", Some(">=3.12,<3.13.0a0")),
+            ("python", None),
+            ("python   ", None),
+            ("", None),
+        ] {
+            assert_eq!(raw_constraint(raw), expected, "{raw:?}");
+        }
+    }
+
+    #[test]
+    fn version_spec_helpers() {
+        let spec = |raw: &str| parse_dependency(raw).unwrap().version.unwrap();
+        assert_eq!(
+            python_major_minor(&spec("python >=3.12,<3.13.0a0")).as_deref(),
+            Some("3.12")
+        );
+        assert_eq!(
+            python_major_minor(&spec("python 3.11.*")).as_deref(),
+            Some("3.11")
+        );
+        assert_eq!(python_major_minor(&spec("python <3.13")), None);
+        assert!(has_upper_bound(&spec("python >=3.12,<3.13.0a0")));
+        assert!(has_upper_bound(&spec("python >=3.12,<=3.13")));
+        assert!(!has_upper_bound(&spec("python >=3.12")));
+        assert_eq!(
+            lower_bound(&spec("numpy >=1.22.4,<2")).as_deref(),
+            Some("1.22.4")
+        );
+        assert_eq!(lower_bound(&spec("numpy <2")), None);
     }
 
     #[test]
@@ -1170,7 +1289,6 @@ mod tests {
             ],
             true,
             "numpy",
-            "numpy",
         )
         .unwrap();
         assert_eq!(res.resolved_channel, "main");
@@ -1187,7 +1305,6 @@ mod tests {
             ],
             true,
             "numpy",
-            "numpy",
         )
         .unwrap();
         assert_eq!(res.resolved_channel, "main-x");
@@ -1201,28 +1318,27 @@ mod tests {
             vec![("main-x".into(), numpy_meta("2.0"))],
             true,
             "numpy",
-            " numpy ",
         )
         .unwrap_err();
         assert_eq!(err.error, "package_not_found");
         assert!(err.message.contains("Available in: main-x."));
-        assert_eq!(err.name.as_deref(), Some(" numpy "));
+        assert_eq!(err.name.as_deref(), Some("numpy"));
     }
 
     #[test]
     fn resolve_reports_unreachable_vs_missing() {
-        let err = resolve_channel(None, vec![], false, "numpy", "numpy").unwrap_err();
+        let err = resolve_channel(None, vec![], false, "numpy").unwrap_err();
         assert_eq!(err.error, "search_unavailable");
-        let err = resolve_channel(None, vec![], true, "numpy", "numpy").unwrap_err();
+        let err = resolve_channel(None, vec![], true, "numpy").unwrap_err();
         assert_eq!(err.error, "package_not_found");
     }
 
     #[test]
     fn resolve_explicit_channel_outage_is_search_unavailable() {
-        let err = resolve_channel(Some("main-x"), vec![], false, "numpy", "numpy").unwrap_err();
+        let err = resolve_channel(Some("main-x"), vec![], false, "numpy").unwrap_err();
         assert_eq!(err.error, "search_unavailable");
         assert!(err.message.contains("(main-x)"));
-        let err = resolve_channel(Some("main-x"), vec![], true, "numpy", "numpy").unwrap_err();
+        let err = resolve_channel(Some("main-x"), vec![], true, "numpy").unwrap_err();
         assert_eq!(err.error, "package_not_found");
     }
 
@@ -1242,7 +1358,6 @@ mod tests {
         ]});
         let response = assemble(
             &args("numpy"),
-            "numpy",
             &resolution(numpy_meta("2.4.1")),
             Some(&files),
         )
@@ -1258,15 +1373,11 @@ mod tests {
 
     #[test]
     fn assemble_notes_older_version_platform_and_python() {
-        let mut a =
-            validate_arguments("numpy", Some("2.3.0"), None, Some("win-arm64"), Some("3.9"))
-                .unwrap();
-        a.channel = None;
+        let a = query("numpy", Some("2.3.0"), Some("win-arm64"), Some("3.9"));
         let files = json!({"total_count": 1, "items": [
             item("linux-64", "py312h8456e4e_0", &["python >=3.12,<3.13.0a0"]),
         ]});
-        let response =
-            assemble(&a, "numpy", &resolution(numpy_meta("2.4.1")), Some(&files)).unwrap();
+        let response = assemble(&a, &resolution(numpy_meta("2.4.1")), Some(&files)).unwrap();
         assert_eq!(response.version.as_deref(), Some("2.3.0"));
         assert!(
             response
@@ -1287,18 +1398,17 @@ mod tests {
 
     #[test]
     fn assemble_version_not_found() {
-        let a = validate_arguments("numpy", Some("9.9"), None, None, None).unwrap();
+        let a = query("numpy", Some("9.9"), None, None);
         let files = json!({"total_count": 0, "items": []});
-        let err =
-            assemble(&a, "numpy", &resolution(numpy_meta("2.4.1")), Some(&files)).unwrap_err();
+        let err = assemble(&a, &resolution(numpy_meta("2.4.1")), Some(&files)).unwrap_err();
         assert_eq!(err.error, "version_not_found");
         assert!(err.message.contains("Available versions: 2.4.1, 2.3.0"));
     }
 
     #[test]
     fn assemble_files_unavailable_note() {
-        let a = validate_arguments("numpy", Some("2.3.0"), None, None, None).unwrap();
-        let response = assemble(&a, "numpy", &resolution(numpy_meta("2.4.1")), None).unwrap();
+        let a = query("numpy", Some("2.3.0"), None, None);
+        let response = assemble(&a, &resolution(numpy_meta("2.4.1")), None).unwrap();
         assert!(
             response
                 .notes
@@ -1314,7 +1424,6 @@ mod tests {
         ]});
         let response = assemble(
             &args("numpy"),
-            "numpy",
             &resolution(numpy_meta("2.4.1")),
             Some(&files),
         )
@@ -1332,7 +1441,7 @@ mod tests {
     fn assemble_deprecated_channel_note_first() {
         let mut res = resolution(numpy_meta("2.4.1"));
         res.resolved_channel = "r".into();
-        let response = assemble(&args("numpy"), "numpy", &res, None).unwrap();
+        let response = assemble(&args("numpy"), &res, None).unwrap();
         assert!(response.notes[0].contains("Channel 'r' is deprecated"));
     }
 }

@@ -1840,7 +1840,7 @@ mod tests {
                         json,
                     },
             } => {
-                assert_eq!(name, "numpy");
+                assert_eq!(name.as_deref(), Some("numpy"));
                 assert_eq!(version.as_deref(), Some("2.0"));
                 assert_eq!(channel.as_deref(), Some("main"));
                 assert_eq!(platform.as_deref(), Some("osx-arm64"));
@@ -1884,6 +1884,68 @@ mod tests {
             }
             _ => panic!("expected intel search-forum"),
         }
+    }
+
+    #[test]
+    fn test_parse_intel_rejects_invalid_arguments() {
+        let rejected = |args: &[&str]| {
+            let mut argv = vec!["ana", "intel"];
+            argv.extend_from_slice(args);
+            parse_from(argv).is_err()
+        };
+        // package-info: names must be safe path segments; filters non-blank.
+        assert!(rejected(&["package-info", "../etc"]));
+        assert!(rejected(&["package-info", "a/b"]));
+        assert!(rejected(&["package-info", "  "]));
+        assert!(rejected(&["package-info", "numpy", "--channel", "../x"]));
+        assert!(rejected(&["package-info", "numpy", "--version", " "]));
+        assert!(rejected(&["package-info", "numpy", "--platform", ""]));
+        assert!(rejected(&[
+            "package-info",
+            "numpy",
+            "--python-version",
+            " "
+        ]));
+        let long = "x".repeat(257);
+        assert!(rejected(&["package-info", &long]));
+        // search-forum: page >= 1, page size 1-100.
+        assert!(rejected(&["search-forum", "x", "--page", "0"]));
+        assert!(rejected(&["search-forum", "x", "--page", "-1"]));
+        assert!(rejected(&["search-forum", "x", "--page-size", "0"]));
+        assert!(rejected(&["search-forum", "x", "--page-size", "101"]));
+        assert!(rejected(&["search-forum", "x", "--page", "abc"]));
+        // Values are trimmed; boundaries are accepted.
+        assert!(!rejected(&["search-forum", "x", "--page-size", "100"]));
+        match parse_from([
+            "ana",
+            "intel",
+            "package-info",
+            " numpy ",
+            "--version",
+            " 2.0 ",
+        ])
+        .unwrap()
+        .0
+        {
+            Action::Intel {
+                command: IntelCommands::PackageInfo { name, version, .. },
+            } => {
+                assert_eq!(name.as_deref(), Some("numpy"));
+                assert_eq!(version.as_deref(), Some("2.0"));
+            }
+            _ => panic!("expected intel package-info"),
+        }
+    }
+
+    #[test]
+    fn test_parse_intel_subcommand_help_without_required_args() {
+        for command in ["package-info", "search-forum"] {
+            assert!(matches!(
+                parse_from(["ana", "intel", command, "--help"]).unwrap().0,
+                Action::ShowSubcommandHelp(path) if path == format!("intel {command}")
+            ));
+        }
+        assert!(parse_from(["ana", "intel", "package-info"]).is_err());
     }
 
     #[test]

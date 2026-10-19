@@ -192,7 +192,8 @@ ana intel package-info <name>    # Versions, platforms, constraints, build varia
 ana intel search-forum <query>   # Search the Anaconda community forum
 ```
 
-JSON when piped (errors too, with a non-zero exit); text in a terminal; `--json` forces JSON.
+JSON when piped (errors too, with exit code 1); text in a terminal; `--json` forces JSON.
+Invalid arguments are rejected before any request, with a message on stderr and exit code 2.
 
 ### API access
 

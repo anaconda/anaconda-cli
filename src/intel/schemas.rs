@@ -7,51 +7,10 @@
 //!
 //! Optional fields serialize as explicit `null` rather than being omitted
 //! (never use `skip_serializing_if`), so an agent can tell "unavailable"
-//! apart from "not part of the response".
+//! apart from "not part of the response". The error shape lives in
+//! `errors.rs`.
 
 use serde::Serialize;
-
-/// Serialized `ToolError` used when a result cannot be encoded. Kept as a
-/// literal so the fallback cannot itself fail; a test checks it matches.
-pub const SERIALIZATION_ERROR_JSON: &str = r#"{"error":"internal_error","message":"The tool result could not be serialized. Try again later.","name":null}"#;
-
-/// A structured command error. In JSON mode it is printed to stdout and the
-/// command exits non-zero; in a terminal it becomes a miette diagnostic.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ToolError {
-    pub error: &'static str,
-    pub message: String,
-    /// Echo of the package name the caller supplied, when relevant; `null`
-    /// otherwise.
-    pub name: Option<String>,
-}
-
-impl ToolError {
-    pub fn new(error: &'static str, message: impl Into<String>) -> Self {
-        Self {
-            error,
-            message: message.into(),
-            name: None,
-        }
-    }
-
-    pub fn with_name(mut self, name: impl Into<String>) -> Self {
-        self.name = Some(name.into());
-        self
-    }
-
-    pub fn invalid_request(message: impl Into<String>) -> Self {
-        Self::new("invalid_request", message)
-    }
-
-    pub fn unauthenticated() -> Self {
-        Self::new(
-            "unauthenticated",
-            "Not logged in to Anaconda, or the stored credentials were rejected. \
-             Run `ana login` in a terminal, then retry.",
-        )
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DownloadCount {
@@ -136,31 +95,6 @@ mod tests {
     // `model_dump_json()` emits for the same model in
     // `remote_mcp/mcp/schemas.py`, so key names, key order, nesting, and
     // explicit nulls are all pinned.
-
-    #[test]
-    fn tool_error_contract() {
-        assert_eq!(
-            serde_json::to_string(&ToolError::invalid_request("bad")).unwrap(),
-            r#"{"error":"invalid_request","message":"bad","name":null}"#
-        );
-        assert_eq!(
-            serde_json::to_string(&ToolError::new("package_not_found", "missing").with_name("np"))
-                .unwrap(),
-            r#"{"error":"package_not_found","message":"missing","name":"np"}"#
-        );
-    }
-
-    #[test]
-    fn serialization_error_json_matches_tool_error() {
-        let expected = ToolError::new(
-            "internal_error",
-            "The tool result could not be serialized. Try again later.",
-        );
-        assert_eq!(
-            SERIALIZATION_ERROR_JSON,
-            serde_json::to_string(&expected).unwrap()
-        );
-    }
 
     #[test]
     fn package_info_contract() {

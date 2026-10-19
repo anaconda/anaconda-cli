@@ -11,7 +11,8 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::REQUEST_TIMEOUT;
-use super::schemas::{ForumBlurb, ForumPagination, ForumSearchResponse, ForumTopic, ToolError};
+use super::errors::ToolError;
+use super::schemas::{ForumBlurb, ForumPagination, ForumSearchResponse, ForumTopic};
 use crate::context::CommandContext;
 
 pub const DEFAULT_PAGE: i64 = 1;
@@ -32,9 +33,13 @@ pub struct ValidatedForumArguments {
     pub page_size: i64,
 }
 
-/// Port of `_validate_arguments`. Hand-written like the Python: trimming
-/// before checking and the cross-field result-window rule do not fit a
-/// derive-based validator.
+/// Port of `_validate_arguments`.
+///
+/// clap already enforces `page >= 1` and `1 <= page_size <= 100` (see
+/// `commands.rs`). What clap cannot check stays here: the query is the
+/// joined positional words, so its emptiness and length are only known after
+/// joining, and the result window is a rule across two arguments. The range
+/// checks are repeated because the window math divides by `page_size`.
 pub fn validate_arguments(
     query: &str,
     page: i64,
