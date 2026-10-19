@@ -1,4 +1,4 @@
-//! `ana intel search-forum`: free-text search of the Anaconda community forum.
+//! `ana forum search`: free-text search of the Anaconda community forum.
 //!
 //! Ported from bigbend `apps/remote-mcp/remote_mcp/services/search_forum.py`;
 //! each helper names the Python function it ports. The forum index is served
@@ -326,7 +326,7 @@ pub fn build_response(
     })
 }
 
-/// Entry point for `ana intel search-forum`. Needs no credentials, so it uses
+/// Entry point for `ana forum search`. Needs no credentials, so it uses
 /// the unauthenticated client and the API key is never sent.
 pub async fn search_forum(
     ctx: &CommandContext,

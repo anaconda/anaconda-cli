@@ -13,7 +13,7 @@ rlimit = "0.11"
 # self-update: Enable `ana self update` command. Included by default.
 # tool-install: Enable `ana tool install/uninstall` commands. Included by default.
 #   Pulls in rattler for lockfile-based installation. (rattler_conda_types is
-#   always included; `ana intel` uses it to parse conda versions and specs.)
+#   always included; `ana package info` uses it to parse conda versions and specs.)
 # conda-package: Build for distribution as a conda package. Implicitly disables
 #   self-update and tool-install (both managed by conda), and resolves binaries
 #   from $CONDA_PREFIX/bin/.

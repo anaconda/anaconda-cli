@@ -1,14 +1,14 @@
-//! Errors returned by `ana intel` commands.
+//! Errors returned by `ana package` and `ana forum` commands.
 //!
 //! `ToolError` is the structured error agents parse: in JSON mode it is
 //! printed to stdout as `{"error", "message", "name"}` and the command exits
-//! non-zero. In a terminal it becomes an `IntelError::Tool` diagnostic.
-//! `IntelError` itself lives in `src/errors.rs` because `cli.rs` matches on it
+//! non-zero. In a terminal it becomes an `LookupError::Tool` diagnostic.
+//! `LookupError` itself lives in `src/errors.rs` because `cli.rs` matches on it
 //! (CLAUDE.md: errors shared across modules go there).
 
 use serde::Serialize;
 
-use crate::errors::IntelError;
+use crate::errors::LookupError;
 
 /// Serialized `ToolError` used when a result cannot be encoded. Kept as a
 /// literal so the fallback cannot itself fail; a test checks it matches.
@@ -65,10 +65,10 @@ impl ToolError {
     }
 }
 
-impl From<ToolError> for IntelError {
+impl From<ToolError> for LookupError {
     /// The terminal (non-JSON) form of a tool error.
     fn from(error: ToolError) -> Self {
-        IntelError::Tool {
+        LookupError::Tool {
             help: error.help().map(str::to_string),
             code: error.error,
             message: error.message,
@@ -124,8 +124,8 @@ mod tests {
 
     #[test]
     fn converts_to_terminal_diagnostic() {
-        match IntelError::from(ToolError::unauthenticated()) {
-            IntelError::Tool {
+        match LookupError::from(ToolError::unauthenticated()) {
+            LookupError::Tool {
                 code,
                 message,
                 help,

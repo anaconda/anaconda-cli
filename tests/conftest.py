@@ -386,3 +386,38 @@ def ana_version(run_ana: AnaRunner) -> str:
     result = run_ana("--version")
     assert result.returncode == 0
     return result.stdout.strip()
+
+
+# =============================================================================
+# Live-service fixtures (module-scoped so each test module sets up once)
+# =============================================================================
+
+
+@pytest.fixture(scope="module")
+def live_binary(ana_binary: Path | None) -> Path:
+    """The ana binary, or skip when it has not been built."""
+    if ana_binary is None:
+        pytest.skip("ana binary not found. Build with 'pixi run build-release'")
+    return ana_binary
+
+
+@pytest.fixture(scope="module")
+def live_env(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+    """Production services (anaconda.com), logged out, isolated home/keyring."""
+    home = tmp_path_factory.mktemp("live_home")
+    env = {
+        key: val
+        for key, val in os.environ.items()
+        if (not key.startswith("ANA_") and key != "GITHUB_TOKEN")
+        or key in PRESERVE_VARS
+    }
+    env["USERPROFILE" if IS_WINDOWS else "HOME"] = str(home)
+    env.update(
+        {
+            "ANA_KEYRING_PATH": str(home / "keyring"),
+            "ANA_OPEN_BROWSER": "false",
+            "ANA_ENABLE_TELEMETRY": "false",
+            "NO_COLOR": "1",
+        }
+    )
+    return env

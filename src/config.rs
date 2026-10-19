@@ -25,7 +25,7 @@
 //! | `ANA_UPDATE_CHECK`               | `true`                     | Enable background update notifications |
 //! | `ANA_UPDATE_CHECK_INTERVAL_HOURS`| `24`                       | Hours between update checks     |
 //! | `ANA_UPDATE_NOTIFY_INTERVAL_HOURS`| `24`                      | Hours between showing notifications |
-//! | `ANA_FORUM_BASE_URL`             | `https://forum.anaconda.com` | Expected origin of forum topic links (`ana intel search-forum`) |
+//! | `ANA_FORUM_BASE_URL`             | `https://forum.anaconda.com` | Expected origin of forum topic links (`ana forum search`) |
 //!
 //! When the `diagnostics` feature is enabled:
 //!

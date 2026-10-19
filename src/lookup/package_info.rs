@@ -1,4 +1,4 @@
-//! `ana intel package-info`: pre-install intelligence for a conda package.
+//! `ana package info`: pre-install intelligence for a conda package.
 //!
 //! Ported from bigbend `apps/remote-mcp/remote_mcp/services/package_info.py`
 //! (free-tier path, `_package_info_from_ce_routes`); each helper names the
@@ -769,7 +769,7 @@ async fn fetch_files(
     read(request(limit).await).await.or(Some(first))
 }
 
-/// Entry point for `ana intel package-info`. Port of `_package_info_from_ce_routes`.
+/// Entry point for `ana package info`. Port of `_package_info_from_ce_routes`.
 pub async fn package_info(
     ctx: &CommandContext,
     args: &PackageQuery,

@@ -35,12 +35,13 @@ fn conda_name(value: &str) -> Result<String, String> {
     }
 }
 
+/// `ana package` subcommands.
 #[derive(Subcommand)]
-pub enum IntelCommands {
+pub enum PackageCommands {
     /// Show versions, platforms, dependencies, build variants, and CVEs for a
     /// conda package
-    #[command(override_usage = "ana intel package-info <NAME> [options]")]
-    PackageInfo {
+    #[command(override_usage = "ana package info <NAME> [options]")]
+    Info {
         /// Exact package name, e.g. numpy
         // Optional only so `--help` works without it (the CLI's global help
         // flag is ours, not clap's); clap requires it otherwise.
@@ -68,10 +69,14 @@ pub enum IntelCommands {
         #[arg(long)]
         json: bool,
     },
+}
 
+/// `ana forum` subcommands.
+#[derive(Subcommand)]
+pub enum ForumCommands {
     /// Search the Anaconda community forum for troubleshooting threads
-    #[command(override_usage = "ana intel search-forum <QUERY>... [options]")]
-    SearchForum {
+    #[command(override_usage = "ana forum search <QUERY>... [options]")]
+    Search {
         /// Search text; error messages and symptom phrases work well
         #[arg(required_unless_present = "help", num_args = 1..)]
         query: Vec<String>,
@@ -101,21 +106,20 @@ pub enum IntelCommands {
     },
 }
 
-impl IntelCommands {
+impl PackageCommands {
     /// Telemetry action name.
     pub fn action_name(&self) -> &'static str {
         match self {
-            IntelCommands::PackageInfo { .. } => "intel.package-info",
-            IntelCommands::SearchForum { .. } => "intel.search-forum",
+            PackageCommands::Info { .. } => "package.info",
         }
     }
+}
 
-    /// Whether `--json` was passed.
-    pub fn force_json(&self) -> bool {
+impl ForumCommands {
+    /// Telemetry action name.
+    pub fn action_name(&self) -> &'static str {
         match self {
-            IntelCommands::PackageInfo { json, .. } | IntelCommands::SearchForum { json, .. } => {
-                *json
-            }
+            ForumCommands::Search { .. } => "forum.search",
         }
     }
 }

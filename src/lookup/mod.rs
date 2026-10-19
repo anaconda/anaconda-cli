@@ -1,9 +1,10 @@
-//! `ana intel`: Anaconda package intelligence for agents and people.
+//! `ana package info` and `ana forum search`: read-only lookups for agents
+//! and people.
 //!
-//! Read-only lookups ported from bigbend's remote MCP service
-//! (`apps/remote-mcp`), exposed as plain commands that agents run in a shell.
-//! Output is JSON when stdout is not a terminal (or with `--json`) and
-//! readable text otherwise; see `output.rs`.
+//! Ported from bigbend's remote MCP service (`apps/remote-mcp`) and exposed
+//! as plain commands that agents run in a shell. Output is JSON when stdout
+//! is not a terminal (or with `--json`) and readable text otherwise; see
+//! `output.rs`.
 
 mod commands;
 mod errors;
@@ -16,7 +17,7 @@ mod search_forum;
 use std::io::IsTerminal;
 use std::time::Duration;
 
-pub use commands::IntelCommands;
+pub use commands::{ForumCommands, PackageCommands};
 
 use crate::auth;
 use crate::config::Config;
@@ -31,24 +32,24 @@ fn has_credentials(config: &Config) -> bool {
     matches!(auth::get_api_key(config), Ok(Some(_)))
 }
 
-/// Run an `ana intel` subcommand.
+/// Run an `ana package` subcommand.
 ///
 /// These commands bypass the central login gate (`Action::requires_login`):
 /// its prompt writes to stdout and starts an interactive device flow, which
 /// would corrupt JSON and hang an agent. Instead, a person at a terminal gets
 /// the usual login prompt here, and everyone else gets an `unauthenticated`
 /// error from the command itself.
-pub async fn run(ctx: &mut CommandContext, command: IntelCommands) -> miette::Result<()> {
-    let mode = OutputMode::detect(command.force_json());
+pub async fn run_package(ctx: &mut CommandContext, command: PackageCommands) -> miette::Result<()> {
     match command {
-        IntelCommands::PackageInfo {
+        PackageCommands::Info {
             name,
             version,
             channel,
             platform,
             python_version,
-            ..
+            json,
         } => {
+            let mode = OutputMode::detect(json);
             if mode == OutputMode::Text
                 && std::io::stdin().is_terminal()
                 && !has_credentials(&ctx.config)
@@ -68,12 +69,19 @@ pub async fn run(ctx: &mut CommandContext, command: IntelCommands) -> miette::Re
             let result = package_info::package_info(ctx, &query).await;
             output::emit(mode, result, render::package_info)
         }
-        IntelCommands::SearchForum {
+    }
+}
+
+/// Run an `ana forum` subcommand. Forum search needs no credentials.
+pub async fn run_forum(ctx: &mut CommandContext, command: ForumCommands) -> miette::Result<()> {
+    match command {
+        ForumCommands::Search {
             query,
             page,
             page_size,
-            ..
+            json,
         } => {
+            let mode = OutputMode::detect(json);
             let result = search_forum::search_forum(ctx, &query.join(" "), page, page_size).await;
             output::emit(mode, result, render::search_forum)
         }
@@ -83,7 +91,7 @@ pub async fn run(ctx: &mut CommandContext, command: IntelCommands) -> miette::Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::IntelError;
+    use crate::errors::LookupError;
     use crate::http::Client;
     use serde_json::{Value, json};
     use wiremock::matchers::{method, path, query_param};
@@ -447,7 +455,7 @@ mod tests {
     async fn run_reports_json_errors_without_prompting() {
         let server = MockServer::start().await;
         let (mut ctx, _dir) = test_ctx(&server, false);
-        let command = IntelCommands::PackageInfo {
+        let command = PackageCommands::Info {
             name: Some("numpy".into()),
             version: None,
             channel: None,
@@ -455,10 +463,10 @@ mod tests {
             python_version: None,
             json: false,
         };
-        let error = run(&mut ctx, command).await.unwrap_err();
+        let error = run_package(&mut ctx, command).await.unwrap_err();
         assert!(matches!(
-            error.downcast_ref::<IntelError>(),
-            Some(IntelError::Reported(message)) if message.starts_with("unauthenticated")
+            error.downcast_ref::<LookupError>(),
+            Some(LookupError::Reported(message)) if message.starts_with("unauthenticated")
         ));
     }
 
@@ -475,12 +483,12 @@ mod tests {
             .mount(&server)
             .await;
         let (mut ctx, _dir) = test_ctx(&server, false);
-        let command = IntelCommands::SearchForum {
+        let command = ForumCommands::Search {
             query: vec!["solver".into(), "error".into()],
             page: 1,
             page_size: 10,
             json: true,
         };
-        run(&mut ctx, command).await.unwrap();
+        run_forum(&mut ctx, command).await.unwrap();
     }
 }

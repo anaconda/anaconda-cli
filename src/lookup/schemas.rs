@@ -1,4 +1,4 @@
-//! JSON output of the `ana intel` commands.
+//! JSON output of `ana package info` and `ana forum search`.
 //!
 //! Mirrors bigbend `apps/remote-mcp/remote_mcp/mcp/schemas.py`: same field
 //! names, order, and nesting. Fields Python marks `exclude=True` (deferred

@@ -101,13 +101,14 @@ ana mcp setup
 
 See `ana mcp --help` for the full list of subcommands.
 
-`ana intel` gives agents (and people) read-only package intelligence from the
-command line. Output is JSON when piped, which is how agents run it, and
-readable text in a terminal; pass `--json` to see what an agent sees.
+`ana package info` and `ana forum search` give agents (and people) read-only
+package details and community answers from the command line. Output is JSON
+when piped, which is how agents run them, and readable text in a terminal;
+pass `--json` to see what an agent sees.
 
 ```bash
-ana intel package-info pytorch --platform linux-64
-ana intel search-forum "Solving environment failed"
+ana package info pytorch --platform linux-64
+ana forum search "Solving environment failed"
 ```
 
 ### Deploying ML workflows to Outerbounds
@@ -135,7 +136,7 @@ View current settings with `ana config`.
 | `ANA_ENABLE_TELEMETRY` | `true` | Send anonymous usage telemetry (see [telemetry policy](docs/telemetry.md)) |
 | `ANA_PRERELEASES` | `false` | Include pre-releases in update checks |
 | `ANA_KEYRING_PATH` | `~/.anaconda/keyring` | API key storage location |
-| `ANA_FORUM_BASE_URL` | `https://forum.anaconda.com` | Expected origin of forum links from `ana intel search-forum` |
+| `ANA_FORUM_BASE_URL` | `https://forum.anaconda.com` | Expected origin of forum links from `ana forum search` |
 
 Boolean values accept `true`/`false`, `1`/`0`, or empty string (treated as false).
 
@@ -185,11 +186,11 @@ ana mcp clients                  # List supported AI clients
 ana mcp remove                   # Remove MCP configuration
 ```
 
-### Package intelligence
+### Package details and forum search
 
 ```bash
-ana intel package-info <name>    # Versions, platforms, constraints, build variants, CVEs
-ana intel search-forum <query>   # Search the Anaconda community forum
+ana package info <name>          # Versions, platforms, constraints, build variants, CVEs
+ana forum search <query>         # Search the Anaconda community forum
 ```
 
 JSON when piped (errors too, with exit code 1); text in a terminal; `--json` forces JSON.

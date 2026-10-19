@@ -1,4 +1,4 @@
-//! Output for `ana intel`: JSON for agents and scripts, text for people.
+//! Output for `ana package` and `ana forum`: JSON for agents and scripts, text for people.
 //!
 //! JSON is used when stdout is not a terminal (an agent's shell, a pipe) or
 //! when `--json` is passed. Errors follow the same rule: in JSON mode they are
@@ -10,7 +10,7 @@ use std::io::IsTerminal;
 use serde::Serialize;
 
 use super::errors::{SERIALIZATION_ERROR_JSON, ToolError};
-use crate::errors::IntelError;
+use crate::errors::LookupError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputMode {
@@ -57,7 +57,7 @@ pub fn emit<T: Serialize>(
             Err(e) => {
                 tracing::error!(error = %e, "failed to serialize result");
                 println!("{SERIALIZATION_ERROR_JSON}");
-                Err(IntelError::Reported("internal_error".to_string()).into())
+                Err(LookupError::Reported("internal_error".to_string()).into())
             }
         },
         (OutputMode::Text, Ok(value)) => {
@@ -75,9 +75,9 @@ pub fn emit_error(mode: OutputMode, error: ToolError) -> miette::Report {
             let json = serde_json::to_string_pretty(&error)
                 .unwrap_or_else(|_| SERIALIZATION_ERROR_JSON.to_string());
             println!("{json}");
-            IntelError::Reported(format!("{}: {}", error.error, error.message)).into()
+            LookupError::Reported(format!("{}: {}", error.error, error.message)).into()
         }
-        OutputMode::Text => IntelError::from(error).into(),
+        OutputMode::Text => LookupError::from(error).into(),
     }
 }
 
@@ -97,28 +97,28 @@ mod tests {
     fn json_errors_are_reported_markers() {
         let report = emit_error(OutputMode::Json, ToolError::unauthenticated());
         assert!(matches!(
-            report.downcast_ref::<IntelError>(),
-            Some(IntelError::Reported(_))
+            report.downcast_ref::<LookupError>(),
+            Some(LookupError::Reported(_))
         ));
     }
 
     #[test]
     fn text_errors_are_diagnostics_with_help() {
         let report = emit_error(OutputMode::Text, ToolError::unauthenticated());
-        match report.downcast_ref::<IntelError>() {
-            Some(IntelError::Tool { code, help, .. }) => {
+        match report.downcast_ref::<LookupError>() {
+            Some(LookupError::Tool { code, help, .. }) => {
                 assert_eq!(*code, "unauthenticated");
                 assert_eq!(help.as_deref(), Some("Run `ana login`, then retry."));
             }
-            _ => panic!("expected IntelError::Tool"),
+            _ => panic!("expected LookupError::Tool"),
         }
         let report = emit_error(
             OutputMode::Text,
             ToolError::new("package_not_found", "missing"),
         );
         assert!(matches!(
-            report.downcast_ref::<IntelError>(),
-            Some(IntelError::Tool { help: None, .. })
+            report.downcast_ref::<LookupError>(),
+            Some(LookupError::Tool { help: None, .. })
         ));
     }
 }

@@ -1,4 +1,4 @@
-//! Text rendering for people running `ana intel` in a terminal.
+//! Text rendering for people running `ana package` and `ana forum` in a terminal.
 //!
 //! Plain labeled lines rather than tables: values are nested and long, and a
 //! width-limited table would wrap or truncate them. Agents get JSON instead
@@ -26,7 +26,7 @@ fn section(out: &mut String, title: &str, lines: impl IntoIterator<Item = String
     }
 }
 
-/// `ana intel package-info` in a terminal.
+/// `ana package info` in a terminal.
 pub fn package_info(info: &PackageInfoResponse) -> String {
     let mut out = String::new();
     let version = info.version.as_deref().unwrap_or("(version unknown)");
@@ -91,7 +91,7 @@ pub fn package_info(info: &PackageInfoResponse) -> String {
     out
 }
 
-/// `ana intel search-forum` in a terminal.
+/// `ana forum search` in a terminal.
 pub fn search_forum(results: &ForumSearchResponse) -> String {
     let mut out = String::new();
     if results.topics.is_empty() {
