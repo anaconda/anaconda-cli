@@ -14,10 +14,10 @@ use crate::feedback;
 use crate::fetch::api_fetch;
 use crate::help;
 use crate::installer;
-use crate::lookup::{self, ForumCommands, PackageCommands};
 use crate::mcp::{self, McpCommands};
 #[cfg(all(unix, tool_install))]
 use crate::outerbounds;
+use crate::package_intelligence::{self, ForumCommands, PackageCommands};
 #[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
 #[cfg(tool_install)]
@@ -74,10 +74,10 @@ pub async fn execute() {
 
     // `ana package` and `ana forum` print JSON on stdout for agents, so logs
     // must go to stderr.
-    let is_lookup = action.is_lookup();
+    let is_package_intelligence = action.is_package_intelligence();
 
     let filter = build_tracing_filter(level);
-    if is_lookup {
+    if is_package_intelligence {
         tracing_subscriber::fmt()
             .with_env_filter(filter)
             .with_writer(std::io::stderr)
@@ -91,9 +91,10 @@ pub async fn execute() {
         Action::TelemetrySubmit | Action::TelemetryKill | Action::TelemetryStatus
     );
 
-    // No update notice for agents and scripts consuming lookup output.
+    // No update notice for agents and scripts consuming package intelligence output.
     #[cfg(self_update)]
-    let skip_update_check = (is_lookup && !std::io::IsTerminal::is_terminal(&std::io::stdout()))
+    let skip_update_check = (is_package_intelligence
+        && !std::io::IsTerminal::is_terminal(&std::io::stdout()))
         || matches!(
             &action,
             Action::Update { .. }
@@ -119,8 +120,8 @@ pub async fn execute() {
         tracing::error!("Command failed: {}", e);
         // The error was already printed to stdout as JSON for an agent.
         if !matches!(
-            e.downcast_ref::<crate::errors::LookupError>(),
-            Some(crate::errors::LookupError::Reported(_))
+            e.downcast_ref::<crate::errors::PackageIntelligenceError>(),
+            Some(crate::errors::PackageIntelligenceError::Reported(_))
         ) {
             eprintln!("{:?}", e);
         }
@@ -343,7 +344,7 @@ impl Action {
     /// self-update, telemetry, and feedback are excluded since they must
     /// work without credentials. `ana package` and `ana forum` handle login
     /// themselves: the prompt here writes to stdout and would hang an agent
-    /// (see `lookup::run_package`).
+    /// (see `package_intelligence::run_package`).
     fn requires_login(&self) -> bool {
         !matches!(
             self,
@@ -368,9 +369,10 @@ impl Action {
         )
     }
 
-    /// `ana package` / `ana forum`: agent-first lookups whose stdout carries
-    /// JSON when piped, so logs and notices must stay off it.
-    fn is_lookup(&self) -> bool {
+    /// Package intelligence (`ana package`, `ana forum`): agent-first commands
+    /// whose stdout carries JSON when piped, so logs and notices must stay
+    /// off it.
+    fn is_package_intelligence(&self) -> bool {
         matches!(self, Action::Package { .. } | Action::Forum { .. })
     }
 
@@ -404,8 +406,8 @@ impl Action {
                 .await
                 .map_err(|e| miette!("{}", e))?),
             Action::Mcp { command } => mcp::run(ctx, command),
-            Action::Package { command } => lookup::run_package(ctx, command).await,
-            Action::Forum { command } => lookup::run_forum(ctx, command).await,
+            Action::Package { command } => package_intelligence::run_package(ctx, command).await,
+            Action::Forum { command } => package_intelligence::run_forum(ctx, command).await,
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
             #[cfg(all(unix, tool_install))]
@@ -1853,9 +1855,9 @@ mod tests {
         .unwrap()
         .0;
         assert_eq!(action.match_action_name(), "package.info");
-        // Lookups handle login themselves so agents never see a prompt.
+        // Package intelligence commands handle login themselves (no prompt for agents).
         assert!(!action.requires_login());
-        assert!(action.is_lookup());
+        assert!(action.is_package_intelligence());
         match action {
             Action::Package {
                 command:
@@ -1895,7 +1897,7 @@ mod tests {
         .0;
         assert_eq!(action.match_action_name(), "forum.search");
         assert!(!action.requires_login());
-        assert!(action.is_lookup());
+        assert!(action.is_package_intelligence());
         match action {
             Action::Forum {
                 command:
@@ -1916,7 +1918,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_lookups_reject_invalid_arguments() {
+    fn test_parse_package_intelligence_rejects_invalid_arguments() {
         let rejected = |args: &[&str]| {
             let mut argv = vec!["ana"];
             argv.extend_from_slice(args);
@@ -1961,7 +1963,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_lookup_help_without_required_args() {
+    fn test_parse_package_intelligence_help_without_required_args() {
         for (group, command) in [("package", "info"), ("forum", "search")] {
             assert!(matches!(
                 parse_from(["ana", group, command, "--help"]).unwrap().0,

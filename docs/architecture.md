@@ -26,7 +26,7 @@ flowchart LR
         OB["Outerbounds subprocesses (Unix standalone)"]
         AICFG["AI-client config, backups and skill files"]
         AICLIENT["User's AI client"]
-        LOOKUP["ana package info, ana forum search"]
+        PKGINTEL["Package intelligence: ana package info, ana forum search"]
         SPOOL["Pending telemetry JSON"]
         SUBMIT["Detached ana telemetry-submit"]
     end
@@ -50,8 +50,8 @@ flowchart LR
     ANA -->|"MCP setup / remove"| AICFG
     AICFG -->|"configuration and bearer credential"| AICLIENT
     AICLIENT -->|"HTTPS MCP requests"| MCP
-    AICLIENT -->|"runs in a shell; reads JSON"| LOOKUP
-    LOOKUP -->|"package routes (stored key); forum search (no key)"| API
+    AICLIENT -->|"runs in a shell; reads JSON"| PKGINTEL
+    PKGINTEL -->|"package routes (stored key); forum search (no key)"| API
     ANA -->|"when metrics enabled"| SPOOL
     SPOOL --> SUBMIT
     SUBMIT --> METRICS
@@ -73,8 +73,9 @@ and resource-quota policies, separately from the CLI's local login gate.
 4. Native MCP setup writes supported AI-client configuration for `/api/mcp`,
    including a bearer credential, backups and companion skill/state. The AI
    client subsequently connects to the remote server; `ana` does not serve MCP.
-5. `ana package info` and `ana forum search` are read-only lookups intended
-   mainly for AI agents running them in a shell. `package info` calls the
+5. Package intelligence commands (`ana package info`, `ana forum search`) are
+   read-only lookups intended mainly for AI agents running them in a shell.
+   `package info` calls the
    public package routes under `/api/ce/packages` with the stored API key;
    `forum search` calls `/api/search/forum` through the unauthenticated client,
    so the key is never sent. They bypass the central login gate, whose prompt
@@ -97,7 +98,7 @@ Sources: [dispatch](../src/cli.rs), [context](../src/context.rs),
 [HTTP clients](../src/http.rs), [authentication](../src/auth/actions.rs),
 [Python wrapper](../src/anaconda_cli.rs), [channels](../src/packages/run.rs),
 [platform wrapper](../src/outerbounds/run.rs), [MCP setup](../src/mcp/setup.rs),
-[package and forum lookups](../src/lookup/mod.rs).
+[package intelligence](../src/package_intelligence/mod.rs).
 
 ### Local Storage and Configuration
 
@@ -281,7 +282,7 @@ managed-tool prefix workflow.
 | Organization commands | Managed Python CLI subprocess | Environment Python CLI subprocess |
 | Channel commands | Available | Not exposed |
 | Platform commands | Unix only | Not exposed |
-| Native MCP setup, package and forum lookups, and Miniconda download | Available | Available |
+| Native MCP setup, package intelligence, and Miniconda download | Available | Available |
 
 Sources: [shell installer](../scripts/install.sh), [PowerShell installer](../scripts/install.ps1),
 [self-update](../src/update.rs), [feature gates](../build.rs),

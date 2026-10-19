@@ -1,5 +1,5 @@
-//! `ana package info` and `ana forum search`: read-only lookups for agents
-//! and people.
+//! Package intelligence: `ana package info` and `ana forum search`, read-only
+//! package and community context for agents and people.
 //!
 //! Ported from bigbend's remote MCP service (`apps/remote-mcp`) and exposed
 //! as plain commands that agents run in a shell. Output is JSON when stdout
@@ -91,7 +91,7 @@ pub async fn run_forum(ctx: &mut CommandContext, command: ForumCommands) -> miet
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::LookupError;
+    use crate::errors::PackageIntelligenceError;
     use crate::http::Client;
     use serde_json::{Value, json};
     use wiremock::matchers::{method, path, query_param};
@@ -465,8 +465,8 @@ mod tests {
         };
         let error = run_package(&mut ctx, command).await.unwrap_err();
         assert!(matches!(
-            error.downcast_ref::<LookupError>(),
-            Some(LookupError::Reported(message)) if message.starts_with("unauthenticated")
+            error.downcast_ref::<PackageIntelligenceError>(),
+            Some(PackageIntelligenceError::Reported(message)) if message.starts_with("unauthenticated")
         ));
     }
 

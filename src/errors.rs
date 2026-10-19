@@ -199,19 +199,19 @@ pub enum McpError {
     UnsupportedClient(String),
 }
 
-/// Errors from `ana package` and `ana forum` commands.
+/// Errors from the package intelligence commands (`ana package`, `ana forum`).
 #[derive(Error, Debug, Diagnostic)]
-pub enum LookupError {
+pub enum PackageIntelligenceError {
     /// A structured error was already printed to stdout as JSON. `execute()`
     /// exits non-zero without printing a diagnostic, so agents see exactly
     /// one machine-readable error.
     #[error("{0}")]
-    #[diagnostic(code(ana::lookup::reported))]
+    #[diagnostic(code(ana::package_intelligence::reported))]
     Reported(String),
 
     /// A tool-level error shown to a person at a terminal.
     #[error("{message}")]
-    #[diagnostic(code(ana::lookup::error))]
+    #[diagnostic(code(ana::package_intelligence::error))]
     Tool {
         /// Machine-readable error code, e.g. `package_not_found`.
         code: &'static str,

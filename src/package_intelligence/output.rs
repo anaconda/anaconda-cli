@@ -10,7 +10,7 @@ use std::io::IsTerminal;
 use serde::Serialize;
 
 use super::errors::{SERIALIZATION_ERROR_JSON, ToolError};
-use crate::errors::LookupError;
+use crate::errors::PackageIntelligenceError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputMode {
@@ -57,7 +57,7 @@ pub fn emit<T: Serialize>(
             Err(e) => {
                 tracing::error!(error = %e, "failed to serialize result");
                 println!("{SERIALIZATION_ERROR_JSON}");
-                Err(LookupError::Reported("internal_error".to_string()).into())
+                Err(PackageIntelligenceError::Reported("internal_error".to_string()).into())
             }
         },
         (OutputMode::Text, Ok(value)) => {
@@ -75,9 +75,9 @@ pub fn emit_error(mode: OutputMode, error: ToolError) -> miette::Report {
             let json = serde_json::to_string_pretty(&error)
                 .unwrap_or_else(|_| SERIALIZATION_ERROR_JSON.to_string());
             println!("{json}");
-            LookupError::Reported(format!("{}: {}", error.error, error.message)).into()
+            PackageIntelligenceError::Reported(format!("{}: {}", error.error, error.message)).into()
         }
-        OutputMode::Text => LookupError::from(error).into(),
+        OutputMode::Text => PackageIntelligenceError::from(error).into(),
     }
 }
 
@@ -97,28 +97,28 @@ mod tests {
     fn json_errors_are_reported_markers() {
         let report = emit_error(OutputMode::Json, ToolError::unauthenticated());
         assert!(matches!(
-            report.downcast_ref::<LookupError>(),
-            Some(LookupError::Reported(_))
+            report.downcast_ref::<PackageIntelligenceError>(),
+            Some(PackageIntelligenceError::Reported(_))
         ));
     }
 
     #[test]
     fn text_errors_are_diagnostics_with_help() {
         let report = emit_error(OutputMode::Text, ToolError::unauthenticated());
-        match report.downcast_ref::<LookupError>() {
-            Some(LookupError::Tool { code, help, .. }) => {
+        match report.downcast_ref::<PackageIntelligenceError>() {
+            Some(PackageIntelligenceError::Tool { code, help, .. }) => {
                 assert_eq!(*code, "unauthenticated");
                 assert_eq!(help.as_deref(), Some("Run `ana login`, then retry."));
             }
-            _ => panic!("expected LookupError::Tool"),
+            _ => panic!("expected PackageIntelligenceError::Tool"),
         }
         let report = emit_error(
             OutputMode::Text,
             ToolError::new("package_not_found", "missing"),
         );
         assert!(matches!(
-            report.downcast_ref::<LookupError>(),
-            Some(LookupError::Tool { help: None, .. })
+            report.downcast_ref::<PackageIntelligenceError>(),
+            Some(PackageIntelligenceError::Tool { help: None, .. })
         ));
     }
 }
