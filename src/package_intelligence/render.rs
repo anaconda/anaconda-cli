@@ -6,7 +6,9 @@
 
 use std::fmt::Write;
 
-use super::schemas::{ForumSearchResponse, OrgConfigResponse, PackageInfoResponse, PackageSecurityResponse};
+use super::schemas::{
+    ForumSearchResponse, OrgConfigResponse, PackageInfoResponse, PackageSecurityResponse,
+};
 use crate::ui::status;
 
 const LABEL_WIDTH: usize = 11;

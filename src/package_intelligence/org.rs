@@ -21,8 +21,7 @@ pub const ANACONDA_CHANNELS: &[&str] = &["main", "msys2", "r", "main-x"];
 
 /// Business-tier product-code prefixes. An org with an active subscription
 /// attribute whose id starts with one of these gets org channel access.
-const BUSINESS_SUBSCRIPTION_PREFIXES: &[&str] =
-    &["security_subscription", "business_subscription"];
+const BUSINESS_SUBSCRIPTION_PREFIXES: &[&str] = &["security_subscription", "business_subscription"];
 
 // ---------------------------------------------------------------------------
 // Passport model (whoami)
@@ -100,9 +99,7 @@ fn is_active_business_subscription(attr: &PassportAttribute) -> bool {
 }
 
 fn has_business_subscription(org: &PassportOrganization) -> bool {
-    org.attributes
-        .iter()
-        .any(is_active_business_subscription)
+    org.attributes.iter().any(is_active_business_subscription)
 }
 
 /// Port of `resolve_org`: pick the org to scope channel lookups to.
@@ -169,7 +166,9 @@ fn check_segment(value: &str, field: &str) -> Result<(), ToolError> {
     if is_safe_segment(value) {
         Ok(())
     } else {
-        Err(ToolError::invalid_request(format!("{field} {SEGMENT_RULE}")))
+        Err(ToolError::invalid_request(format!(
+            "{field} {SEGMENT_RULE}"
+        )))
     }
 }
 
@@ -200,7 +199,11 @@ pub async fn fetch_whoami(ctx: &CommandContext) -> Option<Passport> {
     if !response.status().is_success() {
         return None;
     }
-    response.json::<WhoamiResponse>().await.ok().map(|r| r.passport)
+    response
+        .json::<WhoamiResponse>()
+        .await
+        .ok()
+        .map(|r| r.passport)
 }
 
 /// A channel reported by `/api/organizations/{org}/channels`.
@@ -279,11 +282,7 @@ pub async fn fetch_artifact_files_for_version(
     version: &str,
 ) -> Option<Value> {
     check_segment(package_name, "package name").ok()?;
-    let path = build_artifacts_path(
-        org_name,
-        channel,
-        &format!("/conda/{package_name}/files"),
-    );
+    let path = build_artifacts_path(org_name, channel, &format!("/conda/{package_name}/files"));
     let request = |limit: u64| {
         ctx.client()
             .get(&path)
@@ -318,11 +317,7 @@ pub async fn fetch_cve_detail(
     package_name: &str,
 ) -> Option<Value> {
     check_segment(package_name, "package name").ok()?;
-    let path = build_artifacts_path(
-        org_name,
-        channel,
-        &format!("/conda/{package_name}/cves"),
-    );
+    let path = build_artifacts_path(org_name, channel, &format!("/conda/{package_name}/cves"));
     let response = ctx
         .client()
         .get(&path)
@@ -361,7 +356,9 @@ mod tests {
     }
 
     fn passport(orgs: Vec<PassportOrganization>) -> Passport {
-        Passport { organizations: orgs }
+        Passport {
+            organizations: orgs,
+        }
     }
 
     #[test]
@@ -369,10 +366,16 @@ mod tests {
         let active = org("acme", vec![business_attr(None)]);
         assert!(has_business_subscription(&active));
         // business_subscription counts too.
-        let bus = org("b", vec![attr("business_subscription", "subscriptions", None)]);
+        let bus = org(
+            "b",
+            vec![attr("business_subscription", "subscriptions", None)],
+        );
         assert!(has_business_subscription(&bus));
         // Commercial/free are not business tier.
-        let commercial = org("c", vec![attr("commercial_subscription", "subscriptions", None)]);
+        let commercial = org(
+            "c",
+            vec![attr("commercial_subscription", "subscriptions", None)],
+        );
         assert!(!has_business_subscription(&commercial));
         // Wrong group.
         let wrong_group = org("g", vec![attr("security_subscription", "groups", None)]);
@@ -411,7 +414,10 @@ mod tests {
         match resolve_org(&p, None) {
             OrgResolution::Choice(choice) => {
                 assert_eq!(choice.error, "org_choice_required");
-                assert_eq!(choice.available_orgs, vec!["a".to_string(), "b".to_string()]);
+                assert_eq!(
+                    choice.available_orgs,
+                    vec!["a".to_string(), "b".to_string()]
+                );
             }
             other => panic!("unexpected {other:?}"),
         }

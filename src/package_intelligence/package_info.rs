@@ -701,9 +701,8 @@ pub fn assemble(
     } else if has_policy {
         (
             None,
-            resolved_version.map(|version| {
-                format!("No build files returned for version {version}.")
-            }),
+            resolved_version
+                .map(|version| format!("No build files returned for version {version}.")),
         )
     } else {
         (None, None)

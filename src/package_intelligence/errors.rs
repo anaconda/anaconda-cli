@@ -112,8 +112,11 @@ mod tests {
     #[test]
     fn org_choice_error_contract() {
         assert_eq!(
-            serde_json::to_string(&ToolError::org_choice("Pick one.", vec!["a".into(), "b".into()]))
-                .unwrap(),
+            serde_json::to_string(&ToolError::org_choice(
+                "Pick one.",
+                vec!["a".into(), "b".into()]
+            ))
+            .unwrap(),
             r#"{"error":"org_choice_required","message":"Pick one.","name":null,"available_orgs":["a","b"]}"#
         );
     }

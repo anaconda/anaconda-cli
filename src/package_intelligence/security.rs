@@ -66,7 +66,12 @@ fn build_file_cve_status(files: Option<&Value>) -> BTreeMap<String, BTreeMap<Str
     let Some(files) = files else {
         return result;
     };
-    for item in files.get("items").and_then(Value::as_array).into_iter().flatten() {
+    for item in files
+        .get("items")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
         let Some(subdir) = item
             .get("ckey")
             .and_then(Value::as_str)
@@ -76,7 +81,12 @@ fn build_file_cve_status(files: Option<&Value>) -> BTreeMap<String, BTreeMap<Str
             continue;
         };
         let metadata = item.get("metadata").unwrap_or(&Value::Null);
-        for cve in metadata.get("cves").and_then(Value::as_array).into_iter().flatten() {
+        for cve in metadata
+            .get("cves")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
             let Some(cve_id) = cve.get("id").and_then(Value::as_str) else {
                 continue;
             };
@@ -151,7 +161,11 @@ fn resolve_fix(
 
 /// Port of `_extract_cvss_vector`: v4 > v3 > v2.
 fn extract_cvss_vector(cve_item: &Value) -> Option<String> {
-    for (version_key, inner_key) in [("cvssv4", "cvssV4"), ("cvssv3", "cvssV3"), ("cvssv2", "cvssV2")] {
+    for (version_key, inner_key) in [
+        ("cvssv4", "cvssV4"),
+        ("cvssv3", "cvssV3"),
+        ("cvssv2", "cvssV2"),
+    ] {
         if let Some(vector) = cve_item
             .get(version_key)
             .and_then(|blob| blob.get(inner_key))
@@ -254,12 +268,7 @@ fn build_cve_detail(
                 return None;
             }
             let status_on_platform = platform.and_then(|p| subdir_statuses.get(p).cloned());
-            (
-                Some(affected),
-                Some(cleared),
-                "active",
-                status_on_platform,
-            )
+            (Some(affected), Some(cleared), "active", status_on_platform)
         } else if has_review {
             (None, None, "active", None)
         } else {
@@ -267,7 +276,13 @@ fn build_cve_detail(
         };
 
     let (fix_version, fix_spec) = match review {
-        Some(review) if review.get("cleared").and_then(Value::as_array).is_some_and(|c| !c.is_empty()) && !available_versions.is_empty() => {
+        Some(review)
+            if review
+                .get("cleared")
+                .and_then(Value::as_array)
+                .is_some_and(|c| !c.is_empty())
+                && !available_versions.is_empty() =>
+        {
             let cleared: Vec<&str> = review
                 .get("cleared")
                 .and_then(Value::as_array)
@@ -286,7 +301,10 @@ fn build_cve_detail(
         severity: extract_severity(cve_item),
         status: overall_status.to_string(),
         status_on_platform,
-        description: truncate(cve_item.get("description").and_then(Value::as_str), MAX_DESCRIPTION_CHARS),
+        description: truncate(
+            cve_item.get("description").and_then(Value::as_str),
+            MAX_DESCRIPTION_CHARS,
+        ),
         fix_version,
         fix_spec,
         platforms_affected,
@@ -297,7 +315,10 @@ fn build_cve_detail(
             .and_then(|r| r.get("comment"))
             .and_then(Value::as_str)
             .and_then(|c| truncate(Some(c), MAX_COMMENT_CHARS)),
-        curation_date: review.and_then(|r| r.get("date")).and_then(Value::as_str).map(str::to_string),
+        curation_date: review
+            .and_then(|r| r.get("date"))
+            .and_then(Value::as_str)
+            .map(str::to_string),
         references: review
             .and_then(|r| r.get("references"))
             .and_then(Value::as_object)
@@ -388,17 +409,22 @@ pub async fn package_security(
     page: i64,
 ) -> Result<PackageSecurityResponse, ToolError> {
     // Call 1: full CVE detail.
-    let cves_data = fetch_cve_detail(ctx, org_name, channel, name).await.ok_or_else(|| {
-        ToolError::new(
-            "search_unavailable",
-            "Could not retrieve CVE data. Try again later.",
-        )
-    })?;
+    let cves_data = fetch_cve_detail(ctx, org_name, channel, name)
+        .await
+        .ok_or_else(|| {
+            ToolError::new(
+                "search_unavailable",
+                "Could not retrieve CVE data. Try again later.",
+            )
+        })?;
 
     // Available versions, for fix resolution and version validation.
     let mut available_versions: Vec<String> = Vec::new();
     if let Some(listing) = fetch_artifacts_listing(ctx, org_name, channel, name).await
-        && let Some(first) = listing.get("items").and_then(Value::as_array).and_then(|i| i.first())
+        && let Some(first) = listing
+            .get("items")
+            .and_then(Value::as_array)
+            .and_then(|i| i.first())
     {
         available_versions = first
             .get("available_versions")
@@ -411,7 +437,11 @@ pub async fn package_security(
     }
 
     if !available_versions.is_empty() && !available_versions.iter().any(|v| v == version) {
-        let shown: Vec<&str> = available_versions.iter().take(10).map(String::as_str).collect();
+        let shown: Vec<&str> = available_versions
+            .iter()
+            .take(10)
+            .map(String::as_str)
+            .collect();
         let more = available_versions.len().saturating_sub(shown.len());
         let mut version_list = shown.join(", ");
         if more > 0 {
@@ -434,7 +464,12 @@ pub async fn package_security(
     // Merge.
     let mut all_cves: Vec<CveDetail> = Vec::new();
     let mut cleared_count: i64 = 0;
-    for cve_item in cves_data.get("items").and_then(Value::as_array).into_iter().flatten() {
+    for cve_item in cves_data
+        .get("items")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
         let is_reported = !cve_item
             .get("reviews")
             .and_then(Value::as_array)
@@ -569,7 +604,12 @@ mod tests {
         // Skips versions below the user's, and wrong package names.
         let avail = ["3.0.22".to_string(), "3.0.20".to_string()];
         assert_eq!(
-            resolve_fix(&["python>=3.7.2", "openssl>=3.0.20"], "openssl", &avail, "3.0.19"),
+            resolve_fix(
+                &["python>=3.7.2", "openssl>=3.0.20"],
+                "openssl",
+                &avail,
+                "3.0.19"
+            ),
             (Some("3.0.20".into()), Some("openssl>=3.0.20".into()))
         );
         // Bare name returns the user's version.
@@ -593,10 +633,7 @@ mod tests {
             "cwes": ["CWE-345", "NVD-CWE-no"],
         });
         assert_eq!(extract_severity(&cve), "medium");
-        assert_eq!(
-            extract_cvss_vector(&cve).as_deref(),
-            Some("CVSS:3.1/...")
-        );
+        assert_eq!(extract_cvss_vector(&cve).as_deref(), Some("CVSS:3.1/..."));
         assert_eq!(extract_cwes(&cve), Some(vec!["CWE-345".to_string()]));
         assert_eq!(extract_severity(&json!({})), "unknown");
         assert_eq!(extract_cwes(&json!({})), None);
@@ -617,7 +654,15 @@ mod tests {
             "score": 4.4,
             "reviews": [{"source":"anaconda","date":"2026-06-19T00:00:00","cleared":["requests>=2.33.0"],"comment":"c","references":{"R1":"https://x"}}],
         });
-        let detail = build_cve_detail(&active, &status, Some("linux-64"), "requests", &["2.33.1".into()], "2.32.3").unwrap();
+        let detail = build_cve_detail(
+            &active,
+            &status,
+            Some("linux-64"),
+            "requests",
+            &["2.33.1".into()],
+            "2.32.3",
+        )
+        .unwrap();
         assert_eq!(detail.status, "active");
         assert_eq!(detail.status_on_platform.as_deref(), Some("active"));
         assert_eq!(detail.fix_version.as_deref(), Some("2.33.1"));
@@ -636,7 +681,15 @@ mod tests {
 
         // Reported CVE has no file status or fix.
         let reported = json!({"id":"CVE-REPORTED","score":6.1,"reviews":[]});
-        let detail = build_cve_detail(&reported, &status, Some("linux-64"), "requests", &[], "2.32.3").unwrap();
+        let detail = build_cve_detail(
+            &reported,
+            &status,
+            Some("linux-64"),
+            "requests",
+            &[],
+            "2.32.3",
+        )
+        .unwrap();
         assert_eq!(detail.status, "reported");
         assert_eq!(detail.fix_spec, None);
         assert_eq!(detail.status_on_platform, None);

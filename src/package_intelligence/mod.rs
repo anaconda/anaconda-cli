@@ -90,16 +90,8 @@ pub async fn run_package(ctx: &mut CommandContext, command: PackageCommands) -> 
             {
                 auth::ensure_logged_in(ctx).await?;
             }
-            let result = security::run_security(
-                ctx,
-                name,
-                version,
-                channel,
-                platform,
-                page,
-                org,
-            )
-            .await;
+            let result =
+                security::run_security(ctx, name, version, channel, platform, page, org).await;
             output::emit(mode, result, render::package_security)
         }
         PackageCommands::Policy { org, json } => {

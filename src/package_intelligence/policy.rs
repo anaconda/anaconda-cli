@@ -135,9 +135,7 @@ fn extract_section(section: &Value) -> Vec<Value> {
                             Some("compound")
                                 if inner.get("operator").and_then(Value::as_str) == Some("and") =>
                             {
-                                if let Some(group) =
-                                    and_group_or_single(extract_and_group(inner))
-                                {
+                                if let Some(group) = and_group_or_single(extract_and_group(inner)) {
                                     groups.push(group);
                                 }
                             }
@@ -171,8 +169,12 @@ pub fn flatten_policy_filter(raw: Option<&Value>, schema_version: i64) -> Flatte
     } else {
         let top = raw.get("subfilters").and_then(Value::as_array);
         (
-            top.and_then(|s| s.first()).map(extract_section).unwrap_or_default(),
-            top.and_then(|s| s.get(1)).map(extract_section).unwrap_or_default(),
+            top.and_then(|s| s.first())
+                .map(extract_section)
+                .unwrap_or_default(),
+            top.and_then(|s| s.get(1))
+                .map(extract_section)
+                .unwrap_or_default(),
         )
     };
 
@@ -234,8 +236,14 @@ pub async fn get_org_config(
     let policies_path = format!("/api/organizations/{org_name}/repo-policies/v2");
 
     let (channels_resp, policies_resp) = futures_util::join!(
-        ctx.client().get(&channels_path).timeout(REQUEST_TIMEOUT).send(),
-        ctx.client().get(&policies_path).timeout(REQUEST_TIMEOUT).send(),
+        ctx.client()
+            .get(&channels_path)
+            .timeout(REQUEST_TIMEOUT)
+            .send(),
+        ctx.client()
+            .get(&policies_path)
+            .timeout(REQUEST_TIMEOUT)
+            .send(),
     );
     let channels_resp = channels_resp.map_err(|e| {
         ToolError::new(
@@ -258,7 +266,11 @@ pub async fn get_org_config(
             .and_then(|body| {
                 let error = body.get("error")?;
                 Some((
-                    error.get("code").and_then(Value::as_str).unwrap_or("").to_string(),
+                    error
+                        .get("code")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string(),
                     error
                         .get("message")
                         .and_then(Value::as_str)
@@ -283,7 +295,10 @@ pub async fn get_org_config(
         };
         return Err(ToolError::new(
             "upstream_error",
-            format!("Channels endpoint returned {}{suffix}", channels_status.as_u16()),
+            format!(
+                "Channels endpoint returned {}{suffix}",
+                channels_status.as_u16()
+            ),
         ));
     }
 
@@ -303,10 +318,17 @@ pub async fn get_org_config(
             for policy in items {
                 let flat = flatten_policy_filter(
                     policy.get("filter"),
-                    policy.get("schema_version").and_then(Value::as_i64).unwrap_or(1),
+                    policy
+                        .get("schema_version")
+                        .and_then(Value::as_i64)
+                        .unwrap_or(1),
                 );
                 policies_by_id.insert(
-                    policy.get("id").and_then(Value::as_str).unwrap_or("").to_string(),
+                    policy
+                        .get("id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string(),
                     assigned_policy(
                         policy
                             .get("name")
@@ -344,8 +366,16 @@ pub async fn get_org_config(
                 .to_string();
             ChannelConfig {
                 name,
-                channel_type: ch.get("type").and_then(Value::as_str).unwrap_or("").to_string(),
-                privacy: ch.get("privacy").and_then(Value::as_str).unwrap_or("").to_string(),
+                channel_type: ch
+                    .get("type")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
+                privacy: ch
+                    .get("privacy")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
                 url: format!("https://repo.anaconda.cloud/repo/{raw_name}"),
                 assigned_policy: assigned,
             }
@@ -426,7 +456,10 @@ mod tests {
             ]}
         ]});
         let flat = flatten_policy_filter(Some(&raw), 1);
-        assert_eq!(flat.blocks, Some(vec![json!({"facet":"conda_spec","match":"*"})]));
+        assert_eq!(
+            flat.blocks,
+            Some(vec![json!({"facet":"conda_spec","match":"*"})])
+        );
         assert_eq!(
             flat.overrides,
             Some(vec![json!({"facet":"conda_spec","match":"python"})])
@@ -457,7 +490,10 @@ mod tests {
     fn empty_and_none_filters() {
         assert_eq!(flatten_policy_filter(None, 1), FlattenedPolicy::default());
         let raw = json!({"type":"compound","operator":"or","subfilters":[]});
-        assert_eq!(flatten_policy_filter(Some(&raw), 1), FlattenedPolicy::default());
+        assert_eq!(
+            flatten_policy_filter(Some(&raw), 1),
+            FlattenedPolicy::default()
+        );
     }
 
     #[test]
@@ -475,7 +511,13 @@ mod tests {
             ]}
         });
         let flat = flatten_policy_filter(Some(&raw), 2);
-        assert_eq!(flat.blocks, Some(vec![json!({"facet":"cve_score","match":">= 9.0"})]));
-        assert_eq!(flat.overrides, Some(vec![json!({"facet":"conda_spec","match":"*"})]));
+        assert_eq!(
+            flat.blocks,
+            Some(vec![json!({"facet":"cve_score","match":">= 9.0"})])
+        );
+        assert_eq!(
+            flat.overrides,
+            Some(vec![json!({"facet":"conda_spec","match":"*"})])
+        );
     }
 }
