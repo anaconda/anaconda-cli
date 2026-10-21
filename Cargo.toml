@@ -9,7 +9,7 @@ rlimit = "0.11"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
-# Reject compromised eMudhra keys even when the native CA store is stale.
+# Enforce the patched WebPKI minimum for reqwest's Linux certificate verifier.
 rustls-webpki = "0.103.16"
 
 [features]

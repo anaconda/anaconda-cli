@@ -70,6 +70,7 @@ fn try_setup() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let mut otel_config = Configuration::new(Some(endpoint), None)?;
+    // Match OTLP's metrics-specific timeout, then its global timeout, then 10 seconds.
     let timeout_ms = [
         "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT",
         "OTEL_EXPORTER_OTLP_TIMEOUT",
@@ -77,6 +78,7 @@ fn try_setup() -> Result<(), Box<dyn std::error::Error>> {
     .into_iter()
     .find_map(|name| std::env::var(name).ok()?.parse::<u64>().ok())
     .unwrap_or(10_000);
+    // Reqwest's blocking client must be constructed outside the Tokio runtime.
     let client = std::thread::spawn(move || {
         let builder = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_millis(timeout_ms));

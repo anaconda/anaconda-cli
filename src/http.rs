@@ -15,6 +15,11 @@ pub fn configure_tls(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder 
     builder
 }
 
+/// Apply certificate verification and user-agent defaults to an HTTP client.
+pub fn configure_client(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    configure_tls(builder).user_agent(crate::ua::user_agent())
+}
+
 /// Middleware that logs HTTP requests and responses.
 pub struct LoggingMiddleware;
 
@@ -107,9 +112,7 @@ impl Client {
         builder: reqwest::ClientBuilder,
         base_url: impl Into<String>,
     ) -> std::result::Result<Self, reqwest::Error> {
-        let client = configure_tls(builder)
-            .user_agent(crate::ua::user_agent())
-            .build()?;
+        let client = configure_client(builder).build()?;
         let inner = reqwest_middleware::ClientBuilder::new(client)
             .with(LoggingMiddleware)
             .build();
@@ -122,9 +125,7 @@ impl Client {
     /// Create a client from config with auth middleware.
     /// Auth headers are added dynamically on each request from the keyring.
     pub fn from_config(config: &Config) -> std::result::Result<Self, reqwest::Error> {
-        let client = configure_tls(reqwest::Client::builder())
-            .user_agent(crate::ua::user_agent())
-            .build()?;
+        let client = configure_client(reqwest::Client::builder()).build()?;
         let inner = reqwest_middleware::ClientBuilder::new(client)
             .with(AuthMiddleware::new(config.clone()))
             .with(LoggingMiddleware)
@@ -220,9 +221,7 @@ pub fn build_client(
     } else {
         builder
     };
-    let client = configure_tls(builder)
-        .user_agent(crate::ua::user_agent())
-        .build()?;
+    let client = configure_client(builder).build()?;
     Ok(reqwest_middleware::ClientBuilder::new(client)
         .with(LoggingMiddleware)
         .build())
