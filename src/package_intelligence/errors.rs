@@ -26,6 +26,9 @@ pub struct ToolError {
     /// Echo of the package name the caller supplied, when relevant; `null`
     /// otherwise.
     pub name: Option<String>,
+    /// Candidate organizations for `org_choice_required`; omitted otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub available_orgs: Option<Vec<String>>,
 }
 
 impl ToolError {
@@ -34,12 +37,22 @@ impl ToolError {
             error,
             message: message.into(),
             name: None,
+            available_orgs: None,
         }
     }
 
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
+    }
+
+    pub fn org_choice(message: impl Into<String>, available_orgs: Vec<String>) -> Self {
+        Self {
+            error: "org_choice_required",
+            message: message.into(),
+            name: None,
+            available_orgs: Some(available_orgs),
+        }
     }
 
     pub fn invalid_request(message: impl Into<String>) -> Self {
@@ -93,6 +106,18 @@ mod tests {
             serde_json::to_string(&ToolError::new("package_not_found", "missing").with_name("np"))
                 .unwrap(),
             r#"{"error":"package_not_found","message":"missing","name":"np"}"#
+        );
+    }
+
+    #[test]
+    fn org_choice_error_contract() {
+        assert_eq!(
+            serde_json::to_string(&ToolError::org_choice(
+                "Pick one.",
+                vec!["a".into(), "b".into()]
+            ))
+            .unwrap(),
+            r#"{"error":"org_choice_required","message":"Pick one.","name":null,"available_orgs":["a","b"]}"#
         );
     }
 

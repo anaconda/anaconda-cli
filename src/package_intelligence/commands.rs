@@ -64,6 +64,62 @@ pub enum PackageCommands {
         #[arg(long, value_parser = text_value)]
         python_version: Option<String>,
 
+        /// Organization to resolve the package through (subscriber channels and
+        /// policy disposition)
+        #[arg(long, value_parser = text_value)]
+        org: Option<String>,
+
+        /// Print JSON even in a terminal (JSON is the default when output is
+        /// piped)
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Show policy-filtered CVE detail for a package in your organization
+    #[command(override_usage = "ana package security <NAME> [options]")]
+    Security {
+        /// Exact package name, e.g. requests
+        #[arg(value_parser = conda_name, required_unless_present = "help")]
+        name: Option<String>,
+
+        /// Exact version, e.g. 2.32.3
+        #[arg(long, value_parser = text_value, required_unless_present = "help")]
+        version: Option<String>,
+
+        /// Channel, e.g. main
+        #[arg(long, value_parser = conda_name, required_unless_present = "help")]
+        channel: Option<String>,
+
+        /// Platform subdir, e.g. linux-64; sets per-CVE status_on_platform
+        #[arg(long, value_parser = text_value)]
+        platform: Option<String>,
+
+        /// Page of CVEs, starting at 1
+        #[arg(
+            long,
+            default_value_t = 1,
+            allow_negative_numbers = true,
+            value_parser = clap::value_parser!(i64).range(1..)
+        )]
+        page: i64,
+
+        /// Organization (default: your business organization)
+        #[arg(long, value_parser = text_value)]
+        org: Option<String>,
+
+        /// Print JSON even in a terminal (JSON is the default when output is
+        /// piped)
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Show your organization's channels and their package policies
+    #[command(override_usage = "ana package policy [options]")]
+    Policy {
+        /// Organization (default: your business organization)
+        #[arg(long, value_parser = text_value)]
+        org: Option<String>,
+
         /// Print JSON even in a terminal (JSON is the default when output is
         /// piped)
         #[arg(long)]
@@ -111,6 +167,8 @@ impl PackageCommands {
     pub fn action_name(&self) -> &'static str {
         match self {
             PackageCommands::Info { .. } => "package.info",
+            PackageCommands::Security { .. } => "package.security",
+            PackageCommands::Policy { .. } => "package.policy",
         }
     }
 }

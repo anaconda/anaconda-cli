@@ -1867,6 +1867,7 @@ mod tests {
                         channel,
                         platform,
                         python_version,
+                        org,
                         json,
                     },
             } => {
@@ -1875,6 +1876,7 @@ mod tests {
                 assert_eq!(channel.as_deref(), Some("main"));
                 assert_eq!(platform.as_deref(), Some("osx-arm64"));
                 assert_eq!(python_version.as_deref(), Some("3.12"));
+                assert_eq!(org, None);
                 assert!(json);
             }
             _ => panic!("expected package info"),

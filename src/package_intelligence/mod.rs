@@ -8,11 +8,14 @@
 
 mod commands;
 mod errors;
+mod org;
 mod output;
 mod package_info;
+mod policy;
 mod render;
 mod schemas;
 mod search_forum;
+mod security;
 
 use std::io::IsTerminal;
 use std::time::Duration;
@@ -47,6 +50,7 @@ pub async fn run_package(ctx: &mut CommandContext, command: PackageCommands) -> 
             channel,
             platform,
             python_version,
+            org,
             json,
         } => {
             let mode = OutputMode::detect(json);
@@ -65,9 +69,41 @@ pub async fn run_package(ctx: &mut CommandContext, command: PackageCommands) -> 
                 channel,
                 platform,
                 python_version,
+                org,
             };
             let result = package_info::package_info(ctx, &query).await;
             output::emit(mode, result, render::package_info)
+        }
+        PackageCommands::Security {
+            name,
+            version,
+            channel,
+            platform,
+            page,
+            org,
+            json,
+        } => {
+            let mode = OutputMode::detect(json);
+            if mode == OutputMode::Text
+                && std::io::stdin().is_terminal()
+                && !has_credentials(&ctx.config)
+            {
+                auth::ensure_logged_in(ctx).await?;
+            }
+            let result =
+                security::run_security(ctx, name, version, channel, platform, page, org).await;
+            output::emit(mode, result, render::package_security)
+        }
+        PackageCommands::Policy { org, json } => {
+            let mode = OutputMode::detect(json);
+            if mode == OutputMode::Text
+                && std::io::stdin().is_terminal()
+                && !has_credentials(&ctx.config)
+            {
+                auth::ensure_logged_in(ctx).await?;
+            }
+            let result = policy::run_policy(ctx, org).await;
+            output::emit(mode, result, render::package_policy)
         }
     }
 }
@@ -137,6 +173,7 @@ mod tests {
             channel: channel.map(String::from),
             platform: None,
             python_version: None,
+            org: None,
         };
         match package_info::package_info(ctx, &query).await {
             Ok(response) => serde_json::to_value(response).unwrap(),
@@ -461,6 +498,7 @@ mod tests {
             channel: None,
             platform: None,
             python_version: None,
+            org: None,
             json: false,
         };
         let error = run_package(&mut ctx, command).await.unwrap_err();

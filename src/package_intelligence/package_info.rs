@@ -27,6 +27,7 @@ use serde_json::Value;
 
 use super::REQUEST_TIMEOUT;
 use super::errors::ToolError;
+use super::org;
 use super::schemas::{BuildVariant, CveSummary, DownloadCount, PackageInfoResponse};
 use crate::context::CommandContext;
 
@@ -52,6 +53,7 @@ pub struct PackageQuery {
     pub channel: Option<String>,
     pub platform: Option<String>,
     pub python_version: Option<String>,
+    pub org: Option<String>,
 }
 
 /// Rule enforced by [`is_safe_segment`], phrased for error messages.
@@ -535,13 +537,53 @@ pub fn resolve_channel(
 // Response assembly
 // ---------------------------------------------------------------------------
 
-/// Port of `_resolve_version_and_assemble` and `_assemble_response` (free
-/// tier, so no policy fields): build the response from the resolved channel
-/// and the `/files` payload (`None` when that request failed).
+/// True when an item is `removed_by_policy`.
+fn removed_by_policy(item: &Value) -> bool {
+    item.get("removed_by_policy")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
+/// Port of `_derive_policy`: summarize policy disposition for the subscriber
+/// path. Returns `(policy_status, policy_detail)`.
+fn derive_policy(items: &[Value]) -> (Option<String>, Option<String>) {
+    let removed: Vec<&Value> = items.iter().filter(|i| removed_by_policy(i)).collect();
+    if removed.len() == items.len() {
+        let reasons: std::collections::BTreeSet<String> = removed
+            .iter()
+            .filter_map(|i| i.get("removed_reason").and_then(Value::as_str))
+            .filter(|r| !r.is_empty())
+            .map(str::to_string)
+            .collect();
+        let detail = if reasons.is_empty() {
+            "Version blocked by policy.".to_string()
+        } else {
+            reasons.into_iter().collect::<Vec<_>>().join("; ")
+        };
+        (Some("blocked".to_string()), Some(detail))
+    } else if !removed.is_empty() {
+        (
+            Some("available".to_string()),
+            Some(format!(
+                "{} build(s) removed by policy; {} available",
+                removed.len(),
+                items.len() - removed.len()
+            )),
+        )
+    } else {
+        (Some("available".to_string()), None)
+    }
+}
+
+/// Port of `_resolve_version_and_assemble` and `_assemble_response`: build the
+/// response from the resolved channel and the `/files` payload (`None` when
+/// that request failed). `has_policy` selects the subscriber behavior
+/// (policy fields and policy-filtered build details).
 pub fn assemble(
     args: &PackageQuery,
     resolution: &ChannelResolution,
     files: Option<&Value>,
+    has_policy: bool,
 ) -> Result<PackageInfoResponse, ToolError> {
     let channel = resolution.resolved_channel.as_str();
     let meta = &resolution.artifact_meta;
@@ -557,6 +599,19 @@ pub fn assemble(
         .and_then(|f| f.get("total_count"))
         .and_then(Value::as_u64)
         .unwrap_or(0);
+
+    // On the subscriber path, build-level details (platforms, Python,
+    // constraints, variants) come from policy-available builds only; CVE
+    // counts still cover every build that came back.
+    let available_items: Vec<Value> = if has_policy {
+        items
+            .iter()
+            .filter(|item| !removed_by_policy(item))
+            .cloned()
+            .collect()
+    } else {
+        items.to_vec()
+    };
 
     let mut notes: Vec<String> = resolution
         .other_channels
@@ -614,14 +669,44 @@ pub fn assemble(
     }
 
     let platforms = {
-        let from_items = subdirs_from_items(items);
-        if from_items.is_empty() {
-            string_list(metadata.get("subdirs"))
+        if has_policy && !items.is_empty() {
+            if !available_items.is_empty() {
+                let from_available = subdirs_from_items(&available_items);
+                if from_available.is_empty() {
+                    string_list(metadata.get("subdirs"))
+                } else {
+                    from_available
+                }
+            } else {
+                let from_items = subdirs_from_items(items);
+                if from_items.is_empty() {
+                    string_list(metadata.get("subdirs"))
+                } else {
+                    from_items
+                }
+            }
         } else {
-            from_items
+            let from_items = subdirs_from_items(items);
+            if from_items.is_empty() {
+                string_list(metadata.get("subdirs"))
+            } else {
+                from_items
+            }
         }
     };
-    let python_versions = extract_python_versions(items);
+    let python_versions = extract_python_versions(&available_items);
+
+    let (policy_status, policy_detail) = if has_policy && !items.is_empty() {
+        derive_policy(items)
+    } else if has_policy {
+        (
+            None,
+            resolved_version
+                .map(|version| format!("No build files returned for version {version}.")),
+        )
+    } else {
+        (None, None)
+    };
 
     if DEPRECATED_CHANNELS.contains(&channel) {
         notes.insert(
@@ -662,8 +747,8 @@ pub fn assemble(
         platforms,
         python_versions,
         license: str_at(metadata, "license").map(str::to_string),
-        notable_constraints: extract_notable_constraints(items),
-        build_variants: extract_build_variants(items, &args.name),
+        notable_constraints: extract_notable_constraints(&available_items),
+        build_variants: extract_build_variants(&available_items, &args.name),
         summary: str_at(metadata, "summary").map(str::to_string),
         doc_url: str_at(metadata, "doc_url").and_then(safe_doc_url),
         download_count: DownloadCount {
@@ -671,8 +756,8 @@ pub fn assemble(
             channel: total_downloads.map(|_| channel.to_string()),
         },
         cve_summary: extract_cve_summary(items),
-        policy_status: None,
-        policy_detail: None,
+        policy_status,
+        policy_detail,
         notes,
     })
 }
@@ -686,6 +771,7 @@ enum Lookup {
     Found(String, Value),
     Missing,
     Unauthorized,
+    Forbidden,
     Failed,
 }
 
@@ -769,8 +855,20 @@ async fn fetch_files(
     read(request(limit).await).await.or(Some(first))
 }
 
-/// Entry point for `ana package info`. Port of `_package_info_from_ce_routes`.
+/// Entry point for `ana package info`. Port of `_package_info_from_ce_routes`
+/// (free path) plus the subscriber path (`--org`).
 pub async fn package_info(
+    ctx: &CommandContext,
+    args: &PackageQuery,
+) -> Result<PackageInfoResponse, ToolError> {
+    if args.org.is_some() {
+        return package_info_with_org(ctx, args).await;
+    }
+    package_info_free(ctx, args).await
+}
+
+/// Free-tier path (CE routes), unchanged behavior.
+async fn package_info_free(
     ctx: &CommandContext,
     args: &PackageQuery,
 ) -> Result<PackageInfoResponse, ToolError> {
@@ -806,6 +904,7 @@ pub async fn package_info(
             }
             Lookup::Missing => any_responded = true,
             Lookup::Unauthorized => return Err(ToolError::unauthenticated()),
+            Lookup::Forbidden => {}
             Lookup::Failed => {}
         }
     }
@@ -824,7 +923,180 @@ pub async fn package_info(
     )
     .await;
 
-    assemble(args, &resolution, files.as_ref())
+    assemble(args, &resolution, files.as_ref(), false)
+}
+
+/// Subscriber path: resolve the org from the whoami passport, look the package
+/// up through the org's channels, and fold in policy disposition.
+async fn package_info_with_org(
+    ctx: &CommandContext,
+    args: &PackageQuery,
+) -> Result<PackageInfoResponse, ToolError> {
+    if !super::has_credentials(&ctx.config) {
+        return Err(ToolError::unauthenticated());
+    }
+
+    let org_name = args.org.as_deref().expect("org is set");
+    check_segment(&args.name, "package name").map_err(|e| e.with_name(&args.name))?;
+
+    let passport = org::fetch_whoami(ctx).await.ok_or_else(|| {
+        ToolError::new(
+            "upstream_error",
+            "Could not retrieve your organization memberships. Try again later.",
+        )
+    })?;
+    let resolved_org = match org::resolve_org(&passport, Some(org_name)) {
+        org::OrgResolution::Resolved(org) => org,
+        org::OrgResolution::Error(error) => return Err(error.with_name(&args.name)),
+        org::OrgResolution::Choice(choice) => {
+            return Err(ToolError::org_choice(choice.message, choice.available_orgs));
+        }
+        org::OrgResolution::None => {
+            return Err(ToolError::new(
+                "no_subscription",
+                format!("Organization '{org_name}' does not have a business subscription."),
+            )
+            .with_name(&args.name));
+        }
+    };
+
+    // Fail-closed on explicit channel requests: validate against the org's
+    // configured channels (fail-open when the channel list is unavailable).
+    if let Some(channel) = args.channel.as_deref() {
+        check_segment(channel, "channel").map_err(|e| e.with_name(&args.name))?;
+        if let Some(channels) = org::fetch_org_channels(ctx, &resolved_org.name).await {
+            let names: Vec<String> = channels
+                .iter()
+                .map(|c| org::strip_org_prefix(&resolved_org.name, &c.name))
+                .collect();
+            if !names.is_empty() && !names.iter().any(|n| n == channel) {
+                return Err(ToolError::new(
+                    "invalid_channel",
+                    format!(
+                        "Channel '{channel}' is not available in organization '{}'. Available: {}.",
+                        resolved_org.name,
+                        names.join(", ")
+                    ),
+                )
+                .with_name(&args.name));
+            }
+        }
+    }
+
+    let preferred = args.channel.as_deref().unwrap_or("main");
+    let mut channels = vec![preferred];
+    channels.extend(
+        DEFAULT_CHANNELS
+            .iter()
+            .copied()
+            .filter(|ch| *ch != preferred),
+    );
+
+    let lookups = join_all(
+        channels
+            .iter()
+            .map(|ch| lookup_subscriber_channel(ctx, &resolved_org.name, ch, &args.name)),
+    )
+    .await;
+
+    let mut found = Vec::new();
+    let mut any_responded = false;
+    let mut forbidden = false;
+    for lookup in lookups {
+        match lookup {
+            Lookup::Found(ch, meta) => {
+                any_responded = true;
+                found.push((ch, meta));
+            }
+            Lookup::Missing => any_responded = true,
+            Lookup::Forbidden => forbidden = true,
+            Lookup::Unauthorized => return Err(ToolError::unauthenticated()),
+            Lookup::Failed => {}
+        }
+    }
+
+    if forbidden {
+        // The org does not actually grant us the subscriber endpoints: fall
+        // back to the public view and say so.
+        let mut response = package_info_free(ctx, args).await?;
+        response.notes.insert(
+            0,
+            "Organization channel access is unavailable; showing public package data.".to_string(),
+        );
+        return Ok(response);
+    }
+
+    let resolution = resolve_channel(args.channel.as_deref(), found, any_responded, &args.name)?;
+    let resolved_version = args
+        .version
+        .as_deref()
+        .or_else(|| artifact_version(&resolution.artifact_meta))
+        .map(str::to_string);
+    let files = org::fetch_artifact_files_for_version(
+        ctx,
+        &resolved_org.name,
+        &resolution.resolved_channel,
+        &args.name,
+        resolved_version.as_deref().unwrap_or(""),
+    )
+    .await;
+
+    assemble(args, &resolution, files.as_ref(), true)
+}
+
+/// Look up a package through the subscriber channel path, distinguishing a
+/// 403 (org access denied) so the caller can fall back to the public view.
+async fn lookup_subscriber_channel(
+    ctx: &CommandContext,
+    org_name: &str,
+    channel: &str,
+    name: &str,
+) -> Lookup {
+    let path = org::build_artifacts_path(org_name, channel, "");
+    let response = match ctx
+        .client()
+        .get(&path)
+        .query(&[("only_names", name)])
+        .timeout(REQUEST_TIMEOUT)
+        .send()
+        .await
+    {
+        Ok(response) => response,
+        Err(e) => {
+            tracing::warn!(channel, error = %e, "subscriber package lookup failed");
+            return Lookup::Failed;
+        }
+    };
+    match response.status() {
+        StatusCode::OK => {
+            let meta = match response.json::<Value>().await.ok() {
+                Some(data) => {
+                    // The subscriber listing is paginated; the item list holds
+                    // the artifact meta under `items[0]`.
+                    match data
+                        .get("items")
+                        .and_then(Value::as_array)
+                        .and_then(|items| items.first())
+                        .cloned()
+                    {
+                        Some(item) => item,
+                        None => return Lookup::Missing,
+                    }
+                }
+                None => return Lookup::Failed,
+            };
+            Lookup::Found(channel.to_string(), meta)
+        }
+        StatusCode::FORBIDDEN | StatusCode::UNAUTHORIZED => {
+            if response.status() == StatusCode::UNAUTHORIZED {
+                Lookup::Unauthorized
+            } else {
+                Lookup::Forbidden
+            }
+        }
+        StatusCode::NOT_FOUND => Lookup::Missing,
+        _ => Lookup::Missing,
+    }
 }
 
 #[cfg(test)]
@@ -871,6 +1143,7 @@ mod tests {
             channel: None,
             platform: platform.map(String::from),
             python_version: python_version.map(String::from),
+            org: None,
         }
     }
 
@@ -1360,6 +1633,7 @@ mod tests {
             &args("numpy"),
             &resolution(numpy_meta("2.4.1")),
             Some(&files),
+            false,
         )
         .unwrap();
         assert_eq!(response.version.as_deref(), Some("2.4.1"));
@@ -1377,7 +1651,7 @@ mod tests {
         let files = json!({"total_count": 1, "items": [
             item("linux-64", "py312h8456e4e_0", &["python >=3.12,<3.13.0a0"]),
         ]});
-        let response = assemble(&a, &resolution(numpy_meta("2.4.1")), Some(&files)).unwrap();
+        let response = assemble(&a, &resolution(numpy_meta("2.4.1")), Some(&files), false).unwrap();
         assert_eq!(response.version.as_deref(), Some("2.3.0"));
         assert!(
             response
@@ -1400,7 +1674,7 @@ mod tests {
     fn assemble_version_not_found() {
         let a = query("numpy", Some("9.9"), None, None);
         let files = json!({"total_count": 0, "items": []});
-        let err = assemble(&a, &resolution(numpy_meta("2.4.1")), Some(&files)).unwrap_err();
+        let err = assemble(&a, &resolution(numpy_meta("2.4.1")), Some(&files), false).unwrap_err();
         assert_eq!(err.error, "version_not_found");
         assert!(err.message.contains("Available versions: 2.4.1, 2.3.0"));
     }
@@ -1408,7 +1682,7 @@ mod tests {
     #[test]
     fn assemble_files_unavailable_note() {
         let a = query("numpy", Some("2.3.0"), None, None);
-        let response = assemble(&a, &resolution(numpy_meta("2.4.1")), None).unwrap();
+        let response = assemble(&a, &resolution(numpy_meta("2.4.1")), None, false).unwrap();
         assert!(
             response
                 .notes
@@ -1426,6 +1700,7 @@ mod tests {
             &args("numpy"),
             &resolution(numpy_meta("2.4.1")),
             Some(&files),
+            false,
         )
         .unwrap();
         assert!(
@@ -1441,7 +1716,7 @@ mod tests {
     fn assemble_deprecated_channel_note_first() {
         let mut res = resolution(numpy_meta("2.4.1"));
         res.resolved_channel = "r".into();
-        let response = assemble(&args("numpy"), &res, None).unwrap();
+        let response = assemble(&args("numpy"), &res, None, false).unwrap();
         assert!(response.notes[0].contains("Channel 'r' is deprecated"));
     }
 }
