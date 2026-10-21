@@ -6,7 +6,7 @@
 
 use std::fmt::Write;
 
-use super::schemas::{ForumSearchResponse, PackageInfoResponse};
+use super::schemas::{ForumSearchResponse, OrgConfigResponse, PackageInfoResponse, PackageSecurityResponse};
 use crate::ui::status;
 
 const LABEL_WIDTH: usize = 11;
@@ -87,6 +87,106 @@ pub fn package_info(info: &PackageInfoResponse) -> String {
         &mut out,
         "Notes",
         info.notes.iter().map(|note| format!("- {note}")),
+    );
+    out
+}
+
+/// `ana package security` in a terminal.
+pub fn package_security(response: &PackageSecurityResponse) -> String {
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {} {}",
+        status::highlight(&response.name),
+        response.version,
+        status::dim(&format!("({})", response.channel))
+    );
+    field(
+        &mut out,
+        "CVEs",
+        &format!(
+            "{} total ({} cleared), page {} of {}",
+            response.total_cves,
+            response.cleared_cve_count,
+            response.pagination.page,
+            response.pagination.total_pages
+        ),
+    );
+    for cve in &response.cves {
+        let score = cve
+            .score
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "?".to_string());
+        let _ = writeln!(
+            out,
+            "\n{}  {} {} {}",
+            status::highlight(&cve.id),
+            status::dim(&format!("score {score}")),
+            cve.severity,
+            cve.status
+        );
+        if let Some(description) = &cve.description {
+            let _ = writeln!(out, "  {description}");
+        }
+        if let Some(fix) = &cve.fix_version {
+            field(&mut out, "Fixed in", fix);
+        }
+        if let Some(spec) = &cve.fix_spec {
+            field(&mut out, "Spec", spec);
+        }
+        if let Some(platform) = &cve.status_on_platform {
+            field(&mut out, "On platform", platform);
+        }
+        if let Some(affected) = &cve.platforms_affected {
+            field(&mut out, "Affected", &affected.join(", "));
+        }
+        if let Some(comment) = &cve.analyst_comment {
+            field(&mut out, "", comment);
+        }
+    }
+    section(
+        &mut out,
+        "Notes",
+        response.notes.iter().map(|note| format!("- {note}")),
+    );
+    out
+}
+
+/// `ana package policy` in a terminal.
+pub fn package_policy(response: &OrgConfigResponse) -> String {
+    let mut out = String::new();
+    let _ = writeln!(out, "{}", status::highlight(&response.org_name));
+    for channel in &response.channels {
+        let _ = writeln!(
+            out,
+            "\n{}  ({})",
+            status::highlight(&channel.name),
+            status::dim(&channel.privacy)
+        );
+        let _ = writeln!(out, "  {}", channel.url);
+        match &channel.assigned_policy {
+            Some(policy) => {
+                let _ = writeln!(out, "  policy: {}", policy.name);
+                if let Some(blocks) = &policy.blocks {
+                    for rule in blocks {
+                        let _ = writeln!(out, "    block  {rule}");
+                    }
+                }
+                if let Some(overrides) = &policy.overrides {
+                    for rule in overrides {
+                        let _ = writeln!(out, "    allow  {rule}");
+                    }
+                }
+            }
+            None => {
+                let _ = writeln!(out, "  policy: none");
+            }
+        }
+    }
+    section(
+        &mut out,
+        "Notes",
+        response.notes.iter().map(|note| format!("- {note}")),
     );
     out
 }

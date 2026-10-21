@@ -86,6 +86,85 @@ pub struct ForumSearchResponse {
     pub notes: Vec<String>,
 }
 
+/// Flattened policy assigned to a channel (`ana package policy`). Mirrors the
+/// dict `org_config` builds: `name` first, then `blocks`, then `overrides`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct AssignedPolicy {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overrides: Option<Vec<serde_json::Value>>,
+}
+
+/// One channel in an org's configuration (`ana package policy`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ChannelConfig {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub channel_type: String,
+    pub privacy: String,
+    pub url: String,
+    /// Flattened assigned policy, or null when the channel has none.
+    pub assigned_policy: Option<AssignedPolicy>,
+}
+
+/// `ana package policy` response: org channels and their applied rules.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct OrgConfigResponse {
+    pub org_name: String,
+    pub channels: Vec<ChannelConfig>,
+    pub notes: Vec<String>,
+}
+
+/// Ambiguous org: the caller must pick one. Serialized as a structured error.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct OrgChoiceRequired {
+    pub error: &'static str,
+    pub message: String,
+    pub available_orgs: Vec<String>,
+}
+
+/// A single CVE record in the `ana package security` response.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CveDetail {
+    pub id: String,
+    pub score: Option<f64>,
+    pub severity: String,
+    pub status: String,
+    pub status_on_platform: Option<String>,
+    pub description: Option<String>,
+    pub fix_version: Option<String>,
+    pub fix_spec: Option<String>,
+    pub platforms_affected: Option<Vec<String>>,
+    pub platforms_cleared: Option<Vec<String>>,
+    pub cvss_vector: Option<String>,
+    pub cwe: Option<Vec<String>>,
+    pub analyst_comment: Option<String>,
+    pub curation_date: Option<String>,
+    pub references: Option<std::collections::BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PackageSecurityPagination {
+    pub page: i64,
+    pub page_size: i64,
+    pub total_pages: i64,
+}
+
+/// `ana package security` response.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PackageSecurityResponse {
+    pub name: String,
+    pub version: String,
+    pub channel: String,
+    pub total_cves: i64,
+    pub pagination: PackageSecurityPagination,
+    pub cves: Vec<CveDetail>,
+    pub cleared_cve_count: i64,
+    pub notes: Vec<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,6 +256,108 @@ mod tests {
                 r#""last_posted_at":null,"blurbs":[{"username":"u","blurb":"b","#,
                 r#""post_number":1}]}],"total":1,"#,
                 r#""pagination":{"page":1,"page_size":10,"total_pages":1},"notes":[]}"#,
+            )
+        );
+    }
+
+    #[test]
+    fn org_config_contract() {
+        let response = OrgConfigResponse {
+            org_name: "acme".into(),
+            channels: vec![
+                ChannelConfig {
+                    name: "main".into(),
+                    channel_type: "anaconda".into(),
+                    privacy: "public".into(),
+                    url: "https://repo.anaconda.cloud/repo/acme/main".into(),
+                    assigned_policy: None,
+                },
+                ChannelConfig {
+                    name: "finance".into(),
+                    channel_type: "hosted".into(),
+                    privacy: "private".into(),
+                    url: "https://repo.anaconda.cloud/repo/acme/finance".into(),
+                    assigned_policy: Some(AssignedPolicy {
+                        name: "finance_packages".into(),
+                        blocks: Some(vec![json!({"facet": "cve_score", "match": "> 8"})]),
+                        overrides: None,
+                    }),
+                },
+            ],
+            notes: vec![],
+        };
+        assert_eq!(
+            serde_json::to_string(&response).unwrap(),
+            concat!(
+                r#"{"org_name":"acme","channels":["#,
+                r#"{"name":"main","type":"anaconda","privacy":"public","#,
+                r#""url":"https://repo.anaconda.cloud/repo/acme/main","assigned_policy":null},"#,
+                r#"{"name":"finance","type":"hosted","privacy":"private","#,
+                r#""url":"https://repo.anaconda.cloud/repo/acme/finance","#,
+                r#""assigned_policy":{"name":"finance_packages","#,
+                r#""blocks":[{"facet":"cve_score","match":"> 8"}]}}],"#,
+                r#""notes":[]}"#,
+            )
+        );
+    }
+
+    #[test]
+    fn org_choice_required_contract() {
+        let choice = OrgChoiceRequired {
+            error: "org_choice_required",
+            message: "Pick one.".into(),
+            available_orgs: vec!["org-a".into(), "org-b".into()],
+        };
+        assert_eq!(
+            serde_json::to_string(&choice).unwrap(),
+            r#"{"error":"org_choice_required","message":"Pick one.","available_orgs":["org-a","org-b"]}"#
+        );
+    }
+
+    #[test]
+    fn package_security_contract() {
+        let response = PackageSecurityResponse {
+            name: "requests".into(),
+            version: "2.32.3".into(),
+            channel: "main".into(),
+            total_cves: 1,
+            pagination: PackageSecurityPagination {
+                page: 1,
+                page_size: 20,
+                total_pages: 1,
+            },
+            cves: vec![CveDetail {
+                id: "CVE-2026-25645".into(),
+                score: Some(4.4),
+                severity: "medium".into(),
+                status: "active".into(),
+                status_on_platform: Some("linux-64".into()),
+                description: Some("desc".into()),
+                fix_version: Some("2.33.1".into()),
+                fix_spec: Some("requests>=2.33.0".into()),
+                platforms_affected: Some(vec!["linux-64".into()]),
+                platforms_cleared: Some(vec![]),
+                cvss_vector: Some("CVSS:3.1/AV:L/AC:H/PR:L/UI:R/S:U/C:N/I:H/A:N".into()),
+                cwe: Some(vec!["CWE-345".into()]),
+                analyst_comment: Some("fixed in 2.33.0".into()),
+                curation_date: Some("2026-06-19T00:00:00".into()),
+                references: Some([("R1".into(), "https://nvd.nist.gov".into())].into()),
+            }],
+            cleared_cve_count: 0,
+            notes: vec![],
+        };
+        assert_eq!(
+            serde_json::to_string(&response).unwrap(),
+            concat!(
+                r#"{"name":"requests","version":"2.32.3","channel":"main","total_cves":1,"#,
+                r#""pagination":{"page":1,"page_size":20,"total_pages":1},"cves":[{"id":"CVE-2026-25645","#,
+                r#""score":4.4,"severity":"medium","status":"active","status_on_platform":"linux-64","#,
+                r#""description":"desc","fix_version":"2.33.1","fix_spec":"requests>=2.33.0","#,
+                r#""platforms_affected":["linux-64"],"platforms_cleared":[],"#,
+                r#""cvss_vector":"CVSS:3.1/AV:L/AC:H/PR:L/UI:R/S:U/C:N/I:H/A:N","#,
+                r#""cwe":["CWE-345"],"analyst_comment":"fixed in 2.33.0","#,
+                r#""curation_date":"2026-06-19T00:00:00","references":{"R1":"https://nvd.nist.gov"}}],"#,
+                r#""cleared_cve_count":0,"notes":[]}"#,
             )
         );
     }
