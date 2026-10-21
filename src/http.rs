@@ -8,6 +8,13 @@ use reqwest_middleware::{Middleware, Next, Result};
 use crate::auth;
 use crate::config::Config;
 
+/// Use the patched WebPKI verifier on Linux while retaining native CA roots.
+pub fn configure_tls(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    #[cfg(target_os = "linux")]
+    let builder = builder.tls_backend_rustls();
+    builder
+}
+
 /// Middleware that logs HTTP requests and responses.
 pub struct LoggingMiddleware;
 
@@ -100,7 +107,9 @@ impl Client {
         builder: reqwest::ClientBuilder,
         base_url: impl Into<String>,
     ) -> std::result::Result<Self, reqwest::Error> {
-        let client = builder.user_agent(crate::ua::user_agent()).build()?;
+        let client = configure_tls(builder)
+            .user_agent(crate::ua::user_agent())
+            .build()?;
         let inner = reqwest_middleware::ClientBuilder::new(client)
             .with(LoggingMiddleware)
             .build();
@@ -113,7 +122,7 @@ impl Client {
     /// Create a client from config with auth middleware.
     /// Auth headers are added dynamically on each request from the keyring.
     pub fn from_config(config: &Config) -> std::result::Result<Self, reqwest::Error> {
-        let client = reqwest::Client::builder()
+        let client = configure_tls(reqwest::Client::builder())
             .user_agent(crate::ua::user_agent())
             .build()?;
         let inner = reqwest_middleware::ClientBuilder::new(client)
@@ -211,7 +220,9 @@ pub fn build_client(
     } else {
         builder
     };
-    let client = builder.user_agent(crate::ua::user_agent()).build()?;
+    let client = configure_tls(builder)
+        .user_agent(crate::ua::user_agent())
+        .build()?;
     Ok(reqwest_middleware::ClientBuilder::new(client)
         .with(LoggingMiddleware)
         .build())

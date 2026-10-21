@@ -218,14 +218,16 @@ Keys are environment-specific (anaconda.com vs. self-hosted) and won't work cros
 
 ### SSL certificate errors
 
-If you're behind a corporate proxy or using custom CA certificates:
+On Linux, point `SSL_CERT_FILE` to a CA bundle containing your trusted
+certificates, including the CA used by your corporate proxy:
 
 ```bash
-export ANA_SSL_VERIFY=false
+export SSL_CERT_FILE=/path/to/ca-bundle.pem
 ana login
 ```
 
-Only disable SSL verification in trusted network environments.
+Linux clients reject the compromised eMudhra intermediate keys even when the
+selected CA bundle still trusts their issuers.
 
 ### Verbose logging
 

@@ -209,7 +209,7 @@ pub async fn install_from_lockfile(
     let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix).into_diagnostic()?;
 
     // Build HTTP client for rattler (plain reqwest client, not middleware-wrapped)
-    let client = reqwest::Client::builder()
+    let client = crate::http::configure_tls(reqwest::Client::builder())
         .no_gzip()
         .user_agent(crate::ua::user_agent())
         .build()

@@ -58,6 +58,14 @@ Native service requests use HTTPS by default. Endpoint settings and
 `ANA_USE_HTTPS` control generated API URLs. Remote services own authorization
 and resource-quota policies, separately from the CLI's local login gate.
 
+On Linux, native API requests, downloads, package installation, telemetry and
+optional Sentry diagnostics explicitly use Rustls with WebPKI 0.103.16 or newer.
+This rejects the compromised eMudhra intermediate keys even with a stale CA
+store, including their AAA cross-signs. Certificate roots still come from the
+system store or `SSL_CERT_FILE` and `SSL_CERT_DIR`. macOS and Windows retain
+native certificate verification. Tools launched as subprocesses use their own
+TLS implementations.
+
 ### Authentication and MCP
 
 1. Device login discovers the remote authorization endpoints, opens the browser
