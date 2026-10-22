@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from conftest import MOCK_MINICONDA_INSTALLER_CONTENT
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -101,10 +102,10 @@ class TestToolDownloadCommand:
     ``https://repo.anaconda.com/miniconda/`` service (no mock, no
     ``ANA_INSTALLER_BASE_URL`` override) so the test reflects what a user
     actually experiences: a real manifest fetch and a real ~100-200 MB
-    download. Failure-path/edge-case coverage (malformed manifests, checksum
-    mismatches, 404s) belongs in Rust unit tests in src/installer/mod.rs,
-    since those aren't safe or possible to reproduce against the live
-    service.
+    download. Only the negative/edge cases in ``TestToolDownloadNegative``
+    use ``miniconda_server_factory`` to simulate failures that aren't safe or
+    possible to reproduce against the live service (malformed manifests,
+    checksum mismatches, 404s).
     """
 
     def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
