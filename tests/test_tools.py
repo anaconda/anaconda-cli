@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import MOCK_MINICONDA_INSTALLER_CONTENT
 from helpers import AnaRunner
 
 IS_WINDOWS = sys.platform == "win32"
@@ -97,10 +96,14 @@ class TestToolHelp:
 class TestToolDownloadCommand:
     """Tests for 'ana tool download miniconda' subcommand.
 
-    The download flow (manifest fetch, checksum verification, atomic rename) is
-    exercised end-to-end against the ``miniconda_mock_server`` fixture, which
-    serves a mock ``.files.json`` and installer. The base URL is redirected via
-    ``ANA_INSTALLER_BASE_URL`` so no real network call is made.
+    The happy path is exercised against the real
+    ``https://repo.anaconda.com/miniconda/`` service (no mock, no
+    ``ANA_INSTALLER_BASE_URL`` override) so the test reflects what a user
+    actually experiences: a real manifest fetch and a real ~100-200 MB
+    download. Failure-path/edge-case coverage (malformed manifests, checksum
+    mismatches, 404s) belongs in Rust unit tests in src/installer/mod.rs,
+    since those aren't safe or possible to reproduce against the live
+    service.
     """
 
     def test_download_unknown_installer_errors(self, run_ana: AnaRunner) -> None:
@@ -113,7 +116,7 @@ class TestToolDownloadCommand:
         self, run_ana: AnaRunner, tmp_path: Path
     ) -> None:
         """The pre-flight existence check runs before any network call, so this
-        is safe to test without a mock server."""
+        is safe to test without a real download."""
         existing = tmp_path / _expected_miniconda_filename()
         sentinel = b"do-not-overwrite"
         existing.write_bytes(sentinel)
@@ -124,21 +127,21 @@ class TestToolDownloadCommand:
         assert existing.read_bytes() == sentinel
 
     def test_download_miniconda_succeeds(
-        self,
-        run_ana: AnaRunner,
-        tmp_path: Path,
-        miniconda_mock_server: str,
+        self, run_ana: AnaRunner, tmp_path: Path
     ) -> None:
-        """Happy path: download, verify checksum, and print the run command."""
-        env = {"ANA_INSTALLER_BASE_URL": miniconda_mock_server}
-        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+        """Happy path against the real service: download, verify checksum,
+        report size, and print the run command. A second run against the same
+        destination then refuses to overwrite."""
+        result = run_ana("tool", "download", "miniconda", cwd=tmp_path)
 
         assert result.returncode == 0, result.stderr
 
         filename = _expected_miniconda_filename()
         installer = tmp_path / filename
         assert installer.exists(), "installer should be written to the cwd"
-        assert installer.read_bytes() == MOCK_MINICONDA_INSTALLER_CONTENT
+        # Real installers are well over 50 MB; this guards against a stub,
+        # truncated, or zero-byte download slipping past checksum verification.
+        assert installer.stat().st_size > 50_000_000
 
         # No leftover temp file from the atomic rename. `download_and_verify`
         # writes to `dest.with_extension("tmp")`, which *replaces* the
@@ -150,37 +153,13 @@ class TestToolDownloadCommand:
         assert "SHA256 verified." in result.stdout
         assert _expected_run_command(filename) in result.stdout
 
-    def test_download_miniconda_reports_size(
-        self,
-        run_ana: AnaRunner,
-        tmp_path: Path,
-        miniconda_mock_server: str,
-    ) -> None:
-        """The manifest size is surfaced in the progress and success output."""
-        env = {"ANA_INSTALLER_BASE_URL": miniconda_mock_server}
-        result = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+        # The manifest always reports a size for published installers, so the
+        # " (X.X MB)" suffix should be present in both progress and success output.
+        assert f"Downloading {filename} (" in result.stderr
+        assert f"Downloaded {filename} (" in result.stdout
 
-        assert result.returncode == 0, result.stderr
-
-        # The " (X.X MB)" suffix is only printed when the manifest entry has a
-        # size, so asserting the full line verifies the size was reported.
-        filename = _expected_miniconda_filename()
-        size_part = f" ({len(MOCK_MINICONDA_INSTALLER_CONTENT) / 1_000_000:.1f} MB)"
-        assert f"Downloading {filename}{size_part}" in result.stderr
-        assert f"Downloaded {filename}{size_part} to:" in result.stdout
-
-    def test_download_miniconda_second_run_fails(
-        self,
-        run_ana: AnaRunner,
-        tmp_path: Path,
-        miniconda_mock_server: str,
-    ) -> None:
-        """Re-running after a successful download refuses to overwrite."""
-        env = {"ANA_INSTALLER_BASE_URL": miniconda_mock_server}
-        first = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
-        assert first.returncode == 0, first.stderr
-
-        second = run_ana("tool", "download", "miniconda", cwd=tmp_path, env=env)
+        # Re-running against the same destination refuses to overwrite.
+        second = run_ana("tool", "download", "miniconda", cwd=tmp_path)
         assert second.returncode != 0
         assert "already exists" in second.stderr.lower()
 
