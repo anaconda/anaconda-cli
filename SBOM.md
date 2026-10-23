@@ -2,9 +2,9 @@
 
 Generated: unknown<br>
 Format: CycloneDX 1.4<br>
-Packages: 468 (65 platform-specific)<br>
+Packages: 469 (65 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 11 (2 INFO) across 6 packages**
+<br>**[Security advisories](#security-advisories): 10 (1 INFO) across 5 packages**
 
 ## Packages
 
@@ -353,6 +353,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.1 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
+| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.5 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -385,7 +386,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [tinystr](https://crates.io/crates/tinystr) | 0.8.3 | Unicode-3.0 |  |  |
 | [tinyvec](https://crates.io/crates/tinyvec) | 1.12.0 | Zlib OR Apache-2.0 OR MIT |  |  |
 | [tinyvec\_macros](https://crates.io/crates/tinyvec_macros) | 0.1.1 | MIT OR Apache-2.0 OR Zlib |  |  |
-| [tokio](https://crates.io/crates/tokio) | 1.53.1 | MIT |  | 1 |
+| [tokio](https://crates.io/crates/tokio) | 1.54.1 | MIT |  |  |
 | [tokio-macros](https://crates.io/crates/tokio-macros) | 2.7.1 | MIT |  |  |
 | [tokio-native-tls](https://crates.io/crates/tokio-native-tls) | 0.3.1 | MIT |  |  |
 | [tokio-rustls](https://crates.io/crates/tokio-rustls) | 0.26.4 | MIT OR Apache-2.0 |  |  |
@@ -485,21 +486,20 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | ctutils | 0.4.2 | [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385.html) |  |  |  |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0367](https://rustsec.org/advisories/RUSTSEC-2026-0367.html) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
-| zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
-| tokio | 1.53.1 | [RUSTSEC-2026-0386](https://rustsec.org/advisories/RUSTSEC-2026-0386.html) |  |  | INFO |
 | unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
 
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 248 |
+| MIT OR Apache-2.0 | 249 |
 | MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
