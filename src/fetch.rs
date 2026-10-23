@@ -164,6 +164,7 @@ mod tests {
             metrics_skip_internet_check: true,
             include_prereleases: false,
             pip_index_url: "https://example.com/simple".to_string(),
+            installer_base_url: None,
             self_update_url: Some("https://example.com".to_string()),
             auto_update_tools: None,
             #[cfg(feature = "diagnostics")]
