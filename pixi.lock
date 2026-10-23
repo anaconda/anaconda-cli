@@ -144,6 +144,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pcre2-10.47-h8b3dc9c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pillow-13.0.0-py314h50bfbbb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pkce-1.0.3-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/pkg-config-0.29.2-h1114479_1013.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.13.5-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pluggy-1.7.0-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pre-commit-4.7.0-pyha770c72_0.conda
@@ -4715,6 +4716,16 @@ packages:
   license_family: MIT
   size: 9126
   timestamp: 1736219305828
+- conda: https://conda.anaconda.org/conda-forge/linux-64/pkg-config-0.29.2-h1114479_1013.conda
+  sha256: 8f27ee1b6166c5be505dba4b0dd0f3b3b81ddec811f6118cc337b90cbd3937a4
+  md5: 0aab2923309084c5f89ef32cd39a19b2
+  depends:
+  - libgcc >=15
+  - __glibc >=2.17,<3.0.a0
+  license: GPL-2.0-or-later
+  license_family: GPL
+  size: 141376
+  timestamp: 1788677377648
 - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/pkg-config-0.29.2-hfbd14cd_1013.conda
   sha256: 4e2d6ffb3bca0e5ece75636124655b3a779ed3e8ed946f26a69797f6f1f86878
   md5: 1eb00be535cfa0e928554a98dfcb52f7
