@@ -6,6 +6,11 @@
 
 #[cfg(feature = "diagnostics")]
 mod inner {
+    use std::sync::Arc;
+
+    use sentry::TransportOptions;
+    use sentry::transports::ReqwestHttpTransportOptions;
+
     use crate::VERSION;
     use crate::config::Config;
 
@@ -25,15 +30,25 @@ mod inner {
             return None;
         }
 
+        let client = crate::http::configure_tls(reqwest::Client::builder())
+            .build()
+            .ok()?;
         let guard = sentry::init((
             SENTRY_DSN,
-            sentry::ClientOptions {
-                release: Some(VERSION.into()),
-                environment: Some(config.sentry_environment.clone().into()),
-                send_default_pii: false,
-                attach_stacktrace: true,
-                ..Default::default()
-            },
+            sentry::ClientOptions::new()
+                .release(VERSION)
+                .environment(config.sentry_environment.clone())
+                .send_default_pii(false)
+                .attach_stacktrace(true)
+                .transport(move |options: &sentry::ClientOptions| {
+                    let options = TransportOptions::try_from_client_options(options)
+                        .expect("Sentry transport requires a DSN");
+                    Arc::new(
+                        ReqwestHttpTransportOptions::from(options)
+                            .with_client(client.clone())
+                            .build(),
+                    ) as Arc<dyn sentry::Transport>
+                }),
         ));
 
         sentry::configure_scope(|scope| {

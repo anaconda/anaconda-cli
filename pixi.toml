@@ -19,6 +19,14 @@ cargo-cyclonedx = ">=0.5,<1"
 requests = ">=2.33.1,<3"
 cryptography = ">=50,<51"
 
+[target.linux-64.dependencies]
+# rustls (aws-lc-rs) compiles AWS-LC from C source on Linux; without the
+# c-compiler metapackage the cc crate falls back to the host gcc and glibc
+# headers, producing __isoc23_* symbols the conda sysroot can't link.
+# pkg-config keeps openssl-sys on conda's OpenSSL instead of the host's.
+pkg-config = ">=0.29.2,<0.30"
+c-compiler = "*"
+
 [target.linux-aarch64.dependencies]
 pkg-config = ">=0.29.2,<0.30"
 c-compiler = "*"
