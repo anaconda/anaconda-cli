@@ -57,9 +57,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.2 | MIT |  |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.2 | MIT OR Apache-2.0 |  |  |
 | [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  |  |
-| [clap](https://crates.io/crates/clap) | 4.6.6 | MIT OR Apache-2.0 |  |  |
-| [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.6 | MIT OR Apache-2.0 |  |  |
-| [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.4 | MIT OR Apache-2.0 |  |  |
+| [clap](https://crates.io/crates/clap) | 4.6.7 | MIT OR Apache-2.0 |  |  |
+| [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.7 | MIT OR Apache-2.0 |  |  |
+| [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.7 | MIT OR Apache-2.0 |  |  |
 | [clap\_lex](https://crates.io/crates/clap_lex) | 1.1.0 | MIT OR Apache-2.0 |  |  |
 | [cmake](https://crates.io/crates/cmake) | 0.1.58 | MIT OR Apache-2.0 |  |  |
 | [cmov](https://crates.io/crates/cmov) | 0.5.4 | Apache-2.0 OR MIT |  |  |
@@ -485,13 +485,13 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | ctutils | 0.4.2 | [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385.html) |  |  |  |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0367](https://rustsec.org/advisories/RUSTSEC-2026-0367.html) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
-| zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
 | tokio | 1.53.1 | [RUSTSEC-2026-0386](https://rustsec.org/advisories/RUSTSEC-2026-0386.html) |  |  | INFO |
 | unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
 
