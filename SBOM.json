@@ -2,7 +2,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:ce25c912-08da-49f4-ba37-ab365ee5a5cc",
+  "serialNumber": "urn:uuid:8c5fb658-7c14-41e7-933e-f499c58cd8bc",
   "metadata": {
     "tools": [
       {
@@ -30,7 +30,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "b14bf0795e4cb8a3aca7ab7ee36707f927b4ac54d31e92dac179cc6cf38592d3"
+          "content": "ba7136926e4e53dc74cbd41adebf657069d90a5799fcb18fde25842b2615e08f"
         }
       ]
     },
@@ -42,20 +42,6 @@
     ]
   },
   "components": [
-    {
-      "type": "library",
-      "bom-ref": "pkg:cargo/anaconda-otel-rs@0.1.2",
-      "name": "anaconda-otel-rs",
-      "version": "0.1.2",
-      "description": "OpenTelemetry utilities for Anaconda Rust applications",
-      "scope": "required",
-      "licenses": [
-        {
-          "expression": "BSD-3-Clause"
-        }
-      ],
-      "purl": "pkg:cargo/anaconda-otel-rs@0.1.2"
-    },
     {
       "type": "library",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#addr2line@0.25.1",
@@ -274,6 +260,36 @@
         {
           "type": "vcs",
           "url": "https://github.com/anaconda/anaconda-anon-usage"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.2",
+      "name": "anaconda-otel-rs",
+      "version": "0.1.2",
+      "description": "OpenTelemetry utilities for Anaconda Rust applications",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "11e4b166100a2ddca24bdf9897dc25bbe83bb86d0c3c686f69bb5f9e5a06729e"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "purl": "pkg:cargo/anaconda-otel-rs@0.1.2",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/anaconda/anaconda-otel-rs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/anaconda/anaconda-otel-rs"
         }
       ]
     },
@@ -14519,8 +14535,8 @@
     {
       "ref": "path+file:///tmp/ana-cli#ana@0.0.0",
       "dependsOn": [
-        "pkg:cargo/anaconda-otel-rs@0.1.2",
         "registry+https://github.com/rust-lang/crates.io-index#anaconda-anon-usage@0.8.0",
+        "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.2",
         "registry+https://github.com/rust-lang/crates.io-index#async-trait@0.1.92",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.23.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
@@ -14562,34 +14578,6 @@
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
         "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8",
         "registry+https://github.com/rust-lang/crates.io-index#webbrowser@1.2.2"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/anaconda-otel-rs@0.1.2",
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
-        "registry+https://github.com/rust-lang/crates.io-index#futures-util@0.3.34",
-        "registry+https://github.com/rust-lang/crates.io-index#hex@0.4.3",
-        "registry+https://github.com/rust-lang/crates.io-index#hostname@0.4.2",
-        "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4",
-        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry-otlp@0.32.0",
-        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry-stdout@0.32.0",
-        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry@0.32.0",
-        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry_sdk@0.32.1",
-        "registry+https://github.com/rust-lang/crates.io-index#parking_lot@0.12.5",
-        "registry+https://github.com/rust-lang/crates.io-index#regex@1.13.1",
-        "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
-        "registry+https://github.com/rust-lang/crates.io-index#rustc_version_runtime@0.3.0",
-        "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
-        "registry+https://github.com/rust-lang/crates.io-index#serde_json@1.0.151",
-        "registry+https://github.com/rust-lang/crates.io-index#sha2@0.11.0",
-        "registry+https://github.com/rust-lang/crates.io-index#sysinfo@0.39.6",
-        "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.19",
-        "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.1",
-        "registry+https://github.com/rust-lang/crates.io-index#tracing-opentelemetry@0.33.0",
-        "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23",
-        "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
-        "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8"
       ]
     },
     {
@@ -14645,6 +14633,34 @@
         "registry+https://github.com/rust-lang/crates.io-index#serde_json@1.0.151",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
         "registry+https://github.com/rust-lang/crates.io-index#uuid@1.24.0"
+      ]
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#anaconda-otel-rs@0.1.2",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#chrono@0.4.45",
+        "registry+https://github.com/rust-lang/crates.io-index#futures-util@0.3.34",
+        "registry+https://github.com/rust-lang/crates.io-index#hex@0.4.3",
+        "registry+https://github.com/rust-lang/crates.io-index#hostname@0.4.2",
+        "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4",
+        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry-otlp@0.32.0",
+        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry-stdout@0.32.0",
+        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry@0.32.0",
+        "registry+https://github.com/rust-lang/crates.io-index#opentelemetry_sdk@0.32.1",
+        "registry+https://github.com/rust-lang/crates.io-index#parking_lot@0.12.5",
+        "registry+https://github.com/rust-lang/crates.io-index#regex@1.13.1",
+        "registry+https://github.com/rust-lang/crates.io-index#reqwest@0.13.4",
+        "registry+https://github.com/rust-lang/crates.io-index#rustc_version_runtime@0.3.0",
+        "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.229",
+        "registry+https://github.com/rust-lang/crates.io-index#serde_json@1.0.151",
+        "registry+https://github.com/rust-lang/crates.io-index#sha2@0.11.0",
+        "registry+https://github.com/rust-lang/crates.io-index#sysinfo@0.39.6",
+        "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.19",
+        "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.1",
+        "registry+https://github.com/rust-lang/crates.io-index#tracing-opentelemetry@0.33.0",
+        "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23",
+        "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
+        "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8"
       ]
     },
     {
@@ -18119,6 +18135,20 @@
   ],
   "vulnerabilities": [
     {
+      "id": "RUSTSEC-2026-0385",
+      "description": "## Summary\n\nThe `ctutils::Choice` type has mask generation functions for each unsigned\ninteger size (`u8`, `u16`, `u32`, `u64`, `u128`). These are `const fn` and\ntherefore can't reuse the `asm!`-backed mask generation in the `cmov` crate\nthat's otherwise used to ensure constant-time.\n\nIn releases prior to v0.4.4, the generated code from these functions could\ninclude a branch on commonly used platforms. This has been corrected in this\nrelease and now verified on several platforms using BINSEC.\n\nAdditionally, `u128` comparison operations provided via `ctutils::Choice` and\nintended to work in constant-time were generating branches on 32-bit targets.\nThis has been resolved via a special case implementation of these functions\nfor such targets.\n\n## Impact\n\nBranch instructions on secret values can potentially leak such values via\ncovert channels. This can enable attackers to potentially recover such secrets.\n\n## Resolution\n\nThis has been resolved by calling `Choice::to_u8()` when generating the mask,\nwhich in turn uses `black_box` as an optimization barrier. Verification that\nthis resulted in the desired change in the generated assembly across a variety\nof target CPU architectures was performed by BINSEC, which now runs\nautomatically in CI using `cargo checkct`.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0385.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#ctutils@0.4.2"
+        }
+      ]
+    },
+    {
       "id": "RUSTSEC-2026-0258",
       "description": "The h2 crate, used internally by hyper, had a flaw that would accept and queue empty DATA frames without limit.\nIf streams were not actively drained, this could lead to unbounded memory usage, or a panic if the length overflows.\n\nLow severity.\n\nPatched in v0.4.16.",
       "source": {
@@ -18246,6 +18276,25 @@
       "affects": [
         {
           "ref": "registry+https://github.com/rust-lang/crates.io-index#unsafe-libyaml@0.2.11"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0386",
+      "description": "[unsound] `AsyncFd::new` and related constructors violate I/O safety",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0386.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.1"
         }
       ]
     }

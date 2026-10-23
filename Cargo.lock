@@ -281,6 +281,8 @@ dependencies = [
 [[package]]
 name = "anaconda-otel-rs"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11e4b166100a2ddca24bdf9897dc25bbe83bb86d0c3c686f69bb5f9e5a06729e"
 dependencies = [
  "chrono",
  "futures-util",
