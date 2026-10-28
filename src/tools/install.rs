@@ -1,4 +1,4 @@
-//! Package installation from lockfiles via rattler.
+//! Tool installation via rattler, from embedded lockfiles or install-time solves.
 
 use std::{path::Path, path::PathBuf, time::Instant};
 
@@ -12,16 +12,18 @@ use rattler::{
 use rattler_conda_types::{Platform, PrefixRecord};
 use rattler_lock::LockFile;
 
-use super::{pixi_config, specs};
+use super::specs::{self, Source};
+use super::{pixi_config, solve};
 use crate::context::CommandContext;
 use crate::paths;
 
 /// Global progress bar for installation feedback.
-static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> = std::sync::LazyLock::new(|| {
-    let mp = MultiProgress::new();
-    mp.set_draw_target(ProgressDrawTarget::stderr_with_hz(20));
-    mp
-});
+pub(super) static MULTI_PROGRESS: std::sync::LazyLock<MultiProgress> =
+    std::sync::LazyLock::new(|| {
+        let mp = MultiProgress::new();
+        mp.set_draw_target(ProgressDrawTarget::stderr_with_hz(20));
+        mp
+    });
 
 /// Returns the names of all currently installed tools.
 pub fn installed_tools() -> Vec<&'static str> {
@@ -34,23 +36,56 @@ pub fn installed_tools() -> Vec<&'static str> {
         .collect()
 }
 
-/// Update all installed tools that have outdated lockfiles.
+/// Update installed tools.
 ///
-/// Only updates tools where auto-update is enabled. The global config setting
-/// `auto_update_tools` overrides individual tool defaults when set.
+/// Locked tools are reinstalled when their embedded lockfile changed, and only
+/// if auto-update is enabled (the global config setting `auto_update_tools`
+/// overrides individual tool defaults when set). Solved tools are re-solved
+/// against their channels unless `locked_only` is set, which `ana self update`
+/// uses because a new `ana` binary does not change what a solve produces.
 ///
-/// Returns the names of tools that were updated.
-pub async fn update_installed_tools(ctx: &mut CommandContext) -> miette::Result<Vec<String>> {
+/// Returns the names of tools that were updated. A solved tool that fails to
+/// re-solve (e.g. offline) keeps its current installation; the remaining tools
+/// are still processed and the failure is returned afterwards.
+pub async fn update_installed_tools(
+    ctx: &mut CommandContext,
+    locked_only: bool,
+) -> miette::Result<Vec<String>> {
     let mut updated = Vec::new();
+    let mut failed = Vec::new();
     for name in installed_tools() {
-        if should_auto_update(ctx, name) && ensure_tool(ctx, name).await? {
+        let changed = match specs::source(name) {
+            Some(Source::Solved { .. }) if !locked_only => {
+                match install_solved(ctx, name).await {
+                    Ok(changed) => changed,
+                    Err(e) => {
+                        let cause = e.chain().map(ToString::to_string).collect::<Vec<_>>();
+                        crate::ui::status::warn(&format!(
+                            "could not update {name}; keeping the installed version: {}",
+                            cause.join(": ")
+                        ));
+                        failed.push(name);
+                        false
+                    }
+                }
+            }
+            Some(Source::Locked { .. }) if should_auto_update(ctx, name) => {
+                ensure_tool(ctx, name).await?
+            }
+            _ => false,
+        };
+        if changed {
             updated.push(name.to_string());
         }
     }
-    Ok(updated)
+    if failed.is_empty() {
+        Ok(updated)
+    } else {
+        Err(miette::miette!("failed to update: {}", failed.join(", ")))
+    }
 }
 
-/// Check if a tool should be auto-updated.
+/// Check if a locked tool should be auto-updated.
 ///
 /// If `auto_update_tools` is set in config, use that value for all tools.
 /// Otherwise, defer to each tool's default setting.
@@ -62,11 +97,22 @@ fn should_auto_update(ctx: &CommandContext, name: &str) -> bool {
 
 /// Ensure a managed tool is installed and up-to-date.
 ///
+/// Locked tools are reinstalled when the embedded lockfile changed. Solved
+/// tools are only installed when missing; they change via `ana tool update`.
+///
 /// Returns `true` if an install/update was performed, `false` if already current.
 pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<bool> {
     let prefix = paths::tool_prefix(name);
-    let hash_file = prefix.join(".lockfile-hash");
 
+    if specs::is_solved(name) {
+        if prefix.exists() && binaries_exist(&prefix) {
+            return Ok(false);
+        }
+        install_tool(ctx, name).await?;
+        return Ok(true);
+    }
+
+    let hash_file = prefix.join(".lockfile-hash");
     let lock_content =
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
     let current_hash = hash_lockfile(&lock_content);
@@ -128,7 +174,7 @@ pub(super) fn binaries_exist(prefix: &Path) -> bool {
         .all(|entry| prefix.join(&entry.relative_path).exists())
 }
 
-/// Install a tool from its lockfile.
+/// Install a tool from its lockfile or by solving against its channels.
 pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
@@ -138,12 +184,29 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         eprintln!();
     }
 
-    let prefix = paths::tool_prefix(name);
+    match specs::source(name) {
+        None => return Err(miette::miette!("unknown tool: {}", name)),
+        Some(Source::Solved { .. }) => {
+            install_solved(ctx, name).await?;
+        }
+        Some(Source::Locked { .. }) => {
+            install_locked(ctx, name).await?;
+        }
+    }
 
+    // Tool-specific post-install configuration
+    if name == "pixi" {
+        pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
+    }
+
+    Ok(())
+}
+
+/// Install a locked tool from its embedded (or overridden) lockfile.
+async fn install_locked(ctx: &CommandContext, name: &str) -> miette::Result<()> {
+    let prefix = paths::tool_prefix(name);
     let lock_content =
         specs::content(name).ok_or_else(|| miette::miette!("unknown tool: {}", name))?;
-
-    let binaries = specs::binaries(name).unwrap_or_default();
 
     eprintln!("Installing {} into {}", name, prefix.display());
 
@@ -155,15 +218,57 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
         .into_diagnostic()
         .context("failed to write lockfile hash")?;
 
-    // Create symlinks in bin directory
-    create_bin_symlinks(&prefix, &binaries)?;
+    create_bin_symlinks(&prefix, &specs::binaries(name).unwrap_or_default())
+}
 
-    // Tool-specific post-install configuration
-    if name == "pixi" {
-        pixi_config::configure_default_channels(&paths::bin_path("pixi"))?;
+/// Solve a solved tool against its channels and install the result.
+///
+/// Returns `true` if any package was installed, updated, or removed.
+async fn install_solved(ctx: &CommandContext, name: &str) -> miette::Result<bool> {
+    let Some(Source::Solved { channels, packages }) = specs::source(name) else {
+        return Err(miette::miette!("{} is not a solved tool", name));
+    };
+    let prefix = paths::tool_prefix(name);
+    let channels = specs::solve_channels(channels);
+
+    eprintln!("Installing {} into {}", name, prefix.display());
+    eprintln!("   Solving against {}", channels.join(", "));
+
+    let installed = installed_records(&prefix)?;
+    let records = solve::solve(&channels, packages, &installed).await?;
+    let changed = install_records(ctx, &prefix, records).await?;
+
+    create_bin_symlinks(&prefix, &specs::binaries(name).unwrap_or_default())?;
+    Ok(changed)
+}
+
+/// Records of the packages currently installed in `prefix`.
+fn installed_records(prefix: &Path) -> miette::Result<Vec<PrefixRecord>> {
+    if !prefix.join("conda-meta").exists() {
+        return Ok(Vec::new());
     }
+    PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix)
+        .into_diagnostic()
+        .context("failed to read installed packages")
+}
 
-    Ok(())
+/// HTTP client for rattler (plain reqwest client, not middleware-wrapped).
+pub(super) fn rattler_client() -> miette::Result<reqwest::Client> {
+    crate::http::configure_client(reqwest::Client::builder())
+        .no_gzip()
+        .build()
+        .into_diagnostic()
+        .context("failed to create download client")
+}
+
+/// rattler's shared cache directory, created if missing.
+pub(super) fn rattler_cache_dir() -> miette::Result<PathBuf> {
+    // TODO(mattkram): Consider a custom cache dir
+    let cache_dir = default_cache_dir()
+        .map_err(|e| miette::miette!("could not determine cache directory: {}", e))?;
+    rattler_cache::ensure_cache_dir(&cache_dir)
+        .map_err(|e| miette::miette!("could not create cache directory: {}", e))?;
+    Ok(cache_dir)
 }
 
 /// Install packages from a lockfile string to a prefix.
@@ -200,36 +305,35 @@ pub async fn install_from_lockfile(
         current_platform
     );
 
+    install_records(_ctx, prefix, records).await?;
+    Ok(())
+}
+
+/// Install exactly `records` into `prefix`, removing anything else.
+///
+/// Returns `true` if any package was installed, updated, or removed.
+async fn install_records(
+    _ctx: &CommandContext,
+    prefix: &Path,
+    records: Vec<rattler_conda_types::RepoDataRecord>,
+) -> miette::Result<bool> {
     // Ensure prefix directory exists
     std::fs::create_dir_all(prefix)
         .into_diagnostic()
         .context("failed to create prefix directory")?;
 
     // Check what's already installed
-    let installed = PrefixRecord::collect_from_prefix::<PrefixRecord>(prefix).into_diagnostic()?;
+    let installed = installed_records(prefix)?;
 
-    // Build HTTP client for rattler (plain reqwest client, not middleware-wrapped)
-    let client = crate::http::configure_client(reqwest::Client::builder())
-        .no_gzip()
-        .build()
-        .into_diagnostic()
-        .context("failed to create download client")?;
-
-    // Ensure cache directory exists
-    // TODO(mattkram): Consider a custom cache dir
-    let cache_dir = default_cache_dir()
-        .map_err(|e| miette::miette!("could not determine cache directory: {}", e))?;
-    rattler_cache::ensure_cache_dir(&cache_dir)
-        .map_err(|e| miette::miette!("could not create cache directory: {}", e))?;
-
+    let cache_dir = rattler_cache_dir()?;
     let package_cache = PackageCache::new(cache_dir.join(rattler_cache::PACKAGE_CACHE_DIR));
 
     // Run installation
     let start = Instant::now();
     let result = Installer::new()
-        .with_download_client(client)
+        .with_download_client(rattler_client()?)
         .with_package_cache(package_cache)
-        .with_target_platform(current_platform)
+        .with_target_platform(Platform::current())
         .with_installed_packages(installed)
         // TODO(mattkram): Review whether we should execute link scripts by default or not
         .with_execute_link_scripts(true)
@@ -243,17 +347,18 @@ pub async fn install_from_lockfile(
         .into_diagnostic()
         .context("failed to install packages")?;
 
-    if result.transaction.operations.is_empty() {
+    let operations = result.transaction.operations.len();
+    if operations == 0 {
         eprintln!("   ✓ Already up to date");
     } else {
         eprintln!(
             "   Installed {} packages in {:.1}s",
-            result.transaction.operations.len(),
+            operations,
             start.elapsed().as_secs_f64()
         );
     }
 
-    Ok(())
+    Ok(operations > 0)
 }
 
 /// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/

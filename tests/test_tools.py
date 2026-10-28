@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
+import io
+import json
 import platform
 import shutil
 import subprocess
 import sys
+import tarfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -595,6 +599,158 @@ class TestToolUpdate:
         update_result = run_ana_logged_in("tool", "update")
         assert update_result.returncode == 0
         assert "up to date" in update_result.stderr.lower()
+
+
+# Maps Python (sys.platform, platform.machine()) values to conda subdirs.
+_CONDA_SUBDIRS = {
+    ("darwin", "arm64"): "osx-arm64",
+    ("darwin", "x86_64"): "osx-64",
+    ("linux", "x86_64"): "linux-64",
+    ("linux", "aarch64"): "linux-aarch64",
+    ("win32", "amd64"): "win-64",
+    ("win32", "x86_64"): "win-64",
+}
+
+
+class _LocalChannel:
+    """A `file://` conda channel holding fake kilo-cli builds.
+
+    Packages use the `.tar.bz2` format so they can be built with the standard
+    library. Each build ships `lib/kilo/kilo`, the path ana links into
+    ~/.ana/bin, as a script that prints the build's version.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+        self.subdir = _CONDA_SUBDIRS[(sys.platform, platform.machine().lower())]
+        self.packages: dict[str, dict[str, object]] = {}
+        self._write_repodata()
+
+    @property
+    def url(self) -> str:
+        return self.root.as_uri()
+
+    def publish_kilo(self, version: str) -> None:
+        script = f"#!/bin/sh\necho {version}\n".encode()
+        index = {
+            "name": "kilo-cli",
+            "version": version,
+            "build": "0",
+            "build_number": 0,
+            "depends": [],
+            "subdir": self.subdir,
+        }
+        paths = {
+            "paths_version": 1,
+            "paths": [
+                {
+                    "_path": "lib/kilo/kilo",
+                    "path_type": "hardlink",
+                    "sha256": hashlib.sha256(script).hexdigest(),
+                    "size_in_bytes": len(script),
+                }
+            ],
+        }
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w:bz2") as tar:
+            for name, data, mode in (
+                ("info/index.json", json.dumps(index).encode(), 0o644),
+                ("info/paths.json", json.dumps(paths).encode(), 0o644),
+                ("lib/kilo/kilo", script, 0o755),
+            ):
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                info.mode = mode
+                tar.addfile(info, io.BytesIO(data))
+        archive = buf.getvalue()
+
+        filename = f"kilo-cli-{version}-0.tar.bz2"
+        (self.root / self.subdir / filename).write_bytes(archive)
+        self.packages[filename] = {
+            **index,
+            "md5": hashlib.md5(archive).hexdigest(),
+            "sha256": hashlib.sha256(archive).hexdigest(),
+            "size": len(archive),
+        }
+        self._write_repodata()
+
+    def _write_repodata(self) -> None:
+        for subdir, packages in ((self.subdir, self.packages), ("noarch", {})):
+            directory = self.root / subdir
+            directory.mkdir(parents=True, exist_ok=True)
+            repodata = {
+                "info": {"subdir": subdir},
+                "packages": packages,
+                "packages.conda": {},
+            }
+            (directory / "repodata.json").write_text(json.dumps(repodata))
+
+
+def _installed_kilo_version(fake_home: Path) -> str:
+    """Return the kilo-cli version recorded in the tool prefix's conda-meta."""
+    conda_meta = fake_home / ".ana" / "tools" / "kilo-cli" / "conda-meta"
+    (record,) = conda_meta.glob("kilo-cli-*.json")
+    return json.loads(record.read_text())["version"]
+
+
+class TestSolvedToolUpdate:
+    """kilo-cli is solved against its channels at install time, so new
+    releases are picked up by `ana tool update` without a new ana binary."""
+
+    @pytest.fixture
+    def channel(self, tmp_path: Path) -> _LocalChannel:
+        return _LocalChannel(tmp_path / "channel")
+
+    def test_update_picks_up_new_channel_release(
+        self,
+        run_ana_logged_in: AnaRunner,
+        fake_home: Path,
+        channel: _LocalChannel,
+    ) -> None:
+        env = {"ANA_TOOL_CHANNELS": channel.url}
+        channel.publish_kilo("1.0")
+
+        result = run_ana_logged_in("tool", "install", "kilo-cli", env=env)
+        assert result.returncode == 0, result.stderr
+        assert _installed_kilo_version(fake_home) == "1.0"
+
+        channel.publish_kilo("2.0")
+
+        # `ana self update` refreshes tools with --locked-only; a new ana
+        # binary must not move solved tools.
+        result = run_ana_logged_in("tool", "update", "--locked-only", env=env)
+        assert result.returncode == 0, result.stderr
+        assert _installed_kilo_version(fake_home) == "1.0"
+
+        result = run_ana_logged_in("tool", "update", env=env)
+        assert result.returncode == 0, result.stderr
+        assert _installed_kilo_version(fake_home) == "2.0"
+
+        if not IS_WINDOWS:
+            kilo = fake_home / ".ana" / "bin" / "kilo"
+            proc = subprocess.run([str(kilo)], capture_output=True, text=True)
+            assert proc.stdout.strip() == "2.0"
+
+    def test_failed_update_keeps_installed_version(
+        self,
+        run_ana_logged_in: AnaRunner,
+        fake_home: Path,
+        channel: _LocalChannel,
+        tmp_path: Path,
+    ) -> None:
+        channel.publish_kilo("1.0")
+        result = run_ana_logged_in(
+            "tool", "install", "kilo-cli", env={"ANA_TOOL_CHANNELS": channel.url}
+        )
+        assert result.returncode == 0, result.stderr
+
+        unreachable = (tmp_path / "missing-channel").as_uri()
+        result = run_ana_logged_in(
+            "tool", "update", env={"ANA_TOOL_CHANNELS": unreachable}
+        )
+        assert result.returncode != 0
+        assert "keeping the installed version" in result.stderr
+        assert _installed_kilo_version(fake_home) == "1.0"
 
 
 class TestToolUninstall:

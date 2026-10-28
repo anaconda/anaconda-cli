@@ -191,7 +191,9 @@ pub enum Action {
         force: bool,
     },
     ToolList,
-    ToolUpdate,
+    ToolUpdate {
+        locked_only: bool,
+    },
     ApiFetch {
         method: String,
         url: String,
@@ -254,7 +256,7 @@ impl Action {
             Action::ToolInstall { .. } => "tool.install",
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
-            Action::ToolUpdate => "tool.update",
+            Action::ToolUpdate { .. } => "tool.update",
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
@@ -399,10 +401,10 @@ impl Action {
                 Ok(())
             }
             #[cfg(not(tool_install))]
-            Action::ToolUpdate => Err(crate::errors::ToolManagementUnavailableError.into()),
+            Action::ToolUpdate { .. } => Err(crate::errors::ToolManagementUnavailableError.into()),
             #[cfg(tool_install)]
-            Action::ToolUpdate => {
-                let updated = tools::install::update_installed_tools(ctx).await?;
+            Action::ToolUpdate { locked_only } => {
+                let updated = tools::install::update_installed_tools(ctx, locked_only).await?;
                 if updated.is_empty() {
                     eprintln!("All tools are up to date.");
                 }
@@ -754,7 +756,7 @@ where
             Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
-            Some(ToolCommands::Update) => Action::ToolUpdate,
+            Some(ToolCommands::Update { locked_only }) => Action::ToolUpdate { locked_only },
             Some(ToolCommands::Download { name }) => match name {
                 None => Action::ShowSubcommandHelp("tool download".to_string()),
                 Some(name) => Action::ToolDownload { name },
@@ -1197,7 +1199,12 @@ enum ToolCommands {
     },
 
     /// Update all installed tools
-    Update,
+    Update {
+        /// Only apply new embedded lockfiles; skip re-solving channel-solved tools
+        /// (internal use by `ana self update`)
+        #[arg(long, hide = true)]
+        locked_only: bool,
+    },
 
     /// Download an installer (currently miniconda only)
     Download {

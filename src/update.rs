@@ -428,7 +428,8 @@ fn print_update_success(current_version: &str, new_version: &str, elapsed: std::
 /// Spawn the new binary to update installed tools.
 ///
 /// After self-replace, the current process still has old lockfiles embedded.
-/// We spawn the new binary to update tools using the new lockfiles.
+/// We spawn the new binary to update tools using the new lockfiles. Solved
+/// tools are skipped: a new `ana` does not change what their solve produces.
 #[cfg(not(tool_install))]
 fn update_installed_tools() {}
 
@@ -454,7 +455,7 @@ fn update_installed_tools() {
     };
 
     match std::process::Command::new(&exe)
-        .args(["tool", "update"])
+        .args(["tool", "update", "--locked-only"])
         .status()
     {
         Ok(status) if status.success() => {}

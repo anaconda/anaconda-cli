@@ -251,10 +251,37 @@ the running binary without a checksum/signature verification step. Installer
 scripts have their own checksum checks and bypass/fallback paths. Bootstrap goes
 through the login gate and can fail without undoing the binary installation.
 
-Managed tools use embedded Pixi lockfiles and rattler installation into CLI-owned
-prefixes. The `main` package source is `https://repo.anaconda.com/pkgs/main`, not
-the Git branch; a lockfile override is a separate configuration choice. The
-managed Python CLI deliberately has no public `anaconda` symlink.
+Managed tools are installed with rattler into CLI-owned prefixes from one of two
+sources:
+
+- **Locked tools** (`anaconda-cli`, `outerbounds`, `pixi`) install from Pixi
+  lockfiles embedded in the `ana` binary, so new tool versions ship with `ana`
+  releases. `ana self update` re-runs the new binary with
+  `ana tool update --locked-only` to apply its lockfiles. A lockfile override
+  (`ANA_LOCKFILES_DIR`) is a separate configuration choice.
+- **Solved tools** (`kilo-cli`) are resolved against their channels each time
+  they are installed or updated. ana fetches repodata, detects virtual packages,
+  and solves with strict channel priority, so new tool versions ship
+  independently of `ana`. `kilo-cli` comes from the `anaconda-cloud` channel's
+  `rc` label and its dependencies from `main`. Only `ana tool install` and
+  `ana tool update` re-solve; self-update does not. A failed solve keeps the
+  installed version. `ANA_TOOL_CHANNELS` replaces the channels, for testing.
+
+```mermaid
+flowchart LR
+    CMD["ana tool install / update"] --> KIND{"Tool source"}
+    KIND -->|"locked"| LOCK["Embedded lockfile records"]
+    KIND -->|"solved"| GW["Fetch channel repodata"] --> SOLVE["Solve with installed records preferred"]
+    LOCK --> INST["rattler Installer into ~/.ana/tools/&lt;tool&gt;"]
+    SOLVE --> INST
+    INST --> LINK["Link binaries into ~/.ana/bin"]
+```
+
+The `main` package source is `https://repo.anaconda.com/pkgs/main`, not the Git
+branch. Because `main` does not publish sharded repodata, a solved tool's first
+solve downloads the full compressed repodata for the platform (roughly 9–14 MB);
+later solves revalidate the rattler repodata cache. The managed Python CLI
+deliberately has no public `anaconda` symlink.
 
 Miniconda download is a native operation that verifies the manifest SHA-256 and
 prints an installation command. It does not execute the installer or use the
@@ -263,7 +290,7 @@ managed-tool prefix workflow.
 | Capability | Standalone | Conda package |
 | --- | --- | --- |
 | Self-update | Available | Disabled; use conda |
-| Managed-tool lifecycle | CLI-owned prefixes and lockfiles | Disabled; dependencies come from conda |
+| Managed-tool lifecycle | CLI-owned prefixes from embedded lockfiles or install-time solves | Disabled; dependencies come from conda |
 | Bootstrap | Installs managed Python CLI | No-op |
 | Organization commands | Managed Python CLI subprocess | Environment Python CLI subprocess |
 | Channel commands | Available | Not exposed |
@@ -294,7 +321,7 @@ versions and publication settings.
 | User environment to CLI configuration | Environment variables select paths/endpoints. `ANA_USE_HTTPS` controls the generated base URL's scheme; native clients use their default certificate validation, independently of the parsed `ANA_SSL_VERIFY` setting. |
 | CLI credentials to remote destinations | HTTP authentication middleware attaches credentials to selected destinations. Remote services handle authentication and authorization separately from the CLI's stored-key login gate. |
 | CLI storage to AI-client configuration | API keys reside in the file keyring and are copied into AI-client configuration during MCP setup. New Unix keyring files request owner-only permissions; Windows writes use inherited filesystem ACLs. |
-| Downloaded packages/executables to local execution | Installer, managed-tool, self-update and conda paths have different integrity controls. Managed installation enables package link scripts, and wrappers invoke external executables. |
+| Downloaded packages/executables to local execution | Installer, managed-tool, self-update and conda paths have different integrity controls. Locked tools install only lockfile-pinned package hashes; solved tools install whatever their channels serve at solve time, so publishing to a solved tool's channel (for `kilo-cli`, the `anaconda-cloud` `rc` label) reaches users on their next `ana tool update` without an `ana` release or review. Managed installation enables package link scripts, and wrappers invoke external executables. |
 | CI identity to signing/publication | GitHub workload identity authenticates to Vault, which supplies credentials for signing, testing, publication and site dispatch to their respective jobs. |
 | Cloudflare edge to S3 origin | TLS terminates at Cloudflare; the configured S3 website origin uses HTTP. Edge access policies and bucket policies form separate access-control layers. |
 | Local telemetry to remote processing | Metrics are spooled on disk and exported by a separate process. HTTP user-agent identity and optional diagnostics follow separate code paths. |

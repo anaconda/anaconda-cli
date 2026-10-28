@@ -9,6 +9,8 @@ mod pixi_config;
 mod run;
 pub mod specs;
 #[cfg(tool_install)]
+mod solve;
+#[cfg(tool_install)]
 pub mod uninstall;
 #[cfg(feature = "unstable")]
 pub mod utils;

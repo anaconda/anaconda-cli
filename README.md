@@ -148,8 +148,11 @@ ana logout                         # Log out
 ```bash
 ana tool list                    # List available tools
 ana tool install <tool>          # Install a tool
+ana tool update                  # Update installed tools
 ana tool uninstall <tool>        # Uninstall a tool
 ```
+
+Most tools are pinned by lockfiles that ship with `ana`, so they update when `ana` does. `kilo-cli` is resolved from its channel at install time instead, so `ana tool update` picks up new kilo-cli releases without updating `ana`.
 
 ### Package features
 
