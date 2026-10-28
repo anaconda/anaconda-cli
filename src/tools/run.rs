@@ -14,10 +14,10 @@ fn resolve_tool_binary(tool_name: &str, binary_name: &str) -> miette::Result<Pat
 
     if !tool_bin.exists() {
         return Err(miette!(
-            "{} not found at {}. Run `ana tool install {}` first.",
+            "{} not found at {}. Run `{}` first.",
             binary_name,
             tool_bin.display(),
-            tool_name
+            crate::prog::cmd(&format!("tool install {tool_name}"))
         ));
     }
 

@@ -601,6 +601,81 @@ fn remove_from_path(
     }
 }
 
+/// Add or replace an arbitrary server `entry` in a client's config file,
+/// preserving comments and unrelated keys. Returns the file written.
+#[cfg(tool_install)]
+pub(crate) fn set_entry(
+    client: &str,
+    server_name: &str,
+    entry: &Value,
+    backup: bool,
+) -> miette::Result<(PathBuf, Option<PathBuf>)> {
+    let spec = spec(client).ok_or_else(|| McpError::UnsupportedClient(client.to_string()))?;
+    if spec.format != ConfigFormat::Json {
+        return Err(miette!("{client} uses a TOML config, which is not supported here"));
+    }
+    let path = config_path(client)?;
+    let backup_path = if backup {
+        backup_config_file(&path)?
+    } else {
+        None
+    };
+    if is_jsonc(&path) {
+        let text = std::fs::read_to_string(&path).unwrap_or_default();
+        let updated = set_jsonc_entry(&path, &text, spec.config_key, server_name, entry)?;
+        save_jsonc(&path, &updated)?;
+    } else {
+        let mut config = load_json(&path);
+        let root = config
+            .as_object_mut()
+            .expect("load_json always returns an object");
+        let servers = root.entry(spec.config_key).or_insert_with(|| json!({}));
+        if !servers.is_object() {
+            *servers = json!({});
+        }
+        servers
+            .as_object_mut()
+            .expect("servers is an object")
+            .insert(server_name.to_string(), entry.clone());
+        save_json(&path, &config)?;
+    }
+    Ok((path, backup_path))
+}
+
+/// Remove a server entry from every client config file that has it.
+/// Returns the files changed; empty when the entry was not present.
+#[cfg(tool_install)]
+pub(crate) fn remove_entry(
+    client: &str,
+    server_name: &str,
+    backup: bool,
+) -> miette::Result<Vec<RemovedConfig>> {
+    let spec = spec(client).ok_or_else(|| McpError::UnsupportedClient(client.to_string()))?;
+    let mut removed = Vec::new();
+    for path in config_paths(client)? {
+        if let Some(config) = remove_from_path(spec, &path, server_name, backup)? {
+            removed.push(config);
+        }
+    }
+    Ok(removed)
+}
+
+/// The server entry named `server_name` in the client's config, if any.
+#[cfg(tool_install)]
+pub(crate) fn get_entry(client: &str, server_name: &str) -> Option<Value> {
+    let spec = spec(client)?;
+    config_paths(client)
+        .ok()?
+        .iter()
+        .filter(|path| path.exists())
+        .find_map(|path| {
+            load_json(path)
+                .get(spec.config_key)
+                .and_then(|servers| servers.get(server_name))
+                .cloned()
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

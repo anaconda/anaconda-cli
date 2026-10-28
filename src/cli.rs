@@ -20,6 +20,8 @@ use crate::outerbounds;
 #[cfg(tool_install)]
 use crate::packages::{self, ChannelAction, ChannelSubcommands};
 #[cfg(tool_install)]
+use crate::marketplace::{self, MarketplaceCommands};
+#[cfg(tool_install)]
 use crate::tools;
 #[cfg(not(tool_install))]
 use crate::tools::list as tools_list;
@@ -179,6 +181,10 @@ pub enum Action {
     ChannelRun {
         args: Vec<String>,
     },
+    #[cfg(tool_install)]
+    Marketplace {
+        command: MarketplaceCommands,
+    },
     UserAgent {
         prefix: Option<String>,
     },
@@ -251,6 +257,12 @@ impl Action {
             },
             #[cfg(tool_install)]
             Action::ChannelRun { .. } => "channel",
+            #[cfg(tool_install)]
+            Action::Marketplace { command } => match command {
+                MarketplaceCommands::Install { .. } => "marketplace.install",
+                MarketplaceCommands::List { .. } => "marketplace.list",
+                MarketplaceCommands::Remove { .. } => "marketplace.remove",
+            },
             Action::UserAgent { .. } => "user-agent",
             Action::OpenFeedback => "feedback",
             Action::ToolInstall { .. } => "tool.install",
@@ -370,6 +382,8 @@ impl Action {
             Action::Mcp { command } => mcp::run(ctx, command),
             #[cfg(tool_install)]
             Action::ChannelRun { args } => packages::run(ctx, &args).await,
+            #[cfg(tool_install)]
+            Action::Marketplace { command } => marketplace::run(ctx, command).await,
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(not(tool_install))]
@@ -502,7 +516,7 @@ impl Action {
                                 ));
                                 tip(&format!(
                                     "Enable the experimental flag first with {}",
-                                    highlight("ana feature enable wheels")
+                                    highlight(&crate::prog::cmd("feature enable wheels"))
                                 ));
                                 blank_line();
                                 return Err(miette!(
@@ -529,7 +543,9 @@ impl Action {
                             crate::ui::status::blank_line();
                             crate::ui::status::tip(&format!(
                                 "Now configure your tools with {} or {}",
-                                crate::ui::status::highlight("ana feature enable wheels --pip"),
+                                crate::ui::status::highlight(&crate::prog::cmd(
+                                    "feature enable wheels --pip"
+                                )),
                                 crate::ui::status::highlight("--uv")
                             ));
                         }
@@ -748,6 +764,11 @@ where
                 ChannelAction::ShowHelp(path) => Action::ShowSubcommandHelp(path),
                 ChannelAction::Run(args) => Action::ChannelRun { args },
             },
+        },
+        #[cfg(tool_install)]
+        Some(Commands::Marketplace { command }) => match command {
+            None => Action::ShowSubcommandHelp("marketplace".to_string()),
+            Some(cmd) => Action::Marketplace { command: cmd },
         },
         #[cfg(all(unix, tool_install))]
         Some(Commands::Platform { args }) => Action::PlatformProxy { args },
@@ -1110,6 +1131,18 @@ enum Commands {
     Channel {
         #[command(subcommand)]
         command: Option<ChannelSubcommands>,
+    },
+
+    /// Install MCP servers from conda packages and add them to kilo
+    #[cfg(tool_install)]
+    #[command(
+        subcommand_required = false,
+        arg_required_else_help = false,
+        override_usage = "ana marketplace <command> [options]"
+    )]
+    Marketplace {
+        #[command(subcommand)]
+        command: Option<MarketplaceCommands>,
     },
 }
 

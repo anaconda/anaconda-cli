@@ -156,7 +156,7 @@ pub fn show_notification(current: &str, latest: &str) {
     ));
     status::tip(&format!(
         "Update with: {}",
-        status::highlight("ana self update")
+        status::highlight(&crate::prog::cmd("self update"))
     ));
 }
 

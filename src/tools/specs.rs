@@ -31,6 +31,10 @@ struct Tool {
     binaries: &'static [&'static [&'static str]],
     #[cfg_attr(not(tool_install), allow(dead_code))]
     experimental: Option<&'static str>,
+    /// If true, a standalone wrapper binary is installed to ~/.ana/bin/
+    /// instead of a symlink to the tool binary.
+    #[cfg_attr(not(tool_install), allow(dead_code))]
+    uses_wrapper: bool,
 }
 
 /// Managed tool configurations.
@@ -45,6 +49,7 @@ const TOOLS: &[Tool] = &[
         // to avoid shadowing users' existing anaconda command from anaconda-auth
         binaries: &[],
         experimental: None,
+        uses_wrapper: false,
     },
     Tool {
         name: "kilo-cli",
@@ -55,13 +60,17 @@ const TOOLS: &[Tool] = &[
             ],
             packages: &["kilo-cli"],
         },
-        // Link the native binary, not the package's `bin/kilo` wrapper: the
-        // wrapper locates `../lib/kilo` relative to its own unresolved path,
-        // so it breaks when invoked through a symlink in ~/.ana/bin.
-        binaries: &[&["lib", "kilo", "kilo"]],
+        // binaries is still needed with uses_wrapper to determine the wrapper
+        // filename and to detect an external kilo on PATH.
+        binaries: if cfg!(unix) {
+            &[&["bin", "kilo"]]
+        } else {
+            &[&["Scripts", "kilo"]]
+        },
         experimental: Some(
             "kilo-cli is a release candidate from the anaconda-cloud channel's rc label.",
         ),
+        uses_wrapper: true,
     },
     #[cfg(unix)]
     Tool {
@@ -72,6 +81,7 @@ const TOOLS: &[Tool] = &[
         },
         binaries: &[&["bin", "outerbounds"]],
         experimental: None,
+        uses_wrapper: false,
     },
     Tool {
         name: "pixi",
@@ -81,6 +91,7 @@ const TOOLS: &[Tool] = &[
         },
         binaries: &[&["bin", "pixi"]],
         experimental: None,
+        uses_wrapper: false,
     },
 ];
 
@@ -161,6 +172,12 @@ pub fn all_tools() -> Vec<&'static str> {
 #[cfg_attr(not(tool_install), allow(dead_code))]
 pub fn experimental_message(name: &str) -> Option<&'static str> {
     find_tool(name).and_then(|t| t.experimental)
+}
+
+/// Returns whether a tool uses a custom wrapper binary.
+#[cfg_attr(not(tool_install), allow(dead_code))]
+pub fn uses_wrapper(name: &str) -> bool {
+    find_tool(name).is_some_and(|t| t.uses_wrapper)
 }
 
 /// Returns whether auto-update is enabled for a locked tool by default.

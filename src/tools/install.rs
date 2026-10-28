@@ -218,7 +218,11 @@ async fn install_locked(ctx: &CommandContext, name: &str) -> miette::Result<()> 
         .into_diagnostic()
         .context("failed to write lockfile hash")?;
 
-    create_bin_symlinks(&prefix, &specs::binaries(name).unwrap_or_default())
+    create_bin_symlinks(
+        &prefix,
+        &specs::binaries(name).unwrap_or_default(),
+        specs::uses_wrapper(name),
+    )
 }
 
 /// Solve a solved tool against its channels and install the result.
@@ -232,18 +236,34 @@ async fn install_solved(ctx: &CommandContext, name: &str) -> miette::Result<bool
     let channels = specs::solve_channels(channels);
 
     eprintln!("Installing {} into {}", name, prefix.display());
-    eprintln!("   Solving against {}", channels.join(", "));
+    let changed = solve_into_prefix(ctx, &prefix, &channels, packages).await?;
 
-    let installed = installed_records(&prefix)?;
-    let records = solve::solve(&channels, packages, &installed).await?;
-    let changed = install_records(ctx, &prefix, records).await?;
-
-    create_bin_symlinks(&prefix, &specs::binaries(name).unwrap_or_default())?;
+    create_bin_symlinks(
+        &prefix,
+        &specs::binaries(name).unwrap_or_default(),
+        specs::uses_wrapper(name),
+    )?;
     Ok(changed)
 }
 
+/// Solve `packages` against `channels` and install the result into `prefix`,
+/// preferring packages already installed there.
+///
+/// Returns `true` if any package was installed, updated, or removed.
+pub(crate) async fn solve_into_prefix(
+    ctx: &CommandContext,
+    prefix: &Path,
+    channels: &[String],
+    packages: &[&str],
+) -> miette::Result<bool> {
+    eprintln!("   Solving against {}", channels.join(", "));
+    let installed = installed_records(prefix)?;
+    let records = solve::solve(channels, packages, &installed).await?;
+    install_records(ctx, prefix, records).await
+}
+
 /// Records of the packages currently installed in `prefix`.
-fn installed_records(prefix: &Path) -> miette::Result<Vec<PrefixRecord>> {
+pub(crate) fn installed_records(prefix: &Path) -> miette::Result<Vec<PrefixRecord>> {
     if !prefix.join("conda-meta").exists() {
         return Ok(Vec::new());
     }
@@ -361,8 +381,19 @@ async fn install_records(
     Ok(operations > 0)
 }
 
-/// Create symlinks (Unix) or shims (Windows) for the tool's binaries in ~/.ana/bin/
-fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()> {
+/// Embedded kilo wrapper binary (compiled from src/wrappers/kilo.rs)
+#[cfg(unix)]
+const KILO_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/kilo-wrapper"));
+#[cfg(windows)]
+const KILO_WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/kilo-wrapper.exe"));
+
+/// Create symlinks (Unix) or shims (Windows) for the tool's binaries in
+/// ~/.ana/bin/, or install the standalone wrapper for tools that use one.
+fn create_bin_symlinks(
+    prefix: &Path,
+    binaries: &[PathBuf],
+    uses_wrapper: bool,
+) -> miette::Result<()> {
     let bin_dir = paths::bin_dir();
     std::fs::create_dir_all(&bin_dir)
         .into_diagnostic()
@@ -372,11 +403,53 @@ fn create_bin_symlinks(prefix: &Path, binaries: &[PathBuf]) -> miette::Result<()
     cleanup_broken_symlinks(&bin_dir)?;
 
     for binary in binaries {
-        #[cfg(unix)]
-        create_bin_symlink(&bin_dir, prefix, binary)?;
-        #[cfg(windows)]
-        create_bin_shim(&bin_dir, prefix, binary)?;
+        if uses_wrapper {
+            install_wrapper_binary(&bin_dir, prefix, binary)?;
+        } else {
+            #[cfg(unix)]
+            create_bin_symlink(&bin_dir, prefix, binary)?;
+            #[cfg(windows)]
+            create_bin_shim(&bin_dir, prefix, binary)?;
+        }
     }
+
+    Ok(())
+}
+
+/// Install the embedded wrapper binary for a tool.
+///
+/// Also records the path of the running `ana` executable in the tool prefix
+/// so the wrapper can dispatch `kilo ana ...` to the same binary.
+fn install_wrapper_binary(bin_dir: &Path, prefix: &Path, binary: &Path) -> miette::Result<()> {
+    let binary_name = binary.file_name().unwrap().to_string_lossy();
+    let wrapper_path = bin_dir.join(paths::binary_name(&binary_name));
+
+    if wrapper_path.exists() || wrapper_path.is_symlink() {
+        std::fs::remove_file(&wrapper_path)
+            .into_diagnostic()
+            .context("failed to remove existing wrapper")?;
+    }
+
+    std::fs::write(&wrapper_path, KILO_WRAPPER)
+        .into_diagnostic()
+        .with_context(|| format!("failed to write wrapper: {}", wrapper_path.display()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&wrapper_path, std::fs::Permissions::from_mode(0o755))
+            .into_diagnostic()
+            .context("failed to set wrapper permissions")?;
+    }
+
+    let ana_exe = std::env::current_exe()
+        .into_diagnostic()
+        .context("failed to determine the ana executable path")?;
+    std::fs::write(prefix.join(".ana-exe"), ana_exe.to_string_lossy().as_bytes())
+        .into_diagnostic()
+        .context("failed to record the ana executable path")?;
+
+    eprintln!("   Installed wrapper {}", wrapper_path.display());
 
     Ok(())
 }

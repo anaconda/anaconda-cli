@@ -100,7 +100,7 @@ fn build_usage_string(cmd: &clap::Command, path: &str) -> String {
         .map(|a| format_positional(a))
         .collect();
 
-    let mut parts = vec![format!("Usage: ana {}", path)];
+    let mut parts = vec![format!("Usage: {} {}", crate::prog::name(), path)];
     if has_options {
         parts.push("[OPTIONS]".to_string());
     }
@@ -119,7 +119,7 @@ fn print_header(term: &Term) {
     let _ = term.write_line(&format!(
         "{}{} {}",
         ind,
-        HelpStyle::Command.apply("ana"),
+        HelpStyle::Command.apply(crate::prog::name()),
         VERSION
     ));
     let _ = term.write_line(&format!("{}{}", ind, HelpStyle::Desc.apply(TAGLINE)));
@@ -127,7 +127,10 @@ fn print_header(term: &Term) {
     let _ = term.write_line(&format!(
         "{}{}",
         ind,
-        HelpStyle::Desc.apply("Usage: ana [OPTIONS] COMMAND [ARGS]...")
+        HelpStyle::Desc.apply(format!(
+            "Usage: {} [OPTIONS] COMMAND [ARGS]...",
+            crate::prog::name()
+        ))
     ));
     let _ = term.write_line("");
 }

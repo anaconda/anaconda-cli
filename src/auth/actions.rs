@@ -564,7 +564,7 @@ pub fn show_api_key(ctx: &CommandContext) -> Result<(), AuthError> {
             status::error("not logged in");
             status::info(&format!(
                 "Run {} to authenticate.",
-                status::highlight("ana login")
+                status::highlight(&crate::prog::cmd("login"))
             ));
         }
     }
@@ -633,7 +633,7 @@ pub async fn whoami(ctx: &CommandContext, json: bool) -> Result<(), AuthError> {
         status::error("Your account has been deleted.");
         status::info(&format!(
             "Run {} to authenticate with a different account.",
-            status::highlight("ana login")
+            status::highlight(&crate::prog::cmd("login"))
         ));
         return Ok(());
     }

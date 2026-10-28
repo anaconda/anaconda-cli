@@ -38,7 +38,8 @@ struct Installer {
     /// Version offered by the download, or `None` if not yet available. Only
     /// "latest" is supported today.
     version: Option<&'static str>,
-    /// Download command, or `None` if not yet available.
+    /// Download command arguments after the program name, or `None` if not
+    /// yet available.
     command: Option<&'static str>,
     status: &'static str,
 }
@@ -48,7 +49,7 @@ const INSTALLERS: &[Installer] = &[
     Installer {
         name: "miniconda",
         version: Some("latest"),
-        command: Some("ana tool download miniconda"),
+        command: Some("tool download miniconda"),
         status: "available",
     },
     Installer {
@@ -226,7 +227,7 @@ fn print_installer_list() {
         table.add_row([
             table::cell(installer.name),
             table::cell(installer.version.unwrap_or("n/a")),
-            table::cell(installer.command.unwrap_or("n/a")),
+            table::cell(installer.command.map_or("n/a".to_string(), crate::prog::cmd)),
             table::cell(installer.status),
         ]);
     }

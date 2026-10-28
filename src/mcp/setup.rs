@@ -123,7 +123,8 @@ pub fn setup(
     if selected.is_empty() {
         if !std::io::stdin().is_terminal() {
             return Err(miette!(
-                "Missing option '--client'. Run 'ana mcp clients' to see available clients."
+                "Missing option '--client'. Run '{}' to see available clients.",
+                crate::prog::cmd("mcp clients")
             ));
         }
         return setup_wizard(ctx, &url, &token, name, no_backup, json);
@@ -179,7 +180,8 @@ pub fn remove(
     if selected.is_empty() {
         if !std::io::stdin().is_terminal() {
             return Err(miette!(
-                "Missing option '--client'. Run 'ana mcp clients' to see available clients."
+                "Missing option '--client'. Run '{}' to see available clients.",
+                crate::prog::cmd("mcp clients")
             ));
         }
         return remove_wizard(name, no_backup, json);

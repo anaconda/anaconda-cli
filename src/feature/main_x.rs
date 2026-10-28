@@ -538,7 +538,10 @@ pub async fn enable_main_x_conda(ctx: &CommandContext, force: bool) -> miette::R
     ));
     status::blank_line();
     status::info("To disable this feature, run:");
-    eprintln!("  {}", status::highlight("ana feature disable main-x"));
+    eprintln!(
+        "  {}",
+        status::highlight(&crate::prog::cmd("feature disable main-x"))
+    );
 
     Ok(())
 }
@@ -622,7 +625,7 @@ pub async fn enable_main_x_pixi(ctx: &CommandContext, force: bool) -> miette::Re
     status::info("To disable this feature, run:");
     eprintln!(
         "  {}",
-        status::highlight("ana feature disable main-x --pixi")
+        status::highlight(&crate::prog::cmd("feature disable main-x --pixi"))
     );
 
     Ok(())
@@ -673,7 +676,10 @@ fn warn_if_main_x_enabled_elsewhere(other_tool: &str, other_tool_flag: &str) {
         status::info(&format!(
             "To disable for {}, run: {}",
             other_tool,
-            status::highlight(&format!("ana feature disable main-x {}", other_tool_flag))
+            status::highlight(&crate::prog::cmd(&format!(
+                "feature disable main-x {}",
+                other_tool_flag
+            )))
         ));
     }
 }
@@ -722,7 +728,10 @@ pub async fn disable_main_x_conda(_ctx: &CommandContext, force: bool) -> miette:
 
     status::blank_line();
     status::info("To re-enable, run:");
-    eprintln!("  {}", status::highlight("ana feature enable main-x"));
+    eprintln!(
+        "  {}",
+        status::highlight(&crate::prog::cmd("feature enable main-x"))
+    );
 
     warn_if_main_x_enabled_elsewhere("pixi", "--pixi");
 
@@ -787,7 +796,7 @@ pub async fn disable_main_x_pixi(_ctx: &CommandContext, force: bool) -> miette::
     status::info("To re-enable, run:");
     eprintln!(
         "  {}",
-        status::highlight("ana feature enable main-x --pixi")
+        status::highlight(&crate::prog::cmd("feature enable main-x --pixi"))
     );
 
     warn_if_main_x_enabled_elsewhere("conda", "--conda");
@@ -882,7 +891,8 @@ fn find_pixi() -> miette::Result<std::path::PathBuf> {
     match check {
         Ok(output) if output.status.success() => Ok(pixi_path),
         _ => Err(miette::miette!(
-            "pixi not found. Install it with: ana tool install pixi"
+            "pixi not found. Install it with: {}",
+            crate::prog::cmd("tool install pixi")
         )),
     }
 }

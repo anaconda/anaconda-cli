@@ -64,8 +64,9 @@ fn resolve_anaconda_bin() -> Result<PathBuf, String> {
 
     if !anaconda_bin.exists() {
         return Err(format!(
-            "anaconda not found at {}. Run `ana bootstrap` first.",
-            anaconda_bin.display()
+            "anaconda not found at {}. Run `{}` first.",
+            anaconda_bin.display(),
+            crate::prog::cmd("bootstrap")
         ));
     }
 

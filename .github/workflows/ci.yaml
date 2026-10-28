@@ -146,10 +146,27 @@ jobs:
           vault-role: ${{ secrets.VAULT_ROLE }}
           vault-url: ${{ secrets.EXT_VAULT_ADDR }}
 
+      - name: Pre-compile kilo wrapper for signing (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: pixi run build-kilo-wrapper
+
+      - name: Sign kilo wrapper (Windows)
+        if: ${{ runner.os == 'Windows' && env.SIGN_BINARIES == 'true' }}
+        id: sign-kilo-wrapper
+        uses: ./.github/actions/sign-windows
+        with:
+          binary-path: target/kilo-wrapper/kilo.exe
+          vault-cf-client-id: ${{ secrets.CF_ANACONDA_CLI_CLIENT_ID }}
+          vault-cf-client-secret: ${{ secrets.CF_ANACONDA_CLI_CLIENT_SECRET }}
+          vault-mount: ${{ inputs.environment || 'dev' }}
+          vault-role: ${{ secrets.VAULT_ROLE }}
+          vault-url: ${{ secrets.EXT_VAULT_ADDR }}
+
       - name: Build release binary
         env:
           SENTRY_DSN: ${{ steps.vault.outputs.sentry-dsn }}
           WINDOWS_SHIM_PATH: ${{ runner.os == 'Windows' && 'target/shim/shim.exe' || '' }}
+          KILO_WRAPPER_PATH: ${{ runner.os == 'Windows' && 'target/kilo-wrapper/kilo.exe' || '' }}
         run: pixi run build-release
 
       - name: Sign binary (Windows)

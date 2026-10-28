@@ -179,7 +179,7 @@ pub enum McpError {
     #[error("An authentication token is required to configure MCP clients.")]
     #[diagnostic(
         code(ana::mcp::auth_required),
-        help("Run `ana login` to authenticate.")
+        help("Run `{}` to authenticate.", crate::prog::cmd("login"))
     )]
     AuthRequired,
 
@@ -194,7 +194,10 @@ pub enum McpError {
     ServerNotFound { server: String, client: String },
 
     /// The client name is not supported.
-    #[error("Unsupported client: '{0}'. Run `ana mcp clients` to see supported clients.")]
+    #[error(
+        "Unsupported client: '{0}'. Run `{hint}` to see supported clients.",
+        hint = crate::prog::cmd("mcp clients")
+    )]
     #[diagnostic(code(ana::mcp::unsupported_client))]
     UnsupportedClient(String),
 }

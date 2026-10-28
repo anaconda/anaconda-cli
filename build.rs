@@ -30,6 +30,55 @@ fn main() {
     // On Windows, compile the shim binary and place it in OUT_DIR
     #[cfg(windows)]
     build_shim();
+
+    // Compile the kilo wrapper binary for embedding
+    build_kilo_wrapper();
+}
+
+/// Build the kilo wrapper binary and place it in OUT_DIR.
+///
+/// The wrapper is a standalone binary that gets embedded into ana and written
+/// to ~/.ana/bin/kilo when `ana tool install kilo-cli` is run.
+fn build_kilo_wrapper() {
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    println!("cargo:rerun-if-env-changed=KILO_WRAPPER_PATH");
+    println!("cargo:rerun-if-changed=src/wrappers/kilo.rs");
+
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+
+    #[cfg(windows)]
+    let wrapper_out = out_dir.join("kilo-wrapper.exe");
+    #[cfg(not(windows))]
+    let wrapper_out = out_dir.join("kilo-wrapper");
+
+    // If a pre-built wrapper is provided (e.g., signed), copy it instead of compiling
+    if let Ok(wrapper_path) = std::env::var("KILO_WRAPPER_PATH")
+        && !wrapper_path.is_empty()
+    {
+        std::fs::copy(&wrapper_path, &wrapper_out)
+            .expect("failed to copy kilo wrapper from KILO_WRAPPER_PATH");
+        return;
+    }
+
+    // Otherwise compile it directly
+    let wrapper_src = PathBuf::from("src/wrappers/kilo.rs");
+
+    let status = Command::new("rustc")
+        .args([
+            "--edition=2024",
+            "-O",
+            "-o",
+            wrapper_out.to_str().unwrap(),
+            wrapper_src.to_str().unwrap(),
+        ])
+        .status()
+        .expect("failed to run rustc for kilo wrapper");
+
+    if !status.success() {
+        panic!("failed to compile kilo wrapper binary");
+    }
 }
 
 #[cfg(windows)]

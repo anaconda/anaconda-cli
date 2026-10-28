@@ -248,7 +248,10 @@ pub async fn enable_wheels(
         .collect();
     eprintln!(
         "  {}",
-        status::highlight(&format!("ana feature disable wheels {}", flags.join(" ")))
+        status::highlight(&crate::prog::cmd(&format!(
+            "feature disable wheels {}",
+            flags.join(" ")
+        )))
     );
 
     Ok(())
@@ -351,7 +354,10 @@ pub async fn disable_wheels(
         .collect();
     eprintln!(
         "  {}",
-        status::highlight(&format!("ana feature enable wheels {}", flags.join(" ")))
+        status::highlight(&crate::prog::cmd(&format!(
+            "feature enable wheels {}",
+            flags.join(" ")
+        )))
     );
 
     Ok(())

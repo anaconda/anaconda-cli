@@ -642,12 +642,12 @@ pub async fn show_available_versions(ctx: &CommandContext, current_version: &str
 
     eprintln!();
     eprintln!("  Update to the latest version:");
-    eprintln!("    {}", status::highlight("ana self update"));
+    eprintln!("    {}", status::highlight(&crate::prog::cmd("self update")));
     eprintln!();
     eprintln!("  Update to a specific version:");
     eprintln!(
         "    {} {}",
-        status::highlight("ana self update"),
+        status::highlight(&crate::prog::cmd("self update")),
         status::dim("[VERSION]")
     );
     eprintln!();

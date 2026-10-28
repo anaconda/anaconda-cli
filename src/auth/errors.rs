@@ -36,7 +36,7 @@ pub enum AuthError {
     #[error("Not logged in")]
     #[diagnostic(
         code(ana::auth::not_logged_in),
-        help("You can log in at any time by running 'ana login'")
+        help("You can log in at any time by running '{}'", crate::prog::cmd("login"))
     )]
     NotLoggedIn,
 }

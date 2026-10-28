@@ -154,6 +154,25 @@ ana tool uninstall <tool>        # Uninstall a tool
 
 Most tools are pinned by lockfiles that ship with `ana`, so they update when `ana` does. `kilo-cli` is resolved from its channel at install time instead, so `ana tool update` picks up new kilo-cli releases without updating `ana`.
 
+Installing `kilo-cli` makes `kilo` the entrypoint for both CLIs: kilo's own commands work as usual, and ana's commands are available under `kilo ana`:
+
+```bash
+kilo run "fix the failing test"  # kilo command
+kilo ana tool update             # ana command, same as `ana tool update`
+```
+
+### MCP marketplace
+
+`ana marketplace` installs an MCP server from a conda package and adds it to kilo in one step. The package is solved with rattler into its own environment under `~/.ana/marketplace/<name>`, and its server executable is registered as a local MCP server in kilo's config:
+
+```bash
+kilo ana marketplace list                       # catalog and what's installed
+kilo ana marketplace install mcp-server-fetch   # install and register with kilo
+kilo ana marketplace remove mcp-server-fetch    # unregister and uninstall
+```
+
+`marketplace list` shows a curated catalog of conda-forge MCP servers: `conda-meta-mcp`, `excel-mcp-server`, `markitdown-mcp-server`, `mcp-atlassian`, `mcp-grafana`, and `mcp-server-fetch`. Catalog packages install with no extra options. Other conda packages work too: they are solved against `main` and `conda-forge` by default; use `--channel` to choose others and `--command` when a package installs several executables. Use `--env KEY=VALUE` to pass settings such as credentials to the server.
+
 ### Package features
 
 ```bash

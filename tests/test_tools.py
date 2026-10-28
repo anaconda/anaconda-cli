@@ -613,11 +613,11 @@ _CONDA_SUBDIRS = {
 
 
 class _LocalChannel:
-    """A `file://` conda channel holding fake kilo-cli builds.
+    """A `file://` conda channel holding fake packages.
 
     Packages use the `.tar.bz2` format so they can be built with the standard
-    library. Each build ships `lib/kilo/kilo`, the path ana links into
-    ~/.ana/bin, as a script that prints the build's version.
+    library. Each one ships shell scripts that print the build's version
+    followed by the arguments they received.
     """
 
     def __init__(self, root: Path) -> None:
@@ -631,9 +631,14 @@ class _LocalChannel:
         return self.root.as_uri()
 
     def publish_kilo(self, version: str) -> None:
-        script = f"#!/bin/sh\necho {version}\n".encode()
+        """Publish kilo-cli with `bin/kilo`, the launcher the wrapper runs."""
+        self.publish("kilo-cli", version, ["bin/kilo"])
+
+    def publish(self, name: str, version: str, files: list[str]) -> None:
+        """Publish `name` with an executable script at each path in `files`."""
+        script = f'#!/bin/sh\necho {version}\nprintf "%s\\n" "$@"\n'.encode()
         index = {
-            "name": "kilo-cli",
+            "name": name,
             "version": version,
             "build": "0",
             "build_number": 0,
@@ -644,27 +649,29 @@ class _LocalChannel:
             "paths_version": 1,
             "paths": [
                 {
-                    "_path": "lib/kilo/kilo",
+                    "_path": path,
                     "path_type": "hardlink",
                     "sha256": hashlib.sha256(script).hexdigest(),
                     "size_in_bytes": len(script),
                 }
+                for path in files
             ],
         }
         buf = io.BytesIO()
         with tarfile.open(fileobj=buf, mode="w:bz2") as tar:
-            for name, data, mode in (
+            members = [
                 ("info/index.json", json.dumps(index).encode(), 0o644),
                 ("info/paths.json", json.dumps(paths).encode(), 0o644),
-                ("lib/kilo/kilo", script, 0o755),
-            ):
-                info = tarfile.TarInfo(name)
+                *((path, script, 0o755) for path in files),
+            ]
+            for member, data, mode in members:
+                info = tarfile.TarInfo(member)
                 info.size = len(data)
                 info.mode = mode
                 tar.addfile(info, io.BytesIO(data))
         archive = buf.getvalue()
 
-        filename = f"kilo-cli-{version}-0.tar.bz2"
+        filename = f"{name}-{version}-0.tar.bz2"
         (self.root / self.subdir / filename).write_bytes(archive)
         self.packages[filename] = {
             **index,
@@ -704,6 +711,7 @@ class TestSolvedToolUpdate:
     def test_update_picks_up_new_channel_release(
         self,
         run_ana_logged_in: AnaRunner,
+        logged_in_env: dict[str, str],
         fake_home: Path,
         channel: _LocalChannel,
     ) -> None:
@@ -728,8 +736,10 @@ class TestSolvedToolUpdate:
 
         if not IS_WINDOWS:
             kilo = fake_home / ".ana" / "bin" / "kilo"
-            proc = subprocess.run([str(kilo)], capture_output=True, text=True)
-            assert proc.stdout.strip() == "2.0"
+            proc = subprocess.run(
+                [str(kilo)], capture_output=True, text=True, env=logged_in_env
+            )
+            assert proc.stdout.splitlines()[0] == "2.0"
 
     def test_failed_update_keeps_installed_version(
         self,
@@ -751,6 +761,94 @@ class TestSolvedToolUpdate:
         assert result.returncode != 0
         assert "keeping the installed version" in result.stderr
         assert _installed_kilo_version(fake_home) == "1.0"
+
+
+@pytest.mark.skipif(IS_WINDOWS, reason="fake kilo launcher is a shell script")
+class TestKiloWrapper:
+    """`ana tool install kilo-cli` writes a wrapper to ~/.ana/bin/kilo that
+    makes kilo the entrypoint: `kilo ana ...` runs ana, everything else runs
+    kilo."""
+
+    @pytest.fixture
+    def kilo(
+        self,
+        run_ana_logged_in: AnaRunner,
+        logged_in_env: dict[str, str],
+        fake_home: Path,
+        tmp_path: Path,
+    ) -> Callable[..., subprocess.CompletedProcess[str]]:
+        """Install kilo-cli from a local channel; return a wrapper runner."""
+        channel = _LocalChannel(tmp_path / "channel")
+        channel.publish_kilo("1.0")
+        result = run_ana_logged_in(
+            "tool", "install", "kilo-cli", env={"ANA_TOOL_CHANNELS": channel.url}
+        )
+        assert result.returncode == 0, result.stderr
+        assert "Installed wrapper" in result.stderr
+
+        wrapper = fake_home / ".ana" / "bin" / "kilo"
+        assert not wrapper.is_symlink(), "kilo should be a standalone wrapper"
+
+        def _run(*args: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [str(wrapper), *args],
+                capture_output=True,
+                text=True,
+                env=logged_in_env,
+            )
+
+        return _run
+
+    def test_passes_other_commands_to_kilo(
+        self, kilo: Callable[..., subprocess.CompletedProcess[str]]
+    ) -> None:
+        result = kilo("run", "hello", "--model", "x/y")
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == ["1.0", "run", "hello", "--model", "x/y"]
+
+    def test_ana_namespace_runs_ana(
+        self, kilo: Callable[..., subprocess.CompletedProcess[str]]
+    ) -> None:
+        result = kilo("ana", "tool", "list")
+        assert result.returncode == 0, result.stderr
+        assert "kilo-cli" in result.stdout
+
+    def test_ana_help_uses_kilo_ana_program_name(
+        self, kilo: Callable[..., subprocess.CompletedProcess[str]]
+    ) -> None:
+        result = kilo("ana", "tool", "--help")
+        assert result.returncode == 0, result.stderr
+        assert "Usage: kilo ana tool" in result.stdout
+
+    @pytest.mark.parametrize(
+        ("command", "replacement"),
+        [
+            ("upgrade", "kilo ana tool update"),
+            ("uninstall", "kilo ana tool uninstall kilo-cli"),
+        ],
+    )
+    def test_self_management_redirects_to_ana(
+        self,
+        kilo: Callable[..., subprocess.CompletedProcess[str]],
+        command: str,
+        replacement: str,
+    ) -> None:
+        result = kilo(command)
+        assert result.returncode == 1
+        assert replacement in result.stderr
+        assert result.stdout == "", "kilo must not run"
+
+    def test_uninstall_removes_wrapper(
+        self,
+        kilo: Callable[..., subprocess.CompletedProcess[str]],
+        run_ana_logged_in: AnaRunner,
+        fake_home: Path,
+    ) -> None:
+        result = run_ana_logged_in("tool", "uninstall", "kilo-cli", "--yes")
+        assert result.returncode == 0, result.stderr
+        assert not (fake_home / ".ana" / "bin" / "kilo").exists()
+        assert not (fake_home / ".ana" / "tools" / "kilo-cli").exists()
+
 
 
 class TestToolUninstall:

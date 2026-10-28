@@ -274,8 +274,61 @@ flowchart LR
     KIND -->|"solved"| GW["Fetch channel repodata"] --> SOLVE["Solve with installed records preferred"]
     LOCK --> INST["rattler Installer into ~/.ana/tools/&lt;tool&gt;"]
     SOLVE --> INST
-    INST --> LINK["Link binaries into ~/.ana/bin"]
+    INST --> LINK["Link binaries (or install a wrapper) into ~/.ana/bin"]
 ```
+
+Most tools are exposed with a symlink (Unix) or shim (Windows) in `~/.ana/bin`.
+`kilo-cli` instead gets a standalone wrapper binary, compiled from
+[`src/wrappers/kilo.rs`](../src/wrappers/kilo.rs) by `build.rs` and embedded in
+ana, so `kilo` is the entrypoint for both CLIs:
+
+```mermaid
+flowchart LR
+    K["kilo &lt;args&gt;"] --> W["~/.ana/bin/kilo wrapper"]
+    W -->|"ana ..."| ANA["ana ... (ANA_PROG_NAME='kilo ana')"]
+    W -->|"upgrade / uninstall"| RED["Refused; points to kilo ana tool ..."]
+    W -->|"--help"| HELP["kilo help plus an 'ana' row"]
+    W -->|"anything else"| KILO["~/.ana/tools/kilo-cli/bin/kilo"]
+```
+
+The wrapper runs ana from the path recorded in `~/.ana/tools/kilo-cli/.ana-exe`
+at install time, falling back to `ana` on `PATH`. ana reads `ANA_PROG_NAME` to
+print usage lines and command hints as `kilo ana ...`. For kilo, the wrapper
+puts the tool prefix's binary directories first on `PATH`, so kilo uses the
+`ripgrep` installed alongside it instead of downloading one. On Unix it
+replaces itself with the target process; on Windows it waits for it. Release
+builds can supply a signed wrapper through `KILO_WRAPPER_PATH`, as with
+`WINDOWS_SHIM_PATH`.
+
+`ana marketplace` reuses the solved-tool path for MCP servers packaged as
+conda packages. `ana marketplace install <package>` solves the package against
+`main` and `conda-forge` (or `--channel`) into `~/.ana/marketplace/<name>`,
+finds the executable the package installed in its `bin/` (`Scripts\` on
+Windows) from the conda-meta records, and writes a local MCP entry to kilo's
+config (`~/.config/kilo/kilo.jsonc` or `kilo.json`) with the same
+comment-preserving JSONC handling as `ana mcp setup`. Entries carry an
+`x-ana-marketplace` key so `ana marketplace remove` only deletes servers it
+created. kilo then launches the server directly from the prefix.
+
+A curated catalog in [`src/marketplace/mod.rs`](../src/marketplace/mod.rs)
+lists conda-forge MCP servers with the channel, executable, and stdio arguments
+each one needs, plus extra solve constraints where upstream recipes are too
+loose (for example `python<3.15`, and `mcp<2` for servers still on the mcp 1.x
+FastMCP API). `ana marketplace list` shows the catalog with install status.
+Packages outside the catalog fall back to executable discovery.
+
+```mermaid
+flowchart LR
+    CMD["ana marketplace install &lt;pkg&gt;"] --> SOLVE["Solve with rattler<br/>(main, conda-forge)"]
+    SOLVE --> PREFIX["~/.ana/marketplace/&lt;name&gt;"]
+    PREFIX --> EXE["Find server executable<br/>in conda-meta records"]
+    EXE --> CFG["Add local MCP entry<br/>to kilo config"]
+    CFG --> KILO["kilo starts the server<br/>from the prefix"]
+```
+
+Like solved tools, marketplace servers install whatever their channels serve at
+install time; packages and their entry points run with the user's privileges
+inside kilo.
 
 The `main` package source is `https://repo.anaconda.com/pkgs/main`, not the Git
 branch. Because `main` does not publish sharded repodata, a solved tool's first

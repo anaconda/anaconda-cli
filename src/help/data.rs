@@ -22,7 +22,7 @@ pub(super) const HELP_SECTIONS: &[HelpSection] = &[
             "tool",
             // Hiding bootstrap, as it's synonymous to `ana tool install anaconda-cli`
             // "bootstrap",
-            "feature", "api", "mcp", "platform",
+            "feature", "api", "mcp", "marketplace", "platform",
             // TODO(mattkram): Hiding config from help until we fully implement CRUD
             // "config",
             "self",
@@ -67,19 +67,19 @@ pub(super) fn get_main_examples() -> Vec<HelpExample> {
     vec![
         HelpExample {
             desc: "Log into your Anaconda account".to_string(),
-            command: "ana login".to_string(),
+            command: crate::prog::cmd("login"),
         },
         HelpExample {
             desc: "Enable access to Anaconda's main-x channel".to_string(),
-            command: "ana feature enable main-x".to_string(),
+            command: crate::prog::cmd("feature enable main-x"),
         },
         HelpExample {
             desc: "Manage your ana version".to_string(),
-            command: "ana self update".to_string(),
+            command: crate::prog::cmd("self update"),
         },
         HelpExample {
             desc: "Provide feedback or report a bug".to_string(),
-            command: "ana self feedback".to_string(),
+            command: crate::prog::cmd("self feedback"),
         },
     ]
 }
@@ -90,11 +90,11 @@ pub(super) fn get_subcommand_examples(path: &str) -> Option<Vec<HelpExample>> {
         "self update" => Some(vec![
             HelpExample {
                 desc: "Update to the latest version".to_string(),
-                command: "ana self update".to_string(),
+                command: crate::prog::cmd("self update"),
             },
             HelpExample {
                 desc: "Update to a specific version".to_string(),
-                command: format!("ana self update v{}", crate::VERSION),
+                command: crate::prog::cmd(&format!("self update v{}", crate::VERSION)),
             },
         ]),
         _ => None,
