@@ -50,13 +50,22 @@ pub fn installed_tools() -> Vec<&'static str> {
 pub async fn update_installed_tools(
     ctx: &mut CommandContext,
     locked_only: bool,
+    only: Option<&str>,
 ) -> miette::Result<Vec<String>> {
+    if let Some(name) = only
+        && !installed_tools().contains(&name)
+    {
+        return Err(miette::miette!("{} is not installed", name));
+    }
     let mut updated = Vec::new();
     let mut failed = Vec::new();
-    for name in installed_tools() {
+    for name in installed_tools()
+        .into_iter()
+        .filter(|n| only.is_none_or(|o| o == *n))
+    {
         let changed = match specs::source(name) {
             Some(Source::Solved { .. }) if !locked_only => {
-                match install_solved(ctx, name).await {
+                match install_solved(ctx, name, None).await {
                     Ok(changed) => changed,
                     Err(e) => {
                         let cause = e.chain().map(ToString::to_string).collect::<Vec<_>>();
@@ -69,7 +78,8 @@ pub async fn update_installed_tools(
                     }
                 }
             }
-            Some(Source::Locked { .. }) if should_auto_update(ctx, name) => {
+            // An explicitly named tool is updated regardless of auto-update.
+            Some(Source::Locked { .. }) if only.is_some() || should_auto_update(ctx, name) => {
                 ensure_tool(ctx, name).await?
             }
             _ => false,
@@ -83,6 +93,33 @@ pub async fn update_installed_tools(
     } else {
         Err(miette::miette!("failed to update: {}", failed.join(", ")))
     }
+}
+
+/// Check whether a newer version of an installed solved tool is available.
+///
+/// Only the tool's first channel is queried: that is where the tool itself is
+/// published (later channels supply dependencies), and it keeps the check to a
+/// single small index instead of e.g. all of `pkgs/main`.
+///
+/// Returns `(installed, latest)` when the newest published version is newer
+/// than the installed one, else `None`.
+pub async fn check_tool_update(name: &str) -> miette::Result<Option<(String, String)>> {
+    let Some(Source::Solved { channels, packages }) = specs::source(name) else {
+        return Err(miette::miette!("{} does not support update checks", name));
+    };
+    let package = packages
+        .first()
+        .ok_or_else(|| miette::miette!("{} has no packages", name))?;
+    let installed = installed_records(&paths::tool_prefix(name))?
+        .into_iter()
+        .find(|r| r.repodata_record.package_record.name.as_normalized() == *package)
+        .map(|r| r.repodata_record.package_record.version.version().clone())
+        .ok_or_else(|| miette::miette!("{} is not installed", name))?;
+    let channels: Vec<String> = specs::solve_channels(channels).into_iter().take(1).collect();
+    let latest = solve::latest_version(&channels, package).await?;
+    Ok(latest
+        .filter(|latest| *latest > installed)
+        .map(|latest| (installed.to_string(), latest.to_string())))
 }
 
 /// Check if a locked tool should be auto-updated.
@@ -108,7 +145,7 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
         if prefix.exists() && binaries_exist(&prefix) {
             return Ok(false);
         }
-        install_tool(ctx, name).await?;
+        install_tool(ctx, name, None).await?;
         return Ok(true);
     }
 
@@ -139,7 +176,7 @@ pub async fn ensure_tool(ctx: &mut CommandContext, name: &str) -> miette::Result
             })?;
     }
 
-    install_tool(ctx, name).await?;
+    install_tool(ctx, name, None).await?;
     Ok(true)
 }
 
@@ -175,7 +212,14 @@ pub(super) fn binaries_exist(prefix: &Path) -> bool {
 }
 
 /// Install a tool from its lockfile or by solving against its channels.
-pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Result<()> {
+///
+/// `version` pins a solved tool's package to an exact version (e.g. to install
+/// an older release); locked tools always install their lockfile's versions.
+pub async fn install_tool(
+    ctx: &mut CommandContext,
+    name: &str,
+    version: Option<&str>,
+) -> miette::Result<()> {
     ctx.telemetry.add("tool_name", name.to_string());
 
     // Show experimental warning if applicable
@@ -187,7 +231,14 @@ pub async fn install_tool(ctx: &mut CommandContext, name: &str) -> miette::Resul
     match specs::source(name) {
         None => return Err(miette::miette!("unknown tool: {}", name)),
         Some(Source::Solved { .. }) => {
-            install_solved(ctx, name).await?;
+            install_solved(ctx, name, version).await?;
+        }
+        Some(Source::Locked { .. }) if version.is_some() => {
+            return Err(miette::miette!(
+                "{} is pinned by ana's embedded lockfile; --version is only supported for \
+                 channel-solved tools",
+                name
+            ));
         }
         Some(Source::Locked { .. }) => {
             install_locked(ctx, name).await?;
@@ -227,16 +278,32 @@ async fn install_locked(ctx: &CommandContext, name: &str) -> miette::Result<()> 
 
 /// Solve a solved tool against its channels and install the result.
 ///
+/// `version` pins the tool's main package to that exact version; otherwise it
+/// floats to the newest release.
+///
 /// Returns `true` if any package was installed, updated, or removed.
-async fn install_solved(ctx: &CommandContext, name: &str) -> miette::Result<bool> {
+async fn install_solved(
+    ctx: &CommandContext,
+    name: &str,
+    version: Option<&str>,
+) -> miette::Result<bool> {
     let Some(Source::Solved { channels, packages }) = specs::source(name) else {
         return Err(miette::miette!("{} is not a solved tool", name));
     };
     let prefix = paths::tool_prefix(name);
     let channels = specs::solve_channels(channels);
+    let pinned: Vec<String> = packages
+        .iter()
+        .enumerate()
+        .map(|(i, p)| match version {
+            Some(v) if i == 0 => format!("{p}=={v}"),
+            _ => p.to_string(),
+        })
+        .collect();
+    let specs: Vec<&str> = pinned.iter().map(String::as_str).collect();
 
     eprintln!("Installing {} into {}", name, prefix.display());
-    let changed = solve_into_prefix(ctx, &prefix, &channels, packages).await?;
+    let changed = solve_into_prefix(ctx, &prefix, &channels, &specs).await?;
 
     create_bin_symlinks(
         &prefix,

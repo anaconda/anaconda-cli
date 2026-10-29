@@ -148,7 +148,7 @@ ana logout                         # Log out
 ```bash
 ana tool list                    # List available tools
 ana tool install <tool>          # Install a tool
-ana tool update                  # Update installed tools
+ana tool update [<tool>]         # Update installed tools, or just one
 ana tool uninstall <tool>        # Uninstall a tool
 ```
 
@@ -160,6 +160,8 @@ Installing `kilo-cli` makes `kilo` the entrypoint for both CLIs: kilo's own comm
 kilo run "fix the failing test"  # kilo command
 kilo ana tool update             # ana command, same as `ana tool update`
 ```
+
+When a newer kilo-cli is published, `kilo` asks whether to update before running a command. It checks at most once a day and only in an interactive terminal; set `ANA_UPDATE_CHECK=0` to turn it off. To install a specific (e.g. older) kilo-cli release, use `ana tool install kilo-cli --version <version>`.
 
 ### MCP marketplace
 

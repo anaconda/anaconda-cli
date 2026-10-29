@@ -75,8 +75,15 @@ pub async fn solve(
         .map(GenericVirtualPackage::from)
         .collect();
 
+    let requested: Vec<&str> = specs
+        .iter()
+        .filter_map(|s| match &s.name {
+            rattler_conda_types::PackageNameMatcher::Exact(name) => Some(name.as_normalized()),
+            _ => None,
+        })
+        .collect();
     let task = SolverTask {
-        locked_packages: preferred_records(installed, packages),
+        locked_packages: preferred_records(installed, &requested),
         virtual_packages,
         specs,
         channel_priority: ChannelPriority::Strict,
@@ -97,11 +104,54 @@ pub async fn solve(
     Ok(records)
 }
 
+/// The newest version of `package` published on the first of `channels` that
+/// has it, for the current platform. Only that package's records are fetched;
+/// dependencies are not resolved, so this is cheap enough for update checks.
+pub async fn latest_version(
+    channels: &[String],
+    package: &str,
+) -> miette::Result<Option<rattler_conda_types::Version>> {
+    let channel_config = ChannelConfig::default_with_root_dir(crate::paths::ana_home());
+    let channels = channels
+        .iter()
+        .map(|c| {
+            Channel::from_str(c, &channel_config)
+                .into_diagnostic()
+                .with_context(|| format!("invalid channel: {c}"))
+        })
+        .collect::<miette::Result<Vec<_>>>()?;
+    let spec = MatchSpec::from_str(package, ParseStrictness::Strict)
+        .into_diagnostic()
+        .with_context(|| format!("invalid package spec: {package}"))?;
+
+    let gateway = Gateway::builder()
+        .with_client(rattler_client()?)
+        .with_cache_dir(rattler_cache_dir()?)
+        .finish();
+    let repodata = gateway
+        .query(channels, [Platform::current(), Platform::NoArch], [spec])
+        .await
+        .into_diagnostic()
+        .context("failed to fetch channel repodata")?
+        .repodata;
+
+    // Strict channel priority: the first channel that has the package wins.
+    Ok(repodata
+        .iter()
+        .find(|channel| !channel.is_empty())
+        .and_then(|channel| {
+            channel
+                .iter()
+                .map(|r| r.package_record.version.version().clone())
+                .max()
+        }))
+}
+
 /// Installed records the solver should prefer to keep.
 ///
-/// The requested `packages` are excluded: resolvo treats locked records as
-/// the preferred candidate, which would otherwise pin the tool itself to its
-/// installed version and make updates impossible.
+/// The requested `packages` (by name) are excluded: resolvo treats locked
+/// records as the preferred candidate, which would otherwise pin the tool
+/// itself to its installed version and make updates impossible.
 fn preferred_records<'a>(
     installed: &'a [PrefixRecord],
     packages: &[&str],

@@ -90,6 +90,7 @@ pub async fn execute() {
             | Action::TelemetrySubmit
             | Action::TelemetryKill
             | Action::TelemetryStatus
+            | Action::ToolCheck { .. }
     );
 
     let result = action.execute().await;
@@ -191,6 +192,7 @@ pub enum Action {
     OpenFeedback,
     ToolInstall {
         name: String,
+        version: Option<String>,
     },
     ToolUninstall {
         name: String,
@@ -199,6 +201,10 @@ pub enum Action {
     ToolList,
     ToolUpdate {
         locked_only: bool,
+        name: Option<String>,
+    },
+    ToolCheck {
+        name: String,
     },
     ApiFetch {
         method: String,
@@ -269,6 +275,7 @@ impl Action {
             Action::ToolUninstall { .. } => "tool.uninstall",
             Action::ToolList => "tool.list",
             Action::ToolUpdate { .. } => "tool.update",
+            Action::ToolCheck { .. } => "tool.check",
             Action::ApiFetch { .. } => "api.fetch",
             Action::FeatureEnable { feature, .. } => match feature.as_str() {
                 "main-x" => "feature.enable.main-x",
@@ -347,6 +354,7 @@ impl Action {
                 | Action::TelemetrySubmit
                 | Action::TelemetryKill
                 | Action::TelemetryStatus
+                | Action::ToolCheck { .. }
         )
     }
 
@@ -387,12 +395,12 @@ impl Action {
             #[cfg(all(unix, tool_install))]
             Action::PlatformProxy { args } => outerbounds::run(ctx, &args).await,
             #[cfg(not(tool_install))]
-            Action::ToolInstall { name: _ } => {
+            Action::ToolInstall { .. } => {
                 Err(crate::errors::ToolManagementUnavailableError.into())
             }
             #[cfg(tool_install)]
-            Action::ToolInstall { name } => {
-                tools::install::install_tool(ctx, &name).await?;
+            Action::ToolInstall { name, version } => {
+                tools::install::install_tool(ctx, &name, version.as_deref()).await?;
                 Ok(())
             }
             #[cfg(not(tool_install))]
@@ -415,12 +423,23 @@ impl Action {
                 Ok(())
             }
             #[cfg(not(tool_install))]
-            Action::ToolUpdate { .. } => Err(crate::errors::ToolManagementUnavailableError.into()),
+            Action::ToolUpdate { .. } | Action::ToolCheck { .. } => {
+                Err(crate::errors::ToolManagementUnavailableError.into())
+            }
             #[cfg(tool_install)]
-            Action::ToolUpdate { locked_only } => {
-                let updated = tools::install::update_installed_tools(ctx, locked_only).await?;
+            Action::ToolUpdate { locked_only, name } => {
+                let updated =
+                    tools::install::update_installed_tools(ctx, locked_only, name.as_deref())
+                        .await?;
                 if updated.is_empty() {
                     eprintln!("All tools are up to date.");
+                }
+                Ok(())
+            }
+            #[cfg(tool_install)]
+            Action::ToolCheck { name } => {
+                if let Some((_, latest)) = tools::install::check_tool_update(&name).await? {
+                    println!("{latest}");
                 }
                 Ok(())
             }
@@ -774,10 +793,13 @@ where
         Some(Commands::Platform { args }) => Action::PlatformProxy { args },
         Some(Commands::Tool { command }) => match command {
             None => Action::ShowSubcommandHelp("tool".to_string()),
-            Some(ToolCommands::Install { name }) => Action::ToolInstall { name },
+            Some(ToolCommands::Install { name, version }) => Action::ToolInstall { name, version },
             Some(ToolCommands::List) => Action::ToolList,
             Some(ToolCommands::Uninstall { name, force }) => Action::ToolUninstall { name, force },
-            Some(ToolCommands::Update { locked_only }) => Action::ToolUpdate { locked_only },
+            Some(ToolCommands::Update { name, locked_only }) => {
+                Action::ToolUpdate { name, locked_only }
+            }
+            Some(ToolCommands::Check { name }) => Action::ToolCheck { name },
             Some(ToolCommands::Download { name }) => match name {
                 None => Action::ShowSubcommandHelp("tool download".to_string()),
                 Some(name) => Action::ToolDownload { name },
@@ -1215,6 +1237,10 @@ enum ToolCommands {
         /// Name of the tool to install
         #[arg(required_unless_present = "help", default_value = "")]
         name: String,
+
+        /// Install this exact version (channel-solved tools only, e.g. kilo-cli)
+        #[arg(long)]
+        version: Option<String>,
     },
 
     /// List available tools
@@ -1231,12 +1257,23 @@ enum ToolCommands {
         force: bool,
     },
 
-    /// Update all installed tools
+    /// Update installed tools (all, or only the named one)
     Update {
+        /// Tool to update (default: all installed tools)
+        name: Option<String>,
+
         /// Only apply new embedded lockfiles; skip re-solving channel-solved tools
         /// (internal use by `ana self update`)
         #[arg(long, hide = true)]
         locked_only: bool,
+    },
+
+    /// Print the newer version of a tool if one is available (internal use by
+    /// the kilo wrapper)
+    #[command(hide = true)]
+    Check {
+        /// Tool to check
+        name: String,
     },
 
     /// Download an installer (currently miniconda only)

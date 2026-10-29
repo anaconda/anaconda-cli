@@ -8,11 +8,17 @@
 //! - `kilo upgrade` / `kilo uninstall` are redirected to ana's tool commands,
 //!   since kilo-cli is managed by ana rather than kilo's own installer
 //! - `kilo --help` adds an `ana` entry to kilo's command list
-//! - everything else is handed to the real kilo in ~/.ana/tools/kilo-cli
+//! - everything else is handed to the real kilo in ~/.ana/tools/kilo-cli,
+//!   after offering to update kilo when a newer version is published
 
 use std::env;
+use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio, exit};
+use std::time::{Duration, SystemTime};
+
+/// How long to wait for `ana tool check` before running kilo anyway.
+const CHECK_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Program name ana prints in usage lines and command hints.
 const ANA_PROG_NAME: &str = "kilo ana";
@@ -67,7 +73,10 @@ fn run(args: &[String]) -> i32 {
             1
         }
         Route::Help => run_kilo_help(args),
-        Route::Kilo => run_kilo(args),
+        Route::Kilo => {
+            offer_update();
+            run_kilo(args)
+        }
     }
 }
 
@@ -160,6 +169,116 @@ fn run_ana(args: &[String]) -> i32 {
     let mut cmd = Command::new(get_ana_bin());
     cmd.args(args).env("ANA_PROG_NAME", ANA_PROG_NAME);
     hand_off(cmd, "ana")
+}
+
+// === Update check ===
+
+/// Whether update checks are enabled (`ANA_UPDATE_CHECK`, default on).
+fn update_check_enabled() -> bool {
+    !matches!(
+        env::var("ANA_UPDATE_CHECK")
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str(),
+        "0" | "false" | "no" | "off"
+    )
+}
+
+/// Minimum time between checks (`ANA_UPDATE_CHECK_INTERVAL_HOURS`, default 24).
+fn update_check_interval() -> Duration {
+    let hours = env::var("ANA_UPDATE_CHECK_INTERVAL_HOURS")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(24);
+    Duration::from_secs(hours * 3600)
+}
+
+fn last_check_file() -> PathBuf {
+    kilo_prefix().join(".last-update-check")
+}
+
+/// True when the last check is older than the interval (or never happened).
+fn check_due() -> bool {
+    let Ok(modified) = std::fs::metadata(last_check_file()).and_then(|m| m.modified()) else {
+        return true;
+    };
+    SystemTime::now()
+        .duration_since(modified)
+        .map_or(true, |age| age >= update_check_interval())
+}
+
+/// Ask ana for a newer kilo version. Returns it, or `None` when up to date
+/// or when the check fails or takes longer than `CHECK_TIMEOUT`.
+fn newer_version() -> Option<String> {
+    let mut child = Command::new(get_ana_bin())
+        .args(["tool", "check", "kilo-cli"])
+        .env("ANA_PROG_NAME", ANA_PROG_NAME)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    let deadline = SystemTime::now() + CHECK_TIMEOUT;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => break,
+            Ok(Some(_)) | Err(_) => return None,
+            Ok(None) if SystemTime::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(50)),
+        }
+    }
+    let output = child.wait_with_output().ok()?;
+    let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!version.is_empty()).then_some(version)
+}
+
+/// Before running kilo, offer to update it when a newer version is published.
+///
+/// Only runs interactively, at most once per check interval, and never blocks
+/// kilo: any failure, timeout, or a "no" answer just continues.
+fn offer_update() {
+    if !update_check_enabled()
+        || !std::io::stdin().is_terminal()
+        || !std::io::stderr().is_terminal()
+        || !get_kilo_bin().exists()
+        || !check_due()
+    {
+        return;
+    }
+    let version = newer_version();
+    // Record the check even when it failed, so an outage doesn't add a
+    // delay to every kilo start.
+    let _ = std::fs::write(last_check_file(), b"");
+    let Some(version) = version else {
+        return;
+    };
+
+    eprint!("A new version of kilo is available: {version}. Update now? [Y/n] ");
+    let _ = std::io::stderr().flush();
+    let mut answer = String::new();
+    if std::io::stdin().read_line(&mut answer).is_err() || !is_yes(&answer) {
+        return;
+    }
+
+    let updated = Command::new(get_ana_bin())
+        .args(["tool", "update", "kilo-cli"])
+        .env("ANA_PROG_NAME", ANA_PROG_NAME)
+        // Keep the output about kilo: skip ana's own "new version" notice.
+        .env("ANA_UPDATE_CHECK", "0")
+        .status()
+        .is_ok_and(|s| s.success());
+    if !updated {
+        eprintln!("kilo update failed; continuing with the installed version.");
+    }
+}
+
+/// Default-yes answer to a [Y/n] prompt.
+fn is_yes(answer: &str) -> bool {
+    matches!(answer.trim().to_ascii_lowercase().as_str(), "" | "y" | "yes")
 }
 
 /// kilo prints its top-level help to stderr. Capture it and add the `ana`

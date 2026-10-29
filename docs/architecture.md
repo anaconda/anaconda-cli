@@ -266,6 +266,8 @@ sources:
   `rc` label and its dependencies from `main`. Only `ana tool install` and
   `ana tool update` re-solve; self-update does not. A failed solve keeps the
   installed version. `ANA_TOOL_CHANNELS` replaces the channels, for testing.
+  `ana tool install <tool> --version <v>` pins the tool's package to an exact
+  version instead of the newest; locked tools reject `--version`.
 
 ```mermaid
 flowchart LR
@@ -299,6 +301,16 @@ puts the tool prefix's binary directories first on `PATH`, so kilo uses the
 replaces itself with the target process; on Windows it waits for it. Release
 builds can supply a signed wrapper through `KILO_WRAPPER_PATH`, as with
 `WINDOWS_SHIM_PATH`.
+
+Before handing a command to kilo, the wrapper offers to update it. At most once
+per `ANA_UPDATE_CHECK_INTERVAL_HOURS` (default 24), and only when stdin and
+stderr are terminals, it runs `ana tool check kilo-cli` with a 5-second
+timeout. That hidden command reads only kilo-cli's own channel index and prints
+the newest version when it is newer than the installed one. If there is one,
+the wrapper asks `Update now? [Y/n]` and runs `ana tool update kilo-cli` on
+yes, then continues with the original command. `kilo ana`, `upgrade`, and
+`uninstall` never check; `ANA_UPDATE_CHECK=0` disables the check; failures and
+timeouts just run the installed kilo.
 
 `ana marketplace` reuses the solved-tool path for MCP servers packaged as
 conda packages. `ana marketplace install <package>` solves the package against
