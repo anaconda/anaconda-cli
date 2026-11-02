@@ -9,7 +9,7 @@ use rattler::{
     install::{IndicatifReporter, Installer},
     package_cache::PackageCache,
 };
-use rattler_conda_types::{Platform, PrefixRecord};
+use rattler_conda_types::{PrefixRecord, Subdir};
 use rattler_lock::LockFile;
 
 use super::{pixi_config, specs};
@@ -180,7 +180,8 @@ pub async fn install_from_lockfile(
         .default_environment()
         .ok_or_else(|| miette::miette!("lockfile has no default environment"))?;
 
-    let current_platform = Platform::current();
+    let current_platform = Subdir::current()
+        .ok_or_else(|| miette::miette!("unsupported platform: no conda subdir for this target"))?;
     let records_by_platform = env
         .conda_repodata_records_by_platform()
         .into_diagnostic()
@@ -463,14 +464,14 @@ mod tests {
     /// Writes a fake `PrefixRecord` into `<prefix>/conda-meta`, as if rattler
     /// had linked a package with the given relative file paths.
     fn write_fake_prefix_record(prefix: &Path, package_name: &str, relative_paths: &[&str]) {
-        use rattler_conda_types::package::DistArchiveIdentifier;
+        use rattler_conda_types::package::{BuildString, DistArchiveIdentifier};
         use rattler_conda_types::prefix_record::{PathType, PathsEntry};
         use rattler_conda_types::{PackageName, PackageRecord, RepoDataRecord, Version};
 
         let package_record = PackageRecord::new(
             PackageName::new_unchecked(package_name),
             Version::major(1),
-            "0".to_string(),
+            "0".parse::<BuildString>().unwrap(),
         );
         let identifier =
             DistArchiveIdentifier::try_from_filename(&format!("{package_name}-1-0.conda")).unwrap();
