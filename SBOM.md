@@ -2,7 +2,7 @@
 
 Generated: unknown<br>
 Format: CycloneDX 1.4<br>
-Packages: 469 (65 platform-specific)<br>
+Packages: 468 (65 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
 <br>**[Security advisories](#security-advisories): 25 (11 INFO) across 8 packages**
 
@@ -353,7 +353,6 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.1 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
-| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.5 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -486,35 +485,35 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | ctutils | 0.4.2 | [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385.html) |  |  |  |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
+| zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
 | zip | 8.6.0 | [CVE-2026-115909](https://nvd.nist.gov/vuln/detail/CVE-2026-115909) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0367](https://rustsec.org/advisories/RUSTSEC-2026-0367.html) |  |  |  |
-| zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
 | zstd | 0.13.3 | [RUSTSEC-2026-0391](https://rustsec.org/advisories/RUSTSEC-2026-0391.html) |  |  |  |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0403](https://rustsec.org/advisories/RUSTSEC-2026-0403.html) |  |  |  |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0398](https://rustsec.org/advisories/RUSTSEC-2026-0398.html) |  |  |  |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0403](https://rustsec.org/advisories/RUSTSEC-2026-0403.html) |  |  |  |
 | zstd-sys | 2.0.16+zstd.1.5.7 | [RUSTSEC-2026-0410](https://rustsec.org/advisories/RUSTSEC-2026-0410.html) |  |  |  |
 | unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0395](https://rustsec.org/advisories/RUSTSEC-2026-0395.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0402](https://rustsec.org/advisories/RUSTSEC-2026-0402.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0406](https://rustsec.org/advisories/RUSTSEC-2026-0406.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0404](https://rustsec.org/advisories/RUSTSEC-2026-0404.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0400](https://rustsec.org/advisories/RUSTSEC-2026-0400.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0399](https://rustsec.org/advisories/RUSTSEC-2026-0399.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0401](https://rustsec.org/advisories/RUSTSEC-2026-0401.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0399](https://rustsec.org/advisories/RUSTSEC-2026-0399.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0404](https://rustsec.org/advisories/RUSTSEC-2026-0404.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0405](https://rustsec.org/advisories/RUSTSEC-2026-0405.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0397](https://rustsec.org/advisories/RUSTSEC-2026-0397.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0396](https://rustsec.org/advisories/RUSTSEC-2026-0396.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0397](https://rustsec.org/advisories/RUSTSEC-2026-0397.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0395](https://rustsec.org/advisories/RUSTSEC-2026-0395.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0406](https://rustsec.org/advisories/RUSTSEC-2026-0406.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0402](https://rustsec.org/advisories/RUSTSEC-2026-0402.html) |  |  | INFO |
 
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 249 |
+| MIT OR Apache-2.0 | 248 |
 | MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
