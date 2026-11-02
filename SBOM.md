@@ -376,9 +376,9 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [terminal\_size](https://crates.io/crates/terminal_size) | 0.4.4 | MIT OR Apache-2.0 |  |  |
 | [textwrap](https://crates.io/crates/textwrap) | 0.16.2 | MIT |  |  |
 | [thiserror](https://crates.io/crates/thiserror) | 1.0.69 | MIT OR Apache-2.0 |  |  |
-| [thiserror](https://crates.io/crates/thiserror) | 2.0.19 | MIT OR Apache-2.0 |  |  |
+| [thiserror](https://crates.io/crates/thiserror) | 2.0.21 | MIT OR Apache-2.0 |  |  |
 | [thiserror-impl](https://crates.io/crates/thiserror-impl) | 1.0.69 | MIT OR Apache-2.0 |  |  |
-| [thiserror-impl](https://crates.io/crates/thiserror-impl) | 2.0.19 | MIT OR Apache-2.0 |  |  |
+| [thiserror-impl](https://crates.io/crates/thiserror-impl) | 2.0.21 | MIT OR Apache-2.0 |  |  |
 | [thread\_local](https://crates.io/crates/thread_local) | 1.1.10 | MIT OR Apache-2.0 |  |  |
 | [time](https://crates.io/crates/time) | 0.3.54 | MIT OR Apache-2.0 |  |  |
 | [time-core](https://crates.io/crates/time-core) | 0.1.9 | MIT OR Apache-2.0 |  |  |
@@ -486,29 +486,29 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | ctutils | 0.4.2 | [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385.html) |  |  |  |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
 | rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
-| zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
+| rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
 | zip | 8.6.0 | [CVE-2026-115909](https://nvd.nist.gov/vuln/detail/CVE-2026-115909) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0367](https://rustsec.org/advisories/RUSTSEC-2026-0367.html) |  |  |  |
+| zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
 | zstd | 0.13.3 | [RUSTSEC-2026-0391](https://rustsec.org/advisories/RUSTSEC-2026-0391.html) |  |  |  |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0398](https://rustsec.org/advisories/RUSTSEC-2026-0398.html) |  |  |  |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0403](https://rustsec.org/advisories/RUSTSEC-2026-0403.html) |  |  |  |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0398](https://rustsec.org/advisories/RUSTSEC-2026-0398.html) |  |  |  |
 | zstd-sys | 2.0.16+zstd.1.5.7 | [RUSTSEC-2026-0410](https://rustsec.org/advisories/RUSTSEC-2026-0410.html) |  |  |  |
 | unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0400](https://rustsec.org/advisories/RUSTSEC-2026-0400.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0401](https://rustsec.org/advisories/RUSTSEC-2026-0401.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0399](https://rustsec.org/advisories/RUSTSEC-2026-0399.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0404](https://rustsec.org/advisories/RUSTSEC-2026-0404.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0405](https://rustsec.org/advisories/RUSTSEC-2026-0405.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0396](https://rustsec.org/advisories/RUSTSEC-2026-0396.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0397](https://rustsec.org/advisories/RUSTSEC-2026-0397.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0395](https://rustsec.org/advisories/RUSTSEC-2026-0395.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0406](https://rustsec.org/advisories/RUSTSEC-2026-0406.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0402](https://rustsec.org/advisories/RUSTSEC-2026-0402.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0406](https://rustsec.org/advisories/RUSTSEC-2026-0406.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0404](https://rustsec.org/advisories/RUSTSEC-2026-0404.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0400](https://rustsec.org/advisories/RUSTSEC-2026-0400.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0399](https://rustsec.org/advisories/RUSTSEC-2026-0399.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0401](https://rustsec.org/advisories/RUSTSEC-2026-0401.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0405](https://rustsec.org/advisories/RUSTSEC-2026-0405.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0397](https://rustsec.org/advisories/RUSTSEC-2026-0397.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0396](https://rustsec.org/advisories/RUSTSEC-2026-0396.html) |  |  | INFO |
 
 ## License Summary
 
