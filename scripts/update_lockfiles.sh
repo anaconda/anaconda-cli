@@ -69,8 +69,10 @@ RELEASE_ARGS=()
 if [ -n "${SBOM_RELEASE_VERSION:-}" ]; then
     RELEASE_ARGS+=(--release-version "$SBOM_RELEASE_VERSION")
 fi
+# ${arr[@]:+...} keeps this working on bash 3.2 (macOS), where expanding an
+# empty array under `set -u` is an "unbound variable" error.
 python3 scripts/sbom-process.py ${FORCE_FLAG:+"$FORCE_FLAG"} \
-    "${RELEASE_ARGS[@]}" \
+    ${RELEASE_ARGS[@]:+"${RELEASE_ARGS[@]}"} \
     --audit audit.raw.json \
     --output-json SBOM.json \
     --output-md SBOM.md \
