@@ -2,7 +2,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:47305088-756e-414c-81e9-586b95ea6939",
+  "serialNumber": "urn:uuid:f8f0798d-0a07-40db-b691-f7f3fcb1f326",
   "metadata": {
     "tools": [
       {
@@ -30,7 +30,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "bc0b9b281ccb8c2c3211aeb5cfdb9d6c3925745f6e824eacf9cff17dfeb81485"
+          "content": "e291a3dbab9293a833a78a4d4f8ef95cbe5736dee7737bc0a37d7747f003c509"
         }
       ]
     },
@@ -5340,15 +5340,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
       "name": "libc",
-      "version": "0.2.189",
+      "version": "0.2.191",
       "description": "Raw FFI bindings to platform libraries like libc.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+          "content": "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
         }
       ],
       "licenses": [
@@ -5356,7 +5356,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/libc@0.2.189",
+      "purl": "pkg:cargo/libc@0.2.191",
       "externalReferences": [
         {
           "type": "vcs",
@@ -14585,7 +14585,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#http@1.5.0",
         "registry+https://github.com/rust-lang/crates.io-index#indicatif@0.18.6",
         "registry+https://github.com/rust-lang/crates.io-index#jsonc-parser@0.33.2",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#log@0.4.34",
         "registry+https://github.com/rust-lang/crates.io-index#miette@7.6.0",
         "registry+https://github.com/rust-lang/crates.io-index#opentelemetry@0.32.0",
@@ -14663,7 +14663,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#cargo-lock@11.0.1",
         "registry+https://github.com/rust-lang/crates.io-index#dirs@6.0.0",
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.3",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#mac_address@1.1.8",
         "registry+https://github.com/rust-lang/crates.io-index#serde_json@1.0.151",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
@@ -14746,7 +14746,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.4",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#futures-core@0.3.34",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#portable-atomic@1.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#rustc-hash@2.1.3",
         "registry+https://github.com/rust-lang/crates.io-index#rustix@1.1.4",
@@ -14848,7 +14848,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#addr2line@0.25.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#miniz_oxide@0.8.9",
         "registry+https://github.com/rust-lang/crates.io-index#object@0.37.3",
         "registry+https://github.com/rust-lang/crates.io-index#rustc-demangle@0.1.28",
@@ -14931,7 +14931,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#find-msvc-tools@0.1.9",
         "registry+https://github.com/rust-lang/crates.io-index#jobserver@0.1.35",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#shlex@2.0.1"
       ]
     },
@@ -15034,7 +15034,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#console@0.16.6",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#encode_unicode@1.0.0",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#unicode-width@0.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
@@ -15046,7 +15046,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#cpufeatures@0.3.0",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -15171,7 +15171,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#dirs-sys@0.5.0",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#option-ext@0.2.0",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
@@ -15237,7 +15237,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#errno@0.3.14",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -15275,7 +15275,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#filetime@0.2.29",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -15427,21 +15427,21 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.2.17",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.3.4",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.3",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#rand_core@0.10.1"
       ]
     },
@@ -15508,7 +15508,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#hostname@0.4.2",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#windows-link@0.2.1"
       ]
     },
@@ -15600,7 +15600,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#http@1.5.0",
         "registry+https://github.com/rust-lang/crates.io-index#hyper@1.11.0",
         "registry+https://github.com/rust-lang/crates.io-index#ipnet@2.12.0",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#percent-encoding@2.3.2",
         "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17",
         "registry+https://github.com/rust-lang/crates.io-index#socket2@0.5.10",
@@ -15754,7 +15754,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#is-terminal@0.4.17",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.52.0"
       ]
     },
@@ -15807,7 +15807,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#jobserver@0.1.35",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.3",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -15843,7 +15843,7 @@
       "dependsOn": []
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
       "dependsOn": []
     },
     {
@@ -15899,7 +15899,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#memmap2@0.9.11",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -15953,14 +15953,14 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#mio@1.2.2",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#native-tls@0.2.18",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#log@0.4.34",
         "registry+https://github.com/rust-lang/crates.io-index#openssl-probe@0.2.1",
         "registry+https://github.com/rust-lang/crates.io-index#openssl-sys@0.9.117",
@@ -15977,7 +15977,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.13.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#memoffset@0.9.1"
       ]
     },
@@ -15987,7 +15987,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.13.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -16021,7 +16021,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#num_cpus@1.17.0",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -16050,7 +16050,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#openssl-sys@0.9.117",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cc@1.3.0",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#pkg-config@0.3.33",
         "registry+https://github.com/rust-lang/crates.io-index#vcpkg@0.2.15"
       ]
@@ -16061,7 +16061,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.13.1",
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
         "registry+https://github.com/rust-lang/crates.io-index#foreign-types@0.3.2",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#openssl-macros@0.1.1",
         "registry+https://github.com/rust-lang/crates.io-index#openssl-sys@0.9.117"
       ]
@@ -16161,7 +16161,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#parking_lot_core@0.9.12",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#smallvec@1.15.2",
         "registry+https://github.com/rust-lang/crates.io-index#windows-link@0.2.1"
       ]
@@ -16358,7 +16358,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#quinn-udp@0.5.16",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4",
         "registry+https://github.com/rust-lang/crates.io-index#socket2@0.5.10",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
@@ -16688,7 +16688,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#rattler_pty@0.2.15",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#nix@0.31.3",
         "registry+https://github.com/rust-lang/crates.io-index#signal-hook@0.4.4",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.3"
@@ -16766,7 +16766,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#reflink-copy@0.1.30",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#rustix@1.1.4",
         "registry+https://github.com/rust-lang/crates.io-index#windows@0.62.2"
       ]
@@ -16857,20 +16857,20 @@
         "registry+https://github.com/rust-lang/crates.io-index#cc@1.3.0",
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
         "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.2.17",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#untrusted@0.9.0"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#rlimit@0.11.0",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#rpassword@7.5.4",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#rtoolbox@0.0.5",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
@@ -16878,7 +16878,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#rtoolbox@0.0.5",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.59.0"
       ]
     },
@@ -16908,7 +16908,7 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.13.1",
         "registry+https://github.com/rust-lang/crates.io-index#errno@0.3.14",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#linux-raw-sys@0.12.1"
       ]
     },
@@ -17145,13 +17145,13 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#signal-hook-registry@1.4.8",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#errno@0.3.14",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#signal-hook@0.4.4",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#signal-hook-registry@1.4.8"
       ]
     },
@@ -17193,14 +17193,14 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.5.10",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.52.0"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.6.5",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#windows-sys@0.61.2"
       ]
     },
@@ -17285,7 +17285,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#sysinfo@0.39.6",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#memchr@2.8.3",
         "registry+https://github.com/rust-lang/crates.io-index#ntapi@0.4.3",
         "registry+https://github.com/rust-lang/crates.io-index#objc2-core-foundation@0.3.2",
@@ -17298,7 +17298,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#tar@0.4.46",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#filetime@0.2.29",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#xattr@1.6.1"
       ]
     },
@@ -17437,7 +17437,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#futures-core@0.3.34",
         "registry+https://github.com/rust-lang/crates.io-index#futures-io@0.3.34",
         "registry+https://github.com/rust-lang/crates.io-index#futures-sink@0.3.34",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.3"
       ]
@@ -17446,7 +17446,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.3",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#bytes@1.12.1",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#mio@1.2.2",
         "registry+https://github.com/rust-lang/crates.io-index#parking_lot@0.12.5",
         "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17",
@@ -17735,7 +17735,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#wait-timeout@0.2.1",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -17757,7 +17757,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#which@8.0.5",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -17908,14 +17908,14 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#core-foundation@0.10.1",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#core-foundation-sys@0.8.7",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#core-foundation@0.9.4",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#core-foundation-sys@0.8.7",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -17956,7 +17956,7 @@
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#objc2-io-kit@0.3.2",
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#objc2-core-foundation@0.3.2"
       ]
     },
@@ -17988,7 +17988,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#security-framework-sys@2.17.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#core-foundation-sys@0.8.7",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -17997,7 +17997,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.13.1",
         "registry+https://github.com/rust-lang/crates.io-index#core-foundation-sys@0.8.7",
         "registry+https://github.com/rust-lang/crates.io-index#core-foundation@0.10.1",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191",
         "registry+https://github.com/rust-lang/crates.io-index#security-framework-sys@2.17.0"
       ]
     },
@@ -18005,7 +18005,7 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#system-configuration-sys@0.6.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#core-foundation-sys@0.8.7",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.189"
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.191"
       ]
     },
     {
@@ -18205,25 +18205,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0349",
-      "description": "The client recorded the server-selected key exchange group for each server\nname when processing the ServerHello, before the server was authenticated.\nThis record is used to predict which key share to send in future ClientHellos\nto that server name.\n\nA network attacker can answer one connection attempt with a ServerHello\nselecting X25519, and then close the connection. Later ClientHellos for that\nname carry only an X25519 key share, while `supported_groups` still lists\nX25519MLKEM768 first. If the genuine server accepts that share rather than\nsending a HelloRetryRequest for its preferred hybrid group, the handshake\ncompletes with classical-only key exchange and no error. This persists for as\nlong as the entry stays in the client's session store.\n\nThe impact is loss of post-quantum confidentiality for affected connections\n(\"harvest now, decrypt later\"). There is no key compromise and no\nauthentication bypass.\n\nThe following are not affected:\n\n- connections to servers which send a HelloRetryRequest for their preferred group,\n- clients with resumption disabled (as nothing is stored), and\n- other server names.\n\nThis behaviour is discussed in\n[draft-ietf-tls-key-share-prediction](https://www.ietf.org/archive/id/draft-ietf-tls-key-share-prediction-01.html#name-security-considerations),\nso the practical impact depends largely on server policy.",
+      "id": "RUSTSEC-2026-0346",
+      "description": "The `Debug` implementations of `Tls12ClientSessionValue` and\n`Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master\nsecret or TLS 1.3 resumption PSK in their output.\n\nCustom `ClientSessionStore` implementations that format these values with\n`Debug` (for example, when logging) could disclose these secrets to readers of\nthe logs. This conflicts with rustls's\n[key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).\n\nOrdinary connection and built-in session cache `Debug` output is redacted and\nis not affected.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0349.html"
-      },
-      "ratings": [],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0348",
-      "description": "The built-in Brotli certificate decompressor (enabled by the non-default\n`brotli` crate feature) bounded the size of the decompressed output, but\naccepted a peer-selected history window. Brotli's large-window extension was\nenabled, so a five-byte header could cause an allocation of 1 GiB. A peer can\nabort a process whose allocator cannot satisfy that request.\n\nNo trusted certificate is required by the attacker. Affected configurations are:\n\n- clients that enable the `brotli` feature and connect to a malicious server, and\n- servers that enable the `brotli` feature and request client certificates.\n\nApplications that do not enable the `brotli` feature are not affected.",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0348.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0346.html"
       },
       "ratings": [],
       "affects": [
@@ -18247,11 +18233,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0346",
-      "description": "The `Debug` implementations of `Tls12ClientSessionValue` and\n`Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master\nsecret or TLS 1.3 resumption PSK in their output.\n\nCustom `ClientSessionStore` implementations that format these values with\n`Debug` (for example, when logging) could disclose these secrets to readers of\nthe logs. This conflicts with rustls's\n[key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).\n\nOrdinary connection and built-in session cache `Debug` output is redacted and\nis not affected.",
+      "id": "RUSTSEC-2026-0348",
+      "description": "The built-in Brotli certificate decompressor (enabled by the non-default\n`brotli` crate feature) bounded the size of the decompressed output, but\naccepted a peer-selected history window. Brotli's large-window extension was\nenabled, so a five-byte header could cause an allocation of 1 GiB. A peer can\nabort a process whose allocator cannot satisfy that request.\n\nNo trusted certificate is required by the attacker. Affected configurations are:\n\n- clients that enable the `brotli` feature and connect to a malicious server, and\n- servers that enable the `brotli` feature and request client certificates.\n\nApplications that do not enable the `brotli` feature are not affected.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0346.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0348.html"
       },
       "ratings": [],
       "affects": [
@@ -18261,16 +18247,16 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0368",
-      "description": "In `zip` 9.0.0-pre2, `ZipArchive::extract` creates a symbolic link from an archive entry after validating only the output entry path. The link target bytes are passed directly to the platform symlink API, so a malicious archive can create an entry inside the destination that resolves to an attacker-chosen path outside it. This behavior was verified on macOS and Linux. On either platform, a subsequent application read or write through that extracted entry accesses the external target with the extracting process's permissions.\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4v9h-p7m9-rh26",
+      "id": "RUSTSEC-2026-0349",
+      "description": "The client recorded the server-selected key exchange group for each server\nname when processing the ServerHello, before the server was authenticated.\nThis record is used to predict which key share to send in future ClientHellos\nto that server name.\n\nA network attacker can answer one connection attempt with a ServerHello\nselecting X25519, and then close the connection. Later ClientHellos for that\nname carry only an X25519 key share, while `supported_groups` still lists\nX25519MLKEM768 first. If the genuine server accepts that share rather than\nsending a HelloRetryRequest for its preferred hybrid group, the handshake\ncompletes with classical-only key exchange and no error. This persists for as\nlong as the entry stays in the client's session store.\n\nThe impact is loss of post-quantum confidentiality for affected connections\n(\"harvest now, decrypt later\"). There is no key compromise and no\nauthentication bypass.\n\nThe following are not affected:\n\n- connections to servers which send a HelloRetryRequest for their preferred group,\n- clients with resumption disabled (as nothing is stored), and\n- other server names.\n\nThis behaviour is discussed in\n[draft-ietf-tls-key-share-prediction](https://www.ietf.org/archive/id/draft-ietf-tls-key-share-prediction-01.html#name-security-considerations),\nso the practical impact depends largely on server policy.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0368.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0349.html"
       },
       "ratings": [],
       "affects": [
         {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zip@8.6.0"
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
         }
       ]
     },
@@ -18312,6 +18298,20 @@
       ]
     },
     {
+      "id": "RUSTSEC-2026-0368",
+      "description": "In `zip` 9.0.0-pre2, `ZipArchive::extract` creates a symbolic link from an archive entry after validating only the output entry path. The link target bytes are passed directly to the platform symlink API, so a malicious archive can create an entry inside the destination that resolves to an attacker-chosen path outside it. This behavior was verified on macOS and Linux. On either platform, a subsequent application read or write through that extracted entry accesses the external target with the extracting process's permissions.\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4v9h-p7m9-rh26",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0368.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zip@8.6.0"
+        }
+      ]
+    },
+    {
       "id": "RUSTSEC-2026-0369",
       "description": "`ZipStreamReader::extract()` applies Unix permissions through extracted symlinks without validating the symlink target stays within the destination\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4684-h2q9-2vcp",
       "source": {
@@ -18340,11 +18340,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0398",
-      "description": "`ZSTD_seekable_decompress` shortens the requested length to the end of the\ndata without checking that the offset is before it. For an offset past the\nend, it returns a wrapped-around length without writing anything, and\n`Seekable::decompress` passed that length to `Vec::set_len`.\n\nWith the `seekable` feature, whoever supplies the archive, or chooses the\noffset, can leave the caller's `Vec<u8>` with a length far beyond its\ncapacity. Reading it then discloses neighbouring heap memory, and appending\nto it corrupts memory. Offsets near `u64::MAX` can also hang the call.\n\nThe flaw was corrected by clamping requests to the end of the data, and by\nchecking every count reported by the C library against the buffer capacity.",
+      "id": "RUSTSEC-2026-0403",
+      "description": "When decompression fails inside a legacy (zstd v0.4 to v0.7) frame, the\nbundled zstd library reports the output buffer as fully written although\nnothing was written. `DCtx::decompress_stream` committed that position even\non error, and for a `Vec<u8>` destination this extended the vector's length\nover uninitialized memory.\n\nLegacy support is enabled by default. A 5- or 6-byte corrupt legacy frame is\nenough: through `zstd::stream::write::Decoder`, up to 32 KiB of stale heap\nmemory is then passed to the wrapped writer on the next `write()` or\n`flush()`, or when an `auto_flush()`/`on_flush()` decoder is dropped. Whether\nthis reaches an attacker depends on where the application sends the\ndecompressed output. `zstd::stream::read::Decoder`, `zstd::decode_all` and\nthe bulk API are not affected.\n\nBefore zstd-safe 4.0.0, output buffers could only be initialized slices.\nThe zstd crate's own writer had the same flaw from 0.4.22 to 0.7.x, which is\ncovered by a separate advisory.\n\nThe flaw was corrected by only committing the buffer positions of a\nsuccessful call.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0398.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0403.html"
       },
       "ratings": [],
       "affects": [
@@ -18354,11 +18354,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0403",
-      "description": "When decompression fails inside a legacy (zstd v0.4 to v0.7) frame, the\nbundled zstd library reports the output buffer as fully written although\nnothing was written. `DCtx::decompress_stream` committed that position even\non error, and for a `Vec<u8>` destination this extended the vector's length\nover uninitialized memory.\n\nLegacy support is enabled by default. A 5- or 6-byte corrupt legacy frame is\nenough: through `zstd::stream::write::Decoder`, up to 32 KiB of stale heap\nmemory is then passed to the wrapped writer on the next `write()` or\n`flush()`, or when an `auto_flush()`/`on_flush()` decoder is dropped. Whether\nthis reaches an attacker depends on where the application sends the\ndecompressed output. `zstd::stream::read::Decoder`, `zstd::decode_all` and\nthe bulk API are not affected.\n\nBefore zstd-safe 4.0.0, output buffers could only be initialized slices.\nThe zstd crate's own writer had the same flaw from 0.4.22 to 0.7.x, which is\ncovered by a separate advisory.\n\nThe flaw was corrected by only committing the buffer positions of a\nsuccessful call.",
+      "id": "RUSTSEC-2026-0398",
+      "description": "`ZSTD_seekable_decompress` shortens the requested length to the end of the\ndata without checking that the offset is before it. For an offset past the\nend, it returns a wrapped-around length without writing anything, and\n`Seekable::decompress` passed that length to `Vec::set_len`.\n\nWith the `seekable` feature, whoever supplies the archive, or chooses the\noffset, can leave the caller's `Vec<u8>` with a length far beyond its\ncapacity. Reading it then discloses neighbouring heap memory, and appending\nto it corrupts memory. Offsets near `u64::MAX` can also hang the call.\n\nThe flaw was corrected by clamping requests to the end of the data, and by\nchecking every count reported by the C library against the buffer capacity.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0403.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0398.html"
       },
       "ratings": [],
       "affects": [
@@ -18401,144 +18401,30 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0400",
-      "description": "[unsound] Use-after-free of a dictionary after a one-shot call on a context with an open stream",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0400.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0401",
-      "description": "[unsound] Out-of-bounds read in `train_from_buffer` when sample sizes overflow",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0401.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0399",
-      "description": "[unsound] Use-after-free through `init_using_cdict` and `init_using_ddict`",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0399.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0404",
-      "description": "[unsound] Double free in `DCtx::try_clone`",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0404.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0405",
-      "description": "[unsound] Out-of-bounds read with an out-of-range `InBuffer::pos`",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0405.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0396",
-      "description": "[unsound] `Seekable` reads a NULL or out-of-bounds seek table",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0396.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0397",
-      "description": "[unsound] `OutBuffer::around_pos` exposes uninitialized memory",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0397.html"
-      },
-      "ratings": [
-        {
-          "severity": "info",
-          "method": "other"
-        }
-      ],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
-        }
-      ]
-    },
-    {
       "id": "RUSTSEC-2026-0395",
       "description": "[unsound] Use-after-free with `CParameter::StableInBuffer`",
       "source": {
         "name": "RustSec",
         "url": "https://rustsec.org/advisories/RUSTSEC-2026-0395.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0402",
+      "description": "[unsound] Heap buffer overflow in `CCtx::try_clone` on a multithreaded context",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0402.html"
       },
       "ratings": [
         {
@@ -18572,11 +18458,125 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0402",
-      "description": "[unsound] Heap buffer overflow in `CCtx::try_clone` on a multithreaded context",
+      "id": "RUSTSEC-2026-0404",
+      "description": "[unsound] Double free in `DCtx::try_clone`",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0402.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0404.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0400",
+      "description": "[unsound] Use-after-free of a dictionary after a one-shot call on a context with an open stream",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0400.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0399",
+      "description": "[unsound] Use-after-free through `init_using_cdict` and `init_using_ddict`",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0399.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0401",
+      "description": "[unsound] Out-of-bounds read in `train_from_buffer` when sample sizes overflow",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0401.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0405",
+      "description": "[unsound] Out-of-bounds read with an out-of-range `InBuffer::pos`",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0405.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0397",
+      "description": "[unsound] `OutBuffer::around_pos` exposes uninitialized memory",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0397.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#zstd-safe@7.2.4"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0396",
+      "description": "[unsound] `Seekable` reads a NULL or out-of-bounds seek table",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0396.html"
       },
       "ratings": [
         {
