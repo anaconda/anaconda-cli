@@ -356,8 +356,11 @@ fn format_relative_time_since(published_at: &str) -> String {
     }
 }
 
+/// Report whether a newer release is available without installing anything.
+///
+/// `ana self update --check` is a read-only query: it must never prompt or
+/// replace the running binary. Use `run_update` to actually apply an update.
 pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
-    use crate::input::prompt_yes_no;
     use crate::ui::status;
 
     match check_update(ctx, current_version).await {
@@ -382,20 +385,8 @@ pub async fn check_for_update(ctx: &CommandContext, current_version: &str) {
             );
             eprintln!("  {:<10} v{}", "Current:", current_version);
             eprintln!();
-
-            if prompt_yes_no("Do you want to update?", true) {
-                let start = std::time::Instant::now();
-                match apply_update(ctx, &release).await {
-                    Ok(()) => {
-                        update_installed_tools();
-                        print_update_success(current_version, &release.tag_name, start.elapsed());
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to update: {}", e);
-                        status::error(&format!("Failed to update: {}", e));
-                    }
-                }
-            }
+            eprintln!("  Run {} to update.", status::highlight("ana self update"));
+            eprintln!();
         }
         Ok(UpdateCheck::AlreadyUpToDate) => {
             eprintln!("  {}", status::section("UP TO DATE"));

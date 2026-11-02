@@ -236,7 +236,9 @@ flowchart TB
     INSTALL --> PATH["Optionally update PATH"]
     PATH --> BOOT["Optionally attempt Python CLI bootstrap"]
     INSTALL --> UPDATE["Later: ana self update"]
-    UPDATE --> SOURCE{"Configured release source"}
+    UPDATE --> MODE{"--check?"}
+    MODE -->|"yes: report only"| REPORT["Print latest vs current, exit"]
+    MODE -->|"no"| SOURCE{"Configured release source"}
     SOURCE -->|"default"| STATIC["anaconda.sh/releases.json"]
     SOURCE -->|"ANA_SELF_UPDATE_URL=github"| GITHUB["GitHub Releases API"]
     STATIC --> REPLACE["Download and replace executable"]
