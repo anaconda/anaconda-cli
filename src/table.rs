@@ -1,8 +1,6 @@
 //! Table formatting utilities using comfy_table.
 
-use comfy_table::{
-    Attribute, Cell, Table, modifiers::UTF8_SOLID_INNER_BORDERS, presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, Table, presets::UTF8_FULL};
 
 // Re-export commonly used types for convenience
 pub use comfy_table::Color;
@@ -14,8 +12,7 @@ where
     S: AsRef<str>,
 {
     let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
-    table.apply_modifier(UTF8_SOLID_INNER_BORDERS);
+    table.load_style(UTF8_FULL.with_solid_inner_borders());
     table.set_header(
         headers
             .into_iter()
