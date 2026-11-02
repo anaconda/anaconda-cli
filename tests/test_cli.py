@@ -158,8 +158,11 @@ class TestSelfUpdateStaticHosting:
     def test_update_check_shows_status(self, run_ana: AnaRunner) -> None:
         result = run_ana("self", "update", "--check")
         assert result.returncode == 0
-        # Should show either "Update available" or "Already up to date"
-        assert "Update available" in result.stderr or "UP TO DATE" in result.stderr
+        assert "UPDATE AVAILABLE" in result.stderr or "UP TO DATE" in result.stderr
+        # --check must never prompt or install (see src/update.rs::check_for_update)
+        assert "Do you want to update?" not in result.stdout
+        assert "Downloading" not in result.stderr
+        assert "UPDATED" not in result.stderr
 
 
 class TestSelfUpdateGitHubFallback:
@@ -195,8 +198,11 @@ class TestSelfUpdateGitHubFallback:
             env=self_update_env,
         )
         assert result.returncode == 0
-        # Should show either "Update available" or "Already up to date"
-        assert "Update available" in result.stderr or "UP TO DATE" in result.stderr
+        assert "UPDATE AVAILABLE" in result.stderr or "UP TO DATE" in result.stderr
+        # --check must never prompt or install (see src/update.rs::check_for_update)
+        assert "Do you want to update?" not in result.stdout
+        assert "Downloading" not in result.stderr
+        assert "UPDATED" not in result.stderr
 
 
 class TestConfig:
