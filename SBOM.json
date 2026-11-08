@@ -2,7 +2,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "version": 1,
-  "serialNumber": "urn:uuid:f8f0798d-0a07-40db-b691-f7f3fcb1f326",
+  "serialNumber": "urn:uuid:801d1a1e-178b-401c-af41-35ae510d11d6",
   "metadata": {
     "tools": [
       {
@@ -30,7 +30,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e291a3dbab9293a833a78a4d4f8ef95cbe5736dee7737bc0a37d7747f003c509"
+          "content": "41364712559cafcb14532be9a5f053d92a8cb7323fcdc7c1c40194486dbe210f"
         }
       ]
     },
@@ -9450,15 +9450,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.3",
       "name": "serde_spanned",
-      "version": "1.1.1",
+      "version": "1.1.3",
       "description": "Serde-compatible spanned Value",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
+          "content": "9c187e0a369471c550af028cba56d4f4fa2a489ad28151ae95a4d340a2a8b782"
         }
       ],
       "licenses": [
@@ -9466,7 +9466,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/serde_spanned@1.1.1",
+      "purl": "pkg:cargo/serde_spanned@1.1.3",
       "externalReferences": [
         {
           "type": "vcs",
@@ -11132,15 +11132,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.2.1+spec-1.1.0",
       "name": "toml",
-      "version": "1.1.3+spec-1.1.0",
+      "version": "1.2.1+spec-1.1.0",
       "description": "A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures. ",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "53c96ecdfa941c8fc4fcaed14f99ada8ebed502eef533015095a07e3301d4c3c"
+          "content": "d5755c51863cdac711f1956baf8eb9588e060755f7d3c4c979e70ea1e1f32cd7"
         }
       ],
       "licenses": [
@@ -11148,7 +11148,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml@1.1.3+spec-1.1.0",
+      "purl": "pkg:cargo/toml@1.2.1+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -11184,15 +11184,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.3+spec-1.1.0",
       "name": "toml_datetime",
-      "version": "1.1.1+spec-1.1.0",
+      "version": "1.1.3+spec-1.1.0",
       "description": "A TOML-compatible datetime type",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
+          "content": "173f25c883cd2176a2d8212155638c0a60d484a9d84546d270866f40f56b6e49"
         }
       ],
       "licenses": [
@@ -11200,7 +11200,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml_datetime@1.1.1+spec-1.1.0",
+      "purl": "pkg:cargo/toml_datetime@1.1.3+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -11236,15 +11236,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.5+spec-1.1.0",
       "name": "toml_parser",
-      "version": "1.1.2+spec-1.1.0",
+      "version": "1.1.5+spec-1.1.0",
       "description": "Yet another format-preserving TOML parser.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
+          "content": "baa693a8032d7e1cada7d0041e96126df243179ff061456783ac7f12bda4744c"
         }
       ],
       "licenses": [
@@ -11252,7 +11252,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml_parser@1.1.2+spec-1.1.0",
+      "purl": "pkg:cargo/toml_parser@1.1.5+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -11262,15 +11262,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.2.0+spec-1.1.0",
       "name": "toml_writer",
-      "version": "1.1.2+spec-1.1.0",
+      "version": "1.2.0+spec-1.1.0",
       "description": "A low-level interface for writing out TOML ",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
+          "content": "009dbb7700f11c55ef83aebbe4c0e9cf1f1ac0844bd8d6f00dc38f302026e13a"
         }
       ],
       "licenses": [
@@ -11278,7 +11278,7 @@
           "expression": "MIT OR Apache-2.0"
         }
       ],
-      "purl": "pkg:cargo/toml_writer@1.1.2+spec-1.1.0",
+      "purl": "pkg:cargo/toml_writer@1.2.0+spec-1.1.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -14607,7 +14607,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#sha2@0.11.0",
         "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.19",
         "registry+https://github.com/rust-lang/crates.io-index#tokio@1.53.3",
-        "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml@1.2.1+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.13+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23",
         "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44",
@@ -17073,7 +17073,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.3",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.229"
       ]
@@ -17461,22 +17461,22 @@
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.229",
-        "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
+        "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.3",
         "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@0.7.5+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.5+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.2.0+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#winnow@0.7.15"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.1.3+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml@1.2.1+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
         "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.229",
-        "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.1",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#serde_spanned@1.1.3",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.3+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.5+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.2.0+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.4"
       ]
     },
@@ -17487,7 +17487,7 @@
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.3+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.229"
       ]
@@ -17496,20 +17496,20 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_edit@0.25.13+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.14.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.1+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
-        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_datetime@1.1.3+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.5+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.2.0+spec-1.1.0",
         "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.4"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.2+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_parser@1.1.5+spec-1.1.0",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#winnow@1.0.4"
       ]
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.1.2+spec-1.1.0",
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#toml_writer@1.2.0+spec-1.1.0",
       "dependsOn": []
     },
     {
@@ -18177,6 +18177,46 @@
   ],
   "vulnerabilities": [
     {
+      "id": "RUSTSEC-2026-0446",
+      "description": "The HTTP/1 chunked decoder accepts a bare line feed after the final chunk as\nthe start of a trailer instead of rejecting the malformed request.\n\nWhen an upstream proxy reuses a connection and either pipelines the requests or\ndoes not take steps to validate the chunked stream, the decoder can consume the\nnext request's headers as trailer data. It can then parse that request's body as\na new request. An attacker can use this difference in request parsing to bypass\naccess controls enforced by a proxy or web application firewall.\n\nUpgrade to actix-http 3.20.2 or later.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0446.html"
+      },
+      "ratings": [],
+      "affects": []
+    },
+    {
+      "id": "RUSTSEC-2026-0448",
+      "description": "The `encoding::Decoder` stream can expand compressed input into a large output\nbuffer before a caller can enforce its body size limit. An attacker who controls\na compressed request or response can cause excessive memory allocation and CPU\nuse, resulting in denial of service.\n\nThis affects applications that decode untrusted gzip, deflate, Brotli, or Zstandard\nbodies with the corresponding compression feature enabled.\n\nUpgrade to actix-http 3.20.1 or later and configure `Decoder::limit()` when using\nthe decoder directly. Actix Web users must also upgrade to actix-web 4.18.2 or\nlater so that extractors pass their limits to the decoder.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0448.html"
+      },
+      "ratings": [],
+      "affects": []
+    },
+    {
+      "id": "RUSTSEC-2026-0455",
+      "description": "With the `compress-brotli` feature enabled, the decoder accepts the non-standard\nlarge-window Brotli format. A crafted stream can cause its internal buffer to\ngrow to about 1 GiB before the decoded output reaches the configured size limit.\nAn 850-byte request can cause this allocation, and concurrent requests can\nexhaust process or host memory.\n\nActix Web enables Brotli support by default. Applications that read request\nbodies through `Bytes`, `String`, `Json`, or `Form` can be affected even when\nextractor size limits are configured. The allocation occurs before the handler\nruns, so authentication performed in the handler does not prevent it.\n\nUpgrade to actix-http 3.20.3 or later. As a workaround, reject requests with\n`Content-Encoding: br` at a reverse proxy or in middleware before body\nextraction, or disable the `compress-brotli` feature throughout the dependency\ngraph.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0455.html"
+      },
+      "ratings": [],
+      "affects": []
+    },
+    {
+      "id": "RUSTSEC-2026-0447",
+      "description": "Body extractors do not pass their size limits to the decompression layer.\nA small compressed request can therefore cause a large allocation before the\nextractor rejects the decoded body. A remote attacker can use this to exhaust\nmemory or CPU resources and cause denial of service.\n\nThis affects applications that read compressed request bodies with the\ncorresponding compression feature enabled.\n\nUpgrade to actix-web 4.18.2 or later with actix-http 3.20.1 or later.\nAs a workaround, reject compressed request bodies at a reverse proxy or in\nmiddleware before body extraction.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0447.html"
+      },
+      "ratings": [],
+      "affects": []
+    },
+    {
       "id": "RUSTSEC-2026-0385",
       "description": "## Summary\n\nThe `ctutils::Choice` type has mask generation functions for each unsigned\ninteger size (`u8`, `u16`, `u32`, `u64`, `u128`). These are `const fn` and\ntherefore can't reuse the `asm!`-backed mask generation in the `cmov` crate\nthat's otherwise used to ensure constant-time.\n\nIn releases prior to v0.4.4, the generated code from these functions could\ninclude a branch on commonly used platforms. This has been corrected in this\nrelease and now verified on several platforms using BINSEC.\n\nAdditionally, `u128` comparison operations provided via `ctutils::Choice` and\nintended to work in constant-time were generating branches on 32-bit targets.\nThis has been resolved via a special case implementation of these functions\nfor such targets.\n\n## Impact\n\nBranch instructions on secret values can potentially leak such values via\ncovert channels. This can enable attackers to potentially recover such secrets.\n\n## Resolution\n\nThis has been resolved by calling `Choice::to_u8()` when generating the mask,\nwhich in turn uses `black_box` as an optimization barrier. Verification that\nthis resulted in the desired change in the generated assembly across a variety\nof target CPU architectures was performed by BINSEC, which now runs\nautomatically in CI using `cargo checkct`.",
       "source": {
@@ -18201,34 +18241,6 @@
       "affects": [
         {
           "ref": "registry+https://github.com/rust-lang/crates.io-index#h2@0.4.15"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0346",
-      "description": "The `Debug` implementations of `Tls12ClientSessionValue` and\n`Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master\nsecret or TLS 1.3 resumption PSK in their output.\n\nCustom `ClientSessionStore` implementations that format these values with\n`Debug` (for example, when logging) could disclose these secrets to readers of\nthe logs. This conflicts with rustls's\n[key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).\n\nOrdinary connection and built-in session cache `Debug` output is redacted and\nis not affected.",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0346.html"
-      },
-      "ratings": [],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
-        }
-      ]
-    },
-    {
-      "id": "RUSTSEC-2026-0285",
-      "description": "Rustls accepted TLS 1.3 handshake messages sent at the wrong encryption level\nwhen they followed a key-changing message in the same record. For example,\na plaintext `EncryptedExtensions` message packed into the same record as the\n`ServerHello` was accepted.\n\nRFC 8446 section 5.1 requires that handshake messages do not span key changes,\nand that implementations terminate the connection with an \"unexpected_message\"\nalert if they do.\n\nThe handshake transcript is still authenticated, so a network-position attacker\ncannot use this to alter or complete a handshake; the practical effect is that\na peer could send handshake messages that should be encrypted in plaintext\nwithout rustls rejecting the connection.\n\nThis is functionally the same bug as Go's\n[GO-2026-4340](https://pkg.go.dev/vuln/GO-2026-4340) (CVE-2025-61730).",
-      "source": {
-        "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0285.html"
-      },
-      "ratings": [],
-      "affects": [
-        {
-          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
         }
       ]
     },
@@ -18261,6 +18273,34 @@
       ]
     },
     {
+      "id": "RUSTSEC-2026-0285",
+      "description": "Rustls accepted TLS 1.3 handshake messages sent at the wrong encryption level\nwhen they followed a key-changing message in the same record. For example,\na plaintext `EncryptedExtensions` message packed into the same record as the\n`ServerHello` was accepted.\n\nRFC 8446 section 5.1 requires that handshake messages do not span key changes,\nand that implementations terminate the connection with an \"unexpected_message\"\nalert if they do.\n\nThe handshake transcript is still authenticated, so a network-position attacker\ncannot use this to alter or complete a handshake; the practical effect is that\na peer could send handshake messages that should be encrypted in plaintext\nwithout rustls rejecting the connection.\n\nThis is functionally the same bug as Go's\n[GO-2026-4340](https://pkg.go.dev/vuln/GO-2026-4340) (CVE-2025-61730).",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0285.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
+        }
+      ]
+    },
+    {
+      "id": "RUSTSEC-2026-0346",
+      "description": "The `Debug` implementations of `Tls12ClientSessionValue` and\n`Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master\nsecret or TLS 1.3 resumption PSK in their output.\n\nCustom `ClientSessionStore` implementations that format these values with\n`Debug` (for example, when logging) could disclose these secrets to readers of\nthe logs. This conflicts with rustls's\n[key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).\n\nOrdinary connection and built-in session cache `Debug` output is redacted and\nis not affected.",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0346.html"
+      },
+      "ratings": [],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#rustls@0.23.42"
+        }
+      ]
+    },
+    {
       "id": "CVE-2026-115909",
       "description": "`ZipArchive::extract()` sizes the symlink-target buffer from the uncompressed\nsize declared in the central directory record, before reading a single byte of\nentry data:\n\n```rust\nlet mut target = Vec::with_capacity(file.size() as usize);\n```\n\nBoth inputs are attacker-controlled. `ZipFile::size()` returns\n`uncompressed_size` verbatim from the central directory, widened to a full `u64`\nby a ZIP64 extended-information extra field, and is never cross-checked against\nthe compressed size, the remaining archive length, or any platform-appropriate\nbound for a symlink target. `ZipFile::is_symlink()` is decided entirely by the\n`S_IFLNK` bit of the external-attributes field.\n\n`Vec::with_capacity()` is infallible: when the reservation is refused it calls\n`handle_alloc_error()` and aborts the process. This is not a Rust panic. It is\nnot caught by `catch_unwind()`, is unaffected by `panic = \"unwind\"`, and is not\ncontained by running the call on a worker thread.\n\nA 112-byte archive is sufficient. One `Stored` entry flagged `S_IFLNK` with a\nZIP64 field declaring `uncompressed_size = 2^62` and a zero-byte payload makes\n`extract()` fail with:\n\n```\nmemory allocation of 4611686018427387904 bytes failed\nAborted (core dumped)          # exit 134\n```\n\nThe declared value only needs to exceed the host's address space, not its RAM:\n`Vec::with_capacity()` maps address space without touching pages, so resident\nmemory stays flat and the abort happens on the refused reservation itself. Under\na `ulimit -v` cap or a memory-constrained container the threshold drops far\nenough that a plain 32-bit `uncompressed_size` with no ZIP64 field suffices.\n\nApplications that extract archives from untrusted input are affected on Unix and\nWindows targets with default features and no special configuration: upload\nhandling, mail-attachment processing, package and artefact ingestion, backup\nrestore and container-image layer extraction. No confidentiality or integrity\nproperty is affected: there is no memory unsafety, no out-of-bounds access, no\ndisclosure and no data corruption.\n\nThe fix landed in [zip-rs/zip2#984](https://github.com/zip-rs/zip2/pull/984) and\nshipped in 9.0.0.\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-q7v9-x93c-xqv3",
       "source": {
@@ -18284,11 +18324,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0367",
-      "description": "The `zip` crate preserves privileged Unix permission bits (SUID, SGID, and sticky bits) from ZIP `external_attributes` during extraction, instead of masking them to safe permission bits. If a privileged process (for example, `root` in an installer, CI/CD pipeline, or container build) extracts an attacker-controlled ZIP archive using `ZipArchive::extract()` or the stream extraction API, files can be created as setuid-root or setgid. This behavior allows the creation of SUID/SGID files during extraction, which can lead to local privilege escalation depending on the execution environment.\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-vv5m-jxxh-4627",
+      "id": "RUSTSEC-2026-0369",
+      "description": "`ZipStreamReader::extract()` applies Unix permissions through extracted symlinks without validating the symlink target stays within the destination\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4684-h2q9-2vcp",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0367.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0369.html"
       },
       "ratings": [],
       "affects": [
@@ -18312,11 +18352,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0369",
-      "description": "`ZipStreamReader::extract()` applies Unix permissions through extracted symlinks without validating the symlink target stays within the destination\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4684-h2q9-2vcp",
+      "id": "RUSTSEC-2026-0367",
+      "description": "The `zip` crate preserves privileged Unix permission bits (SUID, SGID, and sticky bits) from ZIP `external_attributes` during extraction, instead of masking them to safe permission bits. If a privileged process (for example, `root` in an installer, CI/CD pipeline, or container build) extracts an attacker-controlled ZIP archive using `ZipArchive::extract()` or the stream extraction API, files can be created as setuid-root or setgid. This behavior allows the creation of SUID/SGID files during extraction, which can lead to local privilege escalation depending on the execution environment.\n\nFor further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-vv5m-jxxh-4627",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0369.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0367.html"
       },
       "ratings": [],
       "affects": [
@@ -18340,11 +18380,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0403",
-      "description": "When decompression fails inside a legacy (zstd v0.4 to v0.7) frame, the\nbundled zstd library reports the output buffer as fully written although\nnothing was written. `DCtx::decompress_stream` committed that position even\non error, and for a `Vec<u8>` destination this extended the vector's length\nover uninitialized memory.\n\nLegacy support is enabled by default. A 5- or 6-byte corrupt legacy frame is\nenough: through `zstd::stream::write::Decoder`, up to 32 KiB of stale heap\nmemory is then passed to the wrapped writer on the next `write()` or\n`flush()`, or when an `auto_flush()`/`on_flush()` decoder is dropped. Whether\nthis reaches an attacker depends on where the application sends the\ndecompressed output. `zstd::stream::read::Decoder`, `zstd::decode_all` and\nthe bulk API are not affected.\n\nBefore zstd-safe 4.0.0, output buffers could only be initialized slices.\nThe zstd crate's own writer had the same flaw from 0.4.22 to 0.7.x, which is\ncovered by a separate advisory.\n\nThe flaw was corrected by only committing the buffer positions of a\nsuccessful call.",
+      "id": "RUSTSEC-2026-0398",
+      "description": "`ZSTD_seekable_decompress` shortens the requested length to the end of the\ndata without checking that the offset is before it. For an offset past the\nend, it returns a wrapped-around length without writing anything, and\n`Seekable::decompress` passed that length to `Vec::set_len`.\n\nWith the `seekable` feature, whoever supplies the archive, or chooses the\noffset, can leave the caller's `Vec<u8>` with a length far beyond its\ncapacity. Reading it then discloses neighbouring heap memory, and appending\nto it corrupts memory. Offsets near `u64::MAX` can also hang the call.\n\nThe flaw was corrected by clamping requests to the end of the data, and by\nchecking every count reported by the C library against the buffer capacity.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0403.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0398.html"
       },
       "ratings": [],
       "affects": [
@@ -18354,11 +18394,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0398",
-      "description": "`ZSTD_seekable_decompress` shortens the requested length to the end of the\ndata without checking that the offset is before it. For an offset past the\nend, it returns a wrapped-around length without writing anything, and\n`Seekable::decompress` passed that length to `Vec::set_len`.\n\nWith the `seekable` feature, whoever supplies the archive, or chooses the\noffset, can leave the caller's `Vec<u8>` with a length far beyond its\ncapacity. Reading it then discloses neighbouring heap memory, and appending\nto it corrupts memory. Offsets near `u64::MAX` can also hang the call.\n\nThe flaw was corrected by clamping requests to the end of the data, and by\nchecking every count reported by the C library against the buffer capacity.",
+      "id": "RUSTSEC-2026-0403",
+      "description": "When decompression fails inside a legacy (zstd v0.4 to v0.7) frame, the\nbundled zstd library reports the output buffer as fully written although\nnothing was written. `DCtx::decompress_stream` committed that position even\non error, and for a `Vec<u8>` destination this extended the vector's length\nover uninitialized memory.\n\nLegacy support is enabled by default. A 5- or 6-byte corrupt legacy frame is\nenough: through `zstd::stream::write::Decoder`, up to 32 KiB of stale heap\nmemory is then passed to the wrapped writer on the next `write()` or\n`flush()`, or when an `auto_flush()`/`on_flush()` decoder is dropped. Whether\nthis reaches an attacker depends on where the application sends the\ndecompressed output. `zstd::stream::read::Decoder`, `zstd::decode_all` and\nthe bulk API are not affected.\n\nBefore zstd-safe 4.0.0, output buffers could only be initialized slices.\nThe zstd crate's own writer had the same flaw from 0.4.22 to 0.7.x, which is\ncovered by a separate advisory.\n\nThe flaw was corrected by only committing the buffer positions of a\nsuccessful call.",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0398.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0403.html"
       },
       "ratings": [],
       "affects": [
@@ -18382,6 +18422,25 @@
       ]
     },
     {
+      "id": "RUSTSEC-2026-0440",
+      "description": "[unmaintained] `astral-tokio-tar` is unmaintained",
+      "source": {
+        "name": "RustSec",
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0440.html"
+      },
+      "ratings": [
+        {
+          "severity": "info",
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "registry+https://github.com/rust-lang/crates.io-index#astral-tokio-tar@0.6.4"
+        }
+      ]
+    },
+    {
       "id": "RUSTSEC-2024-0449",
       "description": "[unmaintained] unsafe-libyaml is unmaintained",
       "source": {
@@ -18401,11 +18460,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0395",
-      "description": "[unsound] Use-after-free with `CParameter::StableInBuffer`",
+      "id": "RUSTSEC-2026-0405",
+      "description": "[unsound] Out-of-bounds read with an out-of-range `InBuffer::pos`",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0395.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0405.html"
       },
       "ratings": [
         {
@@ -18420,11 +18479,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0402",
-      "description": "[unsound] Heap buffer overflow in `CCtx::try_clone` on a multithreaded context",
+      "id": "RUSTSEC-2026-0396",
+      "description": "[unsound] `Seekable` reads a NULL or out-of-bounds seek table",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0402.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0396.html"
       },
       "ratings": [
         {
@@ -18477,11 +18536,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0400",
-      "description": "[unsound] Use-after-free of a dictionary after a one-shot call on a context with an open stream",
+      "id": "RUSTSEC-2026-0399",
+      "description": "[unsound] Use-after-free through `init_using_cdict` and `init_using_ddict`",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0400.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0399.html"
       },
       "ratings": [
         {
@@ -18496,11 +18555,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0399",
-      "description": "[unsound] Use-after-free through `init_using_cdict` and `init_using_ddict`",
+      "id": "RUSTSEC-2026-0395",
+      "description": "[unsound] Use-after-free with `CParameter::StableInBuffer`",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0399.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0395.html"
       },
       "ratings": [
         {
@@ -18534,11 +18593,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0405",
-      "description": "[unsound] Out-of-bounds read with an out-of-range `InBuffer::pos`",
+      "id": "RUSTSEC-2026-0400",
+      "description": "[unsound] Use-after-free of a dictionary after a one-shot call on a context with an open stream",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0405.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0400.html"
       },
       "ratings": [
         {
@@ -18572,11 +18631,11 @@
       ]
     },
     {
-      "id": "RUSTSEC-2026-0396",
-      "description": "[unsound] `Seekable` reads a NULL or out-of-bounds seek table",
+      "id": "RUSTSEC-2026-0402",
+      "description": "[unsound] Heap buffer overflow in `CCtx::try_clone` on a multithreaded context",
       "source": {
         "name": "RustSec",
-        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0396.html"
+        "url": "https://rustsec.org/advisories/RUSTSEC-2026-0402.html"
       },
       "ratings": [
         {
