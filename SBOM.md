@@ -2,9 +2,9 @@
 
 Generated: unknown<br>
 Format: CycloneDX 1.4<br>
-Packages: 469 (65 platform-specific)<br>
+Packages: 468 (65 platform-specific)<br>
 Platforms: linux-aarch64, linux-x86_64, macos, windows
-<br>**[Security advisories](#security-advisories): 25 (11 INFO) across 8 packages**
+<br>**[Security advisories](#security-advisories): 33 (15 INFO) across 12 packages**
 
 ## Packages
 
@@ -25,7 +25,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [anstyle-wincon](https://crates.io/crates/anstyle-wincon) | 3.0.11 | MIT OR Apache-2.0 | windows |  |
 | [anyhow](https://crates.io/crates/anyhow) | 1.0.104 | MIT OR Apache-2.0 |  |  |
 | [astral-reqwest-middleware](https://crates.io/crates/astral-reqwest-middleware) | 0.5.1 | MIT OR Apache-2.0 |  |  |
-| [astral-tokio-tar](https://crates.io/crates/astral-tokio-tar) | 0.6.4 | MIT OR Apache-2.0 |  |  |
+| [astral-tokio-tar](https://crates.io/crates/astral-tokio-tar) | 0.6.4 | MIT OR Apache-2.0 |  | 1 |
 | [astral\_async\_http\_range\_reader](https://crates.io/crates/astral_async_http_range_reader) | 0.11.0 | MIT |  |  |
 | [astral\_async\_zip](https://crates.io/crates/astral_async_zip) | 0.0.20 | MIT |  |  |
 | [async-compression](https://crates.io/crates/async-compression) | 0.4.42 | MIT OR Apache-2.0 |  |  |
@@ -56,7 +56,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [cfg-if](https://crates.io/crates/cfg-if) | 1.0.4 | MIT OR Apache-2.0 |  |  |
 | [cfg\_aliases](https://crates.io/crates/cfg_aliases) | 0.2.2 | MIT |  |  |
 | [chacha20](https://crates.io/crates/chacha20) | 0.10.2 | MIT OR Apache-2.0 |  |  |
-| [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  |  |
+| [chrono](https://crates.io/crates/chrono) | 0.4.45 | MIT OR Apache-2.0 |  | 1 |
 | [clap](https://crates.io/crates/clap) | 4.6.7 | MIT OR Apache-2.0 |  |  |
 | [clap\_builder](https://crates.io/crates/clap_builder) | 4.6.7 | MIT OR Apache-2.0 |  |  |
 | [clap\_derive](https://crates.io/crates/clap_derive) | 4.6.7 | MIT OR Apache-2.0 |  |  |
@@ -153,7 +153,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [http-content-range](https://crates.io/crates/http-content-range) | 0.2.5 | MIT OR Apache-2.0 |  |  |
 | [httparse](https://crates.io/crates/httparse) | 1.10.1 | MIT OR Apache-2.0 |  |  |
 | [httpdate](https://crates.io/crates/httpdate) | 1.0.3 | MIT OR Apache-2.0 |  |  |
-| [humantime](https://crates.io/crates/humantime) | 2.4.0 | MIT OR Apache-2.0 |  |  |
+| [humantime](https://crates.io/crates/humantime) | 2.4.0 | MIT OR Apache-2.0 |  | 1 |
 | [hybrid-array](https://crates.io/crates/hybrid-array) | 0.4.13 | MIT OR Apache-2.0 |  |  |
 | [hyper](https://crates.io/crates/hyper) | 1.11.0 | MIT |  |  |
 | [hyper-rustls](https://crates.io/crates/hyper-rustls) | 0.27.9 | Apache-2.0 OR ISC OR MIT |  |  |
@@ -312,7 +312,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [rustc-hash](https://crates.io/crates/rustc-hash) | 2.1.3 | Apache-2.0 OR MIT |  |  |
 | [rustc\_version](https://crates.io/crates/rustc_version) | 0.4.1 | MIT OR Apache-2.0 |  |  |
 | [rustc\_version\_runtime](https://crates.io/crates/rustc_version_runtime) | 0.3.0 | MIT |  |  |
-| [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos |  |
+| [rustix](https://crates.io/crates/rustix) | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | linux, macos | 1 |
 | [rustls](https://crates.io/crates/rustls) | 0.23.42 | Apache-2.0 OR ISC OR MIT |  | 4 |
 | [rustls-native-certs](https://crates.io/crates/rustls-native-certs) | 0.8.5 | Apache-2.0 OR ISC OR MIT | linux |  |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types) | 1.15.0 | MIT OR Apache-2.0 |  |  |
@@ -353,7 +353,6 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [simple\_spawn\_blocking](https://crates.io/crates/simple_spawn_blocking) | 1.1.1 | BSD-3-Clause |  |  |
 | [slab](https://crates.io/crates/slab) | 0.4.12 | MIT |  |  |
 | [smallvec](https://crates.io/crates/smallvec) | 1.15.2 | MIT OR Apache-2.0 |  |  |
-| [socket2](https://crates.io/crates/socket2) | 0.5.10 | MIT OR Apache-2.0 |  |  |
 | [socket2](https://crates.io/crates/socket2) | 0.6.5 | MIT OR Apache-2.0 |  |  |
 | [stable\_deref\_trait](https://crates.io/crates/stable_deref_trait) | 1.2.1 | MIT OR Apache-2.0 |  |  |
 | [strsim](https://crates.io/crates/strsim) | 0.11.1 | MIT |  |  |
@@ -472,7 +471,7 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | [zerotrie](https://crates.io/crates/zerotrie) | 0.2.4 | Unicode-3.0 |  |  |
 | [zerovec](https://crates.io/crates/zerovec) | 0.11.6 | Unicode-3.0 |  |  |
 | [zerovec-derive](https://crates.io/crates/zerovec-derive) | 0.11.3 | Unicode-3.0 |  |  |
-| [zip](https://crates.io/crates/zip) | 8.6.0 | MIT |  | 4 |
+| [zip](https://crates.io/crates/zip) | 8.6.0 | MIT |  | 8 |
 | [zlib-rs](https://crates.io/crates/zlib-rs) | 0.6.6 | Zlib |  |  |
 | [zmij](https://crates.io/crates/zmij) | 1.0.23 | MIT |  |  |
 | [zopfli](https://crates.io/crates/zopfli) | 0.8.3 | Apache-2.0 |  |  |
@@ -486,35 +485,43 @@ Platforms: linux-aarch64, linux-x86_64, macos, windows
 | --- | --- | --- | :---: | :---: | --- |
 | ctutils | 0.4.2 | [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385.html) |  |  |  |
 | h2 | 0.4.15 | [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html) |  |  |  |
-| rustls | 0.23.42 | [RUSTSEC-2026-0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html) |  |  |  |
-| zip | 8.6.0 | [CVE-2026-115909](https://nvd.nist.gov/vuln/detail/CVE-2026-115909) |  |  |  |
+| rustls | 0.23.42 | [CVE-2026-123610](https://nvd.nist.gov/vuln/detail/CVE-2026-123610) |  |  |  |
+| rustls | 0.23.42 | [CVE-2026-123611](https://nvd.nist.gov/vuln/detail/CVE-2026-123611) |  |  |  |
+| rustls | 0.23.42 | [CVE-2026-123609](https://nvd.nist.gov/vuln/detail/CVE-2026-123609) |  |  |  |
+| rustls | 0.23.42 | [CVE-2026-123613](https://nvd.nist.gov/vuln/detail/CVE-2026-123613) |  |  |  |
+| zip | 8.6.0 | [CVE-2026-115905](https://nvd.nist.gov/vuln/detail/CVE-2026-115905) |  |  |  |
+| zip | 8.6.0 | [CVE-2026-115907](https://nvd.nist.gov/vuln/detail/CVE-2026-115907) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0367](https://rustsec.org/advisories/RUSTSEC-2026-0367.html) |  |  |  |
-| zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
+| zip | 8.6.0 | [CVE-2026-115909](https://nvd.nist.gov/vuln/detail/CVE-2026-115909) |  |  |  |
+| zip | 8.6.0 | [CVE-2026-115906](https://nvd.nist.gov/vuln/detail/CVE-2026-115906) |  |  |  |
+| zip | 8.6.0 | [CVE-2026-115908](https://nvd.nist.gov/vuln/detail/CVE-2026-115908) |  |  |  |
 | zip | 8.6.0 | [RUSTSEC-2026-0369](https://rustsec.org/advisories/RUSTSEC-2026-0369.html) |  |  |  |
+| zip | 8.6.0 | [RUSTSEC-2026-0368](https://rustsec.org/advisories/RUSTSEC-2026-0368.html) |  |  |  |
 | zstd | 0.13.3 | [RUSTSEC-2026-0391](https://rustsec.org/advisories/RUSTSEC-2026-0391.html) |  |  |  |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0403](https://rustsec.org/advisories/RUSTSEC-2026-0403.html) |  |  |  |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0398](https://rustsec.org/advisories/RUSTSEC-2026-0398.html) |  |  |  |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0403](https://rustsec.org/advisories/RUSTSEC-2026-0403.html) |  |  |  |
 | zstd-sys | 2.0.16+zstd.1.5.7 | [RUSTSEC-2026-0410](https://rustsec.org/advisories/RUSTSEC-2026-0410.html) |  |  |  |
+| astral-tokio-tar | 0.6.4 | [RUSTSEC-2026-0440](https://rustsec.org/advisories/RUSTSEC-2026-0440.html) |  |  | INFO |
+| chrono | 0.4.45 | [RUSTSEC-2026-0543](https://rustsec.org/advisories/RUSTSEC-2026-0543.html) |  |  | INFO |
+| humantime | 2.4.0 | [RUSTSEC-2026-0542](https://rustsec.org/advisories/RUSTSEC-2026-0542.html) |  |  | INFO |
+| rustix | 1.1.4 | [RUSTSEC-2026-0486](https://rustsec.org/advisories/RUSTSEC-2026-0486.html) |  |  | INFO |
 | unsafe-libyaml | 0.2.11 | [RUSTSEC-2024-0449](https://rustsec.org/advisories/RUSTSEC-2024-0449.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0395](https://rustsec.org/advisories/RUSTSEC-2026-0395.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0402](https://rustsec.org/advisories/RUSTSEC-2026-0402.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0406](https://rustsec.org/advisories/RUSTSEC-2026-0406.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0404](https://rustsec.org/advisories/RUSTSEC-2026-0404.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0400](https://rustsec.org/advisories/RUSTSEC-2026-0400.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0399](https://rustsec.org/advisories/RUSTSEC-2026-0399.html) |  |  | INFO |
-| zstd-safe | 7.2.4 | [RUSTSEC-2026-0401](https://rustsec.org/advisories/RUSTSEC-2026-0401.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0405](https://rustsec.org/advisories/RUSTSEC-2026-0405.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0397](https://rustsec.org/advisories/RUSTSEC-2026-0397.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0400](https://rustsec.org/advisories/RUSTSEC-2026-0400.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0404](https://rustsec.org/advisories/RUSTSEC-2026-0404.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0401](https://rustsec.org/advisories/RUSTSEC-2026-0401.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0399](https://rustsec.org/advisories/RUSTSEC-2026-0399.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0402](https://rustsec.org/advisories/RUSTSEC-2026-0402.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0406](https://rustsec.org/advisories/RUSTSEC-2026-0406.html) |  |  | INFO |
+| zstd-safe | 7.2.4 | [RUSTSEC-2026-0395](https://rustsec.org/advisories/RUSTSEC-2026-0395.html) |  |  | INFO |
 | zstd-safe | 7.2.4 | [RUSTSEC-2026-0396](https://rustsec.org/advisories/RUSTSEC-2026-0396.html) |  |  | INFO |
 
 ## License Summary
 
 | License | Count |
 | --- | ---: |
-| MIT OR Apache-2.0 | 249 |
+| MIT OR Apache-2.0 | 248 |
 | MIT | 87 |
 | Apache-2.0 OR MIT | 35 |
 | Apache-2.0 | 21 |
